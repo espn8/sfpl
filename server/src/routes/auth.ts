@@ -64,7 +64,17 @@ authRouter.get("/google", (req: Request, res: Response) => {
     nonce,
   });
 
-  res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+  req.session.save((err) => {
+    if (err) {
+      return res.status(500).json({
+        error: {
+          code: "SESSION_SAVE_FAILED",
+          message: "Failed to save session state.",
+        },
+      });
+    }
+    res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+  });
 });
 
 authRouter.get("/google/start", (req: Request, res: Response) => {
@@ -138,6 +148,7 @@ authRouter.get("/google/callback", async (req: Request, res: Response) => {
               googleSub: claims.sub,
               name: typeof claims.name === "string" ? claims.name : existingByEmail.name,
               avatarUrl: typeof claims.picture === "string" ? claims.picture : existingByEmail.avatarUrl,
+              teamId: team.id,
             },
           })
         : await prisma.user.create({
@@ -158,7 +169,17 @@ authRouter.get("/google/callback", async (req: Request, res: Response) => {
     };
     delete req.session.oauth;
 
-    return res.redirect(env.appBaseUrl);
+    req.session.save((err) => {
+      if (err) {
+        return res.status(500).json({
+          error: {
+            code: "SESSION_SAVE_FAILED",
+            message: "Failed to save authentication session.",
+          },
+        });
+      }
+      return res.redirect(env.appBaseUrl);
+    });
   } catch (_error) {
     return res.status(500).json({
       error: {

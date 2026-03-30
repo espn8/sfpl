@@ -184,6 +184,10 @@ promptsRouter.patch("/:id", async (req: Request, res: Response) => {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
   }
 
+  if (existing.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can modify this prompt." } });
+  }
+
   const nextBody = typeof req.body.body === "string" ? req.body.body : existing.body;
   const updated = await prisma.prompt.update({
     where: { id: promptId },
@@ -266,10 +270,15 @@ promptsRouter.post("/:id/restore/:version", async (req: Request, res: Response) 
   }
   const promptId = Number(req.params.id);
   const targetVersion = Number(req.params.version);
-  const prompt = await prisma.prompt.findFirst({ where: { id: promptId, teamId: auth.teamId }, select: { id: true } });
+  const prompt = await prisma.prompt.findFirst({ where: { id: promptId, teamId: auth.teamId } });
   if (!prompt) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
   }
+
+  if (prompt.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can restore this prompt." } });
+  }
+
   const version = await prisma.promptVersion.findFirst({ where: { promptId, version: targetVersion } });
   if (!version) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt version not found." } });

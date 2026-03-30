@@ -37,6 +37,15 @@ app.use(
 );
 app.use(express.json());
 
+// Some browsers/extensions request /favicon.ico by default.
+// Redirect to the SVG favicon so this does not fall through.
+app.get("/favicon.ico", (_req, res) => {
+  res.redirect(
+    302,
+    "https://a.sfdcstatic.com/shared/images/c360-nav/salesforce-with-type-logo.svg",
+  );
+});
+
 app.get("/api/health", async (_req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
@@ -45,6 +54,7 @@ app.get("/api/health", async (_req, res) => {
     res.status(500).json({ ok: false });
   }
 });
+
 app.use("/api/auth", authRouter);
 app.use("/api/prompts", promptsRouter);
 app.use("/api/collections", collectionsRouter);

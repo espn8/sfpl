@@ -45,9 +45,9 @@ In Google Cloud Console, configure OAuth consent and add the callback URL:
 - Local: `http://localhost:5000/api/auth/google/callback`
 - Production: `http://sfpl.mysalesforcedemo.com/api/auth/google/callback`
 
-If you want domain lock, set:
+Domain restriction is enabled to allow only @salesforce.com email addresses:
 
-- `GOOGLE_ALLOWED_DOMAIN=yourcompany.com`
+- `GOOGLE_ALLOWED_DOMAIN=salesforce.com`
 
 ## Heroku setup
 
@@ -65,7 +65,7 @@ If you want domain lock, set:
    - `heroku config:set GOOGLE_CLIENT_SECRET=<secret>`
    - `heroku config:set GOOGLE_CALLBACK_URL=http://sfpl.mysalesforcedemo.com/api/auth/google/callback`
    - `heroku config:set VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX`
-   - Optional: `heroku config:set GOOGLE_ALLOWED_DOMAIN=yourcompany.com`
+   - `heroku config:set GOOGLE_ALLOWED_DOMAIN=salesforce.com`
 3. Deploy:
    - `git push heroku main`
 

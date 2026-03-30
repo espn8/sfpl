@@ -7,6 +7,8 @@ import { getAnalyticsOverview } from "../features/analytics/api";
 import { fetchMe, getGoogleLoginUrl, logout } from "../features/auth/api";
 import { createCollection, listCollections } from "../features/collections/api";
 import { createPrompt, getPrompt, listPrompts, logUsage, ratePrompt, toggleFavorite, updatePrompt } from "../features/prompts/api";
+import { PrivacyPage } from "../pages/PrivacyPage";
+import { TermsPage } from "../pages/TermsPage";
 
 function RouteTracker() {
   const location = useLocation();
@@ -58,6 +60,14 @@ function LoginPage() {
         <a className="inline-flex w-fit rounded bg-slate-900 px-4 py-2 text-white" href={getGoogleLoginUrl()}>
           Continue with Google
         </a>
+        <div className="mt-4 flex gap-4 text-sm text-slate-600">
+          <a href="/terms" className="hover:underline">
+            Terms of Service
+          </a>
+          <a href="/privacy" className="hover:underline">
+            Privacy Policy
+          </a>
+        </div>
       </div>
     </main>
   );
@@ -329,6 +339,8 @@ export function AppRouter() {
       <RouteTracker />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
         <Route
           path="/"
           element={

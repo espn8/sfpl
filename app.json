@@ -12,6 +12,9 @@
     "CORS_ORIGIN": {
       "description": "Frontend origin allowed by API CORS, e.g. http://sfpl.mysalesforcedemo.com."
     },
+    "APP_BASE_URL": {
+      "description": "Canonical application base URL used for auth redirects, e.g. http://sfpl.mysalesforcedemo.com."
+    },
     "SESSION_SECRET": {
       "description": "Long random secret used to sign session cookies.",
       "generator": "secret"
@@ -30,8 +33,8 @@
       "description": "OAuth callback URL, e.g. http://sfpl.mysalesforcedemo.com/api/auth/google/callback."
     },
     "GOOGLE_ALLOWED_DOMAIN": {
-      "description": "Optional. Restrict sign-in to a single domain, e.g. yourcompany.com.",
-      "required": false
+      "description": "Restrict sign-in to a single domain, e.g. salesforce.com.",
+      "value": "salesforce.com"
     }
   },
   "formation": {
