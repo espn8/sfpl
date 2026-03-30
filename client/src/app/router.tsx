@@ -56,7 +56,6 @@ function LoginPage() {
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <div className="mx-auto flex max-w-xl flex-col gap-4 px-6 py-20">
         <h1 className="text-3xl font-bold">Prompt Library</h1>
-        <p>Sign in with Google to access your team workspace.</p>
         <a className="inline-flex w-fit rounded bg-slate-900 px-4 py-2 text-white" href={getGoogleLoginUrl()}>
           Continue with Google
         </a>

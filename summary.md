@@ -1,15 +1,19 @@
 # Prompt Library - Technical Summary
 
-**Last Updated:** Monday, March 30, 2026 at 18:56 UTC  
-**Build Version:** 87117a0  
-**Environment:** Production (Heroku) - Database connectivity issue requires attention  
-**Deployment Status:** Code deployed to v7, config update pending in v8 (blocked by DB connection)
+**Last Updated:** Monday, March 30, 2026 at 21:13 UTC  
+**Build Version:** c9d3c2e  
+**Environment:** Production (Heroku)  
+**Deployment Status:** Active
 
 ---
 
 ## Recent Changes
 
-### Authentication & Security (Current Session)
+### UI Refinement (Current Session)
+- **Login Page Cleanup**: Removed descriptive paragraph "Sign in with Google to access your team workspace." from login page for cleaner, more minimal UI
+- Updated `client/src/app/router.tsx` LoginPage component (line 58)
+
+### Authentication & Security (Previous Session)
 - **Restricted Domain Access**: Enforced @salesforce.com email domain restriction for all user authentication
 - Updated environment configuration files (`.env`, `.env.example`) to require `GOOGLE_ALLOWED_DOMAIN=salesforce.com`
 - Updated deployment documentation (`README.md`, `app.json`) to reflect mandatory domain restriction
