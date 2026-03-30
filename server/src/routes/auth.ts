@@ -1,4 +1,3 @@
-import { Role } from "@prisma/client";
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { createRemoteJWKSet, jwtVerify } from "jose";
@@ -147,7 +146,7 @@ authRouter.get("/google/callback", async (req: Request, res: Response) => {
               googleSub: claims.sub,
               name: typeof claims.name === "string" ? claims.name : null,
               avatarUrl: typeof claims.picture === "string" ? claims.picture : null,
-              role: Role.MEMBER,
+              role: "MEMBER",
               teamId: team.id,
             },
           });

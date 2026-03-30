@@ -1,4 +1,4 @@
-import { PromptStatus, Prisma, UsageAction } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { getAuthContext, requireAuth } from "../middleware/auth";
@@ -7,6 +7,9 @@ import { prisma } from "../lib/prisma";
 const promptsRouter = Router();
 
 type PromptSort = "recent" | "topRated" | "mostUsed";
+type PromptStatusValue = "DRAFT" | "PUBLISHED" | "ARCHIVED";
+type UsageActionValue = "VIEW" | "COPY" | "LAUNCH";
+const USAGE_ACTIONS: UsageActionValue[] = ["VIEW", "COPY", "LAUNCH"];
 
 function parseSort(value: unknown): PromptSort {
   if (value === "topRated" || value === "mostUsed") {
@@ -15,7 +18,7 @@ function parseSort(value: unknown): PromptSort {
   return "recent";
 }
 
-function parseStatus(value: unknown): PromptStatus | undefined {
+function parseStatus(value: unknown): PromptStatusValue | undefined {
   if (value === "DRAFT" || value === "PUBLISHED" || value === "ARCHIVED") {
     return value;
   }
@@ -36,17 +39,23 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
   const status = parseStatus(req.query.status);
   const sort = parseSort(req.query.sort);
 
-  const where: Prisma.PromptWhereInput = {
-    teamId: auth.teamId,
-    ...(status ? { status } : {}),
-    ...(q
-      ? {
-          OR: [{ title: { contains: q, mode: "insensitive" } }, { summary: { contains: q, mode: "insensitive" } }, { body: { contains: q, mode: "insensitive" } }],
-        }
-      : {}),
-    ...(tag ? { promptTags: { some: { tag: { name: { equals: tag, mode: "insensitive" } } } } } : {}),
-    ...(collectionId ? { collections: { some: { collectionId } } } : {}),
-  };
+  const where: Prisma.PromptWhereInput = { teamId: auth.teamId };
+  if (status) {
+    where.status = status;
+  }
+  if (q) {
+    where.OR = [
+      { title: { contains: q, mode: "insensitive" } },
+      { summary: { contains: q, mode: "insensitive" } },
+      { body: { contains: q, mode: "insensitive" } },
+    ];
+  }
+  if (tag) {
+    where.promptTags = { some: { tag: { name: { equals: tag, mode: "insensitive" } } } };
+  }
+  if (collectionId) {
+    where.collections = { some: { collectionId } };
+  }
 
   const prompts = await prisma.prompt.findMany({
     where,
@@ -63,7 +72,15 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
           : { createdAt: "desc" },
   });
 
-  const data = prompts.map((prompt) => ({
+  type PromptListItem = Prisma.PromptGetPayload<{
+    include: {
+      _count: { select: { favorites: true; ratings: true; usageEvents: true } };
+      ratings: { select: { value: true } };
+      promptTags: { include: { tag: true } };
+    };
+  }>;
+
+  const data = (prompts as PromptListItem[]).map((prompt: PromptListItem) => ({
     id: prompt.id,
     title: prompt.title,
     summary: prompt.summary,
@@ -73,14 +90,14 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
     modality: prompt.modality,
     createdAt: prompt.createdAt,
     updatedAt: prompt.updatedAt,
-    tags: prompt.promptTags.map((item) => item.tag.name),
+    tags: prompt.promptTags.map((item: { tag: { name: string } }) => item.tag.name),
     favoriteCount: prompt._count.favorites,
     ratingCount: prompt._count.ratings,
     usageCount: prompt._count.usageEvents,
     averageRating:
       prompt.ratings.length === 0
         ? null
-        : prompt.ratings.reduce((sum, item) => sum + item.value, 0) / prompt.ratings.length,
+        : prompt.ratings.reduce((sum: number, item: { value: number }) => sum + item.value, 0) / prompt.ratings.length,
   }));
 
   return res.status(200).json({ data });
@@ -312,8 +329,8 @@ promptsRouter.post("/:id/usage", async (req: Request, res: Response) => {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
   }
   const promptId = Number(req.params.id);
-  const action = (req.body as { action?: UsageAction }).action;
-  if (!action || !Object.values(UsageAction).includes(action)) {
+  const action = (req.body as { action?: UsageActionValue }).action;
+  if (!action || !USAGE_ACTIONS.includes(action)) {
     return res.status(400).json({ error: { code: "BAD_REQUEST", message: "Invalid usage action." } });
   }
   const prompt = await prisma.prompt.findFirst({ where: { id: promptId, teamId: auth.teamId }, select: { id: true } });
