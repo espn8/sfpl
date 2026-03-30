@@ -1,0 +1,68 @@
+import dotenv from "dotenv";
+
+dotenv.config();
+
+type Env = {
+  nodeEnv: string;
+  port: number;
+  databaseUrl: string;
+  corsOrigin: string;
+  sessionSecret: string;
+  cookieSecure: boolean;
+  sessionSameSite: "lax" | "strict" | "none";
+  googleClientId: string;
+  googleClientSecret: string;
+  googleCallbackUrl: string;
+  appBaseUrl: string;
+  googleAllowedDomain?: string;
+};
+
+function getRequired(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${name} must be defined in environment variables.`);
+  }
+
+  return value;
+}
+
+function parseBoolean(name: string, defaultValue: boolean): boolean {
+  const value = process.env[name];
+  if (!value) {
+    return defaultValue;
+  }
+
+  if (value === "true") {
+    return true;
+  }
+
+  if (value === "false") {
+    return false;
+  }
+
+  throw new Error(`${name} must be either "true" or "false".`);
+}
+
+function parseSameSite(): "lax" | "strict" | "none" {
+  const value = (process.env.SESSION_SAME_SITE ?? "lax").toLowerCase();
+  if (value === "lax" || value === "strict" || value === "none") {
+    return value;
+  }
+
+  throw new Error(`SESSION_SAME_SITE must be "lax", "strict", or "none".`);
+}
+
+export const env: Env = {
+  nodeEnv: process.env.NODE_ENV ?? "development",
+  port: Number(process.env.PORT ?? 5000),
+  databaseUrl: getRequired("DATABASE_URL"),
+  corsOrigin: getRequired("CORS_ORIGIN"),
+  sessionSecret: getRequired("SESSION_SECRET"),
+  cookieSecure: parseBoolean("COOKIE_SECURE", false),
+  sessionSameSite: parseSameSite(),
+  googleClientId: getRequired("GOOGLE_CLIENT_ID"),
+  googleClientSecret: getRequired("GOOGLE_CLIENT_SECRET"),
+  googleCallbackUrl: getRequired("GOOGLE_CALLBACK_URL"),
+  appBaseUrl: getRequired("APP_BASE_URL"),
+  googleAllowedDomain: process.env.GOOGLE_ALLOWED_DOMAIN,
+};

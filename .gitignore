@@ -5,5 +5,10 @@ client/dist
 server/dist
 server/public
 .env
+.env.local
+server/.env
+server/.env.*
+client/.env
+client/.env.*
 .DS_Store
 .sfdx

@@ -1,0 +1,50 @@
+---
+description: Run commit, deploy, and verbose summary workflow on command
+alwaysApply: true
+---
+
+# Action Rule: Commit, Deploy and Update Summary
+
+When the user triggers `Commit, Deploy and Update Summary` (or equivalent phrasing), execute this sequence in order. Keep a professional, exhaustive technical tone.
+
+## Source of Truth
+- If documentation conflicts with code, treat code as the source of truth.
+- Update documentation to match the current implementation, not the reverse.
+
+## Phase 1: Verbose Summary (`summary.md`)
+Update root `summary.md` with enough detail for a developer to rebuild the project from scratch.
+
+1. **Metadata & Versioning**
+   - Add header lines:
+     - `Last Updated: [Current Date/Time]`
+     - `Build Version: [Short Git Hash]`
+   - Compare previous `summary.md` with current project state and write a **Recent Changes** section.
+
+2. **Technical Architecture**
+   - List core stack (languages/frameworks + versions from lockfiles/manifests).
+   - List runtime/system requirements (Node, Docker, DB, OS-level dependencies).
+   - Map third-party APIs/webhooks to role and implementation file locations.
+
+3. **Project Blueprint**
+   - Include a commented directory tree and explain each folder's purpose.
+   - Explain primary data flow/lifecycle across major layers.
+   - Explain why and how major modules/components work.
+
+4. **Replication & Setup**
+   - Provide exact setup steps and commands (install, migration, run).
+   - Include `.env` template blocks with placeholder secrets.
+
+5. **Maintenance Mode**
+   - Scan repo for `TODO`/`FIXME`.
+   - Add a `Roadmap/Backlog` section listing findings.
+
+## Phase 2: Git & Deployment
+1. Stage all changes with `git add .`.
+2. Commit with a message based on **Recent Changes** from Phase 1.
+3. Verify branch, then deploy via `git push heroku main`.
+4. If Heroku push fails, stop and report the error log.
+5. If deploy succeeds, confirm the final `Last Updated` timestamp.
+
+## Execution Requirements
+- Perform end-to-end execution where feasible: summary update, commit, deploy, and validation.
+- If repository state blocks execution (for example not a git repo, missing remote, auth failure), stop at first blocker and report precise remediation.

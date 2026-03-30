@@ -9,19 +9,25 @@
     "build": "rimraf dist && tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "prisma:generate": "prisma generate",
+    "prisma:deploy": "prisma migrate deploy",
     "prisma:migrate": "prisma migrate dev",
     "heroku-postbuild": "npm --prefix ../client run build && rimraf public && mkdir -p public && cp -R ../client/dist/. public/"
   },
   "type": "commonjs",
   "dependencies": {
     "@prisma/client": "^6.19.2",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "jose": "^6.2.2"
   },
   "devDependencies": {
+    "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "@types/express-session": "^1.18.2",
     "@types/node": "^25.5.0",
     "prisma": "^6.19.2",
     "rimraf": "^6.1.3",

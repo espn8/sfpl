@@ -8,8 +8,190 @@ datasource db {
 }
 
 model User {
+  id         Int          @id @default(autoincrement())
+  email      String       @unique
+  googleSub  String?      @unique
+  name       String?
+  avatarUrl  String?
+  role       Role         @default(MEMBER)
+  teamId     Int
+  team       Team         @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  prompts    Prompt[]
+  favorites  Favorite[]
+  ratings    Rating[]
+  versions   PromptVersion[]
+  usage      UsageEvent[]
+  collections Collection[] @relation("CollectionCreator")
+}
+
+model Team {
+  id          Int          @id @default(autoincrement())
+  name        String
+  slug        String       @unique
+  users       User[]
+  prompts     Prompt[]
+  tags        Tag[]
+  collections Collection[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Prompt {
+  id           Int               @id @default(autoincrement())
+  teamId       Int
+  ownerId      Int
+  title        String
+  summary      String?
+  body         String
+  visibility   PromptVisibility  @default(TEAM)
+  status       PromptStatus      @default(DRAFT)
+  modelHint    String?
+  modality     String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  team         Team              @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  owner        User              @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  versions     PromptVersion[]
+  promptTags   PromptTag[]
+  collections  CollectionPrompt[]
+  favorites    Favorite[]
+  ratings      Rating[]
+  variables    PromptVariable[]
+  usageEvents  UsageEvent[]
+}
+
+model PromptVersion {
+  id          Int      @id @default(autoincrement())
+  promptId    Int
+  version     Int
+  body        String
+  changelog   String?
+  createdById Int
+  createdAt   DateTime @default(now())
+  prompt      Prompt   @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  createdBy   User     @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@unique([promptId, version])
+}
+
+model Tag {
   id        Int      @id @default(autoincrement())
-  email     String   @unique
+  teamId    Int
+  name      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  promptTags PromptTag[]
+
+  @@unique([teamId, name])
+}
+
+model PromptTag {
+  id       Int    @id @default(autoincrement())
+  promptId Int
+  tagId    Int
+  prompt   Prompt @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  tag      Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([promptId, tagId])
+}
+
+model Collection {
+  id          Int                @id @default(autoincrement())
+  teamId      Int
+  name        String
+  description String?
+  createdById Int
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  team        Team               @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  createdBy   User               @relation("CollectionCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  prompts     CollectionPrompt[]
+
+  @@unique([teamId, name])
+}
+
+model CollectionPrompt {
+  id           Int        @id @default(autoincrement())
+  collectionId Int
+  promptId     Int
+  sortOrder    Int        @default(0)
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  prompt       Prompt     @relation(fields: [promptId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, promptId])
+}
+
+model Favorite {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  promptId  Int
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prompt    Prompt   @relation(fields: [promptId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, promptId])
+}
+
+model Rating {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  promptId  Int
+  value     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prompt    Prompt   @relation(fields: [promptId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, promptId])
+}
+
+model PromptVariable {
+  id           Int      @id @default(autoincrement())
+  promptId     Int
+  key          String
+  label        String?
+  defaultValue String?
+  required     Boolean  @default(false)
+  prompt       Prompt   @relation(fields: [promptId], references: [id], onDelete: Cascade)
+
+  @@unique([promptId, key])
+}
+
+model UsageEvent {
+  id        Int         @id @default(autoincrement())
+  promptId  Int
+  userId    Int
+  action    UsageAction
+  createdAt DateTime    @default(now())
+  prompt    Prompt      @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([promptId, action, createdAt])
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum PromptVisibility {
+  TEAM
+  PRIVATE
+}
+
+enum PromptStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum UsageAction {
+  VIEW
+  COPY
+  LAUNCH
 }

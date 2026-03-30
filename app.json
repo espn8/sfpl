@@ -1,0 +1,46 @@
+{
+  "name": "promptlibrary",
+  "description": "Team prompt library with Google SSO, analytics, and Heroku deployment.",
+  "repository": "https://github.com/espn8/sfpl",
+  "keywords": ["node", "express", "react", "prisma", "prompt-library"],
+  "addons": ["heroku-postgresql:essential-0"],
+  "env": {
+    "NODE_ENV": {
+      "description": "Runtime environment.",
+      "value": "production"
+    },
+    "CORS_ORIGIN": {
+      "description": "Frontend origin allowed by API CORS, e.g. http://sfpl.mysalesforcedemo.com."
+    },
+    "SESSION_SECRET": {
+      "description": "Long random secret used to sign session cookies.",
+      "generator": "secret"
+    },
+    "COOKIE_SECURE": {
+      "description": "Set secure cookies in production.",
+      "value": "true"
+    },
+    "GOOGLE_CLIENT_ID": {
+      "description": "Google OAuth client ID."
+    },
+    "GOOGLE_CLIENT_SECRET": {
+      "description": "Google OAuth client secret."
+    },
+    "GOOGLE_CALLBACK_URL": {
+      "description": "OAuth callback URL, e.g. http://sfpl.mysalesforcedemo.com/api/auth/google/callback."
+    },
+    "GOOGLE_ALLOWED_DOMAIN": {
+      "description": "Optional. Restrict sign-in to a single domain, e.g. yourcompany.com.",
+      "required": false
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  },
+  "scripts": {
+    "postdeploy": "echo \"Release phase runs Prisma migrations via Procfile release command.\""
+  }
+}

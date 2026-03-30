@@ -1,24 +1,38 @@
+import cookieParser from "cookie-parser";
 import cors from "cors";
-import dotenv from "dotenv";
 import express from "express";
+import session from "express-session";
 import path from "path";
-import { PrismaClient } from "@prisma/client";
-
-dotenv.config();
-
-if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL must be defined in environment variables.");
-}
+import { env } from "./config/env";
+import { prisma } from "./lib/prisma";
+import { analyticsRouter } from "./routes/analytics";
+import { authRouter } from "./routes/auth";
+import { collectionsRouter } from "./routes/collections";
+import { promptsRouter } from "./routes/prompts";
 
 const app = express();
-const prisma = new PrismaClient();
-
-const allowedOrigin = "https://aosfpl-a2e28a52e18c.herokuapp.com";
-const port = Number(process.env.PORT || 5000);
+const port = env.port;
 
 app.use(
   cors({
-    origin: allowedOrigin,
+    origin: env.corsOrigin,
+    credentials: true,
+  }),
+);
+app.set("trust proxy", 1);
+app.use(cookieParser());
+app.use(
+  session({
+    name: "promptlibrary.sid",
+    secret: env.sessionSecret,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: env.cookieSecure,
+      sameSite: env.sessionSameSite,
+      maxAge: 1000 * 60 * 60 * 24 * 7,
+    },
   }),
 );
 app.use(express.json());
@@ -31,6 +45,10 @@ app.get("/api/health", async (_req, res) => {
     res.status(500).json({ ok: false });
   }
 });
+app.use("/api/auth", authRouter);
+app.use("/api/prompts", promptsRouter);
+app.use("/api/collections", collectionsRouter);
+app.use("/api/analytics", analyticsRouter);
 
 const publicPath = path.resolve(__dirname, "../public");
 app.use(express.static(publicPath));

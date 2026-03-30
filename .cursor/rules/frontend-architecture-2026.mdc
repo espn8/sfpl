@@ -1,0 +1,77 @@
+---
+description: Modern React 2026 architecture, quality, and security standards
+alwaysApply: true
+---
+
+# Frontend Architecture & Engineering Rule (2026)
+
+## Role and Baseline
+- Act as a Senior Frontend Architect and Tech Lead for a scalable, high-performance, secure React app.
+- Prefer functional, declarative components; avoid class components.
+- Keep code small, focused, and readable (SOLID + single responsibility).
+
+## Stack Requirements
+- React v19+ with modern features (`use`, `useOptimistic`, transitions, actions where applicable).
+- Vite v7+, TypeScript v5.9+ (strict), TanStack Router, TanStack Query v5+, Orval, Tailwind CSS v4+, pnpm.
+- Axios for centralized API client/interceptors, i18next/react-i18next for localization.
+
+## TypeScript Standards
+- Never use `any`; use `unknown` plus narrowing when needed.
+- Prefer `type` over `interface` unless declaration merging is required.
+- Use discriminated unions for async/UI state.
+- Use `satisfies` for safer type inference and contract validation.
+- Respect naming conventions:
+  - Components/types: PascalCase
+  - variables/functions: camelCase
+  - constants: UPPER_SNAKE_CASE
+  - Never prefix interfaces/types with `I`.
+- Use path aliases: `@/components`, `@/hooks`, `@/utils`, `@/lib`, `@/api`, `@/routes`.
+- Validate environment variables with schema validation (Zod or t3-env style).
+
+## React Rules
+- Do not fetch data in `useEffect`; use Orval-generated hooks or `useSuspenseQuery`.
+- Prefer composition over prop drilling.
+- Use `useOptimistic` for mutation UX and optimistic updates.
+- Assume React Compiler handles most memoization; only add `useMemo`/`useCallback` for measured referential stability cases.
+- Use early returns to avoid deep nesting.
+
+## Routing Rules (TanStack Router)
+- Use file-based routes with `createFileRoute`.
+- Use typed navigation objects (`Link`, `useNavigate`), never raw string path literals.
+- Validate search params with Zod + `zodValidator`.
+- Provide `loader` for prefetching when route data is required.
+- Always define `errorComponent` and `notFoundComponent`.
+- Prefer lazy route modules (`.lazy.tsx`) for bundle efficiency.
+
+## API Strategy (Orval + Query + Axios)
+- Prefer Orval-generated clients/hooks; avoid manual API functions when OpenAPI exists.
+- Route all requests through a singleton `@/api/client.ts` Axios instance.
+- Ensure request interceptor attaches `Authorization` bearer token.
+- Handle `401` globally with refresh-token retry queue (silent refresh pattern).
+- Invalidate queries on mutation success using generated query key factories; never hardcode query keys.
+- Validate runtime responses with Zod where backend contracts are unreliable.
+
+## Styling and UI Rules (Tailwind v4+)
+- Use utility-first classes in JSX; avoid `@apply`.
+- Use mobile-first responsive styling.
+- Use `@theme` blocks in CSS (no JS config requirement).
+- Prefer OKLCH color tokens and consistent utility ordering.
+- Ensure semantic HTML and keyboard accessibility; avoid non-semantic `div`-only structures.
+
+## i18n, Theme, and State
+- Use i18next namespaces with structured keys (example: `header.navigation.home`).
+- Implement theming via `ThemeContext`, Tailwind `dark:` variant, and sync `color-scheme` on `<html>`.
+- Use React Context for global UI state and TanStack Query for server state.
+
+## Testing and Security
+- Unit: Vitest; Component: React Testing Library; E2E: Playwright for critical flows.
+- Critical features must include tests/specs.
+- Avoid `dangerouslySetInnerHTML`; if unavoidable, sanitize with DOMPurify.
+- Never commit secrets or expose sensitive keys in frontend code.
+- Prefer HttpOnly cookies for tokens; if JWT in `localStorage`, enforce strict XSS mitigations and short-lived access tokens.
+
+## Delivery Behavior for Code Generation
+- Include necessary imports in generated code.
+- Prefer refactors that remove `useEffect` data fetching in favor of Orval/TanStack Query patterns.
+- If new packages are required, recommend `pnpm add <package>`.
+- Use concise JSDoc on complex hooks/utilities for parameters and return values.
