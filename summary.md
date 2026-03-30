@@ -1,8 +1,9 @@
 # Prompt Library - Technical Summary
 
-**Last Updated:** Monday, March 30, 2026 at 18:45 UTC  
-**Build Version:** 2d465ea  
-**Environment:** Production-ready (Heroku)
+**Last Updated:** Monday, March 30, 2026 at 18:56 UTC  
+**Build Version:** 87117a0  
+**Environment:** Production (Heroku) - Database connectivity issue requires attention  
+**Deployment Status:** Code deployed to v7, config update pending in v8 (blocked by DB connection)
 
 ---
 
@@ -445,10 +446,21 @@ The Prisma schema defines a multi-tenant prompt library with the following entit
 
 ### Known Issues & Tech Debt
 
+#### Critical (Blocking Production)
+- **Database Connectivity Issue**: Heroku Postgres database at `carsriardc474g.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432` cannot be reached
+  - Affects: Health checks returning `{"ok":false}`, Prisma migrations cannot run
+  - Impact: v8 release (with `GOOGLE_ALLOWED_DOMAIN`) failed and rolled back to v7
+  - Status: v7 deployed successfully with domain restriction code, v8 config change blocked
+  - Resolution needed: Verify database security group rules, DNS resolution, and network connectivity
+
+#### High Priority
+- **Config Incomplete**: `GOOGLE_ALLOWED_DOMAIN` set in v8 but not active (waiting for DB fix)
 - **No Error Boundaries**: Frontend needs error boundaries for graceful failure
 - **Missing Input Validation**: Backend routes lack comprehensive Zod validation
 - **No Logging**: Server lacks structured logging (consider Winston or Pino)
 - **Session Store**: Uses in-memory store (not suitable for multi-dyno Heroku; migrate to Redis)
+
+#### Medium Priority
 - **No Caching**: No Redis/CDN caching for frequently accessed prompts
 - **Tailwind Config**: Frontend needs theme customization (colors, fonts)
 - **TypeScript Strictness**: Some `any` types in route handlers need cleanup
