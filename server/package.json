@@ -16,12 +16,15 @@
   "type": "commonjs",
   "dependencies": {
     "@prisma/client": "^6.19.2",
+    "@types/connect-pg-simple": "^7.0.3",
+    "connect-pg-simple": "^10.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
-    "jose": "^6.2.2"
+    "jose": "^6.2.2",
+    "pg": "^8.20.0"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",

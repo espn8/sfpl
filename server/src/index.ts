@@ -1,8 +1,10 @@
+import connectPgSimple from "connect-pg-simple";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import session from "express-session";
 import path from "path";
+import pg from "pg";
 import { env } from "./config/env";
 import { prisma } from "./lib/prisma";
 import { analyticsRouter } from "./routes/analytics";
@@ -12,6 +14,15 @@ import { promptsRouter } from "./routes/prompts";
 
 const app = express();
 const port = env.port;
+
+const PgStore = connectPgSimple(session);
+const pgPool = new pg.Pool({
+  connectionString: env.databaseUrl,
+  ssl: env.nodeEnv === "production" ? { rejectUnauthorized: false } : false,
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+});
 
 app.use(
   cors({
@@ -23,6 +34,11 @@ app.set("trust proxy", 1);
 app.use(cookieParser());
 app.use(
   session({
+    store: new PgStore({
+      pool: pgPool,
+      tableName: "session",
+      createTableIfMissing: true,
+    }),
     name: "promptlibrary.sid",
     secret: env.sessionSecret,
     resave: false,
