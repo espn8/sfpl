@@ -23,7 +23,6 @@ const pgPool = new pg.Pool({
   min: 1,
   idleTimeoutMillis: 60000,
   connectionTimeoutMillis: 30000,
-  acquireTimeoutMillis: 30000,
 });
 
 app.use(
