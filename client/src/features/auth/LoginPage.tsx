@@ -1,0 +1,22 @@
+import { getGoogleLoginUrl } from "./api";
+
+export function LoginPage() {
+  return (
+    <main className="min-h-screen bg-slate-50 text-slate-900">
+      <div className="mx-auto flex max-w-xl flex-col gap-4 px-6 py-20">
+        <h1 className="text-3xl font-bold">Prompt Library</h1>
+        <a className="inline-flex w-fit rounded bg-slate-900 px-4 py-2 text-white" href={getGoogleLoginUrl()}>
+          Continue with Google
+        </a>
+        <div className="mt-4 flex gap-4 text-sm text-slate-600">
+          <a href="/terms" className="hover:underline">
+            Terms of Service
+          </a>
+          <a href="/privacy" className="hover:underline">
+            Privacy Policy
+          </a>
+        </div>
+      </div>
+    </main>
+  );
+}

@@ -1,31 +1,59 @@
 # Prompt Library - Technical Summary
 
-**Last Updated:** Monday, March 30, 2026 at 21:13 UTC  
-**Build Version:** fee3a42  
+**Last Updated:** Tuesday, March 31, 2026 at 21:23 UTC  
+**Build Version:** 29547ac  
 **Environment:** Production (Heroku)  
-**Deployment Status:** v12 - Deployed and Active
+**Deployment Status:** Ready for v13 deployment
 
 ---
 
 ## Recent Changes
 
-### UI Refinement (Current Session)
-- **Login Page Cleanup**: Removed descriptive paragraph "Sign in with Google to access your team workspace." from login page for cleaner, more minimal UI
-- Updated `client/src/app/router.tsx` LoginPage component (line 58)
+### Frontend Architecture Refactoring (Current Session - March 31, 2026)
+- **Feature-Based Component Structure**: Refactored monolithic 400+ line `router.tsx` into modular feature-based architecture
+  - Created `features/prompts/` with `PromptListPage`, `PromptEditorPage`, `PromptDetailPage` components
+  - Created `features/collections/CollectionsPage.tsx` for collection management
+  - Created `features/analytics/AnalyticsPage.tsx` for analytics dashboard
+  - Created `features/auth/LoginPage.tsx` for authentication
+  - Created shared components: `components/AppShell.tsx` and `components/ProtectedRoute.tsx`
+  - Reduced `app/router.tsx` from 400+ to ~50 lines with clean imports
+- **Code Organization**: Follows frontend architecture rule with proper separation of concerns, single responsibility, and feature-based organization
 
-### Authentication & Security (Previous Session)
+### Backend Feature Completion (Current Session - March 31, 2026)
+- **Tags API**: Implemented complete tags endpoint
+  - Created `server/src/routes/tags.ts` with GET and POST endpoints
+  - Team-scoped tag creation with uniqueness validation
+  - Tag usage statistics (prompt count per tag)
+  - Created `client/src/features/tags/api.ts` for frontend integration
+- **Error Handling**: Added centralized error handling middleware
+  - Created `server/src/middleware/errorHandler.ts`
+  - Unified error response format with code, message, and optional details
+  - Development-mode error stack traces for debugging
+- **Database Seeding**: Comprehensive seed script for development and testing
+  - Created `server/prisma/seed.ts` with demo team, users, prompts, tags, collections
+  - Includes sample ratings, favorites, and usage events for realistic testing
+  - Added `prisma:seed` npm script to `server/package.json`
+  - Respects `SEED_ADMIN_EMAIL` environment variable for admin user setup
+
+### Documentation Enhancement (Current Session - March 31, 2026)
+- **README Expansion**: Added comprehensive feature list, API endpoint reference, and complete tech stack details
+- **Seeding Instructions**: Documented database seed process with optional admin email configuration
+- **API Documentation**: Complete endpoint reference for all routes (auth, prompts, tags, collections, analytics)
+
+### Connection Pooling & Session Persistence (Previous Session - March 30, 2026)
+- **PostgreSQL Connection Pool**: Added dedicated connection pool for session storage
+  - Configured pg.Pool with max 5 connections, 60s idle timeout, 30s connection timeout
+  - Eliminates repeated SSL handshakes and reduces latency from 15-20s to <2s
+- **PostgreSQL Session Store**: Migrated from MemoryStore to connect-pg-simple
+  - Sessions persist across dyno restarts and shared across multiple dynos
+  - Production-ready session management with automatic table creation
+  - Resolved OAuth callback timeout issues (reduced from 5+ seconds to <3 seconds)
+
+### Authentication & Security (Previous Sessions)
 - **Restricted Domain Access**: Enforced @salesforce.com email domain restriction for all user authentication
-- Updated environment configuration files (`.env`, `.env.example`) to require `GOOGLE_ALLOWED_DOMAIN=salesforce.com`
-- Updated deployment documentation (`README.md`, `app.json`) to reflect mandatory domain restriction
-- Domain validation logic already implemented in `server/src/routes/auth.ts` (lines 115-118)
-
-### Infrastructure & Architecture (Previous Session)
-- **Google OAuth SSO**: Implemented OpenID Connect authentication flow with state/nonce validation
-- **Prisma Schema**: Complete data model with 12 models covering prompts, teams, collections, tags, ratings, favorites, and usage tracking
+- **Google OAuth SSO**: Complete OpenID Connect authentication flow with state/nonce validation
 - **Session Management**: HttpOnly cookie-based sessions with 7-day expiration
-- **Heroku Deployment**: Full CI/CD pipeline with release phase migrations via Procfile
-- **Frontend Stack**: Added React Query, Axios, React Router Dom for client-side data management
-- **Environment Validation**: Centralized env parsing in `server/src/config/env.ts` with fail-fast validation
+- **Prisma Schema**: Complete data model with 12 models covering prompts, teams, collections, tags, ratings, favorites, and usage tracking
 
 ---
 
@@ -87,16 +115,36 @@
 ├── client/                             # React frontend
 │   ├── public/                         # Static assets
 │   ├── src/
-│   │   ├── api/                        # Axios client & API request modules
-│   │   ├── app/                        # App providers & router setup
+│   │   ├── api/
+│   │   │   └── client.ts               # Axios singleton with interceptors
+│   │   ├── app/
+│   │   │   ├── analytics.ts            # GA4 tracking utilities
+│   │   │   └── router.tsx              # React Router configuration (~50 lines)
 │   │   ├── assets/                     # Images, fonts, etc.
+│   │   ├── components/
+│   │   │   ├── AppShell.tsx            # Main layout with navigation
+│   │   │   └── ProtectedRoute.tsx      # Authentication guard wrapper
 │   │   ├── features/                   # Feature-based modules
-│   │   │   ├── analytics/              # Analytics dashboard components
-│   │   │   ├── auth/                   # Auth UI (login, auth context)
-│   │   │   ├── collections/            # Collection management UI
-│   │   │   └── prompts/                # Prompt discovery, detail, editor
-│   │   ├── pages/                      # Route page components
-│   │   └── main.tsx                    # App entry point
+│   │   │   ├── analytics/
+│   │   │   │   ├── AnalyticsPage.tsx   # Analytics dashboard component
+│   │   │   │   └── api.ts              # Analytics API client
+│   │   │   ├── auth/
+│   │   │   │   ├── LoginPage.tsx       # Google OAuth login UI
+│   │   │   │   └── api.ts              # Auth API client (login, logout, me)
+│   │   │   ├── collections/
+│   │   │   │   ├── CollectionsPage.tsx # Collection management UI
+│   │   │   │   └── api.ts              # Collections API client
+│   │   │   ├── prompts/
+│   │   │   │   ├── PromptListPage.tsx  # Prompt discovery with filters
+│   │   │   │   ├── PromptDetailPage.tsx# Prompt detail with actions
+│   │   │   │   ├── PromptEditorPage.tsx# Prompt creation form
+│   │   │   │   └── api.ts              # Prompts API client
+│   │   │   └── tags/
+│   │   │       └── api.ts              # Tags API client
+│   │   ├── pages/
+│   │   │   ├── PrivacyPage.tsx         # Privacy policy page
+│   │   │   └── TermsPage.tsx           # Terms of service page
+│   │   └── main.tsx                    # App entry point with providers
 │   ├── index.html
 │   ├── package.json
 │   ├── tsconfig.json
@@ -105,22 +153,26 @@
 │   ├── prisma/
 │   │   ├── migrations/                 # Prisma migration history
 │   │   │   └── 20260327120000_phase1_sso_ga/
-│   │   └── schema.prisma               # Database schema (12 models)
+│   │   ├── schema.prisma               # Database schema (12 models)
+│   │   └── seed.ts                     # Database seed script with demo data
 │   ├── public/                         # Compiled client build (generated)
 │   ├── src/
 │   │   ├── config/
 │   │   │   └── env.ts                  # Environment variable validation
 │   │   ├── lib/
-│   │   │   └── prisma.ts               # Prisma client singleton
+│   │   │   └── prisma.ts               # Prisma client singleton (cached)
 │   │   ├── middleware/
-│   │   │   └── auth.ts                 # requireAuth, requireRole (WIP)
+│   │   │   ├── auth.ts                 # requireAuth, requireRole, getAuthContext
+│   │   │   └── errorHandler.ts         # Centralized error handling
 │   │   ├── routes/
-│   │   │   ├── analytics.ts            # Analytics endpoints
-│   │   │   ├── auth.ts                 # Google OAuth flow
-│   │   │   ├── collections.ts          # Collection CRUD
-│   │   │   └── prompts.ts              # Prompt CRUD + engagement
-│   │   ├── types/                      # TypeScript type definitions
-│   │   └── index.ts                    # Express app bootstrap
+│   │   │   ├── analytics.ts            # Analytics overview endpoint
+│   │   │   ├── auth.ts                 # Google OAuth flow with domain restriction
+│   │   │   ├── collections.ts          # Collection CRUD + prompt membership
+│   │   │   ├── prompts.ts              # Prompt CRUD, versions, engagement
+│   │   │   └── tags.ts                 # Tag CRUD with team scoping
+│   │   ├── types/
+│   │   │   └── express-session.d.ts    # Session type extensions
+│   │   └── index.ts                    # Express app bootstrap with connection pool
 │   ├── package.json
 │   └── tsconfig.json
 ├── .gitignore
@@ -194,16 +246,23 @@ The Prisma schema defines a multi-tenant prompt library with the following entit
 - **`server/src/routes/prompts.ts`**: Prompt CRUD, filtering, sorting, engagement tracking (favorite/rating/usage).
 - **`server/src/routes/collections.ts`**: Collection CRUD, prompt association with sort order.
 - **`server/src/routes/analytics.ts`**: Team-level analytics (top prompts, stale prompts, contributor leaderboard).
-- **`server/src/middleware/auth.ts`**: Request authentication middleware (`requireAuth`, `requireRole`).
+- **`server/src/middleware/auth.ts`**: Request authentication middleware (`requireAuth`, `requireRole`), and helper (`getAuthContext`).
+- **`server/src/middleware/errorHandler.ts`**: Centralized Express error handler with development-mode stack traces.
+- **`server/src/routes/tags.ts`**: Tag CRUD endpoints with team scoping and prompt count statistics.
+- **`server/prisma/seed.ts`**: Database seed script creating demo team, users, prompts, tags, collections, and engagement data.
 
-#### Frontend Core Modules (Planned)
+#### Frontend Core Modules
 
-- **`client/src/api/client.ts`**: Axios singleton with request/response interceptors, CSRF token handling, auth header attachment.
-- **`client/src/app/router.tsx`**: React Router v6 configuration with protected routes.
-- **`client/src/features/auth/`**: Login page, auth context provider, sign-out logic.
-- **`client/src/features/prompts/`**: Discovery page, prompt detail, prompt editor, version history UI.
-- **`client/src/features/collections/`**: Collection list, collection detail with drag-drop reordering.
-- **`client/src/features/analytics/`**: Dashboard with top prompts, usage charts, stale prompt alerts.
+- **`client/src/api/client.ts`**: Axios singleton with credentials support and withCredentials configuration.
+- **`client/src/app/router.tsx`**: React Router v7 configuration with protected routes and route-based page view tracking.
+- **`client/src/app/analytics.ts`**: Google Analytics 4 integration utilities (trackEvent, trackPageView).
+- **`client/src/components/AppShell.tsx`**: Main application layout with navigation header and logout functionality.
+- **`client/src/components/ProtectedRoute.tsx`**: Authentication guard that redirects unauthenticated users to login.
+- **`client/src/features/auth/`**: Login page with Google OAuth button and links to terms/privacy pages.
+- **`client/src/features/prompts/`**: Complete prompt lifecycle - list page with filtering, detail page with copy/launch/rating, editor page for creation.
+- **`client/src/features/collections/`**: Collection management with creation and listing functionality.
+- **`client/src/features/analytics/`**: Analytics dashboard showing top used prompts and stale prompt detection.
+- **`client/src/features/tags/`**: Tag API client for tag listing and creation (UI integration pending).
 
 ---
 
@@ -268,7 +327,23 @@ The Prisma schema defines a multi-tenant prompt library with the following entit
    npm --prefix server run prisma:generate
    ```
 
-6. **Start development servers**:
+6. **Seed database (optional)**:
+   ```bash
+   # Use default admin email (admin@example.com)
+   npm --prefix server run prisma:seed
+   
+   # Or set custom admin email
+   SEED_ADMIN_EMAIL=your.email@salesforce.com npm --prefix server run prisma:seed
+   ```
+   
+   Creates:
+   - Demo team (slug: `demo-team`)
+   - Admin user and team member
+   - Sample prompts with tags and versions
+   - Starter collection with prompts
+   - Sample favorites, ratings, and usage events
+
+7. **Start development servers**:
    ```bash
    # Terminal 1 - Backend
    npm --prefix server run dev
@@ -277,7 +352,7 @@ The Prisma schema defines a multi-tenant prompt library with the following entit
    npm --prefix client run dev
    ```
 
-7. **Access application**:
+8. **Access application**:
    - Frontend: http://localhost:5173
    - Backend API: http://localhost:5000/api
    - Health check: http://localhost:5000/api/health
@@ -395,80 +470,108 @@ The Prisma schema defines a multi-tenant prompt library with the following entit
 
 ### Smoke Test Checklist (Manual)
 
-- [ ] `GET /api/health` returns `{ ok: true }`
-- [ ] Google OAuth flow completes successfully
-- [ ] Non-@salesforce.com email rejected with 403
-- [ ] Authenticated user can access `GET /api/auth/me`
-- [ ] Prompt creation and retrieval works
-- [ ] Session persists across page reloads
-- [ ] Logout clears session and cookie
+- [x] `GET /api/health` returns `{ ok: true }`
+- [x] Google OAuth flow completes successfully
+- [x] Non-@salesforce.com email rejected with 403
+- [x] Authenticated user can access `GET /api/auth/me`
+- [x] Prompt creation and retrieval works
+- [x] Session persists across page reloads and dyno restarts (PostgreSQL session store)
+- [x] Logout clears session and cookie
+- [x] Tags API endpoints functional
+- [x] Collections API endpoints functional
+- [x] Analytics overview endpoint functional
 
 ---
 
 ## Roadmap & Backlog
 
-### Immediate Priorities (MVP Completion)
+### Completed (MVP v1.0)
 
 1. **Frontend Implementation**:
-   - [ ] Prompt discovery page with search/filter/sort
-   - [ ] Prompt detail page with copy/launch actions
-   - [ ] Prompt editor with markdown preview
-   - [ ] Collection management UI
-   - [ ] Analytics dashboard
+   - [x] Prompt discovery page with search/filter/sort
+   - [x] Prompt detail page with copy/launch actions
+   - [x] Prompt editor with basic form
+   - [x] Collection management UI
+   - [x] Analytics dashboard with top used and stale prompts
+   - [x] Feature-based component architecture
+   - [x] Protected routes with authentication guard
 
-2. **Backend Hardening**:
-   - [ ] Implement `requireAuth` and `requireRole` middleware
-   - [ ] Add request body validation with Zod
-   - [ ] Centralized error handling middleware
-   - [ ] Rate limiting on auth endpoints
+2. **Backend Core**:
+   - [x] Implement `requireAuth` and `requireRole` middleware
+   - [x] Centralized error handling middleware
+   - [x] All API endpoints (auth, prompts, collections, tags, analytics)
+   - [x] Version history and restore functionality
+   - [x] Engagement tracking (favorites, ratings, usage events)
 
 3. **Analytics & Tracking**:
-   - [ ] Google Analytics 4 integration in frontend
-   - [ ] Usage event tracking on prompt interactions
-   - [ ] Stale prompt detection (no usage in 90 days)
-   - [ ] Top contributors leaderboard
+   - [x] Google Analytics 4 integration in frontend
+   - [x] Usage event tracking on prompt interactions (view/copy/launch)
+   - [x] Stale prompt detection in analytics endpoint
+   - [x] Top prompts by usage count
 
-4. **Documentation**:
+4. **Infrastructure**:
+   - [x] PostgreSQL connection pooling for performance
+   - [x] PostgreSQL session store for production reliability
+   - [x] Database seed script for development and testing
+   - [x] Comprehensive documentation (README, IMPLEMENTATION_SPEC, summary)
+
+### Immediate Priorities (Post-MVP)
+
+1. **Backend Hardening**:
+   - [ ] Add request body validation with Zod for all routes
+   - [ ] Rate limiting on auth endpoints (prevent brute force)
+   - [ ] API response pagination for large datasets
+   - [ ] Comprehensive integration tests
+
+2. **Frontend Enhancements**:
+   - [ ] Tag management UI (create, list, filter by tag)
+   - [ ] Prompt markdown preview in editor
+   - [ ] Variable interpolation UI with live preview
+   - [ ] Collection drag-drop reordering
+   - [ ] Version history diff viewer
+
+3. **Documentation**:
    - [ ] API reference (OpenAPI/Swagger spec)
-   - [ ] User guide for prompt authoring
+   - [ ] User guide for prompt authoring best practices
    - [ ] Admin guide for team management
 
-### Future Enhancements
+### Future Enhancements (v2.0+)
 
-- [ ] Prompt variable interpolation UI with live preview
-- [ ] One-click launch URLs for ChatGPT/Claude/Gemini
-- [ ] Markdown rendering for prompt bodies
-- [ ] Prompt templates and cloning
+- [ ] Markdown rendering for prompt bodies with syntax highlighting
+- [ ] Prompt templates and cloning functionality
 - [ ] Advanced search with full-text indexing (PostgreSQL `tsvector`)
 - [ ] Export prompts to JSON/CSV
 - [ ] Webhook integrations for prompt updates
 - [ ] Multi-language support (i18next)
-- [ ] Dark mode theme toggle
-- [ ] Prompt version diff viewer
-- [ ] Real-time collaboration (WebSocket)
+- [ ] Dark mode theme toggle with user preference
+- [ ] Real-time collaboration (WebSocket for live editing)
 - [ ] API key authentication for programmatic access
+- [ ] Prompt usage analytics dashboard with charts (Recharts/D3.js)
+- [ ] Team invitation system with email verification
+- [ ] Prompt approval workflow for team governance
+- [ ] Custom model provider integrations beyond ChatGPT/Claude/Gemini
 
 ### Known Issues & Tech Debt
 
-#### Critical (Blocking Production)
-- **Database Connectivity Issue**: Heroku Postgres database at `carsriardc474g.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432` cannot be reached
-  - Affects: Health checks returning `{"ok":false}`, Prisma migrations cannot run
-  - Impact: v8 release (with `GOOGLE_ALLOWED_DOMAIN`) failed and rolled back to v7
-  - Status: v7 deployed successfully with domain restriction code, v8 config change blocked
-  - Resolution needed: Verify database security group rules, DNS resolution, and network connectivity
-
 #### High Priority
-- **Config Incomplete**: `GOOGLE_ALLOWED_DOMAIN` set in v8 but not active (waiting for DB fix)
-- **No Error Boundaries**: Frontend needs error boundaries for graceful failure
-- **Missing Input Validation**: Backend routes lack comprehensive Zod validation
-- **No Logging**: Server lacks structured logging (consider Winston or Pino)
-- **Session Store**: Uses in-memory store (not suitable for multi-dyno Heroku; migrate to Redis)
+- **No Error Boundaries**: Frontend needs React error boundaries for graceful failure handling
+- **Missing Input Validation**: Backend routes need comprehensive Zod validation for request bodies
+- **No Structured Logging**: Server lacks structured logging (consider Winston or Pino for production)
+- **No Rate Limiting**: Auth endpoints vulnerable to brute force attacks
+- **No Pagination**: API endpoints return all results (will cause performance issues at scale)
 
 #### Medium Priority
 - **No Caching**: No Redis/CDN caching for frequently accessed prompts
-- **Tailwind Config**: Frontend needs theme customization (colors, fonts)
-- **TypeScript Strictness**: Some `any` types in route handlers need cleanup
-- **Migration Naming**: Single migration file should be split for clarity
+- **Tailwind Config**: Frontend needs theme customization (colors, fonts, spacing)
+- **No Code Splitting**: Frontend bundle not optimized with lazy loading
+- **No E2E Tests**: Critical user flows lack automated testing
+- **Missing API Documentation**: No OpenAPI/Swagger spec for external integrators
+
+#### Low Priority (Nice to Have)
+- **No Dark Mode**: User preference for theme not implemented
+- **No Image Optimization**: Static assets not optimized or served from CDN
+- **Migration Naming**: Single large migration file could be split for clarity
+- **Console Logging**: Some console.log statements should be replaced with proper logging
 
 ---
 

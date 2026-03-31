@@ -7,10 +7,12 @@ import path from "path";
 import pg from "pg";
 import { env } from "./config/env";
 import { prisma } from "./lib/prisma";
+import { errorHandler } from "./middleware/errorHandler";
 import { analyticsRouter } from "./routes/analytics";
 import { authRouter } from "./routes/auth";
 import { collectionsRouter } from "./routes/collections";
 import { promptsRouter } from "./routes/prompts";
+import { tagsRouter } from "./routes/tags";
 
 const app = express();
 const port = env.port;
@@ -76,6 +78,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/prompts", promptsRouter);
 app.use("/api/collections", collectionsRouter);
 app.use("/api/analytics", analyticsRouter);
+app.use("/api/tags", tagsRouter);
 
 const publicPath = path.resolve(__dirname, "../public");
 app.use(express.static(publicPath));
@@ -83,6 +86,8 @@ app.use(express.static(publicPath));
 app.get(/^(?!\/api).*/, (_req, res) => {
   res.sendFile(path.join(publicPath, "index.html"));
 });
+
+app.use(errorHandler);
 
 app.listen(port, () => {
   // eslint-disable-next-line no-console

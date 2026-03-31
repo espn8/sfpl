@@ -11,6 +11,7 @@
     "prisma:generate": "prisma generate",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "tsx prisma/seed.ts",
     "heroku-postbuild": "npm --prefix ../client run build && rimraf public && mkdir -p public && cp -R ../client/dist/. public/"
   },
   "type": "commonjs",
