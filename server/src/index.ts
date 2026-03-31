@@ -19,9 +19,11 @@ const PgStore = connectPgSimple(session);
 const pgPool = new pg.Pool({
   connectionString: env.databaseUrl,
   ssl: env.nodeEnv === "production" ? { rejectUnauthorized: false } : false,
-  max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
+  max: 5,
+  min: 1,
+  idleTimeoutMillis: 60000,
+  connectionTimeoutMillis: 30000,
+  acquireTimeoutMillis: 30000,
 });
 
 app.use(
