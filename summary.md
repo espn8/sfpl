@@ -1,7 +1,7 @@
 # Prompt Library - Technical Summary
 
-Last Updated: Thursday, April 02, 2026 at 16:55 CDT
-Build Version: 84fedd8
+Last Updated: Thursday, April 02, 2026 at 17:19 CDT
+Build Version: 8cfaaf1
 
 ## Recent Changes
 
@@ -11,6 +11,7 @@ Build Version: 84fedd8
 - Added a richer prompt detail metadata panel that displays status, visibility, model hint, modality, tags, average rating, rating count, and usage count.
 - Added prompt-to-collection membership controls on the prompt detail page with optimistic TanStack Query cache updates and rollback-on-error behavior.
 - Added new frontend modules: `PromptEditPage`, `CollectionDetailPage`, and `SettingsPage`, and extended API clients for prompt filtering metadata and collection membership mutations.
+- Added design-system planning requirements for PromptMagic-inspired discovery UX with Salesforce branding and tri-mode theming (`dark` default, `light`, `system`).
 
 ## Technical Architecture
 
@@ -113,6 +114,24 @@ Build Version: 84fedd8
 - `client/src/features/prompts/PromptEditorPage.tsx` and `client/src/features/prompts/PromptEditPage.tsx`: prompt authoring/editing forms aligned to backend fields.
 - `client/src/features/collections/CollectionDetailPage.tsx`: collection-focused prompt browsing view.
 - `client/src/features/auth/SettingsPage.tsx`: authenticated profile/team settings surface backed by `/api/auth/me`.
+- `client/src/app/providers/ThemeProvider.tsx` (planned): owns app-wide theme mode state (`dark|light|system`), system preference listeners, and storage hydration.
+- `client/src/components/ui/ThemeModeToggle.tsx` (planned): user control surface for selecting and persisting theme mode.
+- `client/src/styles/tokens.css` and `client/src/styles/theme.css` (planned): centralized design tokens and theme-specific variable mappings used by all frontend surfaces.
+
+### Frontend Theme Architecture Notes
+
+- Theme ownership: `ThemeProvider` wraps app-level providers in `client/src/main.tsx`, exposing mode state and setter through context.
+- Token ownership: color/surface/text/semantic tokens live in `client/src/styles/*` and are consumed by UI components rather than hardcoded values.
+- Runtime behavior:
+  - No saved preference -> default to `dark`.
+  - Saved `light` or `dark` preference overrides system.
+  - `system` resolves from `prefers-color-scheme` and reacts to OS theme changes.
+  - Initial theme application happens before first paint to prevent flash of incorrect theme.
+- Branding requirement: Salesforce logo and Salesforce-aligned blue action hierarchy must remain consistent and accessible across both light and dark surfaces.
+- Test expectations:
+  - Unit/component tests for theme mode toggle transitions and persistence.
+  - Runtime tests verifying first-load dark default and `system` change reactions.
+  - Visual/accessibility checks that core pages keep contrast and visible focus indicators in both themes.
 
 ## Replication and Setup
 

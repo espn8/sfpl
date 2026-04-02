@@ -24,6 +24,7 @@ jobs:
             working-directory: client
             cache-dependency-path: client/package-lock.json
             commands: |
+              npm test
               npm run build
     defaults:
       run:

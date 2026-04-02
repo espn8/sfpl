@@ -277,7 +277,57 @@ Current frontend is minimal. Implement with current React/Vite setup and add rou
 
 ---
 
-## 7) One-Click Launch URL Strategy
+## 7) UI Look & Feel + Theming
+
+Design references:
+- Product interaction and information architecture should be inspired by [Prompt Magic](https://promptmagic.dev/) patterns: discovery-first layout, high-scanability card collections, and immediate primary actions.
+- Brand expression should use Salesforce logo placement in app chrome surfaces (login, top nav, and product header) with consistent spacing and contrast.
+
+### Brand and visual tokens
+- Implement tokens in `client/src/styles/` (or equivalent single source of truth) and map all component styling to token usage.
+- Use explicit token naming:
+  - surfaces: `--color-bg`, `--color-surface`, `--color-surface-muted`, `--color-border`
+  - text: `--color-text`, `--color-text-muted`, `--color-text-inverse`
+  - actions: `--color-primary`, `--color-primary-hover`, `--color-primary-active`
+  - states: `--color-success`, `--color-warning`, `--color-danger`, `--color-info`
+- Define Salesforce-aligned palettes for each theme:
+  - Dark (default): deep neutral surfaces with Salesforce blue accents for interactive controls.
+  - Light: bright neutral surfaces and Salesforce blue hierarchy preserving brand identity.
+- Ensure semantic states are readable and distinguishable in both themes.
+
+### Theme modes and persistence
+- Supported modes: `dark`, `light`, `system`.
+- Default mode is `dark` when no user preference exists.
+- `system` must track `prefers-color-scheme` and update when OS theme changes.
+- Persist user-selected mode (for example `localStorage`) and apply theme before first paint to avoid flash.
+- Expose mode switching in global user-facing controls (settings and/or app shell switcher).
+
+### Component styling rules
+- Discovery/list pages:
+  - Prioritize search + filter + sort controls near top with clear visual affordances.
+  - Keep card density high but readable with consistent spacing, hierarchy, and action placement.
+- Prompt cards:
+  - Distinct card container (surface/border/elevation tokenized by theme).
+  - Metadata legibility for model, modality, rating, and usage.
+  - Primary quick actions (`copy`, `launch`, `favorite`) visually obvious without clutter.
+- Controls:
+  - Filter chips require clear selected/unselected/hover/focus states.
+  - Button hierarchy must be consistent (`primary`, `secondary`, `ghost`) across screens.
+  - Form fields need visible focus ring and sufficient placeholder/label contrast.
+
+### Accessibility requirements
+- Target WCAG AA contrast for body text, key UI controls, and focus indicators in both dark and light modes.
+- Never rely on color alone for state communication (include iconography/text/state labels where needed).
+- Ensure keyboard-only navigation keeps visible focus and predictable tab order.
+
+### Validation checklist
+- Discovery, detail, editor, collections, analytics, and settings screens are visually consistent with token system.
+- Salesforce logo remains clear and accessible in both dark and light contexts.
+- Dark is first-load default; light and system modes are selectable and persistent.
+
+---
+
+## 8) One-Click Launch URL Strategy
 
 Provide utility function that maps provider to compose URL:
 
@@ -291,7 +341,7 @@ Because provider URLs change, implement as config-driven map in frontend:
 
 ---
 
-## 8) Security and Authorization Rules
+## 9) Security and Authorization Rules
 
 - Every data read/write must enforce `teamId` scope from authenticated user.
 - Only owner/admin can archive/delete prompts created by others.
@@ -303,7 +353,7 @@ Because provider URLs change, implement as config-driven map in frontend:
 
 ---
 
-## 8.1) Google Analytics (GA4) Tracking Plan
+## 9.1) Google Analytics (GA4) Tracking Plan
 
 Use GA4 only for aggregate product analytics; keep PII out of event payloads.
 
@@ -326,7 +376,7 @@ Implementation notes:
 
 ---
 
-## 9) Heroku Deployment Spec
+## 10) Heroku Deployment Spec
 
 ### Build/Run
 Use existing `server` scripts as base and ensure these are configured:
@@ -350,7 +400,7 @@ Use existing `server` scripts as base and ensure these are configured:
 
 ---
 
-## 10) Delivery Plan (Ticketized)
+## 11) Delivery Plan (Ticketized)
 
 ### Milestone A - Foundation
 1. Env validation and CORS refactor
@@ -377,26 +427,35 @@ Acceptance:
 11. Prompt detail + copy/launch/variables
 12. Prompt editor + version creation
 13. Collections screens
+14. Theme provider + tokenized UI foundation (`dark` default, `light`, `system`)
+15. Global theme switch controls + persistence behavior
 
 Acceptance:
 - End-to-end prompt lifecycle works in UI
+- User can switch `dark`, `light`, `system` from settings/global UI
+- First load uses `dark` when no preference exists
+- `system` mode tracks device theme changes
 
 ### Milestone D - Analytics + Hardening
-14. Analytics endpoints + dashboard
-15. Authorization hardening and role checks
-16. QA pass + seed script + deployment docs
+16. Analytics endpoints + dashboard
+17. Authorization hardening and role checks
+18. QA pass + seed script + deployment docs, including cross-theme accessibility checks
 
 Acceptance:
 - Team can see top prompts and stale prompts
 - App deploys cleanly to Heroku with migrations
+- Core screens meet contrast and focus visibility requirements in both dark and light themes
 
 ---
 
-## 11) Definition of Done
+## 12) Definition of Done
 
 - All v1 endpoints implemented and validated
 - Team-scoped authorization on every protected endpoint
 - Frontend supports create/discover/use/version workflows
+- Frontend theme system supports `dark` (default), `light`, and `system` with persisted user preference
+- Theme is applied on initial load without visible flash
+- Core interactive components have keyboard-visible focus and WCAG AA contrast in both themes
 - Prisma migrations applied in Heroku release phase
 - Basic smoke tests pass:
   - auth flow
@@ -407,7 +466,7 @@ Acceptance:
 
 ---
 
-## 12) Immediate Next Files to Create/Modify
+## 13) Immediate Next Files to Create/Modify
 
 Server:
 - `server/prisma/schema.prisma` (expand models)
@@ -423,7 +482,11 @@ Server:
 Client:
 - `client/src/main.tsx` (providers/router)
 - `client/src/app/router.tsx`
+- `client/src/app/providers/ThemeProvider.tsx`
+- `client/src/components/ui/ThemeModeToggle.tsx`
 - `client/src/api/client.ts`
+- `client/src/styles/tokens.css`
+- `client/src/styles/theme.css`
 - `client/src/features/prompts/*`
 - `client/src/features/collections/*`
 - `client/src/features/auth/*`
