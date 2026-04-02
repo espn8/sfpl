@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import type { Request, Response } from "express";
 import { Router } from "express";
+import { z } from "zod";
 import { getAuthContext, requireAuth } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 
@@ -10,19 +11,78 @@ type PromptSort = "recent" | "topRated" | "mostUsed";
 type PromptStatusValue = "DRAFT" | "PUBLISHED" | "ARCHIVED";
 type UsageActionValue = "VIEW" | "COPY" | "LAUNCH";
 const USAGE_ACTIONS: UsageActionValue[] = ["VIEW", "COPY", "LAUNCH"];
+const promptVisibilitySchema = z.enum(["TEAM", "PRIVATE"]);
+const promptStatusSchema = z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]);
+const usageActionSchema = z.enum(USAGE_ACTIONS);
+
+const listPromptsQuerySchema = z.object({
+  q: z.string().trim().optional(),
+  collectionId: z.coerce.number().int().positive().optional(),
+  tag: z.string().trim().optional(),
+  status: promptStatusSchema.optional(),
+  sort: z.enum(["recent", "topRated", "mostUsed"]).optional(),
+  page: z.coerce.number().int().positive().optional(),
+  pageSize: z.coerce.number().int().positive().max(100).optional(),
+});
+
+const promptIdParamsSchema = z.object({
+  id: z.coerce.number().int().positive(),
+});
+
+const promptRestoreParamsSchema = z.object({
+  id: z.coerce.number().int().positive(),
+  version: z.coerce.number().int().positive(),
+});
+
+const createPromptBodySchema = z.object({
+  title: z.string().trim().min(1, "title is required."),
+  summary: z.string().trim().optional(),
+  body: z.string().min(1, "body is required."),
+  visibility: promptVisibilitySchema.optional(),
+  status: promptStatusSchema.optional(),
+  modelHint: z.string().trim().optional(),
+  modality: z.string().trim().optional(),
+});
+
+const updatePromptBodySchema = z
+  .object({
+    title: z.string().trim().optional(),
+    summary: z.string().trim().optional(),
+    body: z.string().optional(),
+    visibility: promptVisibilitySchema.optional(),
+    status: promptStatusSchema.optional(),
+    modelHint: z.string().trim().optional(),
+    modality: z.string().trim().optional(),
+    changelog: z.string().optional(),
+  })
+  .refine(
+    (value) => Object.values(value).some((item) => item !== undefined),
+    "At least one field must be provided.",
+  );
+
+const ratingBodySchema = z.object({
+  value: z.number().int().min(1).max(5),
+});
+
+const usageBodySchema = z.object({
+  action: usageActionSchema,
+});
+
+function badRequestFromZodError(error: z.ZodError) {
+  return {
+    error: {
+      code: "BAD_REQUEST",
+      message: "Invalid request.",
+      details: error.issues,
+    },
+  };
+}
 
 function parseSort(value: unknown): PromptSort {
   if (value === "topRated" || value === "mostUsed") {
     return value;
   }
   return "recent";
-}
-
-function parseStatus(value: unknown): PromptStatusValue | undefined {
-  if (value === "DRAFT" || value === "PUBLISHED" || value === "ARCHIVED") {
-    return value;
-  }
-  return undefined;
 }
 
 promptsRouter.use(requireAuth);
@@ -33,11 +93,19 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
   }
 
-  const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
-  const collectionId = typeof req.query.collectionId === "string" ? Number(req.query.collectionId) : undefined;
-  const tag = typeof req.query.tag === "string" ? req.query.tag.trim() : undefined;
-  const status = parseStatus(req.query.status);
-  const sort = parseSort(req.query.sort);
+  const parsedQuery = listPromptsQuerySchema.safeParse(req.query);
+  if (!parsedQuery.success) {
+    return res.status(400).json(badRequestFromZodError(parsedQuery.error));
+  }
+
+  const q = parsedQuery.data.q ?? "";
+  const collectionId = parsedQuery.data.collectionId;
+  const tag = parsedQuery.data.tag;
+  const status = parsedQuery.data.status;
+  const sort = parseSort(parsedQuery.data.sort);
+  const page = parsedQuery.data.page ?? 1;
+  const pageSize = parsedQuery.data.pageSize ?? 20;
+  const skip = (page - 1) * pageSize;
 
   const where: Prisma.PromptWhereInput = { teamId: auth.teamId };
   if (status) {
@@ -57,20 +125,27 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
     where.collections = { some: { collectionId } };
   }
 
-  const prompts = await prisma.prompt.findMany({
-    where,
-    include: {
-      _count: { select: { favorites: true, ratings: true, usageEvents: true } },
-      ratings: { select: { value: true } },
-      promptTags: { include: { tag: true } },
-    },
-    orderBy:
-      sort === "topRated"
-        ? { ratings: { _count: "desc" } }
-        : sort === "mostUsed"
-          ? { usageEvents: { _count: "desc" } }
-          : { createdAt: "desc" },
-  });
+  const orderBy: Prisma.PromptOrderByWithRelationInput =
+    sort === "topRated"
+      ? { ratings: { _count: "desc" as const } }
+      : sort === "mostUsed"
+        ? { usageEvents: { _count: "desc" as const } }
+        : { createdAt: "desc" as const };
+
+  const [prompts, total] = await Promise.all([
+    prisma.prompt.findMany({
+      where,
+      include: {
+        _count: { select: { favorites: true, ratings: true, usageEvents: true } },
+        ratings: { select: { value: true } },
+        promptTags: { include: { tag: true } },
+      },
+      orderBy,
+      skip,
+      take: pageSize,
+    }),
+    prisma.prompt.count({ where }),
+  ]);
 
   type PromptListItem = Prisma.PromptGetPayload<{
     include: {
@@ -100,7 +175,17 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
         : prompt.ratings.reduce((sum: number, item: { value: number }) => sum + item.value, 0) / prompt.ratings.length,
   }));
 
-  return res.status(200).json({ data });
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  return res.status(200).json({
+    data,
+    meta: {
+      page,
+      pageSize,
+      total,
+      totalPages,
+    },
+  });
 });
 
 promptsRouter.post("/", async (req: Request, res: Response) => {
@@ -109,19 +194,11 @@ promptsRouter.post("/", async (req: Request, res: Response) => {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
   }
 
-  const { title, summary, body, visibility, status, modelHint, modality } = req.body as {
-    title?: string;
-    summary?: string;
-    body?: string;
-    visibility?: "TEAM" | "PRIVATE";
-    status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
-    modelHint?: string;
-    modality?: string;
-  };
-
-  if (!title || !body) {
-    return res.status(400).json({ error: { code: "BAD_REQUEST", message: "title and body are required." } });
+  const parsedBody = createPromptBodySchema.safeParse(req.body);
+  if (!parsedBody.success) {
+    return res.status(400).json(badRequestFromZodError(parsedBody.error));
   }
+  const { title, summary, body, visibility, status, modelHint, modality } = parsedBody.data;
 
   const prompt = await prisma.prompt.create({
     data: {
@@ -154,7 +231,11 @@ promptsRouter.get("/:id", async (req: Request, res: Response) => {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
   }
 
-  const promptId = Number(req.params.id);
+  const parsedParams = promptIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+  const promptId = parsedParams.data.id;
   const prompt = await prisma.prompt.findFirst({
     where: { id: promptId, teamId: auth.teamId },
     include: {
@@ -178,7 +259,17 @@ promptsRouter.patch("/:id", async (req: Request, res: Response) => {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
   }
 
-  const promptId = Number(req.params.id);
+  const parsedParams = promptIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+  const parsedBody = updatePromptBodySchema.safeParse(req.body);
+  if (!parsedBody.success) {
+    return res.status(400).json(badRequestFromZodError(parsedBody.error));
+  }
+
+  const promptId = parsedParams.data.id;
+  const updateData = parsedBody.data;
   const existing = await prisma.prompt.findFirst({ where: { id: promptId, teamId: auth.teamId } });
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
@@ -188,17 +279,17 @@ promptsRouter.patch("/:id", async (req: Request, res: Response) => {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can modify this prompt." } });
   }
 
-  const nextBody = typeof req.body.body === "string" ? req.body.body : existing.body;
+  const nextBody = typeof updateData.body === "string" ? updateData.body : existing.body;
   const updated = await prisma.prompt.update({
     where: { id: promptId },
     data: {
-      title: typeof req.body.title === "string" ? req.body.title.trim() : undefined,
-      summary: typeof req.body.summary === "string" ? req.body.summary.trim() : undefined,
+      title: typeof updateData.title === "string" ? updateData.title.trim() : undefined,
+      summary: typeof updateData.summary === "string" ? updateData.summary.trim() : undefined,
       body: nextBody,
-      visibility: req.body.visibility,
-      status: req.body.status,
-      modelHint: typeof req.body.modelHint === "string" ? req.body.modelHint.trim() : undefined,
-      modality: typeof req.body.modality === "string" ? req.body.modality.trim() : undefined,
+      visibility: updateData.visibility,
+      status: updateData.status,
+      modelHint: typeof updateData.modelHint === "string" ? updateData.modelHint.trim() : undefined,
+      modality: typeof updateData.modality === "string" ? updateData.modality.trim() : undefined,
     },
   });
 
@@ -214,7 +305,7 @@ promptsRouter.patch("/:id", async (req: Request, res: Response) => {
         version: (latest?.version ?? 0) + 1,
         body: nextBody,
         createdById: auth.userId,
-        changelog: typeof req.body.changelog === "string" ? req.body.changelog : null,
+        changelog: typeof updateData.changelog === "string" ? updateData.changelog : null,
       },
     });
   }
@@ -228,7 +319,11 @@ promptsRouter.delete("/:id", async (req: Request, res: Response) => {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
   }
 
-  const promptId = Number(req.params.id);
+  const parsedParams = promptIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+  const promptId = parsedParams.data.id;
   const existing = await prisma.prompt.findFirst({ where: { id: promptId, teamId: auth.teamId } });
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
@@ -251,7 +346,11 @@ promptsRouter.get("/:id/versions", async (req: Request, res: Response) => {
   if (!auth) {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
   }
-  const promptId = Number(req.params.id);
+  const parsedParams = promptIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+  const promptId = parsedParams.data.id;
   const prompt = await prisma.prompt.findFirst({ where: { id: promptId, teamId: auth.teamId }, select: { id: true } });
   if (!prompt) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
@@ -268,8 +367,12 @@ promptsRouter.post("/:id/restore/:version", async (req: Request, res: Response) 
   if (!auth) {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
   }
-  const promptId = Number(req.params.id);
-  const targetVersion = Number(req.params.version);
+  const parsedParams = promptRestoreParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+  const promptId = parsedParams.data.id;
+  const targetVersion = parsedParams.data.version;
   const prompt = await prisma.prompt.findFirst({ where: { id: promptId, teamId: auth.teamId } });
   if (!prompt) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
@@ -295,7 +398,11 @@ promptsRouter.post("/:id/favorite", async (req: Request, res: Response) => {
   if (!auth) {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
   }
-  const promptId = Number(req.params.id);
+  const parsedParams = promptIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+  const promptId = parsedParams.data.id;
   const prompt = await prisma.prompt.findFirst({ where: { id: promptId, teamId: auth.teamId }, select: { id: true } });
   if (!prompt) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
@@ -315,11 +422,16 @@ promptsRouter.post("/:id/rating", async (req: Request, res: Response) => {
   if (!auth) {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
   }
-  const promptId = Number(req.params.id);
-  const value = Number((req.body as { value?: number }).value);
-  if (!Number.isInteger(value) || value < 1 || value > 5) {
-    return res.status(400).json({ error: { code: "BAD_REQUEST", message: "value must be an integer from 1 to 5." } });
+  const parsedParams = promptIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
   }
+  const parsedBody = ratingBodySchema.safeParse(req.body);
+  if (!parsedBody.success) {
+    return res.status(400).json(badRequestFromZodError(parsedBody.error));
+  }
+  const promptId = parsedParams.data.id;
+  const value = parsedBody.data.value;
   const prompt = await prisma.prompt.findFirst({ where: { id: promptId, teamId: auth.teamId }, select: { id: true } });
   if (!prompt) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
@@ -337,11 +449,16 @@ promptsRouter.post("/:id/usage", async (req: Request, res: Response) => {
   if (!auth) {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
   }
-  const promptId = Number(req.params.id);
-  const action = (req.body as { action?: UsageActionValue }).action;
-  if (!action || !USAGE_ACTIONS.includes(action)) {
-    return res.status(400).json({ error: { code: "BAD_REQUEST", message: "Invalid usage action." } });
+  const parsedParams = promptIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
   }
+  const parsedBody = usageBodySchema.safeParse(req.body);
+  if (!parsedBody.success) {
+    return res.status(400).json(badRequestFromZodError(parsedBody.error));
+  }
+  const promptId = parsedParams.data.id;
+  const action = parsedBody.data.action;
   const prompt = await prisma.prompt.findFirst({ where: { id: promptId, teamId: auth.teamId }, select: { id: true } });
   if (!prompt) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });

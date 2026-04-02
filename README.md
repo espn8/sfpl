@@ -93,6 +93,13 @@ The backend has `heroku-postbuild` script to build frontend assets and copy them
 - Open app URL and click "Continue with Google"
 - Successful sign-in returns authenticated user via `/api/auth/me`
 
+## Continuous Integration
+
+GitHub Actions runs a single matrix CI workflow automatically on every pull request and push to `main`.
+
+- `server`: `npm ci`, `npm test`, `npm run build`
+- `client`: `npm ci`, `npm run build`
+
 ## Features
 
 ### Authentication

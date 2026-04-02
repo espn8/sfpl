@@ -2,11 +2,17 @@ import type { Request, Response } from "express";
 import { Router } from "express";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { randomBytes } from "node:crypto";
+import { z } from "zod";
 import { env } from "../config/env";
 import { prisma } from "../lib/prisma";
+import { authRateLimit } from "../middleware/rateLimit";
 
 const authRouter = Router();
 const googleIssuer = "https://accounts.google.com";
+const googleCallbackQuerySchema = z.object({
+  code: z.string().min(1),
+  state: z.string().min(1),
+});
 const googleJwks = createRemoteJWKSet(
   new URL("https://www.googleapis.com/oauth2/v3/certs"),
 );
@@ -48,7 +54,7 @@ async function exchangeCodeForIdToken(code: string): Promise<string> {
   return tokenResult.id_token;
 }
 
-authRouter.get("/google", (req: Request, res: Response) => {
+authRouter.get("/google", authRateLimit, (req: Request, res: Response) => {
   const state = randomBytes(16).toString("hex");
   const nonce = randomBytes(16).toString("hex");
 
@@ -77,17 +83,17 @@ authRouter.get("/google", (req: Request, res: Response) => {
   });
 });
 
-authRouter.get("/google/start", (req: Request, res: Response) => {
+authRouter.get("/google/start", authRateLimit, (req: Request, res: Response) => {
   res.redirect("/api/auth/google");
 });
 
-authRouter.get("/google/callback", async (req: Request, res: Response) => {
+authRouter.get("/google/callback", authRateLimit, async (req: Request, res: Response) => {
   try {
-    const code = req.query.code;
-    const state = req.query.state;
-    if (typeof code !== "string" || typeof state !== "string") {
+    const parsedQuery = googleCallbackQuerySchema.safeParse(req.query);
+    if (!parsedQuery.success) {
       return res.status(400).json({ error: { code: "BAD_REQUEST", message: "Invalid OAuth callback parameters." } });
     }
+    const { code, state } = parsedQuery.data;
 
     if (!req.session.oauth || req.session.oauth.state !== state) {
       return res.status(400).json({ error: { code: "INVALID_STATE", message: "OAuth state validation failed." } });
@@ -190,7 +196,7 @@ authRouter.get("/google/callback", async (req: Request, res: Response) => {
   }
 });
 
-authRouter.post("/logout", (req: Request, res: Response) => {
+authRouter.post("/logout", authRateLimit, (req: Request, res: Response) => {
   req.session.destroy(() => {
     res.clearCookie("promptlibrary.sid");
     res.status(200).json({ data: { ok: true } });

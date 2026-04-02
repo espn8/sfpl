@@ -1,0 +1,11 @@
+process.env.NODE_ENV = process.env.NODE_ENV ?? "test";
+process.env.PORT = process.env.PORT ?? "5001";
+process.env.DATABASE_URL = process.env.DATABASE_URL ?? "postgresql://test:test@localhost:5432/testdb";
+process.env.CORS_ORIGIN = process.env.CORS_ORIGIN ?? "http://localhost:5173";
+process.env.SESSION_SECRET = process.env.SESSION_SECRET ?? "test-session-secret";
+process.env.COOKIE_SECURE = process.env.COOKIE_SECURE ?? "false";
+process.env.SESSION_SAME_SITE = process.env.SESSION_SAME_SITE ?? "lax";
+process.env.GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? "test-google-client-id";
+process.env.GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? "test-google-client-secret";
+process.env.GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL ?? "http://localhost:5001/api/auth/google/callback";
+process.env.APP_BASE_URL = process.env.APP_BASE_URL ?? "http://localhost:5173";

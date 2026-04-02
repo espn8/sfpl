@@ -1,9 +1,23 @@
 import type { Request, Response } from "express";
 import { Router } from "express";
+import { z } from "zod";
 import { getAuthContext, requireAuth } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 
 const tagsRouter = Router();
+const createTagBodySchema = z.object({
+  name: z.string().trim().min(1, "Tag name is required."),
+});
+
+function badRequestFromZodError(error: z.ZodError) {
+  return {
+    error: {
+      code: "BAD_REQUEST",
+      message: "Invalid request.",
+      details: error.issues,
+    },
+  };
+}
 
 tagsRouter.use(requireAuth);
 
@@ -40,13 +54,12 @@ tagsRouter.post("/", async (req: Request, res: Response) => {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
   }
 
-  const { name } = req.body as { name?: string };
-
-  if (!name || typeof name !== "string" || name.trim().length === 0) {
-    return res.status(400).json({ error: { code: "BAD_REQUEST", message: "Tag name is required." } });
+  const parsedBody = createTagBodySchema.safeParse(req.body);
+  if (!parsedBody.success) {
+    return res.status(400).json(badRequestFromZodError(parsedBody.error));
   }
 
-  const trimmedName = name.trim();
+  const trimmedName = parsedBody.data.name;
 
   const existing = await prisma.tag.findUnique({
     where: {

@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.project.name }} checks
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - name: server
+            working-directory: server
+            cache-dependency-path: server/package-lock.json
+            commands: |
+              npm test
+              npm run build
+          - name: client
+            working-directory: client
+            cache-dependency-path: client/package-lock.json
+            commands: |
+              npm run build
+    defaults:
+      run:
+        working-directory: ${{ matrix.project.working-directory }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: ${{ matrix.project.cache-dependency-path }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run checks
+        run: ${{ matrix.project.commands }}

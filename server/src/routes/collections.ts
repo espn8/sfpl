@@ -1,22 +1,86 @@
 import type { Request, Response } from "express";
 import { Router } from "express";
+import { z } from "zod";
 import { getAuthContext, requireAuth } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 
 const collectionsRouter = Router();
 collectionsRouter.use(requireAuth);
 
+const collectionIdParamsSchema = z.object({
+  id: z.coerce.number().int().positive(),
+});
+
+const collectionPromptParamsSchema = z.object({
+  id: z.coerce.number().int().positive(),
+  promptId: z.coerce.number().int().positive(),
+});
+
+const createCollectionBodySchema = z.object({
+  name: z.string().trim().min(1, "name is required."),
+  description: z.string().trim().optional(),
+});
+const listCollectionsQuerySchema = z.object({
+  page: z.coerce.number().int().positive().optional(),
+  pageSize: z.coerce.number().int().positive().max(100).optional(),
+});
+
+const updateCollectionBodySchema = z
+  .object({
+    name: z.string().trim().optional(),
+    description: z.string().trim().optional(),
+  })
+  .refine(
+    (value) => Object.values(value).some((item) => item !== undefined),
+    "At least one field must be provided.",
+  );
+
+function badRequestFromZodError(error: z.ZodError) {
+  return {
+    error: {
+      code: "BAD_REQUEST",
+      message: "Invalid request.",
+      details: error.issues,
+    },
+  };
+}
+
 collectionsRouter.get("/", async (req: Request, res: Response) => {
   const auth = getAuthContext(req);
   if (!auth) {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
   }
-  const collections = await prisma.collection.findMany({
-    where: { teamId: auth.teamId },
-    include: { prompts: { include: { prompt: true }, orderBy: { sortOrder: "asc" } } },
-    orderBy: { createdAt: "desc" },
+  const parsedQuery = listCollectionsQuerySchema.safeParse(req.query);
+  if (!parsedQuery.success) {
+    return res.status(400).json(badRequestFromZodError(parsedQuery.error));
+  }
+
+  const page = parsedQuery.data.page ?? 1;
+  const pageSize = parsedQuery.data.pageSize ?? 20;
+  const skip = (page - 1) * pageSize;
+
+  const [collections, total] = await Promise.all([
+    prisma.collection.findMany({
+      where: { teamId: auth.teamId },
+      include: { prompts: { include: { prompt: true }, orderBy: { sortOrder: "asc" } } },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: pageSize,
+    }),
+    prisma.collection.count({ where: { teamId: auth.teamId } }),
+  ]);
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  return res.status(200).json({
+    data: collections,
+    meta: {
+      page,
+      pageSize,
+      total,
+      totalPages,
+    },
   });
-  return res.status(200).json({ data: collections });
 });
 
 collectionsRouter.post("/", async (req: Request, res: Response) => {
@@ -24,10 +88,11 @@ collectionsRouter.post("/", async (req: Request, res: Response) => {
   if (!auth) {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
   }
-  const { name, description } = req.body as { name?: string; description?: string };
-  if (!name) {
-    return res.status(400).json({ error: { code: "BAD_REQUEST", message: "name is required." } });
+  const parsedBody = createCollectionBodySchema.safeParse(req.body);
+  if (!parsedBody.success) {
+    return res.status(400).json(badRequestFromZodError(parsedBody.error));
   }
+  const { name, description } = parsedBody.data;
   const created = await prisma.collection.create({
     data: {
       teamId: auth.teamId,
@@ -44,7 +109,16 @@ collectionsRouter.patch("/:id", async (req: Request, res: Response) => {
   if (!auth) {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
   }
-  const collectionId = Number(req.params.id);
+  const parsedParams = collectionIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+  const parsedBody = updateCollectionBodySchema.safeParse(req.body);
+  if (!parsedBody.success) {
+    return res.status(400).json(badRequestFromZodError(parsedBody.error));
+  }
+
+  const collectionId = parsedParams.data.id;
   const existing = await prisma.collection.findFirst({
     where: { id: collectionId, teamId: auth.teamId },
     select: { id: true },
@@ -55,8 +129,8 @@ collectionsRouter.patch("/:id", async (req: Request, res: Response) => {
   const updated = await prisma.collection.update({
     where: { id: collectionId },
     data: {
-      name: typeof req.body.name === "string" ? req.body.name.trim() : undefined,
-      description: typeof req.body.description === "string" ? req.body.description.trim() : undefined,
+      name: parsedBody.data.name,
+      description: parsedBody.data.description,
     },
   });
   return res.status(200).json({ data: updated });
@@ -67,8 +141,12 @@ collectionsRouter.post("/:id/prompts/:promptId", async (req: Request, res: Respo
   if (!auth) {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
   }
-  const collectionId = Number(req.params.id);
-  const promptId = Number(req.params.promptId);
+  const parsedParams = collectionPromptParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+  const collectionId = parsedParams.data.id;
+  const promptId = parsedParams.data.promptId;
 
   const [collection, prompt] = await Promise.all([
     prisma.collection.findFirst({ where: { id: collectionId, teamId: auth.teamId }, select: { id: true } }),
@@ -102,8 +180,12 @@ collectionsRouter.delete("/:id/prompts/:promptId", async (req: Request, res: Res
   if (!auth) {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
   }
-  const collectionId = Number(req.params.id);
-  const promptId = Number(req.params.promptId);
+  const parsedParams = collectionPromptParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+  const collectionId = parsedParams.data.id;
+  const promptId = parsedParams.data.promptId;
 
   const existing = await prisma.collectionPrompt.findFirst({
     where: {
