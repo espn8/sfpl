@@ -1,7 +1,7 @@
 # Prompt Library - Technical Summary
 
-Last Updated: Thursday, April 02, 2026 at 11:51 CDT
-Build Version: 05560ca
+Last Updated: Thursday, April 02, 2026 at 14:29 CDT
+Build Version: 12d3615
 
 ## Recent Changes
 
@@ -10,8 +10,9 @@ Build Version: 05560ca
 - Added request validation and structured bad-request responses via Zod across `server/src/routes/prompts.ts`, `server/src/routes/collections.ts`, `server/src/routes/tags.ts`, and callback query validation in `server/src/routes/auth.ts`.
 - Added pagination support (`page`, `pageSize`, `meta`) for list APIs in `prompts` and `collections` routes.
 - Added server test infrastructure (Vitest + Supertest) with coverage for auth sessions, auth rate limiting, list pagination, collections membership edge cases, and prompt version flows.
-- Added CI pipeline at `.github/workflows/ci.yml` to run server tests/build and client build on pushes to `main` and pull requests.
-- Updated `README.md` to reflect CI checks.
+- Consolidated CI into a single GitHub Actions matrix workflow at `.github/workflows/ci.yml` with stable check names (`server checks`, `client checks`) for branch protection.
+- Updated `README.md` CI documentation to match the unified workflow and check coverage.
+- Added branch protection configuration guidance for `main` requiring PR review and both CI checks; automated API application is blocked on current GitHub plan limits.
 
 ## Technical Architecture
 
