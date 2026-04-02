@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
+import { addPromptToCollection, listCollections, removePromptFromCollection } from "../collections/api";
+import type { Collection } from "../collections/api";
 import { getPrompt, logUsage, ratePrompt, toggleFavorite, updatePrompt } from "./api";
 
 export function PromptDetailPage() {
@@ -13,11 +15,68 @@ export function PromptDetailPage() {
     queryFn: () => getPrompt(promptId),
     enabled: Number.isInteger(promptId),
   });
+  const collectionsQuery = useQuery({
+    queryKey: ["collections"],
+    queryFn: listCollections,
+    enabled: Number.isInteger(promptId),
+  });
   const queryClient = useQueryClient();
   const updateMutation = useMutation({
     mutationFn: (payload: { body: string }) => updatePrompt(promptId, payload),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["prompt", promptId] });
+    },
+  });
+  const addToCollectionMutation = useMutation({
+    mutationFn: (collectionId: number) => addPromptToCollection(collectionId, promptId),
+    onMutate: async (collectionId: number) => {
+      await queryClient.cancelQueries({ queryKey: ["collections"] });
+      const previousCollections = queryClient.getQueryData<Collection[]>(["collections"]);
+      queryClient.setQueryData<Collection[]>(["collections"], (current) =>
+        (current ?? []).map((collection) =>
+          collection.id !== collectionId || collection.prompts.some((entry) => entry.prompt.id === promptId)
+            ? collection
+            : {
+                ...collection,
+                prompts: [...collection.prompts, { prompt: { id: promptId, title: promptQuery.data?.title ?? "Prompt" } }],
+              },
+        ),
+      );
+      return { previousCollections };
+    },
+    onError: (_error, _collectionId, context) => {
+      if (context?.previousCollections) {
+        queryClient.setQueryData(["collections"], context.previousCollections);
+      }
+    },
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["collections"] });
+    },
+  });
+  const removeFromCollectionMutation = useMutation({
+    mutationFn: (collectionId: number) => removePromptFromCollection(collectionId, promptId),
+    onMutate: async (collectionId: number) => {
+      await queryClient.cancelQueries({ queryKey: ["collections"] });
+      const previousCollections = queryClient.getQueryData<Collection[]>(["collections"]);
+      queryClient.setQueryData<Collection[]>(["collections"], (current) =>
+        (current ?? []).map((collection) =>
+          collection.id !== collectionId
+            ? collection
+            : {
+                ...collection,
+                prompts: collection.prompts.filter((entry) => entry.prompt.id !== promptId),
+              },
+        ),
+      );
+      return { previousCollections };
+    },
+    onError: (_error, _collectionId, context) => {
+      if (context?.previousCollections) {
+        queryClient.setQueryData(["collections"], context.previousCollections);
+      }
+    },
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["collections"] });
     },
   });
 
@@ -41,10 +100,88 @@ export function PromptDetailPage() {
     return <p className="text-red-700">Prompt not found.</p>;
   }
 
+  const averageRating =
+    promptQuery.data.ratings && promptQuery.data.ratings.length > 0
+      ? promptQuery.data.ratings.reduce((sum, item) => sum + item.value, 0) / promptQuery.data.ratings.length
+      : null;
+
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-semibold">{promptQuery.data.title}</h2>
       <p>{promptQuery.data.summary}</p>
+      <section className="space-y-3 rounded border bg-white p-4">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Metadata</h3>
+        <div className="flex flex-wrap gap-2 text-sm">
+          <span className="rounded bg-slate-100 px-2 py-1">Status: {promptQuery.data.status}</span>
+          <span className="rounded bg-slate-100 px-2 py-1">Visibility: {promptQuery.data.visibility}</span>
+          <span className="rounded bg-slate-100 px-2 py-1">
+            Model: {promptQuery.data.modelHint?.trim() ? promptQuery.data.modelHint : "Not set"}
+          </span>
+          <span className="rounded bg-slate-100 px-2 py-1">
+            Modality: {promptQuery.data.modality?.trim() ? promptQuery.data.modality : "Not set"}
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {promptQuery.data.promptTags && promptQuery.data.promptTags.length > 0 ? (
+            promptQuery.data.promptTags.map((item) => (
+              <span key={item.tag.id} className="rounded-full bg-blue-50 px-2 py-1 text-xs text-blue-800">
+                #{item.tag.name}
+              </span>
+            ))
+          ) : (
+            <p className="text-sm text-slate-600">No tags assigned.</p>
+          )}
+        </div>
+        <div className="grid gap-2 text-sm md:grid-cols-3">
+          <p className="rounded border px-3 py-2">
+            <span className="font-semibold">Average rating:</span>{" "}
+            {averageRating === null ? "No ratings" : averageRating.toFixed(1)}
+          </p>
+          <p className="rounded border px-3 py-2">
+            <span className="font-semibold">Total ratings:</span> {promptQuery.data.ratings?.length ?? 0}
+          </p>
+          <p className="rounded border px-3 py-2">
+            <span className="font-semibold">Usage events:</span> {promptQuery.data._count?.usageEvents ?? 0}
+          </p>
+        </div>
+      </section>
+      <section className="space-y-3 rounded border bg-white p-4">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Collections</h3>
+        {collectionsQuery.isLoading ? <p className="text-sm text-slate-600">Loading collections...</p> : null}
+        {collectionsQuery.data?.length ? (
+          <div className="space-y-2">
+            {collectionsQuery.data.map((collection) => {
+              const hasPrompt = collection.prompts.some((entry) => entry.prompt.id === promptId);
+              return (
+                <div key={collection.id} className="flex items-center justify-between rounded border px-3 py-2">
+                  <p className="text-sm">{collection.name}</p>
+                  <button
+                    type="button"
+                    className="rounded border px-2 py-1 text-xs"
+                    disabled={addToCollectionMutation.isPending || removeFromCollectionMutation.isPending}
+                    onClick={() => {
+                      if (hasPrompt) {
+                        removeFromCollectionMutation.mutate(collection.id);
+                        return;
+                      }
+                      addToCollectionMutation.mutate(collection.id);
+                    }}
+                  >
+                    {hasPrompt ? "Remove" : "Add"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-sm text-slate-600">No collections available yet.</p>
+        )}
+      </section>
+      <div>
+        <Link to={`/prompts/${promptId}/edit`} className="text-sm text-blue-700 hover:underline">
+          Edit prompt
+        </Link>
+      </div>
       <textarea
         className="h-56 w-full rounded border px-3 py-2"
         defaultValue={promptQuery.data.body}

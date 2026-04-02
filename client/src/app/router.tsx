@@ -5,8 +5,11 @@ import { AppShell } from "../components/AppShell";
 import { ProtectedRoute } from "../components/ProtectedRoute";
 import { AnalyticsPage } from "../features/analytics/AnalyticsPage";
 import { LoginPage } from "../features/auth/LoginPage";
+import { SettingsPage } from "../features/auth/SettingsPage";
+import { CollectionDetailPage } from "../features/collections/CollectionDetailPage";
 import { CollectionsPage } from "../features/collections/CollectionsPage";
 import { PromptDetailPage } from "../features/prompts/PromptDetailPage";
+import { PromptEditPage } from "../features/prompts/PromptEditPage";
 import { PromptEditorPage } from "../features/prompts/PromptEditorPage";
 import { PromptListPage } from "../features/prompts/PromptListPage";
 import { PrivacyPage } from "../pages/PrivacyPage";
@@ -59,6 +62,16 @@ export function AppRouter() {
           }
         />
         <Route
+          path="/prompts/:id/edit"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <PromptEditPage />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/collections"
           element={
             <ProtectedRoute>
@@ -69,11 +82,31 @@ export function AppRouter() {
           }
         />
         <Route
+          path="/collections/:id"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <CollectionDetailPage />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/analytics"
           element={
             <ProtectedRoute>
               <AppShell>
                 <AnalyticsPage />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <SettingsPage />
               </AppShell>
             </ProtectedRoute>
           }

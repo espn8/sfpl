@@ -22,15 +22,42 @@ export function PromptEditorPage() {
         const title = String(formData.get("title") ?? "").trim();
         const summary = String(formData.get("summary") ?? "").trim();
         const body = String(formData.get("body") ?? "").trim();
+        const status = String(formData.get("status") ?? "DRAFT") as "DRAFT" | "PUBLISHED" | "ARCHIVED";
+        const visibility = String(formData.get("visibility") ?? "TEAM") as "TEAM" | "PRIVATE";
+        const modelHint = String(formData.get("modelHint") ?? "").trim();
+        const modality = String(formData.get("modality") ?? "").trim();
         if (!title || !body) {
           return;
         }
-        createMutation.mutate({ title, summary, body });
+        createMutation.mutate({
+          title,
+          summary,
+          body,
+          status,
+          visibility,
+          modelHint: modelHint || undefined,
+          modality: modality || undefined,
+        });
       }}
     >
       <h2 className="text-2xl font-semibold">Create Prompt</h2>
       <input name="title" placeholder="Title" className="w-full rounded border px-3 py-2" />
       <input name="summary" placeholder="Summary" className="w-full rounded border px-3 py-2" />
+      <div className="grid gap-2 md:grid-cols-2">
+        <select name="status" defaultValue="DRAFT" className="rounded border px-3 py-2">
+          <option value="DRAFT">Draft</option>
+          <option value="PUBLISHED">Published</option>
+          <option value="ARCHIVED">Archived</option>
+        </select>
+        <select name="visibility" defaultValue="TEAM" className="rounded border px-3 py-2">
+          <option value="TEAM">Team</option>
+          <option value="PRIVATE">Private</option>
+        </select>
+      </div>
+      <div className="grid gap-2 md:grid-cols-2">
+        <input name="modelHint" placeholder="Model hint (optional)" className="w-full rounded border px-3 py-2" />
+        <input name="modality" placeholder="Modality (optional)" className="w-full rounded border px-3 py-2" />
+      </div>
       <textarea name="body" placeholder="Prompt body" className="h-48 w-full rounded border px-3 py-2" />
       <button type="submit" className="rounded bg-slate-900 px-4 py-2 text-white">
         Save Prompt

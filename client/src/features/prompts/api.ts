@@ -18,15 +18,57 @@ export type Prompt = {
   body: string;
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   visibility: "TEAM" | "PRIVATE";
+  modelHint?: string | null;
+  modality?: string | null;
+  promptTags?: Array<{
+    tag: {
+      id: number;
+      name: string;
+    };
+  }>;
+  ratings?: Array<{
+    value: number;
+  }>;
+  _count?: {
+    favorites: number;
+    usageEvents: number;
+  };
 };
 
 type ApiResponse<T> = {
   data: T;
 };
 
-export async function listPrompts(): Promise<PromptSummary[]> {
-  const response = await apiClient.get<ApiResponse<PromptSummary[]>>("/api/prompts");
-  return response.data.data;
+type ListMeta = {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};
+
+type ListPromptsResponse = {
+  data: PromptSummary[];
+  meta: ListMeta;
+};
+
+export type ListPromptsFilters = {
+  q?: string;
+  tag?: string;
+  collectionId?: number;
+  status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  sort?: "recent" | "topRated" | "mostUsed";
+  page?: number;
+  pageSize?: number;
+};
+
+export async function listPrompts(filters: ListPromptsFilters = {}): Promise<ListPromptsResponse> {
+  const response = await apiClient.get<ApiResponse<PromptSummary[]> & { meta: ListMeta }>("/api/prompts", {
+    params: filters,
+  });
+  return {
+    data: response.data.data,
+    meta: response.data.meta,
+  };
 }
 
 export async function getPrompt(id: number): Promise<Prompt> {
@@ -38,6 +80,10 @@ export async function createPrompt(payload: {
   title: string;
   summary?: string;
   body: string;
+  status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  visibility?: "TEAM" | "PRIVATE";
+  modelHint?: string;
+  modality?: string;
 }): Promise<Prompt> {
   const response = await apiClient.post<ApiResponse<Prompt>>("/api/prompts", payload);
   return response.data.data;

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
 import { createCollection, listCollections } from "./api";
 
@@ -36,7 +37,9 @@ export function CollectionsPage() {
       </form>
       {collectionsQuery.data?.map((collection) => (
         <div key={collection.id} className="rounded border bg-white p-4">
-          <p className="font-semibold">{collection.name}</p>
+          <Link to={`/collections/${collection.id}`} className="font-semibold hover:underline">
+            {collection.name}
+          </Link>
           <p className="text-sm text-slate-600">{collection.description}</p>
           <p className="text-xs text-slate-500">{collection.prompts.length} prompts</p>
         </div>

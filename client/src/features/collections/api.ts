@@ -25,3 +25,11 @@ export async function createCollection(payload: { name: string; description?: st
   const response = await apiClient.post<ApiResponse<Collection>>("/api/collections", payload);
   return response.data.data;
 }
+
+export async function addPromptToCollection(collectionId: number, promptId: number): Promise<void> {
+  await apiClient.post(`/api/collections/${collectionId}/prompts/${promptId}`);
+}
+
+export async function removePromptFromCollection(collectionId: number, promptId: number): Promise<void> {
+  await apiClient.delete(`/api/collections/${collectionId}/prompts/${promptId}`);
+}

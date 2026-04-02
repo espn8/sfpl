@@ -19,6 +19,7 @@ export function AppShell({ children }: AppShellProps) {
             <Link to="/prompts/new">New Prompt</Link>
             <Link to="/collections">Collections</Link>
             <Link to="/analytics">Analytics</Link>
+            <Link to="/settings">Settings</Link>
           </nav>
           <button
             type="button"

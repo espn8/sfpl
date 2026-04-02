@@ -1,18 +1,16 @@
 # Prompt Library - Technical Summary
 
-Last Updated: Thursday, April 02, 2026 at 14:29 CDT
-Build Version: 12d3615
+Last Updated: Thursday, April 02, 2026 at 16:55 CDT
+Build Version: 84fedd8
 
 ## Recent Changes
 
-- Refactored backend bootstrap by extracting app construction into `server/src/app.ts` and slimming `server/src/index.ts` to process startup only.
-- Added auth endpoint rate limiting with `express-rate-limit` in `server/src/middleware/rateLimit.ts` and applied it to `GET /api/auth/google`, `GET /api/auth/google/start`, `GET /api/auth/google/callback`, and `POST /api/auth/logout`.
-- Added request validation and structured bad-request responses via Zod across `server/src/routes/prompts.ts`, `server/src/routes/collections.ts`, `server/src/routes/tags.ts`, and callback query validation in `server/src/routes/auth.ts`.
-- Added pagination support (`page`, `pageSize`, `meta`) for list APIs in `prompts` and `collections` routes.
-- Added server test infrastructure (Vitest + Supertest) with coverage for auth sessions, auth rate limiting, list pagination, collections membership edge cases, and prompt version flows.
-- Consolidated CI into a single GitHub Actions matrix workflow at `.github/workflows/ci.yml` with stable check names (`server checks`, `client checks`) for branch protection.
-- Updated `README.md` CI documentation to match the unified workflow and check coverage.
-- Added branch protection configuration guidance for `main` requiring PR review and both CI checks; automated API application is blocked on current GitHub plan limits.
+- Completed the frontend route map with authenticated routes for `/prompts/:id/edit`, `/collections/:id`, and `/settings`, plus navigation links from `AppShell`.
+- Expanded prompt discovery to support backend query features: search, status filter, tag filter, collection filter, sort (`recent|topRated|mostUsed`), and server-driven pagination metadata.
+- Upgraded create/edit prompt forms to support `status`, `visibility`, `modelHint`, and `modality`, matching backend prompt fields and validation contracts.
+- Added a richer prompt detail metadata panel that displays status, visibility, model hint, modality, tags, average rating, rating count, and usage count.
+- Added prompt-to-collection membership controls on the prompt detail page with optimistic TanStack Query cache updates and rollback-on-error behavior.
+- Added new frontend modules: `PromptEditPage`, `CollectionDetailPage`, and `SettingsPage`, and extended API clients for prompt filtering metadata and collection membership mutations.
 
 ## Technical Architecture
 
@@ -109,6 +107,12 @@ Build Version: 12d3615
 - `server/src/routes/collections.ts`: collections CRUD + membership operations with list pagination.
 - `server/src/routes/tags.ts`: tags list/create with validation and uniqueness checks.
 - `server/test/*`: behavior-level API tests with mocked Prisma and middleware boundaries.
+- `client/src/app/router.tsx`: authenticated route graph for prompt, collection, analytics, and settings flows.
+- `client/src/features/prompts/PromptListPage.tsx`: discovery UI with composed filters and server-side pagination controls.
+- `client/src/features/prompts/PromptDetailPage.tsx`: prompt body actions, metadata rendering, and optimistic collection membership toggles.
+- `client/src/features/prompts/PromptEditorPage.tsx` and `client/src/features/prompts/PromptEditPage.tsx`: prompt authoring/editing forms aligned to backend fields.
+- `client/src/features/collections/CollectionDetailPage.tsx`: collection-focused prompt browsing view.
+- `client/src/features/auth/SettingsPage.tsx`: authenticated profile/team settings surface backed by `/api/auth/me`.
 
 ## Replication and Setup
 
