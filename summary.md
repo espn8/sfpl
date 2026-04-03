@@ -1,16 +1,16 @@
 # Prompt Library - Technical Summary
 
-Last Updated: Friday, April 03, 2026 at 09:59 CDT
-Build Version: 04abdcd
+Last Updated: Friday, April 03, 2026 at 10:04 CDT
+Build Version: 5c2d2a8
 
 ## Recent Changes
 
-- Implemented tri-mode theming (`dark` default, `light`, `system`) with centralized tokenized styling across key frontend views.
-- Added `ThemeProvider` boot-time theme initialization and a reusable `ThemeModeToggle` surfaced in global navigation and settings.
-- Refactored major UI screens (prompts, collections, analytics, auth shell/pages) to use semantic CSS variables from centralized theme files.
-- Expanded seed data from minimal samples to an end-to-end demo dataset with 4 user roles, 10 tags, 8 prompts, variables, collections, ratings, favorites, and usage events.
-- Added resettable demo seeding via `SEED_RESET=true|1|yes`, which safely clears only `demo-team` data before reseeding.
-- Validated the new seed workflow by executing both normal seed and reset + reseed paths successfully.
+- Implemented onboarding persistence updates in auth flow and data model, including a new Prisma migration for user onboarding-related fields.
+- Updated auth/profile API behavior and settings surface integration so onboarding state is reflected in authenticated client flows.
+- Expanded frontend theme coverage with interaction polish (focus/hover consistency) in app shell navigation and theme controls.
+- Added dedicated frontend tests for `ThemeProvider` default mode, persisted preference loading, and user-triggered theme persistence behavior.
+- Updated settings tests to run with `ThemeProvider` context, aligning test setup with the production provider tree.
+- Preserved tri-mode theming contract (`dark` default, `light`, `system`) and tokenized color usage across core screens.
 
 ## Technical Architecture
 
@@ -65,15 +65,17 @@ Build Version: 04abdcd
 │   │   ├── components/
 │   │   │   ├── AppShell.tsx                 # Shared app chrome + global navigation
 │   │   │   └── ui/ThemeModeToggle.tsx       # Theme mode control
-│   │   ├── features/                        # Feature pages + API calls
+│   │   ├── features/                        # Feature pages + API calls (auth, prompts, collections, analytics)
 │   │   ├── styles/
 │   │   │   ├── tokens.css                   # Design tokens
 │   │   │   └── theme.css                    # Dark/light semantic color maps
 │   │   ├── index.css                        # Tailwind import + global base styles
+│   │   ├── test/setup.ts                    # Vitest/JSDOM setup + storage shim
 │   │   └── main.tsx                         # App bootstrap + providers
 ├── server/                                  # Express + Prisma backend
 │   ├── prisma/
-│   │   ├── schema.prisma                    # DB models/enums/relations
+│   │   ├── schema.prisma                    # DB models/enums/relations (includes onboarding fields)
+│   │   ├── migrations/                      # Ordered Prisma schema evolution scripts
 │   │   └── seed.ts                          # Idempotent + resettable demo data generation
 │   ├── src/
 │   │   ├── app.ts                           # Middleware + routes + static hosting
@@ -189,7 +191,7 @@ git push heroku main
 
 ### Roadmap / Backlog
 
-- Add frontend tests for new theme provider and mode toggle persistence/system reactivity.
+- Expand frontend theme tests to include `system` mode reactivity to `prefers-color-scheme` changes and pre-paint boot behavior assertions.
 - Add integration tests for `SEED_RESET` behavior to prevent regression in relational cleanup order.
 - Expand API contract docs for prompt filters, pagination metadata, and collection membership mutation payloads.
 - Add observability instrumentation (structured logs + error reporting) for auth callbacks and seed operations.
