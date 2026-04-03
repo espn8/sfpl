@@ -1,12 +1,13 @@
 # Prompt Library - Technical Summary
 
-Last Updated: Friday, April 03, 2026 at 15:24 CDT
-Build Version: 6ba26dc
+Last Updated: Friday, April 03, 2026 at 15:31 CDT
+Build Version: eb37483
 
 ## Recent Changes
 
-- Fixed unreadable login CTA text by switching the OAuth entry button on `client/src/features/auth/LoginPage.tsx` to `text-white`, ensuring contrast against the primary button background in dark theme.
-- Kept the OAuth launch flow unchanged (`getGoogleLoginUrl()` and `/api/auth/google/start` behavior remain intact) while applying a visual-only accessibility fix.
+- Refactored global link styling to an explicit opt-in `.link` utility in `client/src/index.css`, replacing implicit anchor-wide color rules that conflicted with button-style anchors.
+- Updated login/legal page anchors (`client/src/features/auth/LoginPage.tsx`, `client/src/pages/PrivacyPage.tsx`, and `client/src/pages/TermsPage.tsx`) to use the `.link` class for consistent plain-link behavior.
+- Preserved CTA button readability by keeping button-like anchors class-driven (`text-white` + background utilities) and decoupled from baseline link styling.
 - Revalidated TODO/FIXME scan and refreshed summary metadata to align documentation with the current implementation snapshot.
 
 ## Technical Architecture

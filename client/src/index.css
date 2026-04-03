@@ -13,10 +13,10 @@ body {
   color: var(--color-text);
 }
 
-a {
+.link {
   color: var(--color-primary);
 }
 
-a:hover {
+.link:hover {
   color: var(--color-primary-hover);
 }

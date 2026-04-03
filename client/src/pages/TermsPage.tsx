@@ -57,11 +57,11 @@ export function TermsPage() {
           </div>
 
           <div className="mt-8 space-y-2">
-            <a href="/privacy" className="text-blue-600 hover:underline">
+            <a href="/privacy" className="link hover:underline">
               View Privacy Policy
             </a>
             <br />
-            <a href="/login" className="text-blue-600 hover:underline">
+            <a href="/login" className="link hover:underline">
               Return to Login
             </a>
           </div>

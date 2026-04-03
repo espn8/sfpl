@@ -102,11 +102,11 @@ export function PrivacyPage() {
           </div>
 
           <div className="mt-8 space-y-2">
-            <a href="/terms" className="text-blue-600 hover:underline">
+            <a href="/terms" className="link hover:underline">
               View Terms of Service
             </a>
             <br />
-            <a href="/login" className="text-blue-600 hover:underline">
+            <a href="/login" className="link hover:underline">
               Return to Login
             </a>
           </div>

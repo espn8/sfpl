@@ -12,10 +12,10 @@ export function LoginPage() {
           Continue with Google
         </a>
         <div className="mt-4 flex gap-4 text-sm text-(--color-text-muted)">
-          <a href="/terms" className="hover:underline">
+          <a href="/terms" className="link hover:underline">
             Terms of Service
           </a>
-          <a href="/privacy" className="hover:underline">
+          <a href="/privacy" className="link hover:underline">
             Privacy Policy
           </a>
         </div>
