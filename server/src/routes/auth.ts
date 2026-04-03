@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { Router } from "express";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { randomBytes } from "node:crypto";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { env } from "../config/env";
 import { prisma } from "../lib/prisma";
@@ -23,6 +24,27 @@ const updateProfileBodySchema = z.object({
 const googleJwks = createRemoteJWKSet(
   new URL("https://www.googleapis.com/oauth2/v3/certs"),
 );
+const authUserSelect = {
+  id: true,
+  email: true,
+  googleSub: true,
+  name: true,
+  avatarUrl: true,
+  onboardingCompleted: true,
+  role: true,
+  teamId: true,
+} as const;
+
+class GoogleAuthError extends Error {
+  statusCode: number;
+  errorCode: string;
+
+  constructor(statusCode: number, errorCode: string, message: string) {
+    super(message);
+    this.statusCode = statusCode;
+    this.errorCode = errorCode;
+  }
+}
 
 function getValidSessionAuth(req: Request): {
   userId: number;
@@ -74,13 +96,29 @@ async function exchangeCodeForIdToken(code: string): Promise<string> {
     body,
   });
 
+  const tokenResult = (await response.json()) as {
+    id_token?: string;
+    error?: string;
+    error_description?: string;
+  };
+
   if (!response.ok) {
-    throw new Error("Google token exchange failed.");
+    const googleError = tokenResult.error ?? "unknown_error";
+    const googleDescription = tokenResult.error_description ?? "Google token exchange failed.";
+
+    if (googleError === "invalid_grant" || googleError === "invalid_request") {
+      throw new GoogleAuthError(400, "GOOGLE_TOKEN_INVALID", googleDescription);
+    }
+
+    if (googleError === "unauthorized_client") {
+      throw new GoogleAuthError(401, "GOOGLE_CLIENT_UNAUTHORIZED", googleDescription);
+    }
+
+    throw new GoogleAuthError(502, "GOOGLE_TOKEN_EXCHANGE_FAILED", googleDescription);
   }
 
-  const tokenResult = (await response.json()) as { id_token?: string };
   if (!tokenResult.id_token) {
-    throw new Error("Google token response missing id_token.");
+    throw new GoogleAuthError(502, "GOOGLE_TOKEN_MISSING_ID_TOKEN", "Google token response missing id_token.");
   }
 
   return tokenResult.id_token;
@@ -166,8 +204,14 @@ authRouter.get("/google/callback", authRateLimit, async (req: Request, res: Resp
     });
 
     const normalizedEmail = claims.email.toLowerCase();
-    const existingByGoogle = await prisma.user.findUnique({ where: { googleSub: claims.sub } });
-    const existingByEmail = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+    const existingByGoogle = await prisma.user.findUnique({
+      where: { googleSub: claims.sub },
+      select: authUserSelect,
+    });
+    const existingByEmail = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
+      select: authUserSelect,
+    });
 
     const user = existingByGoogle
       ? await prisma.user.update({
@@ -186,6 +230,7 @@ authRouter.get("/google/callback", authRateLimit, async (req: Request, res: Resp
                 : null,
             teamId: team.id,
           },
+          select: authUserSelect,
         })
       : existingByEmail
         ? await prisma.user.update({
@@ -204,6 +249,7 @@ authRouter.get("/google/callback", authRateLimit, async (req: Request, res: Resp
                   : existingByEmail.avatarUrl,
               teamId: team.id,
             },
+            select: authUserSelect,
           })
         : await prisma.user.create({
             data: {
@@ -214,6 +260,7 @@ authRouter.get("/google/callback", authRateLimit, async (req: Request, res: Resp
               role: "MEMBER",
               teamId: team.id,
             },
+            select: authUserSelect,
           });
 
     req.session.auth = {
@@ -234,7 +281,27 @@ authRouter.get("/google/callback", authRateLimit, async (req: Request, res: Resp
       }
       return res.redirect(env.appBaseUrl);
     });
-  } catch (_error) {
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2022") {
+      return res.status(500).json({
+        error: {
+          code: "DATABASE_SCHEMA_MISMATCH",
+          message: "Database schema is out of date. Run Prisma migrations.",
+        },
+      });
+    }
+
+    if (error instanceof GoogleAuthError) {
+      return res.status(error.statusCode).json({
+        error: {
+          code: error.errorCode,
+          message: error.message,
+        },
+      });
+    }
+
+    // eslint-disable-next-line no-console
+    console.error("Google callback failed unexpectedly", error);
     return res.status(500).json({
       error: {
         code: "GOOGLE_AUTH_FAILED",
