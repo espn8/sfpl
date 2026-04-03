@@ -37,6 +37,11 @@ describe("SettingsPage", () => {
       id: 1,
       email: "test@example.com",
       name: "Test User",
+      avatarUrl: "https://api.dicebear.com/9.x/bottts/svg?seed=Test",
+      region: "NA",
+      ou: "Engineering",
+      title: "Engineer",
+      onboardingCompleted: true,
       role: "MEMBER",
       teamId: 42,
     });

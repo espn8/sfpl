@@ -13,6 +13,13 @@ const googleCallbackQuerySchema = z.object({
   code: z.string().min(1),
   state: z.string().min(1),
 });
+const updateProfileBodySchema = z.object({
+  name: z.string().trim().min(1, "name is required."),
+  avatarUrl: z.string().trim().url("avatarUrl must be a valid URL."),
+  region: z.string().trim().min(1, "region is required."),
+  ou: z.string().trim().min(1, "ou is required."),
+  title: z.string().trim().min(1, "title is required."),
+});
 const googleJwks = createRemoteJWKSet(
   new URL("https://www.googleapis.com/oauth2/v3/certs"),
 );
@@ -142,8 +149,16 @@ authRouter.get("/google/callback", authRateLimit, async (req: Request, res: Resp
           where: { id: existingByGoogle.id },
           data: {
             email: normalizedEmail,
-            name: typeof claims.name === "string" ? claims.name : null,
-            avatarUrl: typeof claims.picture === "string" ? claims.picture : null,
+            name: existingByGoogle.onboardingCompleted
+              ? existingByGoogle.name
+              : typeof claims.name === "string"
+                ? claims.name
+                : null,
+            avatarUrl: existingByGoogle.onboardingCompleted
+              ? existingByGoogle.avatarUrl
+              : typeof claims.picture === "string"
+                ? claims.picture
+                : null,
             teamId: team.id,
           },
         })
@@ -152,8 +167,16 @@ authRouter.get("/google/callback", authRateLimit, async (req: Request, res: Resp
             where: { id: existingByEmail.id },
             data: {
               googleSub: claims.sub,
-              name: typeof claims.name === "string" ? claims.name : existingByEmail.name,
-              avatarUrl: typeof claims.picture === "string" ? claims.picture : existingByEmail.avatarUrl,
+              name: existingByEmail.onboardingCompleted
+                ? existingByEmail.name
+                : typeof claims.name === "string"
+                  ? claims.name
+                  : existingByEmail.name,
+              avatarUrl: existingByEmail.onboardingCompleted
+                ? existingByEmail.avatarUrl
+                : typeof claims.picture === "string"
+                  ? claims.picture
+                  : existingByEmail.avatarUrl,
               teamId: team.id,
             },
           })
@@ -219,6 +242,11 @@ authRouter.get("/me", async (req: Request, res: Response) => {
       id: true,
       email: true,
       name: true,
+      avatarUrl: true,
+      region: true,
+      ou: true,
+      title: true,
+      onboardingCompleted: true,
       role: true,
       teamId: true,
     },
@@ -234,6 +262,55 @@ authRouter.get("/me", async (req: Request, res: Response) => {
   }
 
   return res.status(200).json({ data: user });
+});
+
+authRouter.patch("/me", async (req: Request, res: Response) => {
+  if (!req.session.auth) {
+    return res.status(401).json({
+      error: {
+        code: "UNAUTHORIZED",
+        message: "Not authenticated.",
+      },
+    });
+  }
+
+  const parsedBody = updateProfileBodySchema.safeParse(req.body);
+  if (!parsedBody.success) {
+    return res.status(400).json({
+      error: {
+        code: "BAD_REQUEST",
+        message: "Invalid profile payload.",
+        details: parsedBody.error.flatten(),
+      },
+    });
+  }
+
+  const { name, avatarUrl, region, ou, title } = parsedBody.data;
+  const updatedUser = await prisma.user.update({
+    where: { id: req.session.auth.userId },
+    data: {
+      name,
+      avatarUrl,
+      region,
+      ou,
+      title,
+      onboardingCompleted: true,
+    },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      avatarUrl: true,
+      region: true,
+      ou: true,
+      title: true,
+      onboardingCompleted: true,
+      role: true,
+      teamId: true,
+    },
+  });
+
+  return res.status(200).json({ data: updatedUser });
 });
 
 export { authRouter };

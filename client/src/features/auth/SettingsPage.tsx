@@ -30,6 +30,15 @@ export function SettingsPage() {
           <span className="font-semibold">Role:</span> {meQuery.data.role}
         </p>
         <p>
+          <span className="font-semibold">Region:</span> {meQuery.data.region ?? "Not set"}
+        </p>
+        <p>
+          <span className="font-semibold">OU:</span> {meQuery.data.ou ?? "Not set"}
+        </p>
+        <p>
+          <span className="font-semibold">Title:</span> {meQuery.data.title ?? "Not set"}
+        </p>
+        <p>
           <span className="font-semibold">Team ID:</span> {meQuery.data.teamId}
         </p>
       </div>

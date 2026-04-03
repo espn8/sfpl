@@ -13,6 +13,10 @@ model User {
   googleSub  String?      @unique
   name       String?
   avatarUrl  String?
+  region     String?
+  ou         String?
+  title      String?
+  onboardingCompleted Boolean @default(false)
   role       Role         @default(MEMBER)
   teamId     Int
   team       Team         @relation(fields: [teamId], references: [id], onDelete: Restrict)
