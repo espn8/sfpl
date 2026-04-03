@@ -29,6 +29,10 @@ async function buildAuthTestApp() {
     req.session.auth = { userId: 1, teamId: 1, role: "MEMBER" };
     req.session.save(() => res.status(200).json({ ok: true }));
   });
+  app.post("/test/login-malformed", (req, res) => {
+    req.session.auth = { userId: Number.NaN, teamId: 1, role: "MEMBER" };
+    req.session.save(() => res.status(200).json({ ok: true }));
+  });
 
   app.use("/api/auth", authRouter);
   return app;
@@ -63,6 +67,18 @@ describe("auth session endpoints", () => {
 
     expect(response.status).toBe(200);
     expect(response.body.data.email).toBe("user@example.com");
+  });
+
+  it("returns 401 for /me when session payload is malformed", async () => {
+    const app = await buildAuthTestApp();
+    const agent = request.agent(app);
+    await agent.post("/test/login-malformed").expect(200);
+
+    const response = await agent.get("/api/auth/me");
+
+    expect(response.status).toBe(401);
+    expect(response.body.error.code).toBe("UNAUTHORIZED");
+    expect(mockUserFindUnique).not.toHaveBeenCalled();
   });
 
   it("clears session on logout", async () => {

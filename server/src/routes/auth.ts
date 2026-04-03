@@ -24,6 +24,31 @@ const googleJwks = createRemoteJWKSet(
   new URL("https://www.googleapis.com/oauth2/v3/certs"),
 );
 
+function getValidSessionAuth(req: Request): {
+  userId: number;
+  teamId: number;
+  role: string;
+} | null {
+  const auth = req.session.auth;
+  if (!auth) {
+    return null;
+  }
+
+  if (!Number.isInteger(auth.userId) || auth.userId <= 0) {
+    return null;
+  }
+
+  if (!Number.isInteger(auth.teamId) || auth.teamId <= 0) {
+    return null;
+  }
+
+  if (typeof auth.role !== "string" || auth.role.length === 0) {
+    return null;
+  }
+
+  return auth;
+}
+
 function toSlug(input: string): string {
   return input
     .toLowerCase()
@@ -227,7 +252,8 @@ authRouter.post("/logout", authRateLimit, (req: Request, res: Response) => {
 });
 
 authRouter.get("/me", async (req: Request, res: Response) => {
-  if (!req.session.auth) {
+  const sessionAuth = getValidSessionAuth(req);
+  if (!sessionAuth) {
     return res.status(401).json({
       error: {
         code: "UNAUTHORIZED",
@@ -236,21 +262,31 @@ authRouter.get("/me", async (req: Request, res: Response) => {
     });
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: req.session.auth.userId },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      avatarUrl: true,
-      region: true,
-      ou: true,
-      title: true,
-      onboardingCompleted: true,
-      role: true,
-      teamId: true,
-    },
-  });
+  let user;
+  try {
+    user = await prisma.user.findUnique({
+      where: { id: sessionAuth.userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        avatarUrl: true,
+        region: true,
+        ou: true,
+        title: true,
+        onboardingCompleted: true,
+        role: true,
+        teamId: true,
+      },
+    });
+  } catch (_error) {
+    return res.status(401).json({
+      error: {
+        code: "UNAUTHORIZED",
+        message: "Session user could not be validated.",
+      },
+    });
+  }
 
   if (!user) {
     return res.status(401).json({
@@ -265,7 +301,8 @@ authRouter.get("/me", async (req: Request, res: Response) => {
 });
 
 authRouter.patch("/me", async (req: Request, res: Response) => {
-  if (!req.session.auth) {
+  const sessionAuth = getValidSessionAuth(req);
+  if (!sessionAuth) {
     return res.status(401).json({
       error: {
         code: "UNAUTHORIZED",
@@ -286,29 +323,39 @@ authRouter.patch("/me", async (req: Request, res: Response) => {
   }
 
   const { name, avatarUrl, region, ou, title } = parsedBody.data;
-  const updatedUser = await prisma.user.update({
-    where: { id: req.session.auth.userId },
-    data: {
-      name,
-      avatarUrl,
-      region,
-      ou,
-      title,
-      onboardingCompleted: true,
-    },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      avatarUrl: true,
-      region: true,
-      ou: true,
-      title: true,
-      onboardingCompleted: true,
-      role: true,
-      teamId: true,
-    },
-  });
+  let updatedUser;
+  try {
+    updatedUser = await prisma.user.update({
+      where: { id: sessionAuth.userId },
+      data: {
+        name,
+        avatarUrl,
+        region,
+        ou,
+        title,
+        onboardingCompleted: true,
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        avatarUrl: true,
+        region: true,
+        ou: true,
+        title: true,
+        onboardingCompleted: true,
+        role: true,
+        teamId: true,
+      },
+    });
+  } catch (_error) {
+    return res.status(401).json({
+      error: {
+        code: "UNAUTHORIZED",
+        message: "Session user could not be updated.",
+      },
+    });
+  }
 
   return res.status(200).json({ data: updatedUser });
 });

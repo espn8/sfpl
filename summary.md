@@ -1,16 +1,15 @@
 # Prompt Library - Technical Summary
 
-Last Updated: Friday, April 03, 2026 at 10:04 CDT
-Build Version: 5c2d2a8
+Last Updated: Friday, April 03, 2026 at 10:12 CDT
+Build Version: ab4322c
 
 ## Recent Changes
 
-- Implemented onboarding persistence updates in auth flow and data model, including a new Prisma migration for user onboarding-related fields.
-- Updated auth/profile API behavior and settings surface integration so onboarding state is reflected in authenticated client flows.
-- Expanded frontend theme coverage with interaction polish (focus/hover consistency) in app shell navigation and theme controls.
-- Added dedicated frontend tests for `ThemeProvider` default mode, persisted preference loading, and user-triggered theme persistence behavior.
-- Updated settings tests to run with `ThemeProvider` context, aligning test setup with the production provider tree.
-- Preserved tri-mode theming contract (`dark` default, `light`, `system`) and tokenized color usage across core screens.
+- Hardened auth session endpoints to prevent malformed or stale session payloads from producing backend 500s on `/api/auth/me`.
+- Added session-shape validation in `server/src/routes/auth.ts` and safe unauthorized fallbacks for user lookup/update failures.
+- Added regression coverage in `server/test/auth-session.test.ts` to verify malformed session auth data returns `401` instead of crashing.
+- Added `PROMPTMAGIC_FEATURE_ANALYSIS.md` documenting PromptMagic feature analysis and implementation references.
+- Refreshed technical summary metadata and maintenance scan status to match the current repository state.
 
 ## Technical Architecture
 
