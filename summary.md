@@ -1,13 +1,12 @@
 # Prompt Library - Technical Summary
 
-Last Updated: Friday, April 03, 2026 at 13:00 CDT
-Build Version: 69bc9ee
+Last Updated: Friday, April 03, 2026 at 15:24 CDT
+Build Version: 6ba26dc
 
 ## Recent Changes
 
-- Fixed unreadable primary button text in dark theme by updating `--color-text-inverse` to white in `client/src/styles/theme.css`.
-- Added accessible hover/active states for primary call-to-action controls by applying `hover:bg-(--color-primary-active)` and `active:bg-(--color-primary-active)` across auth, profile, collection, and prompt edit/create screens.
-- Preserved existing link-hover color behavior by keeping `--color-primary-hover` unchanged and scoping contrast-safe behavior to button-style elements.
+- Fixed unreadable login CTA text by switching the OAuth entry button on `client/src/features/auth/LoginPage.tsx` to `text-white`, ensuring contrast against the primary button background in dark theme.
+- Kept the OAuth launch flow unchanged (`getGoogleLoginUrl()` and `/api/auth/google/start` behavior remain intact) while applying a visual-only accessibility fix.
 - Revalidated TODO/FIXME scan and refreshed summary metadata to align documentation with the current implementation snapshot.
 
 ## Technical Architecture
