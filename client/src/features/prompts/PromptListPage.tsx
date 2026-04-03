@@ -53,14 +53,14 @@ export function PromptListPage() {
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-semibold">Prompt Discovery</h2>
-      <div className="grid gap-2 md:grid-cols-2">
+      <div className="grid gap-2 rounded border border-(--color-border) bg-(--color-surface) p-3 md:grid-cols-2">
         <input
           value={search}
           onChange={(event) => {
             setSearch(event.target.value);
             setPage(1);
           }}
-          className="rounded border px-3 py-2"
+          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
           placeholder="Search title, summary, or body"
         />
         <select
@@ -69,7 +69,7 @@ export function PromptListPage() {
             setSort(event.target.value as "recent" | "topRated" | "mostUsed");
             setPage(1);
           }}
-          className="rounded border px-3 py-2"
+          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
         >
           <option value="recent">Sort: Most recent</option>
           <option value="topRated">Sort: Top rated</option>
@@ -81,7 +81,7 @@ export function PromptListPage() {
             setStatus(event.target.value as "" | "DRAFT" | "PUBLISHED" | "ARCHIVED");
             setPage(1);
           }}
-          className="rounded border px-3 py-2"
+          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
         >
           <option value="">All statuses</option>
           <option value="DRAFT">Draft</option>
@@ -94,7 +94,7 @@ export function PromptListPage() {
             setTag(event.target.value);
             setPage(1);
           }}
-          className="rounded border px-3 py-2"
+          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
         >
           <option value="">All tags</option>
           {tagsQuery.data?.map((item) => (
@@ -109,7 +109,7 @@ export function PromptListPage() {
             setCollectionId(event.target.value);
             setPage(1);
           }}
-          className="rounded border px-3 py-2 md:col-span-2"
+          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2 md:col-span-2"
         >
           <option value="">All collections</option>
           {collectionsQuery.data?.map((item) => (
@@ -120,9 +120,13 @@ export function PromptListPage() {
         </select>
       </div>
       {promptsQuery.data?.data.map((prompt) => (
-        <Link key={prompt.id} to={`/prompts/${prompt.id}`} className="block rounded border bg-white p-4">
+        <Link
+          key={prompt.id}
+          to={`/prompts/${prompt.id}`}
+          className="block rounded border border-(--color-border) bg-(--color-surface) p-4"
+        >
           <p className="font-semibold">{prompt.title}</p>
-          <p className="text-sm text-slate-600">{prompt.summary ?? "No summary"}</p>
+          <p className="text-sm text-(--color-text-muted)">{prompt.summary ?? "No summary"}</p>
         </Link>
       ))}
       {promptsQuery.data && promptsQuery.data.meta.totalPages > 1 ? (
@@ -130,20 +134,20 @@ export function PromptListPage() {
           <button
             type="button"
             disabled={promptsQuery.data.meta.page <= 1}
-            className="rounded border px-3 py-1.5 disabled:opacity-50"
+            className="rounded border border-(--color-border) bg-(--color-surface) px-3 py-1.5 disabled:opacity-50"
             onClick={() => {
               setPage((current) => Math.max(1, current - 1));
             }}
           >
             Previous
           </button>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-(--color-text-muted)">
             Page {promptsQuery.data.meta.page} of {promptsQuery.data.meta.totalPages}
           </p>
           <button
             type="button"
             disabled={promptsQuery.data.meta.page >= promptsQuery.data.meta.totalPages}
-            className="rounded border px-3 py-1.5 disabled:opacity-50"
+            className="rounded border border-(--color-border) bg-(--color-surface) px-3 py-1.5 disabled:opacity-50"
             onClick={() => {
               setPage((current) => Math.min(promptsQuery.data!.meta.totalPages, current + 1));
             }}

@@ -109,55 +109,58 @@ export function PromptDetailPage() {
     <div className="space-y-4">
       <h2 className="text-2xl font-semibold">{promptQuery.data.title}</h2>
       <p>{promptQuery.data.summary}</p>
-      <section className="space-y-3 rounded border bg-white p-4">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Metadata</h3>
+      <section className="space-y-3 rounded border border-(--color-border) bg-(--color-surface) p-4">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-(--color-text-muted)">Metadata</h3>
         <div className="flex flex-wrap gap-2 text-sm">
-          <span className="rounded bg-slate-100 px-2 py-1">Status: {promptQuery.data.status}</span>
-          <span className="rounded bg-slate-100 px-2 py-1">Visibility: {promptQuery.data.visibility}</span>
-          <span className="rounded bg-slate-100 px-2 py-1">
+          <span className="rounded bg-(--color-surface-muted) px-2 py-1">Status: {promptQuery.data.status}</span>
+          <span className="rounded bg-(--color-surface-muted) px-2 py-1">Visibility: {promptQuery.data.visibility}</span>
+          <span className="rounded bg-(--color-surface-muted) px-2 py-1">
             Model: {promptQuery.data.modelHint?.trim() ? promptQuery.data.modelHint : "Not set"}
           </span>
-          <span className="rounded bg-slate-100 px-2 py-1">
+          <span className="rounded bg-(--color-surface-muted) px-2 py-1">
             Modality: {promptQuery.data.modality?.trim() ? promptQuery.data.modality : "Not set"}
           </span>
         </div>
         <div className="flex flex-wrap gap-2">
           {promptQuery.data.promptTags && promptQuery.data.promptTags.length > 0 ? (
             promptQuery.data.promptTags.map((item) => (
-              <span key={item.tag.id} className="rounded-full bg-blue-50 px-2 py-1 text-xs text-blue-800">
+              <span key={item.tag.id} className="rounded-full bg-(--color-surface-muted) px-2 py-1 text-xs">
                 #{item.tag.name}
               </span>
             ))
           ) : (
-            <p className="text-sm text-slate-600">No tags assigned.</p>
+            <p className="text-sm text-(--color-text-muted)">No tags assigned.</p>
           )}
         </div>
         <div className="grid gap-2 text-sm md:grid-cols-3">
-          <p className="rounded border px-3 py-2">
+          <p className="rounded border border-(--color-border) px-3 py-2">
             <span className="font-semibold">Average rating:</span>{" "}
             {averageRating === null ? "No ratings" : averageRating.toFixed(1)}
           </p>
-          <p className="rounded border px-3 py-2">
+          <p className="rounded border border-(--color-border) px-3 py-2">
             <span className="font-semibold">Total ratings:</span> {promptQuery.data.ratings?.length ?? 0}
           </p>
-          <p className="rounded border px-3 py-2">
+          <p className="rounded border border-(--color-border) px-3 py-2">
             <span className="font-semibold">Usage events:</span> {promptQuery.data._count?.usageEvents ?? 0}
           </p>
         </div>
       </section>
-      <section className="space-y-3 rounded border bg-white p-4">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Collections</h3>
-        {collectionsQuery.isLoading ? <p className="text-sm text-slate-600">Loading collections...</p> : null}
+      <section className="space-y-3 rounded border border-(--color-border) bg-(--color-surface) p-4">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-(--color-text-muted)">Collections</h3>
+        {collectionsQuery.isLoading ? <p className="text-sm text-(--color-text-muted)">Loading collections...</p> : null}
         {collectionsQuery.data?.length ? (
           <div className="space-y-2">
             {collectionsQuery.data.map((collection) => {
               const hasPrompt = collection.prompts.some((entry) => entry.prompt.id === promptId);
               return (
-                <div key={collection.id} className="flex items-center justify-between rounded border px-3 py-2">
+                <div
+                  key={collection.id}
+                  className="flex items-center justify-between rounded border border-(--color-border) px-3 py-2"
+                >
                   <p className="text-sm">{collection.name}</p>
                   <button
                     type="button"
-                    className="rounded border px-2 py-1 text-xs"
+                    className="rounded border border-(--color-border) bg-(--color-surface-muted) px-2 py-1 text-xs"
                     disabled={addToCollectionMutation.isPending || removeFromCollectionMutation.isPending}
                     onClick={() => {
                       if (hasPrompt) {
@@ -174,16 +177,16 @@ export function PromptDetailPage() {
             })}
           </div>
         ) : (
-          <p className="text-sm text-slate-600">No collections available yet.</p>
+          <p className="text-sm text-(--color-text-muted)">No collections available yet.</p>
         )}
       </section>
       <div>
-        <Link to={`/prompts/${promptId}/edit`} className="text-sm text-blue-700 hover:underline">
+        <Link to={`/prompts/${promptId}/edit`} className="text-sm">
           Edit prompt
         </Link>
       </div>
       <textarea
-        className="h-56 w-full rounded border px-3 py-2"
+        className="h-56 w-full rounded border border-(--color-border) bg-(--color-surface) px-3 py-2"
         defaultValue={promptQuery.data.body}
         onBlur={(event) => {
           const body = event.target.value;
@@ -195,7 +198,7 @@ export function PromptDetailPage() {
       <div className="flex gap-2">
         <button
           type="button"
-          className="rounded border px-3 py-1.5"
+          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-1.5"
           onClick={() => {
             void navigator.clipboard.writeText(promptQuery.data?.body ?? "");
             void logUsage(promptId, "COPY");
@@ -208,7 +211,7 @@ export function PromptDetailPage() {
           href={launchUrl}
           target="_blank"
           rel="noreferrer"
-          className="rounded border px-3 py-1.5"
+          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-1.5"
           onClick={() => {
             void logUsage(promptId, "LAUNCH");
             trackEvent("prompt_launch", { prompt_id: promptId });
@@ -218,7 +221,7 @@ export function PromptDetailPage() {
         </a>
         <button
           type="button"
-          className="rounded border px-3 py-1.5"
+          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-1.5"
           onClick={() => {
             void toggleFavorite(promptId);
             trackEvent("prompt_favorite_toggle", { prompt_id: promptId });
@@ -228,7 +231,7 @@ export function PromptDetailPage() {
         </button>
         <select
           value={rating}
-          className="rounded border px-2"
+          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-2"
           onChange={(event) => {
             setRating(Number(event.target.value));
           }}
@@ -241,7 +244,7 @@ export function PromptDetailPage() {
         </select>
         <button
           type="button"
-          className="rounded border px-3 py-1.5"
+          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-1.5"
           onClick={() => {
             void ratePrompt(promptId, rating);
             trackEvent("prompt_rate", { prompt_id: promptId, value: rating });

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchMe } from "./api";
+import { ThemeModeToggle } from "../../components/ui/ThemeModeToggle";
 
 export function SettingsPage() {
   const meQuery = useQuery({
@@ -18,7 +19,7 @@ export function SettingsPage() {
   return (
     <section className="space-y-4">
       <h2 className="text-2xl font-semibold">Settings</h2>
-      <div className="rounded border bg-white p-4">
+      <div className="rounded border border-(--color-border) bg-(--color-surface) p-4">
         <p>
           <span className="font-semibold">Name:</span> {meQuery.data.name ?? "Not set"}
         </p>
@@ -31,6 +32,10 @@ export function SettingsPage() {
         <p>
           <span className="font-semibold">Team ID:</span> {meQuery.data.teamId}
         </p>
+      </div>
+      <div className="rounded border border-(--color-border) bg-(--color-surface) p-4">
+        <p className="mb-2 text-sm text-(--color-text-muted)">Appearance</p>
+        <ThemeModeToggle />
       </div>
     </section>
   );

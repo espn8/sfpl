@@ -42,7 +42,7 @@ export function PromptEditPage() {
 
   return (
     <form
-      className="space-y-3"
+      className="space-y-3 rounded border border-(--color-border) bg-(--color-surface) p-4"
       onSubmit={(event) => {
         event.preventDefault();
         const formData = new FormData(event.currentTarget);
@@ -72,21 +72,29 @@ export function PromptEditPage() {
         name="title"
         defaultValue={promptQuery.data.title}
         placeholder="Title"
-        className="w-full rounded border px-3 py-2"
+        className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
       />
       <input
         name="summary"
         defaultValue={promptQuery.data.summary ?? ""}
         placeholder="Summary"
-        className="w-full rounded border px-3 py-2"
+        className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
       />
       <div className="grid gap-2 md:grid-cols-2">
-        <select name="status" defaultValue={promptQuery.data.status} className="rounded border px-3 py-2">
+        <select
+          name="status"
+          defaultValue={promptQuery.data.status}
+          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
+        >
           <option value="DRAFT">Draft</option>
           <option value="PUBLISHED">Published</option>
           <option value="ARCHIVED">Archived</option>
         </select>
-        <select name="visibility" defaultValue={promptQuery.data.visibility} className="rounded border px-3 py-2">
+        <select
+          name="visibility"
+          defaultValue={promptQuery.data.visibility}
+          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
+        >
           <option value="TEAM">Team</option>
           <option value="PRIVATE">Private</option>
         </select>
@@ -96,22 +104,22 @@ export function PromptEditPage() {
           name="modelHint"
           defaultValue={promptQuery.data.modelHint ?? ""}
           placeholder="Model hint (optional)"
-          className="w-full rounded border px-3 py-2"
+          className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
         />
         <input
           name="modality"
           defaultValue={promptQuery.data.modality ?? ""}
           placeholder="Modality (optional)"
-          className="w-full rounded border px-3 py-2"
+          className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
         />
       </div>
       <textarea
         name="body"
         defaultValue={promptQuery.data.body}
         placeholder="Prompt body"
-        className="h-48 w-full rounded border px-3 py-2"
+        className="h-48 w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
       />
-      <button type="submit" className="rounded bg-slate-900 px-4 py-2 text-white">
+      <button type="submit" className="rounded bg-(--color-primary) px-4 py-2 text-(--color-text-inverse)">
         Save Changes
       </button>
     </form>

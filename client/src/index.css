@@ -1,1 +1,22 @@
 @import "tailwindcss";
+@import "./styles/tokens.css";
+@import "./styles/theme.css";
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+}
+
+a {
+  color: var(--color-primary);
+}
+
+a:hover {
+  color: var(--color-primary-hover);
+}

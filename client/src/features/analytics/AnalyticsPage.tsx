@@ -15,18 +15,18 @@ export function AnalyticsPage() {
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-semibold">Analytics Overview</h2>
-      <section>
+      <section className="space-y-2 rounded border border-(--color-border) bg-(--color-surface) p-4">
         <h3 className="font-semibold">Top Used</h3>
         {analyticsQuery.data.topUsedPrompts.map((item) => (
-          <p key={item.id} className="text-sm">
+          <p key={item.id} className="text-sm text-(--color-text-muted)">
             {item.title} - {item.usageCount}
           </p>
         ))}
       </section>
-      <section>
+      <section className="space-y-2 rounded border border-(--color-border) bg-(--color-surface) p-4">
         <h3 className="font-semibold">Stale Prompts</h3>
         {analyticsQuery.data.stalePrompts.map((item) => (
-          <p key={item.id} className="text-sm">
+          <p key={item.id} className="text-sm text-(--color-text-muted)">
             {item.title}
           </p>
         ))}

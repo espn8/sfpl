@@ -1,59 +1,55 @@
 # Prompt Library - Technical Summary
 
-Last Updated: Friday, April 03, 2026 at 08:02 CDT
-Build Version: 1518988
+Last Updated: Friday, April 03, 2026 at 09:57 CDT
+Build Version: 2dfe718
 
 ## Recent Changes
 
-- Completed the frontend route map with authenticated routes for `/prompts/:id/edit`, `/collections/:id`, and `/settings`, plus navigation links from `AppShell`.
-- Expanded prompt discovery to support backend query features: search, status filter, tag filter, collection filter, sort (`recent|topRated|mostUsed`), and server-driven pagination metadata.
-- Upgraded create/edit prompt forms to support `status`, `visibility`, `modelHint`, and `modality`, matching backend prompt fields and validation contracts.
-- Added a richer prompt detail metadata panel that displays status, visibility, model hint, modality, tags, average rating, rating count, and usage count.
-- Added prompt-to-collection membership controls on the prompt detail page with optimistic TanStack Query cache updates and rollback-on-error behavior.
-- Added new frontend modules: `PromptEditPage`, `CollectionDetailPage`, and `SettingsPage`, and extended API clients for prompt filtering metadata and collection membership mutations.
-- Added design-system planning requirements for PromptMagic-inspired discovery UX with Salesforce branding and tri-mode theming (`dark` default, `light`, `system`).
-- Resolved Heroku dependency audit warnings by upgrading Prisma packages to `6.19.3` and refreshing lockfile transitive dependencies.
-- Added explicit typing for tag list mapping in `server/src/routes/tags.ts` to preserve strict TypeScript compatibility after dependency updates.
+- Implemented tri-mode theming (`dark` default, `light`, `system`) with centralized tokenized styling across key frontend views.
+- Added `ThemeProvider` boot-time theme initialization and a reusable `ThemeModeToggle` surfaced in global navigation and settings.
+- Refactored major UI screens (prompts, collections, analytics, auth shell/pages) to use semantic CSS variables from centralized theme files.
+- Expanded seed data from minimal samples to an end-to-end demo dataset with 4 user roles, 10 tags, 8 prompts, variables, collections, ratings, favorites, and usage events.
+- Added resettable demo seeding via `SEED_RESET=true|1|yes`, which safely clears only `demo-team` data before reseeding.
+- Validated the new seed workflow by executing both normal seed and reset + reseed paths successfully.
 
 ## Technical Architecture
 
 ### Core Stack
 
-- Backend runtime: Node.js (project requirement: 20+, CI uses 20)
+- Backend runtime: Node.js 20+
 - Backend framework: Express `^5.2.1`
 - Backend language: TypeScript `^5.9.3`
 - Validation: Zod `^4.3.6`
-- DB/ORM: PostgreSQL + Prisma (`@prisma/client` `^6.19.3`, `prisma` `^6.19.3`)
-- Session stack: `express-session` `^1.19.0` + `connect-pg-simple` `^10.0.0` + `pg` `^8.20.0`
-- Auth/token verification: `jose` `^6.2.2`
-- Rate limiting: `express-rate-limit` `^8.3.2`
-- Testing (server): Vitest `^4.1.2`, Supertest `^7.2.2`
+- Database/ORM: PostgreSQL + Prisma (`@prisma/client` `^6.19.3`, `prisma` `^6.19.3`)
+- Session/auth infra: `express-session` `^1.19.0`, `connect-pg-simple` `^10.0.0`, `jose` `^6.2.2`
+- Data/HTTP utilities: `pg` `^8.20.0`, `cors` `^2.8.6`, `cookie-parser` `^1.4.7`
 - Frontend framework: React `^19.2.4`
 - Frontend tooling: Vite `^8.0.1`, TypeScript `~5.9.3`, Tailwind CSS `^4.2.2`
-- Frontend routing/data: React Router DOM `^7.13.2`, TanStack Query `^5.95.2`, Axios `^1.14.0`
+- Frontend data/routing: TanStack Query `^5.95.2`, React Router DOM `^7.13.2`, Axios `^1.14.0`
+- Test stack: Vitest (server `^4.1.2`, client `^3.2.4`), Supertest `^7.2.2`, RTL/JSDOM on client
 
 ### Runtime and System Requirements
 
 - Node.js 20+
 - npm 9+
 - PostgreSQL (local or Heroku Postgres)
-- Heroku CLI (deployment workflow)
-- Google Cloud OAuth credentials
+- Heroku CLI (for deployment)
+- Google Cloud OAuth client credentials
 
-### Third-Party APIs / Integrations
+### Third-Party APIs / Webhooks
 
-- Google OAuth 2.0 + OIDC
-  - Role: user SSO and callback token exchange
-  - Files: `server/src/routes/auth.ts`
-- Google JWKS (`https://www.googleapis.com/oauth2/v3/certs`)
+- Google OAuth 2.0 / OIDC
+  - Role: authenticate users and mint/verify session identity
+  - Implementation: `server/src/routes/auth.ts`
+- Google JWKS endpoint (`https://www.googleapis.com/oauth2/v3/certs`)
   - Role: verify Google ID token signatures
-  - Files: `server/src/routes/auth.ts`
+  - Implementation: `server/src/routes/auth.ts`
 - Heroku platform + Heroku Postgres
-  - Role: application hosting + managed PostgreSQL
-  - Files: `Procfile`, `app.json`, `server/prisma/schema.prisma`
-- GitHub Actions
-  - Role: continuous integration on push/PR
-  - Files: `.github/workflows/ci.yml`
+  - Role: deployment runtime and managed database
+  - Implementation references: `Procfile`, `app.json`, `server/prisma/schema.prisma`
+- GitHub Actions CI
+  - Role: branch/PR quality checks
+  - Implementation: `.github/workflows/ci.yml`
 
 ## Project Blueprint
 
@@ -61,79 +57,56 @@ Build Version: 1518988
 
 ```text
 .
-├── .github/
-│   └── workflows/
-│       └── ci.yml                  # CI matrix for server/client checks
-├── client/                         # React + Vite frontend
-│   ├── src/                        # App code (features, routes, shared UI)
-│   ├── package.json                # Frontend deps/scripts
-│   └── vite.config.ts              # Vite config
-├── server/                         # Express + Prisma API
-│   ├── prisma/
-│   │   ├── schema.prisma           # DB schema
-│   │   └── seed.ts                 # Seed data
+├── client/                                  # React + Vite frontend
 │   ├── src/
-│   │   ├── app.ts                  # Express app factory and middleware wiring
-│   │   ├── index.ts                # Runtime entrypoint + app.listen
-│   │   ├── config/env.ts           # Environment parsing/validation
-│   │   ├── lib/prisma.ts           # Prisma client singleton
-│   │   ├── middleware/
-│   │   │   ├── auth.ts             # Auth context + guards
-│   │   │   ├── errorHandler.ts     # Centralized error handler
-│   │   │   └── rateLimit.ts        # Auth route limiter
-│   │   └── routes/                 # API route handlers
-│   ├── test/                       # Vitest + Supertest tests
-│   ├── vitest.config.ts            # Test config
-│   └── package.json                # Backend deps/scripts
-├── README.md                       # Setup/deploy guide
-├── Procfile                        # Heroku release + web processes
-└── summary.md                      # This technical summary
+│   │   ├── app/
+│   │   │   ├── providers/ThemeProvider.tsx # Theme mode state + boot initialization
+│   │   │   └── router.tsx                   # Authenticated route graph
+│   │   ├── components/
+│   │   │   ├── AppShell.tsx                 # Shared app chrome + global navigation
+│   │   │   └── ui/ThemeModeToggle.tsx       # Theme mode control
+│   │   ├── features/                        # Feature pages + API calls
+│   │   ├── styles/
+│   │   │   ├── tokens.css                   # Design tokens
+│   │   │   └── theme.css                    # Dark/light semantic color maps
+│   │   ├── index.css                        # Tailwind import + global base styles
+│   │   └── main.tsx                         # App bootstrap + providers
+├── server/                                  # Express + Prisma backend
+│   ├── prisma/
+│   │   ├── schema.prisma                    # DB models/enums/relations
+│   │   └── seed.ts                          # Idempotent + resettable demo data generation
+│   ├── src/
+│   │   ├── app.ts                           # Middleware + routes + static hosting
+│   │   ├── index.ts                         # Runtime entrypoint
+│   │   ├── lib/prisma.ts                    # Prisma singleton
+│   │   ├── middleware/                      # Auth, errors, rate limiting
+│   │   └── routes/                          # Auth, prompts, tags, collections, analytics
+│   └── test/                                # API behavior tests
+├── Procfile                                 # Heroku release/web process model
+├── README.md                                # Local and deployment setup
+└── summary.md                               # This comprehensive summary
 ```
 
-### Primary Data Flow
+### Primary Data Flow / Lifecycle
 
-1. Browser requests frontend assets from Express static hosting (`server/public`) or API routes under `/api/*`.
-2. Session middleware loads/stores auth session in PostgreSQL-backed session table.
-3. Authenticated routes derive user/team context from session via `getAuthContext`.
-4. Route handlers validate query/body/params with Zod where implemented.
-5. Route handlers execute Prisma queries scoped by `teamId`.
-6. API responses return typed JSON payloads and uniform error payloads.
-7. Global error middleware handles uncaught route exceptions.
+1. Frontend boots, applies persisted/system theme before first paint, then mounts React providers.
+2. Browser requests API data under `/api/*`; Express applies session/auth middleware and team-scoped access.
+3. Routes validate request input with Zod and execute Prisma queries constrained by authenticated `teamId`.
+4. Prompt interactions (view/copy/launch/favorite/rate) update relational tables and feed analytics rollups.
+5. Seed workflow can create an idempotent baseline dataset or fully reset and recreate demo-team data.
+6. Production deploy runs Prisma migrations in `release` process, then serves built frontend through Express.
 
-### Major Module Responsibilities
+### Major Modules and Why They Exist
 
-- `server/src/app.ts`: composes middleware, routes, static serving, and global error handling; supports injectable session store for tests.
-- `server/src/index.ts`: production runtime bootstrap (`createApp()` + `listen`).
-- `server/src/middleware/rateLimit.ts`: enforces per-IP/per-user auth throttling; configurable by `AUTH_RATE_LIMIT_WINDOW_MS` and `AUTH_RATE_LIMIT_MAX`.
-- `server/src/routes/auth.ts`: OAuth start/callback/session endpoints, state+nonce flow, domain restriction, logout.
-- `server/src/routes/prompts.ts`: prompt CRUD/version/favorite/rating/usage and list pagination.
-- `server/src/routes/collections.ts`: collections CRUD + membership operations with list pagination.
-- `server/src/routes/tags.ts`: tags list/create with validation and uniqueness checks.
-- `server/test/*`: behavior-level API tests with mocked Prisma and middleware boundaries.
-- `client/src/app/router.tsx`: authenticated route graph for prompt, collection, analytics, and settings flows.
-- `client/src/features/prompts/PromptListPage.tsx`: discovery UI with composed filters and server-side pagination controls.
-- `client/src/features/prompts/PromptDetailPage.tsx`: prompt body actions, metadata rendering, and optimistic collection membership toggles.
-- `client/src/features/prompts/PromptEditorPage.tsx` and `client/src/features/prompts/PromptEditPage.tsx`: prompt authoring/editing forms aligned to backend fields.
-- `client/src/features/collections/CollectionDetailPage.tsx`: collection-focused prompt browsing view.
-- `client/src/features/auth/SettingsPage.tsx`: authenticated profile/team settings surface backed by `/api/auth/me`.
-- `client/src/app/providers/ThemeProvider.tsx` (planned): owns app-wide theme mode state (`dark|light|system`), system preference listeners, and storage hydration.
-- `client/src/components/ui/ThemeModeToggle.tsx` (planned): user control surface for selecting and persisting theme mode.
-- `client/src/styles/tokens.css` and `client/src/styles/theme.css` (planned): centralized design tokens and theme-specific variable mappings used by all frontend surfaces.
-
-### Frontend Theme Architecture Notes
-
-- Theme ownership: `ThemeProvider` wraps app-level providers in `client/src/main.tsx`, exposing mode state and setter through context.
-- Token ownership: color/surface/text/semantic tokens live in `client/src/styles/*` and are consumed by UI components rather than hardcoded values.
-- Runtime behavior:
-  - No saved preference -> default to `dark`.
-  - Saved `light` or `dark` preference overrides system.
-  - `system` resolves from `prefers-color-scheme` and reacts to OS theme changes.
-  - Initial theme application happens before first paint to prevent flash of incorrect theme.
-- Branding requirement: Salesforce logo and Salesforce-aligned blue action hierarchy must remain consistent and accessible across both light and dark surfaces.
-- Test expectations:
-  - Unit/component tests for theme mode toggle transitions and persistence.
-  - Runtime tests verifying first-load dark default and `system` change reactions.
-  - Visual/accessibility checks that core pages keep contrast and visible focus indicators in both themes.
+- `server/src/routes/prompts.ts`: central prompt domain API (search/filter/sort/pagination + CRUD + engagement).
+- `server/src/routes/collections.ts`: collection management and prompt membership orchestration.
+- `server/src/routes/analytics.ts`: usage-derived insights (top used, stale prompts, activity summaries).
+- `server/prisma/seed.ts`: deterministic demo data generation to validate end-to-end functionality quickly.
+- `client/src/features/prompts/*`: discovery, detail, create/edit flows mapped directly to backend capabilities.
+- `client/src/features/collections/*`: collection browsing and organization workflows.
+- `client/src/features/auth/*`: OAuth entry, authenticated profile/settings surfaces.
+- `client/src/app/providers/ThemeProvider.tsx`: persistent tri-mode theme state and system preference handling.
+- `client/src/styles/theme.css`: centralized semantic colors to keep components theme-agnostic.
 
 ## Replication and Setup
 
@@ -146,7 +119,7 @@ npm --prefix server install
 
 ### 2) Configure environment
 
-Create `server/.env` (or copy from `.env.example`) and provide values:
+Create `server/.env`:
 
 ```env
 NODE_ENV=development
@@ -161,23 +134,28 @@ GOOGLE_CLIENT_ID=<google-client-id>
 GOOGLE_CLIENT_SECRET=<google-client-secret>
 GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
 GOOGLE_ALLOWED_DOMAIN=salesforce.com
-# Optional auth limiter overrides
 AUTH_RATE_LIMIT_WINDOW_MS=900000
 AUTH_RATE_LIMIT_MAX=60
 ```
 
-Optional frontend env:
+Optional client env (`client/.env`):
 
 ```env
 VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
 ```
 
-### 3) Database setup
+### 3) Database setup and demo data
 
 ```bash
 npm --prefix server run prisma:migrate -- --name init
 npm --prefix server run prisma:generate
 npm --prefix server run prisma:seed
+```
+
+Reset and regenerate the demo baseline:
+
+```bash
+SEED_RESET=true npm --prefix server run prisma:seed
 ```
 
 ### 4) Run locally
@@ -187,7 +165,7 @@ npm --prefix server run dev
 npm --prefix client run dev
 ```
 
-### 5) Test and build checks
+### 5) Validate and build
 
 ```bash
 npm --prefix server test
@@ -195,26 +173,24 @@ npm --prefix server run build
 npm --prefix client run build
 ```
 
-### 6) Deploy to Heroku
+### 6) Deploy
 
 ```bash
 git push heroku main
 ```
 
-Release process is defined in `Procfile` (`release` runs Prisma deploy, `web` starts server).
-
 ## Maintenance Mode
 
 ### TODO/FIXME Scan
 
-- Scanned repository for `TODO` and `FIXME`.
-- No application-code TODO/FIXME markers were found in tracked source files.
-- One TODO/FIXME mention exists in policy/rule documentation (`.cursor/rules/commit-deploy-update-summary.mdc`) as an instruction, not as unresolved code work.
+- Repository scan for `TODO|FIXME` completed.
+- No outstanding application-code TODO/FIXME markers were found in tracked source files.
+- One TODO/FIXME mention is in workspace rule text only and does not represent unresolved runtime functionality.
 
 ### Roadmap / Backlog
 
-- Expand integration tests to include non-happy-path OAuth callback exchange and DB errors.
-- Add frontend tests (Vitest + RTL) for critical prompt/collection/auth views.
-- Add API contract documentation (OpenAPI/Swagger) for route request/response schemas.
-- Add production observability (structured logs + error tracking).
-- Add query/index performance tuning once data volume grows.
+- Add frontend tests for new theme provider and mode toggle persistence/system reactivity.
+- Add integration tests for `SEED_RESET` behavior to prevent regression in relational cleanup order.
+- Expand API contract docs for prompt filters, pagination metadata, and collection membership mutation payloads.
+- Add observability instrumentation (structured logs + error reporting) for auth callbacks and seed operations.
+- Add performance/index tuning and query plans as prompt/usage data volume scales.

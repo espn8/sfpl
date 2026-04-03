@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ThemeProvider } from "../../app/providers/ThemeProvider";
 import { SettingsPage } from "./SettingsPage";
 import { fetchMe } from "./api";
 
@@ -19,7 +20,9 @@ function renderSettingsPage() {
 
   render(
     <QueryClientProvider client={queryClient}>
-      <SettingsPage />
+      <ThemeProvider>
+        <SettingsPage />
+      </ThemeProvider>
     </QueryClientProvider>,
   );
 }

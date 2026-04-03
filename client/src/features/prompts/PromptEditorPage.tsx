@@ -15,7 +15,7 @@ export function PromptEditorPage() {
 
   return (
     <form
-      className="space-y-3"
+      className="space-y-3 rounded border border-(--color-border) bg-(--color-surface) p-4"
       onSubmit={(event) => {
         event.preventDefault();
         const formData = new FormData(event.currentTarget);
@@ -41,25 +41,53 @@ export function PromptEditorPage() {
       }}
     >
       <h2 className="text-2xl font-semibold">Create Prompt</h2>
-      <input name="title" placeholder="Title" className="w-full rounded border px-3 py-2" />
-      <input name="summary" placeholder="Summary" className="w-full rounded border px-3 py-2" />
+      <input
+        name="title"
+        placeholder="Title"
+        className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
+      />
+      <input
+        name="summary"
+        placeholder="Summary"
+        className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
+      />
       <div className="grid gap-2 md:grid-cols-2">
-        <select name="status" defaultValue="DRAFT" className="rounded border px-3 py-2">
+        <select
+          name="status"
+          defaultValue="DRAFT"
+          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
+        >
           <option value="DRAFT">Draft</option>
           <option value="PUBLISHED">Published</option>
           <option value="ARCHIVED">Archived</option>
         </select>
-        <select name="visibility" defaultValue="TEAM" className="rounded border px-3 py-2">
+        <select
+          name="visibility"
+          defaultValue="TEAM"
+          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
+        >
           <option value="TEAM">Team</option>
           <option value="PRIVATE">Private</option>
         </select>
       </div>
       <div className="grid gap-2 md:grid-cols-2">
-        <input name="modelHint" placeholder="Model hint (optional)" className="w-full rounded border px-3 py-2" />
-        <input name="modality" placeholder="Modality (optional)" className="w-full rounded border px-3 py-2" />
+        <input
+          name="modelHint"
+          placeholder="Model hint (optional)"
+          className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
+        />
+        <input
+          name="modality"
+          placeholder="Modality (optional)"
+          className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
+        />
       </div>
-      <textarea name="body" placeholder="Prompt body" className="h-48 w-full rounded border px-3 py-2" />
-      <button type="submit" className="rounded bg-slate-900 px-4 py-2 text-white">
+      <textarea
+        name="body"
+        placeholder="Prompt body"
+        className="h-48 w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
+      />
+      <button type="submit" className="rounded bg-(--color-primary) px-4 py-2 text-(--color-text-inverse)">
         Save Prompt
       </button>
     </form>
