@@ -35,7 +35,10 @@ export function CollectionsPage() {
           className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
           placeholder="New collection name"
         />
-        <button type="submit" className="rounded bg-(--color-primary) px-3 py-2 text-(--color-text-inverse)">
+        <button
+          type="submit"
+          className="rounded bg-(--color-primary) px-3 py-2 text-(--color-text-inverse) hover:bg-(--color-primary-active) active:bg-(--color-primary-active)"
+        >
           Create
         </button>
       </form>

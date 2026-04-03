@@ -1,15 +1,14 @@
 # Prompt Library - Technical Summary
 
-Last Updated: Friday, April 03, 2026 at 11:31 CDT
-Build Version: 31b92c9
+Last Updated: Friday, April 03, 2026 at 12:58 CDT
+Build Version: 3700be9
 
 ## Recent Changes
 
-- Expanded `PROMPTMAGIC_FEATURE_ANALYSIS.md` with a production-ready v1 default taxonomy blueprint covering dimensions, values, governance, and API contracts.
-- Added phase-2 taxonomy expansion guidance (intent, complexity, sensitivity, industry, workflow stage, language) to support gradual rollout by usage scale.
-- Documented typed variable schema recommendations, prompt lifecycle states, ranking signal taxonomy, and minimal database tables for taxonomy readiness.
-- Added preload seed recommendations and a 30-day taxonomy review cadence to prevent drift and support discovery quality over time.
-- Refreshed technical summary metadata and maintenance scan status to match the current repository state.
+- Fixed unreadable primary button text in dark theme by updating `--color-text-inverse` to white in `client/src/styles/theme.css`.
+- Added accessible hover/active states for primary call-to-action controls by applying `hover:bg-(--color-primary-active)` and `active:bg-(--color-primary-active)` across auth, profile, collection, and prompt edit/create screens.
+- Preserved existing link-hover color behavior by keeping `--color-primary-hover` unchanged and scoping contrast-safe behavior to button-style elements.
+- Revalidated TODO/FIXME scan and refreshed summary metadata to align documentation with the current implementation snapshot.
 
 ## Technical Architecture
 

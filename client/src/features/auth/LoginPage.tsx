@@ -6,7 +6,7 @@ export function LoginPage() {
       <div className="mx-auto flex max-w-xl flex-col gap-4 px-6 py-20">
         <h1 className="text-3xl font-bold">Prompt Library</h1>
         <a
-          className="inline-flex w-fit rounded bg-(--color-primary) px-4 py-2 text-(--color-text-inverse)"
+          className="inline-flex w-fit rounded bg-(--color-primary) px-4 py-2 text-(--color-text-inverse) hover:bg-(--color-primary-active) active:bg-(--color-primary-active)"
           href={getGoogleLoginUrl()}
         >
           Continue with Google

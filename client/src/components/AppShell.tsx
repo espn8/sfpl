@@ -248,7 +248,7 @@ export function AppShell({ children }: AppShellProps) {
                 <button
                   type="submit"
                   disabled={updateProfileMutation.isPending}
-                  className="rounded bg-(--color-primary) px-4 py-2 text-(--color-text-inverse) disabled:opacity-60"
+                  className="rounded bg-(--color-primary) px-4 py-2 text-(--color-text-inverse) hover:bg-(--color-primary-active) active:bg-(--color-primary-active) disabled:opacity-60"
                 >
                   {updateProfileMutation.isPending ? "Saving..." : "Save"}
                 </button>
