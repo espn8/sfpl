@@ -510,6 +510,158 @@ Core prompt fields:
 - Vertical-specific templates (legal, finance, support, engineering)
 - Provider cost/token estimator tied to prompt execution
 
+## 11) Proposed default taxonomy for your site (v1)
+
+This is a practical taxonomy you can implement now, then tune with real usage data.
+
+### A) MVP taxonomy (launch with this)
+
+Use these 7 dimensions first to avoid over-modeling:
+
+1. `domain`
+   - `marketing`, `sales`, `customer_success`, `support`, `engineering`, `product`, `design`, `operations`, `finance`, `legal`, `education`, `research`, `personal_productivity`, `solutions`, `general`
+
+2. `taskType`
+   - `generate`, `analyze`, `summarize`, `rewrite`, `transform`, `plan`, `brainstorm`, `evaluate`, `extract`, `classify`
+
+3. `modality`
+   - `text`, `code`, `image`, `video`, `audio`, `multimodal`
+
+4. `persona`
+   - `marketer`, `developer`, `designer`, `sales_rep`, `support_agent`, `analyst`, `educator`, `general`, `solutions_engineer`, `technical_architect`, `business_consultant`
+
+5. `inputShape`
+   - `single_field`, `multi_variable_template`, `document_based`, `url_based`, `transcript_based`, `dataset_based`
+
+6. `outputFormat`
+   - `paragraph`, `bullet_list`, `table`, `json`, `email`, `social_post`, `report`, `code_snippet`, `checklist`, `step_by_step`
+
+7. `modelCompatibility`
+   - `chatgpt`, `claude`, `gemini`, `perplexity`, `grok`, `meshmesh`, `slackbot`, `agentforce_vibes`, `model_agnostic`
+
+### B) Expanded taxonomy (phase 2)
+
+Add these only after you have enough content volume and search traffic:
+
+- `intent`: `speed`, `quality`, `exploration`, `automation`, `learning`
+- `complexity`: `beginner`, `intermediate`, `advanced`
+- `sensitivity`: `public_safe`, `internal_only`, `regulated`
+- `industry`: `agnostic`, `financial_services`, `healthcare_life_sciences`, `manufacturing`, `communications`, `media`, `energy_utilities`, `retail_consumer_goods`, `automotive`, `public_sector`, `education`, `nonprofit`, `professional_services`, `technology`, `travel_transport_hospitality`
+- `workflowStage`: `ideation`, `production`, `review`, `optimization`, `reporting`
+- `language`: `en`, `es`, `fr`, `de`, `pt`, `other`
+
+### C) Tag governance rules (prevents taxonomy drift)
+
+- One canonical slug per concept (example: use `customer_success`, never both `customer-success` and `cust_success`).
+- Max 1 selected value for single-select dimensions: `domain`, `taskType`, `modality`, `complexity`.
+- Multi-select allowed only where it adds value: `modelCompatibility`, `industry`, `workflowStage`.
+- Enforce synonym mapping table (example: `copywriting` -> `marketing`, `dev` -> `developer`).
+- Block creation of new top-level tags from user UI; queue for admin approval.
+- Auto-deprecate low-usage tags and migrate mapped prompts in batch jobs.
+
+### D) Recommended variable taxonomy (template fields)
+
+Treat variables as a typed schema, not freeform text labels.
+
+`variableType` allowed values:
+- `short_text`
+- `long_text`
+- `select`
+- `multi_select`
+- `number`
+- `boolean`
+- `date`
+- `url`
+- `json`
+
+Standard reusable variable keys (starter set):
+- `topic`
+- `audience`
+- `goal`
+- `context`
+- `constraints`
+- `tone`
+- `style`
+- `format`
+- `length`
+- `language`
+- `examples`
+- `success_criteria`
+
+Variable validation rules:
+- `required`
+- `minLength` / `maxLength`
+- `min` / `max`
+- `enum`
+- `regex`
+- `allowEmpty`
+
+### E) Prompt lifecycle state taxonomy
+
+Use explicit statuses to support moderation and quality control:
+
+- `draft`
+- `pending_review`
+- `published`
+- `featured`
+- `deprecated`
+- `archived`
+- `rejected`
+
+### F) Ranking signal taxonomy (for search and discovery)
+
+Track and score:
+
+- `rating_avg`
+- `rating_count`
+- `copy_count`
+- `launch_count`
+- `favorite_count`
+- `recent_activity_score`
+- `completion_rate` (template fill -> launch)
+- `retention_score` (repeat use)
+
+### G) Minimal DB shape (taxonomy-ready)
+
+Core tables:
+
+- `taxonomy_dimensions` (`id`, `key`, `name`, `isMultiSelect`, `isActive`)
+- `taxonomy_values` (`id`, `dimensionId`, `slug`, `label`, `description`, `sortOrder`, `isActive`)
+- `taxonomy_aliases` (`id`, `dimensionId`, `alias`, `valueId`)
+- `prompt_taxonomy_values` (`promptId`, `valueId`, `source`, `confidence`)
+- `prompt_variables` (`id`, `promptId`, `key`, `label`, `variableType`, `required`, `configJson`, `sortOrder`)
+
+`source` for `prompt_taxonomy_values`:
+- `author`
+- `ai`
+- `moderator`
+- `system`
+
+### H) API contract (MVP)
+
+- `GET /taxonomy` -> returns dimensions + active values
+- `POST /prompts/:id/taxonomy` -> assign/update tags with validation
+- `POST /prompts/:id/variables` -> create/update typed variable schema
+- `POST /prompts/:id/auto-tag` -> AI suggestions with confidence payload
+- `GET /search/prompts` -> faceted query by taxonomy values
+
+### I) Seed values you should preload
+
+Preload all values in section 11.A plus these high-value quick filters:
+
+- `taskType`: `email_writing`, `ad_copy`, `code_review`, `debugging`, `meeting_summary`, `competitive_analysis`
+- `outputFormat`: `linkedin_post`, `x_thread`, `sql_query`, `markdown`, `presentation_outline`
+- `workflowStage`: `drafting`, `editing`, `publishing`
+
+### J) Review cadence
+
+Run taxonomy maintenance every 30 days:
+
+- Merge duplicate/near-duplicate tags
+- Promote high-frequency inferred tags into canonical values
+- Deprecate low-value tags with migration mapping
+- Recompute ranking weights from engagement data
+
 ---
 
 ## Executive takeaway
