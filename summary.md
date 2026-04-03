@@ -1,7 +1,7 @@
 # Prompt Library - Technical Summary
 
-Last Updated: Thursday, April 02, 2026 at 17:19 CDT
-Build Version: 8cfaaf1
+Last Updated: Friday, April 03, 2026 at 08:02 CDT
+Build Version: 1518988
 
 ## Recent Changes
 
@@ -12,6 +12,8 @@ Build Version: 8cfaaf1
 - Added prompt-to-collection membership controls on the prompt detail page with optimistic TanStack Query cache updates and rollback-on-error behavior.
 - Added new frontend modules: `PromptEditPage`, `CollectionDetailPage`, and `SettingsPage`, and extended API clients for prompt filtering metadata and collection membership mutations.
 - Added design-system planning requirements for PromptMagic-inspired discovery UX with Salesforce branding and tri-mode theming (`dark` default, `light`, `system`).
+- Resolved Heroku dependency audit warnings by upgrading Prisma packages to `6.19.3` and refreshing lockfile transitive dependencies.
+- Added explicit typing for tag list mapping in `server/src/routes/tags.ts` to preserve strict TypeScript compatibility after dependency updates.
 
 ## Technical Architecture
 
@@ -21,7 +23,7 @@ Build Version: 8cfaaf1
 - Backend framework: Express `^5.2.1`
 - Backend language: TypeScript `^5.9.3`
 - Validation: Zod `^4.3.6`
-- DB/ORM: PostgreSQL + Prisma (`@prisma/client` `^6.19.2`, `prisma` `^6.19.2`)
+- DB/ORM: PostgreSQL + Prisma (`@prisma/client` `^6.19.3`, `prisma` `^6.19.3`)
 - Session stack: `express-session` `^1.19.0` + `connect-pg-simple` `^10.0.0` + `pg` `^8.20.0`
 - Auth/token verification: `jose` `^6.2.2`
 - Rate limiting: `express-rate-limit` `^8.3.2`

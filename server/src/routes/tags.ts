@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { z } from "zod";
@@ -5,6 +6,13 @@ import { getAuthContext, requireAuth } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 
 const tagsRouter = Router();
+type TagWithPromptCount = Prisma.TagGetPayload<{
+  include: {
+    _count: {
+      select: { promptTags: true };
+    };
+  };
+}>;
 const createTagBodySchema = z.object({
   name: z.string().trim().min(1, "Tag name is required."),
 });
@@ -37,7 +45,7 @@ tagsRouter.get("/", async (req: Request, res: Response) => {
     },
   });
 
-  const data = tags.map((tag) => ({
+  const data = tags.map((tag: TagWithPromptCount) => ({
     id: tag.id,
     name: tag.name,
     promptCount: tag._count.promptTags,
