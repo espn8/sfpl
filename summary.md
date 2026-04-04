@@ -1,15 +1,16 @@
 # Prompt Library - Technical Summary
 
-Last Updated: Saturday, April 04, 2026 at 11:37 CDT
-Build Version: 76d8dde
+Last Updated: Saturday, April 04, 2026 at 11:41 CDT
+Build Version: 9a124ac
 
 ## Recent Changes
 
-- Standardized singular/plural UX copy across prompt surfaces so count-based labels now render correctly (`prompt/prompts`, `use/uses`, `favorite/favorites`, `rating/ratings`, `event/events`, `star/stars`).
-- Updated discovery and analytics presentation copy to remain grammatically correct at runtime, including dynamic hero stats and leaderboard metrics.
-- Updated collection and prompt detail count messaging to use explicit count-aware wording for better scanability and reduced ambiguity.
-- Normalized product copy from "Salesforce teams" to "Salesforce" in user-facing prompt discovery messaging.
-- Revalidated TODO/FIXME scan and refreshed summary metadata for the current implementation snapshot.
+- Fixed homepage blocking errors by hardening `/api/prompts` and `/api/analytics/overview` against schema drift and narrowing query selections.
+- Applied production Prisma migrations for prompt metadata/taxonomy, thumbnails, and public/private visibility.
+- Updated homepage messaging and filter UX (removed status filter, revised section/leaderboard copy).
+- Reworked prompt cards so each card is image-first (top visual), aligning with PromptMagic-style browsing flow.
+- Changed Users Leaderboard semantics from prompt ratings to per-user engagement scoring: `score = uses + favorites + feedback`.
+- Backfilled missing production thumbnail(s) and corrected thumbnail generation model usage to `gemini-2.5-flash-image`.
 
 ## Technical Architecture
 
@@ -25,15 +26,16 @@ Build Version: 76d8dde
 - Frontend framework: React `^19.2.4`
 - Frontend tooling: Vite `^8.0.1`, TypeScript `~5.9.3`, Tailwind CSS `^4.2.2`
 - Frontend data/routing: TanStack Query `^5.95.2`, React Router DOM `^7.13.2`, Axios `^1.14.0`
-- Test stack: Vitest (server `^4.1.2`, client `^3.2.4`), Supertest `^7.2.2`, RTL/JSDOM on client
+- Test stack: Vitest (server `^4.1.2`, client `^3.2.4`), Supertest `^7.2.2`, Testing Library/JSDOM
 
 ### Runtime and System Requirements
 
 - Node.js 20+
 - npm 9+
 - PostgreSQL (local or Heroku Postgres)
-- Heroku CLI (for deployment)
-- Google Cloud OAuth client credentials
+- Heroku CLI (deploy + operational commands)
+- Google OAuth credentials for login
+- Google Generative Language API key for thumbnail generation
 
 ### Third-Party APIs / Webhooks
 
@@ -44,13 +46,13 @@ Build Version: 76d8dde
   - Role: verify Google ID token signatures
   - Implementation: `server/src/routes/auth.ts`
 - Google Generative Language API (`https://generativelanguage.googleapis.com`)
-  - Role: generate prompt thumbnail images via `nano-banana-1.0`
+  - Role: generate prompt card thumbnails via model `gemini-2.5-flash-image`
   - Implementation: `server/src/services/nanoBanana.ts`, `server/src/routes/prompts.ts`
-- Heroku platform + Heroku Postgres
-  - Role: deployment runtime and managed database
+- Heroku + Heroku Postgres
+  - Role: runtime hosting + managed relational datastore
   - Implementation references: `Procfile`, `app.json`, `server/prisma/schema.prisma`
 - GitHub Actions CI
-  - Role: branch/PR quality checks
+  - Role: branch and PR quality checks
   - Implementation: `.github/workflows/ci.yml`
 
 ## Project Blueprint
@@ -59,59 +61,62 @@ Build Version: 76d8dde
 
 ```text
 .
-├── client/                                  # React + Vite frontend
+├── client/                                     # React + Vite frontend
 │   ├── src/
 │   │   ├── app/
-│   │   │   ├── providers/ThemeProvider.tsx # Theme mode state + boot initialization
-│   │   │   └── router.tsx                   # Authenticated route graph
-│   │   ├── components/
-│   │   │   ├── AppShell.tsx                 # Shared app chrome + global navigation
-│   │   │   └── ui/ThemeModeToggle.tsx       # Theme mode control
-│   │   ├── features/                        # Feature pages + API calls (auth, prompts, collections, analytics)
-│   │   ├── styles/
-│   │   │   ├── tokens.css                   # Design tokens
-│   │   │   └── theme.css                    # Dark/light semantic color maps
-│   │   ├── index.css                        # Tailwind import + global base styles
-│   │   ├── test/setup.ts                    # Vitest/JSDOM setup + storage shim
-│   │   └── main.tsx                         # App bootstrap + providers
-├── server/                                  # Express + Prisma backend
+│   │   │   ├── providers/ThemeProvider.tsx    # Theme state + persisted/system mode bootstrap
+│   │   │   └── router.tsx                      # Authenticated route graph
+│   │   ├── components/                         # Shared UI shell/chrome
+│   │   ├── features/
+│   │   │   ├── prompts/                        # Discovery/detail/create/edit + card layouts + filters
+│   │   │   ├── analytics/                      # Typed analytics client contracts
+│   │   │   ├── collections/                    # Collection CRUD + membership surfaces
+│   │   │   └── auth/                           # OAuth entry + account settings
+│   │   ├── styles/                             # Design tokens + theme semantics
+│   │   └── main.tsx                            # Bootstrap + providers
+├── server/                                     # Express + Prisma backend
 │   ├── prisma/
-│   │   ├── schema.prisma                    # DB models/enums/relations (includes onboarding fields)
-│   │   ├── migrations/                      # Ordered Prisma schema evolution scripts
-│   │   └── seed.ts                          # Idempotent + resettable demo data generation
+│   │   ├── schema.prisma                       # Canonical data model
+│   │   ├── migrations/                         # Applied schema migrations
+│   │   └── seed.ts                             # Demo data generation/reset
 │   ├── src/
-│   │   ├── app.ts                           # Middleware + routes + static hosting
-│   │   ├── index.ts                         # Runtime entrypoint
-│   │   ├── lib/prisma.ts                    # Prisma singleton
-│   │   ├── middleware/                      # Auth, errors, rate limiting
-│   │   └── routes/                          # Auth, prompts, tags, collections, analytics
-│   └── test/                                # API behavior tests
-├── Procfile                                 # Heroku release/web process model
-├── README.md                                # Local and deployment setup
-└── summary.md                               # This comprehensive summary
+│   │   ├── app.ts                              # Middleware + routes + SPA static hosting
+│   │   ├── routes/
+│   │   │   ├── prompts.ts                      # Prompt CRUD/search/rating/usage/favorites/thumbnail orchestration
+│   │   │   ├── analytics.ts                    # Top-used/stale/contributors/user-engagement scoreboard
+│   │   │   ├── collections.ts                  # Collection operations
+│   │   │   ├── tags.ts                         # Tag management
+│   │   │   └── auth.ts                         # Google OAuth + session lifecycle
+│   │   └── services/nanoBanana.ts              # Image generation adapter
+│   └── test/                                   # API behavior tests
+├── Procfile                                    # Heroku process model
+├── app.json                                    # Heroku app metadata/env scaffolding
+├── README.md                                   # Setup and runbook
+└── summary.md                                  # This technical summary
 ```
 
 ### Primary Data Flow / Lifecycle
 
-1. Frontend boots, applies persisted/system theme before first paint, then mounts React providers.
-2. Browser requests API data under `/api/*`; Express applies session/auth middleware and team-scoped access.
-3. Routes validate request input with Zod and execute Prisma queries constrained by authenticated `teamId`.
-4. Prompt interactions (view/copy/launch/favorite/rate) update relational tables and feed analytics rollups.
-5. Seed workflow can create an idempotent baseline dataset or fully reset and recreate demo-team data.
-6. Production deploy runs Prisma migrations in `release` process, then serves built frontend through Express.
+1. Frontend mounts providers and requests `/api/*` resources through Axios.
+2. Express applies session + auth middleware, derives user/team context, and scopes database access by `teamId`.
+3. Routes validate request payloads/query params via Zod and execute Prisma queries.
+4. Prompt engagement writes (usage/favorites/ratings) persist in relational tables.
+5. Analytics route composes aggregates and rankings:
+   - prompt performance (`topUsedPrompts`, `topRatedPrompts`, `stalePrompts`)
+   - contributor output (`contributors`)
+   - user engagement score leaderboard (`userEngagementLeaderboard`)
+6. Prompt thumbnail generation executes async image generation and stores data URI/file URI in `Prompt.thumbnailUrl`.
+7. Heroku deploy flow builds frontend, compiles server, serves SPA static assets from Express.
 
 ### Major Modules and Why They Exist
 
-- `server/src/routes/prompts.ts`: central prompt domain API (search/filter/sort/pagination + CRUD + engagement).
-- `server/src/routes/collections.ts`: collection management and prompt membership orchestration.
-- `server/src/services/nanoBanana.ts`: external thumbnail generation adapter with response parsing + fallback error handling.
-- `server/src/routes/analytics.ts`: usage-derived insights (top used, stale prompts, activity summaries).
-- `server/prisma/seed.ts`: deterministic demo data generation to validate end-to-end functionality quickly.
-- `client/src/features/prompts/*`: discovery, detail, create/edit flows mapped directly to backend capabilities.
-- `client/src/features/collections/*`: collection browsing and organization workflows.
-- `client/src/features/auth/*`: OAuth entry, authenticated profile/settings surfaces.
-- `client/src/app/providers/ThemeProvider.tsx`: persistent tri-mode theme state and system preference handling.
-- `client/src/styles/theme.css`: centralized semantic colors to keep components theme-agnostic.
+- `server/src/routes/prompts.ts`: primary prompt API with filtering, sorting, pagination, CRUD, versions, and engagement.
+- `server/src/routes/analytics.ts`: consolidated overview payload consumed by homepage dashboards and leaderboards.
+- `server/src/services/nanoBanana.ts`: external image-generation bridge for prompt thumbnails.
+- `server/prisma/schema.prisma`: source of truth for users/teams/prompts/engagement relations and enums.
+- `client/src/features/prompts/PromptListPage.tsx`: homepage/discovery UX, cards, filters, hero stats, and leaderboards.
+- `client/src/features/prompts/PromptThumbnail.tsx`: thumbnail rendering with graceful placeholder states.
+- `client/src/features/analytics/api.ts`: strict typed contract for analytics payload shape.
 
 ## Replication and Setup
 
@@ -144,13 +149,13 @@ AUTH_RATE_LIMIT_WINDOW_MS=900000
 AUTH_RATE_LIMIT_MAX=60
 ```
 
-Optional client env (`client/.env`):
+Optional `client/.env`:
 
 ```env
 VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
 ```
 
-### 3) Database setup and demo data
+### 3) Database migration + seed
 
 ```bash
 npm --prefix server run prisma:migrate -- --name init
@@ -158,7 +163,7 @@ npm --prefix server run prisma:generate
 npm --prefix server run prisma:seed
 ```
 
-Reset and regenerate the demo baseline:
+Reset/reseed:
 
 ```bash
 SEED_RESET=true npm --prefix server run prisma:seed
@@ -171,7 +176,7 @@ npm --prefix server run dev
 npm --prefix client run dev
 ```
 
-### 5) Validate and build
+### 5) Validate
 
 ```bash
 npm --prefix server test
@@ -191,13 +196,13 @@ git push heroku main
 
 - Repository scan for `TODO|FIXME` completed.
 - No outstanding application-code TODO/FIXME markers were found in tracked source files.
-- One TODO/FIXME mention is in workspace rule text only and does not represent unresolved runtime functionality.
+- One `TODO/FIXME` mention remains in workspace automation rule text and is non-runtime.
 
 ### Roadmap / Backlog
 
-- Expand frontend theme tests to include `system` mode reactivity to `prefers-color-scheme` changes and pre-paint boot behavior assertions.
-- Add integration tests for `SEED_RESET` behavior to prevent regression in relational cleanup order.
-- Expand API contract docs for prompt filters, pagination metadata, and collection membership mutation payloads.
-- Add operational safeguards for thumbnail generation retries (backoff/circuit-breaker) and observability on third-party generation failures.
-- Add observability instrumentation (structured logs + error reporting) for auth callbacks and seed operations.
-- Add performance/index tuning and query plans as prompt/usage data volume scales.
+- Add retry guardrails for thumbnail backfill jobs to avoid repeated processing on persistent provider errors.
+- Add provider capability check/health endpoint for image model compatibility before runtime generation attempts.
+- Expand end-to-end tests for homepage leaderboards to validate user-engagement score ranking behavior.
+- Add API contract tests for analytics response shape changes (`userEngagementLeaderboard`) to prevent frontend drift.
+- Add structured observability around external image generation failures and recovery paths.
+- Tune prompt/engagement indexes for larger production datasets and leaderboard query efficiency.

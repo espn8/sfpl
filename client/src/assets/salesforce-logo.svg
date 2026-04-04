@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 120" role="img" aria-labelledby="title desc">
+  <title id="title">Salesforce logo</title>
+  <desc id="desc">Blue cloud containing Salesforce wordmark</desc>
+  <g>
+    <circle cx="70" cy="64" r="30" fill="#00A1E0" />
+    <circle cx="104" cy="52" r="36" fill="#00A1E0" />
+    <circle cx="140" cy="64" r="30" fill="#00A1E0" />
+    <ellipse cx="104" cy="76" rx="62" ry="30" fill="#00A1E0" />
+  </g>
+  <text
+    x="104"
+    y="72"
+    text-anchor="middle"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="24"
+    font-weight="700"
+    fill="#FFFFFF"
+  >
+    salesforce
+  </text>
+</svg>

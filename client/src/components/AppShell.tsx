@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { fetchMe, logout, updateMyProfile } from "../features/auth/api";
 import { ThemeModeToggle } from "./ui/ThemeModeToggle";
+import salesforceLogo from "../assets/salesforce-logo.svg";
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -57,23 +58,28 @@ export function AppShell({ children }: AppShellProps) {
     <main className="min-h-screen bg-(--color-bg) text-(--color-text)">
       <div className="mx-auto max-w-5xl px-6 py-8">
         <header className="mb-6 flex items-center justify-between rounded-lg border border-(--color-border) bg-(--color-surface) px-4 py-3">
-          <nav className="flex gap-4 text-sm">
-            <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/">
-              Prompts
+          <div className="flex items-center gap-6">
+            <Link to="/" className="inline-flex items-center rounded focus-visible:outline-none" aria-label="Home">
+              <img src={salesforceLogo} alt="Salesforce" className="h-8 w-auto" />
             </Link>
-            <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/prompts/new">
-              New Prompt
-            </Link>
-            <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/collections">
-              Collections
-            </Link>
-            <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/analytics">
-              Analytics
-            </Link>
-            <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/settings">
-              Settings
-            </Link>
-          </nav>
+            <nav className="flex gap-4 text-sm">
+              <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/">
+                Prompts
+              </Link>
+              <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/prompts/new">
+                New Prompt
+              </Link>
+              <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/collections">
+                Collections
+              </Link>
+              <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/analytics">
+                Analytics
+              </Link>
+              <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/settings">
+                Settings
+              </Link>
+            </nav>
+          </div>
           <div className="flex items-center gap-3">
             {meQuery.data ? (
               <button
@@ -108,6 +114,23 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         </header>
         {children}
+        <footer className="mt-8 rounded-lg border border-(--color-border) bg-(--color-surface) px-4 py-3">
+          <div className="flex items-center justify-between gap-4">
+            <img src={salesforceLogo} alt="Salesforce" className="h-7 w-auto" />
+            <p className="text-right text-sm text-(--color-text-muted)">
+              Copyright 2026. All Rights Reserved. Created by{" "}
+              <a
+                href="https://salesforce.enterprise.slack.com/team/U01G89VU4N7"
+                target="_blank"
+                rel="noreferrer"
+                className="underline hover:no-underline"
+              >
+                Amelia Ochodnicky
+              </a>
+              .
+            </p>
+          </div>
+        </footer>
       </div>
       {showProfileModal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">

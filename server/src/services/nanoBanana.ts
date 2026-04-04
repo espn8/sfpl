@@ -1,6 +1,6 @@
 import { env } from "../config/env";
 
-const NANO_BANANA_MODEL = "nano-banana-1.0";
+const NANO_BANANA_MODEL = "gemini-2.5-flash-image";
 const NANO_BANANA_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${NANO_BANANA_MODEL}:generateContent`;
 
 function buildThumbnailPrompt(title: string, summary: string | null, body: string): string {
