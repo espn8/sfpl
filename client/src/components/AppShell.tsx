@@ -24,24 +24,14 @@ export function AppShell({ children }: AppShellProps) {
   const [formError, setFormError] = useState<string | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
-  const avatarChoices = [
-    "https://api.dicebear.com/9.x/bottts/svg?seed=Astra",
-    "https://api.dicebear.com/9.x/bottts/svg?seed=Nova",
-    "https://api.dicebear.com/9.x/bottts/svg?seed=Orion",
-    "https://api.dicebear.com/9.x/bottts/svg?seed=Ember",
-  ];
-  const googleAvatarUrl =
-    meQuery.data?.avatarUrl && !avatarChoices.includes(meQuery.data.avatarUrl)
-      ? meQuery.data.avatarUrl
-      : null;
-  const selectableAvatarChoices = googleAvatarUrl ? [googleAvatarUrl, ...avatarChoices] : avatarChoices;
+  const defaultAvatarUrl = "https://api.dicebear.com/9.x/bottts/svg?seed=PromptLibrary";
 
   useEffect(() => {
     if (!meQuery.data) {
       return;
     }
     setName(meQuery.data.name ?? "");
-    setAvatarUrl(meQuery.data.avatarUrl ?? avatarChoices[0]);
+    setAvatarUrl(meQuery.data.avatarUrl ?? defaultAvatarUrl);
     setRegion(meQuery.data.region ?? "");
     setOu(meQuery.data.ou ?? "");
     setTitle(meQuery.data.title ?? "");
@@ -96,7 +86,7 @@ export function AppShell({ children }: AppShellProps) {
                 aria-label="Edit profile"
               >
                 <img
-                  src={meQuery.data.avatarUrl ?? avatarChoices[0]}
+                  src={meQuery.data.avatarUrl ?? defaultAvatarUrl}
                   alt={meQuery.data.name ? `${meQuery.data.name} avatar` : "User avatar"}
                   className="h-8 w-8 rounded-full object-cover"
                 />
@@ -160,21 +150,11 @@ export function AppShell({ children }: AppShellProps) {
 
               <div>
                 <p className="mb-2 text-sm">Avatar</p>
-                <div className="grid grid-cols-4 gap-3">
-                  {selectableAvatarChoices.map((choice, index) => (
-                    <button
-                      key={choice}
-                      type="button"
-                      className={`rounded border p-1 ${avatarUrl === choice ? "border-(--color-primary)" : "border-(--color-border)"}`}
-                      onClick={() => setAvatarUrl(choice)}
-                    >
-                      <img
-                        src={choice}
-                        alt={index === 0 && googleAvatarUrl === choice ? "Google profile photo option" : "Avatar option"}
-                        className="h-16 w-16 rounded object-cover"
-                      />
-                    </button>
-                  ))}
+                <div className="flex items-center gap-3 rounded border border-(--color-border) bg-(--color-surface-muted) p-3">
+                  <img src={avatarUrl} alt="Current avatar" className="h-16 w-16 rounded object-cover" />
+                  <p className="text-sm text-(--color-text-muted)">
+                    Your avatar comes from your Google profile photo or your uploaded profile image.
+                  </p>
                 </div>
               </div>
 

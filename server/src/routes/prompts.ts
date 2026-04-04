@@ -169,7 +169,9 @@ function parseSort(value: unknown): PromptSort {
   return "recent";
 }
 
-function serializePromptWithModality<T extends { modality: PromptModality; tools: string[]; modelHint?: string | null }>(prompt: T) {
+function serializePromptWithModality<
+  T extends Record<string, unknown> & { modality: PromptModality; tools: string[]; modelHint?: string | null },
+>(prompt: T): Omit<T, "modality" | "tools"> & { tools: string[]; modality: ApiModality } {
   return {
     ...prompt,
     tools: prompt.tools.length > 0 ? prompt.tools : mapLegacyModelHintToTools(prompt.modelHint),

@@ -1,10 +1,11 @@
 # Prompt Library - Technical Summary
 
-Last Updated: Saturday, April 04, 2026 at 10:56 CDT
-Build Version: ae32143
+Last Updated: Saturday, April 04, 2026 at 11:00 CDT
+Build Version: ceea01a
 
 ## Recent Changes
 
+- Fixed server TypeScript build failures in `server/src/routes/prompts.ts` by tightening `serializePromptWithModality` typing (`Record<string, unknown>` + explicit return contract), resolving spread errors that blocked Heroku deploy.
 - Added prompt metadata taxonomy support across API and persistence: `PromptModality` is now a controlled enum, `tools` is a first-class `TEXT[]` field, existing `modelHint` values are backfilled to canonical tool identifiers, and prompt list/edit/detail screens now use structured tool/modality values.
 - Implemented thumbnail generation lifecycle for prompts with new Prisma fields (`thumbnailUrl`, `thumbnailStatus`, `thumbnailError`) and a `server/src/services/nanoBanana.ts` integration that calls Google Generative Language (`nano-banana-1.0`) using `NANO_BANANA_API_KEY`.
 - Expanded prompt and collection route behavior with new error handling and detail operations, plus frontend UI support for collection detail edits/deletes/removals and prompt thumbnail rendering/regeneration controls.
