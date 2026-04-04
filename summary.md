@@ -1,16 +1,14 @@
 # Prompt Library - Technical Summary
 
-Last Updated: Saturday, April 04, 2026 at 11:41 CDT
-Build Version: 9a124ac
+Last Updated: Saturday, April 04, 2026 at 11:42 CDT
+Build Version: fb4fd54
 
 ## Recent Changes
 
-- Fixed homepage blocking errors by hardening `/api/prompts` and `/api/analytics/overview` against schema drift and narrowing query selections.
-- Applied production Prisma migrations for prompt metadata/taxonomy, thumbnails, and public/private visibility.
-- Updated homepage messaging and filter UX (removed status filter, revised section/leaderboard copy).
-- Reworked prompt cards so each card is image-first (top visual), aligning with PromptMagic-style browsing flow.
-- Changed Users Leaderboard semantics from prompt ratings to per-user engagement scoring: `score = uses + favorites + feedback`.
-- Backfilled missing production thumbnail(s) and corrected thumbnail generation model usage to `gemini-2.5-flash-image`.
+- Added Salesforce branding globally in the application shell by placing a Salesforce logo at the top-left of the primary header navigation.
+- Added a global footer block in the app shell with Salesforce logo usage and legal/attribution copy.
+- Added footer copyright and ownership statement: `Copyright 2026. All Rights Reserved. Created by Amelia Ochodnicky.`
+- Linked the author attribution name directly to the Salesforce Slack profile for quick team-access context.
 
 ## Technical Architecture
 
@@ -66,6 +64,7 @@ Build Version: 9a124ac
 │   │   ├── app/
 │   │   │   ├── providers/ThemeProvider.tsx    # Theme state + persisted/system mode bootstrap
 │   │   │   └── router.tsx                      # Authenticated route graph
+│   │   ├── assets/                             # Static visual assets (including Salesforce brand logo SVG)
 │   │   ├── components/                         # Shared UI shell/chrome
 │   │   ├── features/
 │   │   │   ├── prompts/                        # Discovery/detail/create/edit + card layouts + filters
