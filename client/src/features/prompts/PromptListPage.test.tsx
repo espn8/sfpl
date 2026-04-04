@@ -53,6 +53,17 @@ describe("PromptListPage", () => {
       topRatedPrompts: [{ id: 1, title: "Quota coaching", averageRating: 4.8, ratingCount: 12 }],
       stalePrompts: [],
       contributors: [{ id: 9, email: "user@example.com", name: "Alex", promptCount: 7 }],
+      userEngagementLeaderboard: [
+        {
+          id: 9,
+          email: "user@example.com",
+          name: "Alex",
+          score: 24,
+          usedCount: 10,
+          favoritedCount: 8,
+          feedbackCount: 6,
+        },
+      ],
     });
   });
 

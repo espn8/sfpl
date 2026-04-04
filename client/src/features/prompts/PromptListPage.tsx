@@ -7,11 +7,14 @@ import { listTags } from "../tags/api";
 import { listPrompts, type ListPromptsFilters, PROMPT_MODALITY_OPTIONS, PROMPT_TOOL_OPTIONS } from "./api";
 import { PromptThumbnail } from "./PromptThumbnail";
 
+function pluralize(count: number, singular: string, plural = `${singular}s`): string {
+  return `${count.toLocaleString()} ${count === 1 ? singular : plural}`;
+}
+
 export function PromptListPage() {
   const [search, setSearch] = useState("");
   const [tag, setTag] = useState("");
   const [collectionId, setCollectionId] = useState("");
-  const [status, setStatus] = useState<"" | "DRAFT" | "PUBLISHED" | "ARCHIVED">("");
   const [tool, setTool] = useState("");
   const [modality, setModality] = useState("");
   const [sort, setSort] = useState<"recent" | "topRated" | "mostUsed">("recent");
@@ -34,9 +37,6 @@ export function PromptListPage() {
     if (collectionId) {
       nextFilters.collectionId = Number(collectionId);
     }
-    if (status) {
-      nextFilters.status = status;
-    }
     if (tool) {
       nextFilters.tool = tool as (typeof PROMPT_TOOL_OPTIONS)[number];
     }
@@ -44,7 +44,7 @@ export function PromptListPage() {
       nextFilters.modality = modality as (typeof PROMPT_MODALITY_OPTIONS)[number];
     }
     return nextFilters;
-  }, [collectionId, modality, page, search, sort, status, tag, tool]);
+  }, [collectionId, modality, page, search, sort, tag, tool]);
 
   const promptsQuery = useQuery({
     queryKey: ["prompts", filters],
@@ -74,18 +74,21 @@ export function PromptListPage() {
     return <p className="text-red-700">Failed to load prompts.</p>;
   }
 
+  const promptTotal = promptsQuery.data?.meta.total ?? 0;
+  const contributorTotal = analyticsQuery.data?.contributors.length ?? 0;
+  const totalPromptRuns = analyticsQuery.data?.topUsedPrompts.reduce((total, prompt) => total + prompt.usageCount, 0) ?? 0;
   const heroStats = [
     {
-      label: "Prompts Published",
-      value: promptsQuery.data?.meta.total ?? 0,
+      label: promptTotal === 1 ? "Prompt Published" : "Prompts Published",
+      value: promptTotal,
     },
     {
-      label: "Active Contributors",
-      value: analyticsQuery.data?.contributors.length ?? 0,
+      label: contributorTotal === 1 ? "Active Contributor" : "Active Contributors",
+      value: contributorTotal,
     },
     {
-      label: "Total Prompt Runs",
-      value: analyticsQuery.data?.topUsedPrompts.reduce((total, prompt) => total + prompt.usageCount, 0) ?? 0,
+      label: totalPromptRuns === 1 ? "Total Prompt Run" : "Total Prompt Runs",
+      value: totalPromptRuns,
     },
   ] as const;
 
@@ -93,7 +96,7 @@ export function PromptListPage() {
   const featuredPrompts = (promptsQuery.data?.data ?? []).slice(0, 6);
 
   const contributorLeaderboard = (analyticsQuery.data?.contributors ?? []).slice(0, 5);
-  const usersLeaderboard = (analyticsQuery.data?.topRatedPrompts ?? []).slice(0, 5);
+  const usersLeaderboard = (analyticsQuery.data?.userEngagementLeaderboard ?? []).slice(0, 5);
 
   const aiToolAudience = [
     "Prompt engineers building repeatable workflows",
@@ -113,7 +116,7 @@ export function PromptListPage() {
           </p>
           <h2 className="text-3xl font-bold md:text-4xl">Discover the magic behind every winning AI response</h2>
           <p className="max-w-3xl text-(--color-text-muted)">
-            Find proven prompts, personalize them for your context, and launch in seconds. Built for Salesforce teams
+            Find proven prompts, personalize them for your context, and launch in seconds. Built for Salesforce
             and every AI power user who needs better outcomes, faster.
           </p>
         </div>
@@ -173,24 +176,22 @@ export function PromptListPage() {
             <Link
               key={prompt.id}
               to={`/prompts/${prompt.id}`}
-              className="block rounded-xl border border-(--color-border) bg-(--color-surface) p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-(--color-primary) hover:shadow-md motion-reduce:transform-none motion-reduce:transition-none"
+              className="block overflow-hidden rounded-xl border border-(--color-border) bg-(--color-surface) p-0 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-(--color-primary) hover:shadow-md motion-reduce:transform-none motion-reduce:transition-none"
             >
-              <div className="flex items-start gap-3">
-                <PromptThumbnail
-                  title={prompt.title}
-                  thumbnailUrl={prompt.thumbnailUrl}
-                  thumbnailStatus={prompt.thumbnailStatus}
-                  className="h-16 w-16 rounded object-cover"
-                />
-                <div className="min-w-0">
-                  <p className="truncate font-semibold">{prompt.title}</p>
-                  <p className="line-clamp-2 text-sm text-(--color-text-muted)">{prompt.summary ?? "No summary yet"}</p>
+              <PromptThumbnail
+                title={prompt.title}
+                thumbnailUrl={prompt.thumbnailUrl}
+                thumbnailStatus={prompt.thumbnailStatus}
+                className="h-40 w-full object-cover"
+              />
+              <div className="p-4">
+                <p className="truncate font-semibold">{prompt.title}</p>
+                <p className="line-clamp-2 text-sm text-(--color-text-muted)">{prompt.summary ?? "No summary yet"}</p>
+                <div className="mt-3 flex items-center gap-2 text-xs text-(--color-text-muted)">
+                  <span className="rounded border border-(--color-border) px-2 py-1">{prompt.modality}</span>
+                  <span className="rounded border border-(--color-border) px-2 py-1">{prompt.tools[0] ?? "general"}</span>
+                  <span className="ml-auto">{pluralize(prompt.usageCount, "use")}</span>
                 </div>
-              </div>
-              <div className="mt-3 flex items-center gap-2 text-xs text-(--color-text-muted)">
-                <span className="rounded border border-(--color-border) px-2 py-1">{prompt.modality}</span>
-                <span className="rounded border border-(--color-border) px-2 py-1">{prompt.tools[0] ?? "general"}</span>
-                <span className="ml-auto">{prompt.usageCount} uses</span>
               </div>
             </Link>
           ))}
@@ -219,7 +220,7 @@ export function PromptListPage() {
       </section>
 
       <section className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-sm transition-all duration-300 hover:shadow motion-reduce:transition-none">
-        <h3 className="text-xl font-semibold">Built for Salesforce Teams</h3>
+        <h3 className="text-xl font-semibold">Built for Salesforce by Salesforce</h3>
         <div className="mt-3 grid gap-3 md:grid-cols-3">
           <div className="rounded-xl border border-(--color-border) bg-(--color-surface-muted) p-4 transition-all duration-300 hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none">
             <p className="font-semibold">Sales Enablement Ready</p>
@@ -243,7 +244,7 @@ export function PromptListPage() {
       </section>
 
       <section className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-sm transition-all duration-300 hover:shadow motion-reduce:transition-none">
-        <h3 className="text-xl font-semibold">Built for Every AI Tool User</h3>
+        <h3 className="text-xl font-semibold">Built for Every AI Tool & User</h3>
         <div className="mt-3 grid gap-3 md:grid-cols-2">
           <div className="rounded-xl border border-(--color-border) bg-(--color-surface-muted) p-4 transition-all duration-300 hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none">
             <p className="font-semibold">Where your teams work</p>
@@ -275,7 +276,7 @@ export function PromptListPage() {
       <section className="grid gap-4 md:grid-cols-2">
         <div className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-sm transition-all duration-300 hover:shadow motion-reduce:transition-none">
           <h3 className="text-xl font-semibold">Contributors Leaderboard</h3>
-          <p className="mt-1 text-sm text-(--color-text-muted)">Most published contributors driving team adoption</p>
+          <p className="mt-1 text-sm text-(--color-text-muted)">Contributors driving AI adoption</p>
           <div className="mt-3 space-y-2">
             {contributorLeaderboard.map((contributor, index) => (
               <div
@@ -288,7 +289,7 @@ export function PromptListPage() {
                   </span>
                   {contributor.name ?? contributor.email}
                 </p>
-                <p className="text-sm text-(--color-text-muted)">{contributor.promptCount} prompts</p>
+                <p className="text-sm text-(--color-text-muted)">{pluralize(contributor.promptCount, "prompt")}</p>
               </div>
             ))}
             {contributorLeaderboard.length === 0 ? (
@@ -298,26 +299,27 @@ export function PromptListPage() {
         </div>
         <div className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-sm transition-all duration-300 hover:shadow motion-reduce:transition-none">
           <h3 className="text-xl font-semibold">Users Leaderboard</h3>
-          <p className="mt-1 text-sm text-(--color-text-muted)">Top user-rated prompts with strongest feedback</p>
+          <p className="mt-1 text-sm text-(--color-text-muted)">Top users based on utilization and feedback</p>
           <div className="mt-3 space-y-2">
-            {usersLeaderboard.map((prompt, index) => (
+            {usersLeaderboard.map((user, index) => (
               <div
-                key={prompt.id}
+                key={user.id}
                 className="flex items-center justify-between rounded-xl border border-(--color-border) bg-(--color-surface-muted) px-3 py-2 transition-all duration-300 hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none"
               >
                 <p className="font-medium">
                   <span className="mr-2 inline-flex min-w-6 justify-center rounded-md bg-(--color-surface) px-1.5 py-0.5 text-xs">
                     #{index + 1}
                   </span>
-                  {prompt.title}
+                  {user.name ?? user.email}
                 </p>
                 <p className="text-sm text-(--color-text-muted)">
-                  {prompt.averageRating?.toFixed(1) ?? "N/A"} ({prompt.ratingCount})
+                  Score {user.score} ({pluralize(user.usedCount, "use")}, {pluralize(user.favoritedCount, "favorite")},{" "}
+                  {pluralize(user.feedbackCount, "feedback", "feedback")})
                 </p>
               </div>
             ))}
             {usersLeaderboard.length === 0 ? (
-              <p className="text-sm text-(--color-text-muted)">User leaderboard updates as ratings come in.</p>
+              <p className="text-sm text-(--color-text-muted)">User leaderboard updates as engagement activity comes in.</p>
             ) : null}
           </div>
         </div>
@@ -345,19 +347,6 @@ export function PromptListPage() {
           <option value="recent">Sort: Most recent</option>
           <option value="topRated">Sort: Top rated</option>
           <option value="mostUsed">Sort: Most used</option>
-        </select>
-        <select
-          value={status}
-          onChange={(event) => {
-            setStatus(event.target.value as "" | "DRAFT" | "PUBLISHED" | "ARCHIVED");
-            setPage(1);
-          }}
-          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
-        >
-          <option value="">All statuses</option>
-          <option value="DRAFT">Draft</option>
-          <option value="PUBLISHED">Published</option>
-          <option value="ARCHIVED">Archived</option>
         </select>
         <select
           value={tag}
@@ -424,19 +413,17 @@ export function PromptListPage() {
         <Link
           key={prompt.id}
           to={`/prompts/${prompt.id}`}
-          className="block rounded border border-(--color-border) bg-(--color-surface) p-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm motion-reduce:transform-none motion-reduce:transition-none"
+          className="block overflow-hidden rounded-xl border border-(--color-border) bg-(--color-surface) p-0 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm motion-reduce:transform-none motion-reduce:transition-none"
         >
-          <div className="flex items-start gap-3">
-            <PromptThumbnail
-              title={prompt.title}
-              thumbnailUrl={prompt.thumbnailUrl}
-              thumbnailStatus={prompt.thumbnailStatus}
-              className="h-20 w-20 rounded object-cover"
-            />
-            <div className="min-w-0">
-              <p className="font-semibold">{prompt.title}</p>
-              <p className="text-sm text-(--color-text-muted)">{prompt.summary ?? "No summary"}</p>
-            </div>
+          <PromptThumbnail
+            title={prompt.title}
+            thumbnailUrl={prompt.thumbnailUrl}
+            thumbnailStatus={prompt.thumbnailStatus}
+            className="h-40 w-full object-cover"
+          />
+          <div className="p-4">
+            <p className="font-semibold">{prompt.title}</p>
+            <p className="text-sm text-(--color-text-muted)">{prompt.summary ?? "No summary"}</p>
           </div>
         </Link>
       ))}

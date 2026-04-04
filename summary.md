@@ -1,15 +1,14 @@
 # Prompt Library - Technical Summary
 
-Last Updated: Saturday, April 04, 2026 at 11:16 CDT
-Build Version: 814b7d0
+Last Updated: Saturday, April 04, 2026 at 11:37 CDT
+Build Version: 76d8dde
 
 ## Recent Changes
 
-- Implemented explicit prompt version creation endpoint `POST /api/prompts/:id/versions` to support manual version snapshots with body/changelog payloads and monotonic version incrementing.
-- Added server-side authorization/validation for version creation so only prompt owner/admin can create versions, while keeping team scope and standard error contracts.
-- Wired prompt body synchronization into version creation flow so latest prompt content updates alongside newly created `PromptVersion` rows.
-- Added regression coverage in `server/test/prompts-flow.test.ts` for explicit version creation behavior, including version number increment and updated prompt body assertions.
-- Added frontend API helper `createPromptVersion` in `client/src/features/prompts/api.ts` so editor/detail surfaces can call the new endpoint cleanly.
+- Standardized singular/plural UX copy across prompt surfaces so count-based labels now render correctly (`prompt/prompts`, `use/uses`, `favorite/favorites`, `rating/ratings`, `event/events`, `star/stars`).
+- Updated discovery and analytics presentation copy to remain grammatically correct at runtime, including dynamic hero stats and leaderboard metrics.
+- Updated collection and prompt detail count messaging to use explicit count-aware wording for better scanability and reduced ambiguity.
+- Normalized product copy from "Salesforce teams" to "Salesforce" in user-facing prompt discovery messaging.
 - Revalidated TODO/FIXME scan and refreshed summary metadata for the current implementation snapshot.
 
 ## Technical Architecture

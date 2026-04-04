@@ -5,6 +5,15 @@ export type AnalyticsOverview = {
   topRatedPrompts: Array<{ id: number; title: string; averageRating: number | null; ratingCount: number }>;
   stalePrompts: Array<{ id: number; title: string; updatedAt: string }>;
   contributors: Array<{ id: number; email: string; name: string | null; promptCount: number }>;
+  userEngagementLeaderboard: Array<{
+    id: number;
+    email: string;
+    name: string | null;
+    score: number;
+    usedCount: number;
+    favoritedCount: number;
+    feedbackCount: number;
+  }>;
 };
 
 export async function getAnalyticsOverview(): Promise<AnalyticsOverview> {

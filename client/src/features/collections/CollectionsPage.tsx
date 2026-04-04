@@ -5,6 +5,10 @@ import { trackEvent } from "../../app/analytics";
 import { createCollection, listCollections } from "./api";
 import { PromptThumbnail } from "../prompts/PromptThumbnail";
 
+function pluralize(count: number, singular: string, plural = `${singular}s`): string {
+  return `${count.toLocaleString()} ${count === 1 ? singular : plural}`;
+}
+
 export function CollectionsPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const collectionsQuery = useQuery({ queryKey: ["collections"], queryFn: listCollections });
@@ -67,7 +71,7 @@ export function CollectionsPage() {
             {collection.name}
           </Link>
           <p className="text-sm text-(--color-text-muted)">{collection.description}</p>
-          <p className="text-xs text-(--color-text-muted)">{collection.prompts.length} prompts</p>
+          <p className="text-xs text-(--color-text-muted)">{pluralize(collection.prompts.length, "prompt")}</p>
           <div className="mt-2 flex gap-2">
             {collection.prompts.slice(0, 3).map((entry) => (
               <PromptThumbnail

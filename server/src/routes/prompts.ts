@@ -95,6 +95,13 @@ function mapDbModalityToApi(value: PromptModality): ApiModality {
   }
 }
 
+function isMissingColumnError(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2022"
+  );
+}
+
 const listPromptsQuerySchema = z.object({
   q: z.string().trim().optional(),
   collectionId: z.coerce.number().int().positive().optional(),
@@ -290,7 +297,19 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
   const [prompts, total] = await Promise.all([
     prisma.prompt.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        title: true,
+        summary: true,
+        status: true,
+        visibility: true,
+        modelHint: true,
+        tools: true,
+        modality: true,
+        thumbnailUrl: true,
+        thumbnailStatus: true,
+        createdAt: true,
+        updatedAt: true,
         _count: { select: { favorites: true, ratings: true, usageEvents: true } },
         ratings: { select: { value: true } },
         promptTags: { include: { tag: true } },
@@ -300,7 +319,36 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
       take: pageSize,
     }),
     prisma.prompt.count({ where }),
-  ]);
+  ]).catch(async (error: unknown) => {
+    // Backward-compatible fallback for databases missing newer Prompt columns.
+    if (!isMissingColumnError(error)) {
+      throw error;
+    }
+
+    const [legacyPrompts, legacyTotal] = await Promise.all([
+      prisma.prompt.findMany({
+        where,
+        select: {
+          id: true,
+          title: true,
+          summary: true,
+          status: true,
+          visibility: true,
+          modelHint: true,
+          createdAt: true,
+          updatedAt: true,
+          _count: { select: { favorites: true, ratings: true, usageEvents: true } },
+          ratings: { select: { value: true } },
+          promptTags: { include: { tag: true } },
+        },
+        orderBy,
+        skip,
+        take: pageSize,
+      }),
+      prisma.prompt.count({ where }),
+    ]);
+    return [legacyPrompts, legacyTotal] as const;
+  });
 
   type PromptListItem = Prisma.PromptGetPayload<{
     include: {
@@ -316,11 +364,14 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
     summary: prompt.summary,
     status: prompt.status,
     visibility: prompt.visibility,
-    tools: prompt.tools.length > 0 ? prompt.tools : mapLegacyModelHintToTools(prompt.modelHint),
-    modality: mapDbModalityToApi(prompt.modality),
+    tools:
+      "tools" in prompt && Array.isArray(prompt.tools) && prompt.tools.length > 0
+        ? prompt.tools
+        : mapLegacyModelHintToTools(prompt.modelHint),
+    modality: "modality" in prompt ? mapDbModalityToApi(prompt.modality) : "text",
     modelHint: prompt.modelHint,
-    thumbnailUrl: prompt.thumbnailUrl,
-    thumbnailStatus: prompt.thumbnailStatus as ThumbnailStatusValue,
+    thumbnailUrl: "thumbnailUrl" in prompt ? prompt.thumbnailUrl : null,
+    thumbnailStatus: "thumbnailStatus" in prompt ? (prompt.thumbnailStatus as ThumbnailStatusValue) : "PENDING",
     createdAt: prompt.createdAt,
     updatedAt: prompt.updatedAt,
     tags: prompt.promptTags.map((item: { tag: { name: string } }) => item.tag.name),

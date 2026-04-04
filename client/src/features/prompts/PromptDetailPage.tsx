@@ -7,6 +7,10 @@ import type { Collection } from "../collections/api";
 import { getPrompt, logUsage, ratePrompt, toggleFavorite, updatePrompt } from "./api";
 import { PromptThumbnail } from "./PromptThumbnail";
 
+function pluralize(count: number, singular: string, plural = `${singular}s`): string {
+  return `${count.toLocaleString()} ${count === 1 ? singular : plural}`;
+}
+
 export function PromptDetailPage() {
   const params = useParams();
   const promptId = Number(params.id);
@@ -147,10 +151,10 @@ export function PromptDetailPage() {
             {averageRating === null ? "No ratings" : averageRating.toFixed(1)}
           </p>
           <p className="rounded border border-(--color-border) px-3 py-2">
-            <span className="font-semibold">Total ratings:</span> {promptQuery.data.ratings?.length ?? 0}
+            <span className="font-semibold">Total ratings:</span> {pluralize(promptQuery.data.ratings?.length ?? 0, "rating")}
           </p>
           <p className="rounded border border-(--color-border) px-3 py-2">
-            <span className="font-semibold">Usage events:</span> {promptQuery.data._count?.usageEvents ?? 0}
+            <span className="font-semibold">Usage events:</span> {pluralize(promptQuery.data._count?.usageEvents ?? 0, "event")}
           </p>
         </div>
       </section>
@@ -247,7 +251,7 @@ export function PromptDetailPage() {
         >
           {[1, 2, 3, 4, 5].map((value) => (
             <option key={value} value={value}>
-              {value} star
+              {pluralize(value, "star")}
             </option>
           ))}
         </select>
