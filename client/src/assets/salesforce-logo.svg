@@ -1,21 +1,34 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 120" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 120" role="img" aria-labelledby="title desc">
   <title id="title">Salesforce logo</title>
-  <desc id="desc">Blue cloud containing Salesforce wordmark</desc>
-  <g>
-    <circle cx="70" cy="64" r="30" fill="#00A1E0" />
-    <circle cx="104" cy="52" r="36" fill="#00A1E0" />
-    <circle cx="140" cy="64" r="30" fill="#00A1E0" />
-    <ellipse cx="104" cy="76" rx="62" ry="30" fill="#00A1E0" />
+  <desc id="desc">Salesforce cloud icon with full wordmark</desc>
+  <g transform="translate(8 4)">
+    <circle cx="54" cy="62" r="30" fill="#00A1E0" />
+    <circle cx="88" cy="48" r="36" fill="#00A1E0" />
+    <circle cx="124" cy="62" r="30" fill="#00A1E0" />
+    <ellipse cx="88" cy="74" rx="62" ry="30" fill="#00A1E0" />
+    <text
+      x="88"
+      y="70"
+      text-anchor="middle"
+      font-family="Arial, Helvetica, sans-serif"
+      font-size="24"
+      font-weight="700"
+      fill="#FFFFFF"
+    >
+      salesforce
+    </text>
   </g>
-  <text
-    x="104"
-    y="72"
-    text-anchor="middle"
-    font-family="Arial, Helvetica, sans-serif"
-    font-size="24"
-    font-weight="700"
-    fill="#FFFFFF"
-  >
-    salesforce
-  </text>
+  <g>
+    <text
+      x="196"
+      y="74"
+      font-family="Arial, Helvetica, sans-serif"
+      font-size="44"
+      font-weight="700"
+      letter-spacing="0.2"
+      fill="#00A1E0"
+    >
+      Salesforce
+    </text>
+  </g>
 </svg>

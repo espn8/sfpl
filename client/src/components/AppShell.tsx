@@ -59,8 +59,8 @@ export function AppShell({ children }: AppShellProps) {
       <div className="mx-auto max-w-5xl px-6 py-8">
         <header className="mb-6 flex items-center justify-between rounded-lg border border-(--color-border) bg-(--color-surface) px-4 py-3">
           <div className="flex items-center gap-6">
-            <Link to="/" className="inline-flex items-center rounded focus-visible:outline-none" aria-label="Home">
-              <img src={salesforceLogo} alt="Salesforce" className="h-8 w-auto" />
+            <Link to="/" className="inline-flex items-center focus-visible:outline-none" aria-label="Home">
+              <img src={salesforceLogo} alt="Salesforce" className="block h-10 w-auto max-w-none" />
             </Link>
             <nav className="flex gap-4 text-sm">
               <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/">
@@ -116,9 +116,9 @@ export function AppShell({ children }: AppShellProps) {
         {children}
         <footer className="mt-8 rounded-lg border border-(--color-border) bg-(--color-surface) px-4 py-3">
           <div className="flex items-center justify-between gap-4">
-            <img src={salesforceLogo} alt="Salesforce" className="h-7 w-auto" />
+            <img src={salesforceLogo} alt="Salesforce" className="block h-9 w-auto max-w-none" />
             <p className="text-right text-sm text-(--color-text-muted)">
-              Copyright 2026. All Rights Reserved. Created by{" "}
+              Copyright 2026. All Rights Reserved. Created with ❤️ by{" "}
               <a
                 href="https://salesforce.enterprise.slack.com/team/U01G89VU4N7"
                 target="_blank"
