@@ -128,6 +128,44 @@ describe("prompts create/update/restore flows", () => {
     });
   });
 
+  it("creates an explicit prompt version and updates prompt body", async () => {
+    const app = await buildPromptsApp();
+    mockPromptFindFirst.mockResolvedValueOnce({ id: 8, teamId: 1, ownerId: 1, body: "old" });
+    mockPromptVersionFindFirst.mockResolvedValueOnce({ version: 4 });
+    mockPromptUpdate.mockResolvedValueOnce({
+      id: 8,
+      body: "new-version-body",
+      tools: ["cursor"],
+      modality: "TEXT",
+      modelHint: null,
+      thumbnailStatus: "PENDING",
+    });
+    mockPromptVersionCreate.mockResolvedValueOnce({ id: 200, version: 5 });
+
+    const response = await request(app).post("/api/prompts/8/versions").send({
+      body: "new-version-body",
+      changelog: "added clearer instructions",
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.body.data.latestVersion).toBe(5);
+    expect(mockPromptUpdate).toHaveBeenCalledWith({
+      where: { id: 8 },
+      data: { body: "new-version-body" },
+    });
+    expect(mockPromptVersionCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          promptId: 8,
+          version: 5,
+          body: "new-version-body",
+          createdById: 1,
+          changelog: "added clearer instructions",
+        }),
+      }),
+    );
+  });
+
   it("requeues thumbnail generation from regenerate endpoint", async () => {
     const app = await buildPromptsApp();
     mockPromptFindFirst.mockResolvedValueOnce({

@@ -1,15 +1,15 @@
 # Prompt Library - Technical Summary
 
-Last Updated: Saturday, April 04, 2026 at 11:13 CDT
-Build Version: ed18e9c
+Last Updated: Saturday, April 04, 2026 at 11:16 CDT
+Build Version: 814b7d0
 
 ## Recent Changes
 
-- Added prompt privacy controls end-to-end: `Prompt.visibility` now defaults to `PUBLIC`, supports `PRIVATE`, and list/detail API behavior now enforces owner-or-admin visibility access rules for non-admin users.
-- Expanded prompt discovery UX in `client/src/features/prompts/PromptListPage.tsx` with a PromptMagic-style marketing/discovery hero, featured prompt rail, contributor/users leaderboards, and richer filter-driven browsing cards.
-- Updated prompt editor/list wiring to include visibility in create/edit/list API contracts (`client/src/features/prompts/api.ts`, `PromptEditPage`, `PromptEditorPage`) with matching test updates for prompt list and edit coverage.
-- Added migration `20260404193000_prompt_visibility_public_private` and refreshed seed defaults so generated prompt data aligns with new visibility + modality/tool taxonomy fields.
-- Refined shared app navigation and implementation notes to reflect latest prompt-library UX direction and visibility behavior rollout.
+- Implemented explicit prompt version creation endpoint `POST /api/prompts/:id/versions` to support manual version snapshots with body/changelog payloads and monotonic version incrementing.
+- Added server-side authorization/validation for version creation so only prompt owner/admin can create versions, while keeping team scope and standard error contracts.
+- Wired prompt body synchronization into version creation flow so latest prompt content updates alongside newly created `PromptVersion` rows.
+- Added regression coverage in `server/test/prompts-flow.test.ts` for explicit version creation behavior, including version number increment and updated prompt body assertions.
+- Added frontend API helper `createPromptVersion` in `client/src/features/prompts/api.ts` so editor/detail surfaces can call the new endpoint cleanly.
 - Revalidated TODO/FIXME scan and refreshed summary metadata for the current implementation snapshot.
 
 ## Technical Architecture

@@ -115,6 +115,20 @@ export async function regeneratePromptThumbnail(id: number): Promise<Prompt> {
   return response.data.data;
 }
 
+export async function createPromptVersion(
+  id: number,
+  payload: {
+    body: string;
+    changelog?: string;
+  },
+): Promise<Prompt & { latestVersion: number }> {
+  const response = await apiClient.post<ApiResponse<Prompt & { latestVersion: number }>>(
+    `/api/prompts/${id}/versions`,
+    payload,
+  );
+  return response.data.data;
+}
+
 export async function toggleFavorite(promptId: number): Promise<{ favorited: boolean }> {
   const response = await apiClient.post<ApiResponse<{ favorited: boolean }>>(`/api/prompts/${promptId}/favorite`);
   return response.data.data;

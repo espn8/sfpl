@@ -152,6 +152,11 @@ const usageBodySchema = z.object({
   action: usageActionSchema,
 });
 
+const createPromptVersionBodySchema = z.object({
+  body: z.string().min(1, "body is required."),
+  changelog: z.string().optional(),
+});
+
 function badRequestFromZodError(error: z.ZodError) {
   return {
     error: {
@@ -576,6 +581,60 @@ promptsRouter.get("/:id/versions", async (req: Request, res: Response) => {
     orderBy: { version: "desc" },
   });
   return res.status(200).json({ data: versions });
+});
+
+promptsRouter.post("/:id/versions", async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+  const parsedParams = promptIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+  const parsedBody = createPromptVersionBodySchema.safeParse(req.body);
+  if (!parsedBody.success) {
+    return res.status(400).json(badRequestFromZodError(parsedBody.error));
+  }
+
+  const promptId = parsedParams.data.id;
+  const existing = await prisma.prompt.findFirst({ where: { id: promptId, teamId: auth.teamId } });
+  if (!existing) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
+  }
+  if (existing.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can version this prompt." } });
+  }
+
+  const latestVersion = await prisma.promptVersion.findFirst({
+    where: { promptId },
+    orderBy: { version: "desc" },
+    select: { version: true },
+  });
+  const nextVersion = (latestVersion?.version ?? 0) + 1;
+  const nextBody = parsedBody.data.body;
+
+  const updatedPrompt = await prisma.prompt.update({
+    where: { id: promptId },
+    data: { body: nextBody },
+  });
+  const createdVersion = await prisma.promptVersion.create({
+    data: {
+      promptId,
+      version: nextVersion,
+      body: nextBody,
+      createdById: auth.userId,
+      changelog: typeof parsedBody.data.changelog === "string" ? parsedBody.data.changelog : null,
+    },
+  });
+
+  return res.status(201).json({
+    data: {
+      ...serializePromptWithModality(updatedPrompt),
+      thumbnailStatus: updatedPrompt.thumbnailStatus as ThumbnailStatusValue,
+      latestVersion: createdVersion.version,
+    },
+  });
 });
 
 promptsRouter.post("/:id/restore/:version", async (req: Request, res: Response) => {
