@@ -1,14 +1,23 @@
 import { apiClient } from "../../api/client";
 
+export const PROMPT_TOOL_OPTIONS = ["cursor", "claude_code", "meshmesh", "slackbot", "gemini", "notebooklm"] as const;
+export type PromptTool = (typeof PROMPT_TOOL_OPTIONS)[number];
+export const PROMPT_MODALITY_OPTIONS = ["text", "code", "image", "video", "audio", "multimodal"] as const;
+export type PromptModality = (typeof PROMPT_MODALITY_OPTIONS)[number];
+
 export type PromptSummary = {
   id: number;
   title: string;
   summary: string | null;
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  tools: PromptTool[];
+  modality: PromptModality;
   createdAt: string;
   updatedAt: string;
   averageRating: number | null;
   usageCount: number;
+  thumbnailUrl?: string | null;
+  thumbnailStatus: "PENDING" | "READY" | "FAILED";
 };
 
 export type Prompt = {
@@ -18,8 +27,9 @@ export type Prompt = {
   body: string;
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   visibility: "TEAM" | "PRIVATE";
+  tools: PromptTool[];
+  modality: PromptModality;
   modelHint?: string | null;
-  modality?: string | null;
   promptTags?: Array<{
     tag: {
       id: number;
@@ -33,6 +43,9 @@ export type Prompt = {
     favorites: number;
     usageEvents: number;
   };
+  thumbnailUrl?: string | null;
+  thumbnailStatus: "PENDING" | "READY" | "FAILED";
+  thumbnailError?: string | null;
 };
 
 type ApiResponse<T> = {
@@ -56,6 +69,8 @@ export type ListPromptsFilters = {
   tag?: string;
   collectionId?: number;
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  tool?: PromptTool;
+  modality?: PromptModality;
   sort?: "recent" | "topRated" | "mostUsed";
   page?: number;
   pageSize?: number;
@@ -82,8 +97,9 @@ export async function createPrompt(payload: {
   body: string;
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   visibility?: "TEAM" | "PRIVATE";
+  tools: PromptTool[];
+  modality: PromptModality;
   modelHint?: string;
-  modality?: string;
 }): Promise<Prompt> {
   const response = await apiClient.post<ApiResponse<Prompt>>("/api/prompts", payload);
   return response.data.data;
@@ -91,6 +107,11 @@ export async function createPrompt(payload: {
 
 export async function updatePrompt(id: number, payload: Partial<Prompt> & { changelog?: string }): Promise<Prompt> {
   const response = await apiClient.patch<ApiResponse<Prompt>>(`/api/prompts/${id}`, payload);
+  return response.data.data;
+}
+
+export async function regeneratePromptThumbnail(id: number): Promise<Prompt> {
+  const response = await apiClient.post<ApiResponse<Prompt>>(`/api/prompts/${id}/regenerate-thumbnail`);
   return response.data.data;
 }
 

@@ -1,25 +1,107 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, PromptModality } from "@prisma/client";
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { z } from "zod";
 import { getAuthContext, requireAuth } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
+import { generatePromptThumbnail } from "../services/nanoBanana";
 
 const promptsRouter = Router();
 
 type PromptSort = "recent" | "topRated" | "mostUsed";
 type PromptStatusValue = "DRAFT" | "PUBLISHED" | "ARCHIVED";
 type UsageActionValue = "VIEW" | "COPY" | "LAUNCH";
+type ThumbnailStatusValue = "PENDING" | "READY" | "FAILED";
 const USAGE_ACTIONS: UsageActionValue[] = ["VIEW", "COPY", "LAUNCH"];
 const promptVisibilitySchema = z.enum(["TEAM", "PRIVATE"]);
 const promptStatusSchema = z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]);
 const usageActionSchema = z.enum(USAGE_ACTIONS);
+const PROMPT_TOOLS = ["cursor", "claude_code", "meshmesh", "slackbot", "gemini", "notebooklm"] as const;
+const promptToolSchema = z.enum(PROMPT_TOOLS);
+const API_MODALITIES = ["text", "code", "image", "video", "audio", "multimodal"] as const;
+const apiModalitySchema = z.enum(API_MODALITIES);
+type ApiModality = (typeof API_MODALITIES)[number];
+
+const apiToDbModality: Record<ApiModality, PromptModality> = {
+  text: PromptModality.TEXT,
+  code: PromptModality.CODE,
+  image: PromptModality.IMAGE,
+  video: PromptModality.VIDEO,
+  audio: PromptModality.AUDIO,
+  multimodal: PromptModality.MULTIMODAL,
+};
+
+function mapLegacyModelHintToTools(modelHint?: string | null): string[] {
+  const value = modelHint?.trim().toLowerCase();
+  if (!value) {
+    return [];
+  }
+  if (value === "cursor") {
+    return ["cursor"];
+  }
+  if (value === "claude code" || value === "claude_code" || value === "claudecode" || value === "claude") {
+    return ["claude_code"];
+  }
+  if (value === "meshmesh") {
+    return ["meshmesh"];
+  }
+  if (value === "slackbot" || value === "slack bot") {
+    return ["slackbot"];
+  }
+  if (value === "gemini") {
+    return ["gemini"];
+  }
+  if (value === "notebooklm" || value === "notebook lm") {
+    return ["notebooklm"];
+  }
+  return [];
+}
+
+function mapLegacyModalityToDb(value?: string | null): PromptModality {
+  const normalized = value?.trim().toLowerCase();
+  if (normalized === "code") {
+    return PromptModality.CODE;
+  }
+  if (normalized === "image") {
+    return PromptModality.IMAGE;
+  }
+  if (normalized === "video") {
+    return PromptModality.VIDEO;
+  }
+  if (normalized === "audio") {
+    return PromptModality.AUDIO;
+  }
+  if (normalized === "multimodal" || normalized === "multi-modal" || normalized === "multi modal") {
+    return PromptModality.MULTIMODAL;
+  }
+  return PromptModality.TEXT;
+}
+
+function mapDbModalityToApi(value: PromptModality): ApiModality {
+  switch (value) {
+    case PromptModality.CODE:
+      return "code";
+    case PromptModality.IMAGE:
+      return "image";
+    case PromptModality.VIDEO:
+      return "video";
+    case PromptModality.AUDIO:
+      return "audio";
+    case PromptModality.MULTIMODAL:
+      return "multimodal";
+    case PromptModality.TEXT:
+    default:
+      return "text";
+  }
+}
 
 const listPromptsQuerySchema = z.object({
   q: z.string().trim().optional(),
   collectionId: z.coerce.number().int().positive().optional(),
   tag: z.string().trim().optional(),
   status: promptStatusSchema.optional(),
+  tool: promptToolSchema.optional(),
+  modality: apiModalitySchema.optional(),
   sort: z.enum(["recent", "topRated", "mostUsed"]).optional(),
   page: z.coerce.number().int().positive().optional(),
   pageSize: z.coerce.number().int().positive().max(100).optional(),
@@ -40,8 +122,9 @@ const createPromptBodySchema = z.object({
   body: z.string().min(1, "body is required."),
   visibility: promptVisibilitySchema.optional(),
   status: promptStatusSchema.optional(),
+  tools: z.array(promptToolSchema).min(1, "at least one tool is required."),
+  modality: apiModalitySchema,
   modelHint: z.string().trim().optional(),
-  modality: z.string().trim().optional(),
 });
 
 const updatePromptBodySchema = z
@@ -51,8 +134,9 @@ const updatePromptBodySchema = z
     body: z.string().optional(),
     visibility: promptVisibilitySchema.optional(),
     status: promptStatusSchema.optional(),
+    tools: z.array(promptToolSchema).min(1).optional(),
+    modality: apiModalitySchema.optional(),
     modelHint: z.string().trim().optional(),
-    modality: z.string().trim().optional(),
     changelog: z.string().optional(),
   })
   .refine(
@@ -85,6 +169,49 @@ function parseSort(value: unknown): PromptSort {
   return "recent";
 }
 
+function serializePromptWithModality<T extends { modality: PromptModality; tools: string[]; modelHint?: string | null }>(prompt: T) {
+  return {
+    ...prompt,
+    tools: prompt.tools.length > 0 ? prompt.tools : mapLegacyModelHintToTools(prompt.modelHint),
+    modality: mapDbModalityToApi(prompt.modality),
+  };
+}
+
+async function queuePromptThumbnailGeneration(promptId: number) {
+  const prompt = await prisma.prompt.findUnique({
+    where: { id: promptId },
+    select: { id: true, title: true, summary: true, body: true },
+  });
+  if (!prompt) {
+    return;
+  }
+
+  try {
+    const thumbnailUrl = await generatePromptThumbnail({
+      title: prompt.title,
+      summary: prompt.summary,
+      body: prompt.body,
+    });
+    await prisma.prompt.update({
+      where: { id: promptId },
+      data: {
+        thumbnailUrl,
+        thumbnailStatus: "READY",
+        thumbnailError: null,
+      },
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message.slice(0, 400) : "Unknown thumbnail generation error.";
+    await prisma.prompt.update({
+      where: { id: promptId },
+      data: {
+        thumbnailStatus: "FAILED",
+        thumbnailError: message,
+      },
+    });
+  }
+}
+
 promptsRouter.use(requireAuth);
 
 promptsRouter.get("/", async (req: Request, res: Response) => {
@@ -102,6 +229,8 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
   const collectionId = parsedQuery.data.collectionId;
   const tag = parsedQuery.data.tag;
   const status = parsedQuery.data.status;
+  const tool = parsedQuery.data.tool;
+  const modality = parsedQuery.data.modality;
   const sort = parseSort(parsedQuery.data.sort);
   const page = parsedQuery.data.page ?? 1;
   const pageSize = parsedQuery.data.pageSize ?? 20;
@@ -123,6 +252,12 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
   }
   if (collectionId) {
     where.collections = { some: { collectionId } };
+  }
+  if (tool) {
+    where.tools = { has: tool };
+  }
+  if (modality) {
+    where.modality = apiToDbModality[modality];
   }
 
   const orderBy: Prisma.PromptOrderByWithRelationInput =
@@ -161,8 +296,11 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
     summary: prompt.summary,
     status: prompt.status,
     visibility: prompt.visibility,
+    tools: prompt.tools.length > 0 ? prompt.tools : mapLegacyModelHintToTools(prompt.modelHint),
+    modality: mapDbModalityToApi(prompt.modality),
     modelHint: prompt.modelHint,
-    modality: prompt.modality,
+    thumbnailUrl: prompt.thumbnailUrl,
+    thumbnailStatus: prompt.thumbnailStatus as ThumbnailStatusValue,
     createdAt: prompt.createdAt,
     updatedAt: prompt.updatedAt,
     tags: prompt.promptTags.map((item: { tag: { name: string } }) => item.tag.name),
@@ -198,7 +336,7 @@ promptsRouter.post("/", async (req: Request, res: Response) => {
   if (!parsedBody.success) {
     return res.status(400).json(badRequestFromZodError(parsedBody.error));
   }
-  const { title, summary, body, visibility, status, modelHint, modality } = parsedBody.data;
+  const { title, summary, body, visibility, status, modelHint, tools, modality } = parsedBody.data;
 
   const prompt = await prisma.prompt.create({
     data: {
@@ -209,8 +347,11 @@ promptsRouter.post("/", async (req: Request, res: Response) => {
       body,
       visibility: visibility ?? "TEAM",
       status: status ?? "DRAFT",
+      tools,
+      modality: apiToDbModality[modality],
       modelHint: modelHint?.trim() || null,
-      modality: modality?.trim() || null,
+      thumbnailStatus: "PENDING",
+      thumbnailError: null,
       versions: {
         create: {
           version: 1,
@@ -222,7 +363,14 @@ promptsRouter.post("/", async (req: Request, res: Response) => {
     },
   });
 
-  return res.status(201).json({ data: prompt });
+  void queuePromptThumbnailGeneration(prompt.id);
+
+  return res.status(201).json({
+    data: {
+      ...serializePromptWithModality(prompt),
+      thumbnailStatus: prompt.thumbnailStatus as ThumbnailStatusValue,
+    },
+  });
 });
 
 promptsRouter.get("/:id", async (req: Request, res: Response) => {
@@ -250,7 +398,12 @@ promptsRouter.get("/:id", async (req: Request, res: Response) => {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
   }
 
-  return res.status(200).json({ data: prompt });
+  return res.status(200).json({
+    data: {
+      ...serializePromptWithModality(prompt),
+      thumbnailStatus: prompt.thumbnailStatus as ThumbnailStatusValue,
+    },
+  });
 });
 
 promptsRouter.patch("/:id", async (req: Request, res: Response) => {
@@ -288,8 +441,9 @@ promptsRouter.patch("/:id", async (req: Request, res: Response) => {
       body: nextBody,
       visibility: updateData.visibility,
       status: updateData.status,
+      tools: Array.isArray(updateData.tools) ? updateData.tools : undefined,
+      modality: typeof updateData.modality === "string" ? apiToDbModality[updateData.modality] : undefined,
       modelHint: typeof updateData.modelHint === "string" ? updateData.modelHint.trim() : undefined,
-      modality: typeof updateData.modality === "string" ? updateData.modality.trim() : undefined,
     },
   });
 
@@ -310,7 +464,51 @@ promptsRouter.patch("/:id", async (req: Request, res: Response) => {
     });
   }
 
-  return res.status(200).json({ data: updated });
+  return res.status(200).json({
+    data: {
+      ...serializePromptWithModality(updated),
+      thumbnailStatus: updated.thumbnailStatus as ThumbnailStatusValue,
+    },
+  });
+});
+
+promptsRouter.post("/:id/regenerate-thumbnail", async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+
+  const parsedParams = promptIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+
+  const promptId = parsedParams.data.id;
+  const existing = await prisma.prompt.findFirst({ where: { id: promptId, teamId: auth.teamId } });
+  if (!existing) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
+  }
+
+  if (existing.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can modify this prompt." } });
+  }
+
+  const queued = await prisma.prompt.update({
+    where: { id: promptId },
+    data: {
+      thumbnailStatus: "PENDING",
+      thumbnailError: null,
+    },
+  });
+
+  void queuePromptThumbnailGeneration(promptId);
+
+  return res.status(202).json({
+    data: {
+      ...serializePromptWithModality(queued),
+      thumbnailStatus: queued.thumbnailStatus as ThumbnailStatusValue,
+    },
+  });
 });
 
 promptsRouter.delete("/:id", async (req: Request, res: Response) => {

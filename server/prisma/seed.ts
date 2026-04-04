@@ -146,8 +146,9 @@ async function main() {
     ownerId: number;
     status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
     visibility: "TEAM" | "PRIVATE";
+    tools: string[];
+    modality: "TEXT" | "CODE" | "IMAGE" | "VIDEO" | "AUDIO" | "MULTIMODAL";
     modelHint: string;
-    modality: string;
     tags: string[];
     variables: Array<{ key: string; label: string; defaultValue: string; required: boolean }>;
   };
@@ -160,8 +161,9 @@ async function main() {
       ownerId: admin.id,
       status: "PUBLISHED",
       visibility: "TEAM",
+      tools: ["cursor"],
+      modality: "CODE",
       modelHint: "chatgpt",
-      modality: "code",
       tags: ["chatgpt", "coding", "analysis"],
       variables: [{ key: "DIFF", label: "Git diff", defaultValue: "", required: true }],
     },
@@ -172,8 +174,9 @@ async function main() {
       ownerId: member.id,
       status: "PUBLISHED",
       visibility: "TEAM",
+      tools: ["claude_code"],
+      modality: "TEXT",
       modelHint: "claude",
-      modality: "text",
       tags: ["support", "writing"],
       variables: [
         { key: "CUSTOMER_MESSAGE", label: "Customer message", defaultValue: "", required: true },
@@ -188,8 +191,9 @@ async function main() {
       ownerId: member.id,
       status: "PUBLISHED",
       visibility: "TEAM",
+      tools: ["claude_code"],
+      modality: "TEXT",
       modelHint: "claude",
-      modality: "text",
       tags: ["writing", "marketing"],
       variables: [
         { key: "TOPIC", label: "Post topic", defaultValue: "", required: true },
@@ -203,8 +207,9 @@ async function main() {
       ownerId: owner.id,
       status: "PUBLISHED",
       visibility: "TEAM",
+      tools: ["gemini"],
+      modality: "TEXT",
       modelHint: "gemini",
-      modality: "text",
       tags: ["sales", "research"],
       variables: [
         { key: "OBJECTION", label: "Buyer objection", defaultValue: "", required: true },
@@ -218,8 +223,9 @@ async function main() {
       ownerId: admin.id,
       status: "DRAFT",
       visibility: "TEAM",
+      tools: ["cursor"],
+      modality: "TEXT",
       modelHint: "chatgpt",
-      modality: "analysis",
       tags: ["analysis", "research"],
       variables: [
         { key: "TIMELINE", label: "Incident timeline", defaultValue: "", required: true },
@@ -233,8 +239,9 @@ async function main() {
       ownerId: viewer.id,
       status: "DRAFT",
       visibility: "PRIVATE",
+      tools: ["cursor"],
+      modality: "TEXT",
       modelHint: "chatgpt",
-      modality: "notes",
       tags: ["writing"],
       variables: [
         { key: "WINS", label: "Wins", defaultValue: "", required: false },
@@ -249,8 +256,9 @@ async function main() {
       ownerId: owner.id,
       status: "ARCHIVED",
       visibility: "TEAM",
+      tools: ["claude_code"],
+      modality: "TEXT",
       modelHint: "claude",
-      modality: "text",
       tags: ["marketing", "writing"],
       variables: [
         { key: "COPY", label: "Legacy copy", defaultValue: "", required: true },
@@ -264,8 +272,9 @@ async function main() {
       ownerId: member.id,
       status: "PUBLISHED",
       visibility: "TEAM",
+      tools: ["gemini"],
+      modality: "TEXT",
       modelHint: "gemini",
-      modality: "analysis",
       tags: ["research", "analysis"],
       variables: [{ key: "NOTES", label: "Interview notes", defaultValue: "", required: true }],
     },
@@ -289,8 +298,9 @@ async function main() {
           body: seed.body,
           status: seed.status,
           visibility: seed.visibility,
-          modelHint: seed.modelHint,
+          tools: seed.tools,
           modality: seed.modality,
+          modelHint: seed.modelHint,
           versions: {
             create: {
               version: 1,

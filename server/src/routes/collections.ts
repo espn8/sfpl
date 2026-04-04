@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { z } from "zod";
@@ -43,6 +44,14 @@ function badRequestFromZodError(error: z.ZodError) {
       details: error.issues,
     },
   };
+}
+
+function isOwnerOrAdmin(role: string) {
+  return role === "OWNER" || role === "ADMIN";
+}
+
+function isUniqueConstraintError(error: unknown) {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
 }
 
 collectionsRouter.get("/", async (req: Request, res: Response) => {
@@ -93,15 +102,47 @@ collectionsRouter.post("/", async (req: Request, res: Response) => {
     return res.status(400).json(badRequestFromZodError(parsedBody.error));
   }
   const { name, description } = parsedBody.data;
-  const created = await prisma.collection.create({
-    data: {
-      teamId: auth.teamId,
-      createdById: auth.userId,
-      name: name.trim(),
-      description: description?.trim() || null,
-    },
+  try {
+    const created = await prisma.collection.create({
+      data: {
+        teamId: auth.teamId,
+        createdById: auth.userId,
+        name: name.trim(),
+        description: description?.trim() || null,
+      },
+    });
+    return res.status(201).json({ data: created });
+  } catch (error: unknown) {
+    if (isUniqueConstraintError(error)) {
+      return res.status(409).json({
+        error: {
+          code: "CONFLICT",
+          message: "A collection with this name already exists for your team.",
+        },
+      });
+    }
+    throw error;
+  }
+});
+
+collectionsRouter.get("/:id", async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+  const parsedParams = collectionIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+  const collectionId = parsedParams.data.id;
+  const collection = await prisma.collection.findFirst({
+    where: { id: collectionId, teamId: auth.teamId },
+    include: { prompts: { include: { prompt: true }, orderBy: { sortOrder: "asc" } } },
   });
-  return res.status(201).json({ data: created });
+  if (!collection) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Collection not found." } });
+  }
+  return res.status(200).json({ data: collection });
 });
 
 collectionsRouter.patch("/:id", async (req: Request, res: Response) => {
@@ -121,19 +162,62 @@ collectionsRouter.patch("/:id", async (req: Request, res: Response) => {
   const collectionId = parsedParams.data.id;
   const existing = await prisma.collection.findFirst({
     where: { id: collectionId, teamId: auth.teamId },
-    select: { id: true },
+    select: { id: true, createdById: true },
   });
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Collection not found." } });
   }
-  const updated = await prisma.collection.update({
-    where: { id: collectionId },
-    data: {
-      name: parsedBody.data.name,
-      description: parsedBody.data.description,
-    },
+  if (existing.createdById !== auth.userId && !isOwnerOrAdmin(auth.role)) {
+    return res
+      .status(403)
+      .json({ error: { code: "FORBIDDEN", message: "Only owner/admin can modify this collection." } });
+  }
+  try {
+    const updated = await prisma.collection.update({
+      where: { id: collectionId },
+      data: {
+        name: typeof parsedBody.data.name === "string" ? parsedBody.data.name.trim() : undefined,
+        description: typeof parsedBody.data.description === "string" ? parsedBody.data.description.trim() : undefined,
+      },
+    });
+    return res.status(200).json({ data: updated });
+  } catch (error: unknown) {
+    if (isUniqueConstraintError(error)) {
+      return res.status(409).json({
+        error: {
+          code: "CONFLICT",
+          message: "A collection with this name already exists for your team.",
+        },
+      });
+    }
+    throw error;
+  }
+});
+
+collectionsRouter.delete("/:id", async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+  const parsedParams = collectionIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+  const collectionId = parsedParams.data.id;
+  const existing = await prisma.collection.findFirst({
+    where: { id: collectionId, teamId: auth.teamId },
+    select: { id: true, createdById: true },
   });
-  return res.status(200).json({ data: updated });
+  if (!existing) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Collection not found." } });
+  }
+  if (existing.createdById !== auth.userId && !isOwnerOrAdmin(auth.role)) {
+    return res
+      .status(403)
+      .json({ error: { code: "FORBIDDEN", message: "Only owner/admin can delete this collection." } });
+  }
+  await prisma.collection.delete({ where: { id: collectionId } });
+  return res.status(200).json({ data: { ok: true } });
 });
 
 collectionsRouter.post("/:id/prompts/:promptId", async (req: Request, res: Response) => {

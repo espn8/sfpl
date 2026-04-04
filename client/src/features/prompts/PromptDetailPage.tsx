@@ -5,6 +5,7 @@ import { trackEvent } from "../../app/analytics";
 import { addPromptToCollection, listCollections, removePromptFromCollection } from "../collections/api";
 import type { Collection } from "../collections/api";
 import { getPrompt, logUsage, ratePrompt, toggleFavorite, updatePrompt } from "./api";
+import { PromptThumbnail } from "./PromptThumbnail";
 
 export function PromptDetailPage() {
   const params = useParams();
@@ -107,7 +108,15 @@ export function PromptDetailPage() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-semibold">{promptQuery.data.title}</h2>
+      <div className="flex items-center gap-3">
+        <PromptThumbnail
+          title={promptQuery.data.title}
+          thumbnailUrl={promptQuery.data.thumbnailUrl}
+          thumbnailStatus={promptQuery.data.thumbnailStatus}
+          className="h-24 w-24 rounded object-cover"
+        />
+        <h2 className="text-2xl font-semibold">{promptQuery.data.title}</h2>
+      </div>
       <p>{promptQuery.data.summary}</p>
       <section className="space-y-3 rounded border border-(--color-border) bg-(--color-surface) p-4">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-(--color-text-muted)">Metadata</h3>
@@ -115,10 +124,10 @@ export function PromptDetailPage() {
           <span className="rounded bg-(--color-surface-muted) px-2 py-1">Status: {promptQuery.data.status}</span>
           <span className="rounded bg-(--color-surface-muted) px-2 py-1">Visibility: {promptQuery.data.visibility}</span>
           <span className="rounded bg-(--color-surface-muted) px-2 py-1">
-            Model: {promptQuery.data.modelHint?.trim() ? promptQuery.data.modelHint : "Not set"}
+            Tools: {promptQuery.data.tools.length > 0 ? promptQuery.data.tools.join(", ") : "Not set"}
           </span>
           <span className="rounded bg-(--color-surface-muted) px-2 py-1">
-            Modality: {promptQuery.data.modality?.trim() ? promptQuery.data.modality : "Not set"}
+            Modality: {promptQuery.data.modality}
           </span>
         </div>
         <div className="flex flex-wrap gap-2">

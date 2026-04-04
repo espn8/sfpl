@@ -1,13 +1,14 @@
 # Prompt Library - Technical Summary
 
-Last Updated: Friday, April 03, 2026 at 15:31 CDT
-Build Version: eb37483
+Last Updated: Saturday, April 04, 2026 at 10:56 CDT
+Build Version: ae32143
 
 ## Recent Changes
 
-- Refactored global link styling to an explicit opt-in `.link` utility in `client/src/index.css`, replacing implicit anchor-wide color rules that conflicted with button-style anchors.
-- Updated login/legal page anchors (`client/src/features/auth/LoginPage.tsx`, `client/src/pages/PrivacyPage.tsx`, and `client/src/pages/TermsPage.tsx`) to use the `.link` class for consistent plain-link behavior.
-- Preserved CTA button readability by keeping button-like anchors class-driven (`text-white` + background utilities) and decoupled from baseline link styling.
+- Added prompt metadata taxonomy support across API and persistence: `PromptModality` is now a controlled enum, `tools` is a first-class `TEXT[]` field, existing `modelHint` values are backfilled to canonical tool identifiers, and prompt list/edit/detail screens now use structured tool/modality values.
+- Implemented thumbnail generation lifecycle for prompts with new Prisma fields (`thumbnailUrl`, `thumbnailStatus`, `thumbnailError`) and a `server/src/services/nanoBanana.ts` integration that calls Google Generative Language (`nano-banana-1.0`) using `NANO_BANANA_API_KEY`.
+- Expanded prompt and collection route behavior with new error handling and detail operations, plus frontend UI support for collection detail edits/deletes/removals and prompt thumbnail rendering/regeneration controls.
+- Added/expanded test coverage for prompt and collection flows (`client` and `server`) including new `CollectionDetailPage` and `PromptEditPage` tests plus API route conflict/authorization coverage.
 - Revalidated TODO/FIXME scan and refreshed summary metadata to align documentation with the current implementation snapshot.
 
 ## Technical Architecture
@@ -42,6 +43,9 @@ Build Version: eb37483
 - Google JWKS endpoint (`https://www.googleapis.com/oauth2/v3/certs`)
   - Role: verify Google ID token signatures
   - Implementation: `server/src/routes/auth.ts`
+- Google Generative Language API (`https://generativelanguage.googleapis.com`)
+  - Role: generate prompt thumbnail images via `nano-banana-1.0`
+  - Implementation: `server/src/services/nanoBanana.ts`, `server/src/routes/prompts.ts`
 - Heroku platform + Heroku Postgres
   - Role: deployment runtime and managed database
   - Implementation references: `Procfile`, `app.json`, `server/prisma/schema.prisma`
@@ -100,6 +104,7 @@ Build Version: eb37483
 
 - `server/src/routes/prompts.ts`: central prompt domain API (search/filter/sort/pagination + CRUD + engagement).
 - `server/src/routes/collections.ts`: collection management and prompt membership orchestration.
+- `server/src/services/nanoBanana.ts`: external thumbnail generation adapter with response parsing + fallback error handling.
 - `server/src/routes/analytics.ts`: usage-derived insights (top used, stale prompts, activity summaries).
 - `server/prisma/seed.ts`: deterministic demo data generation to validate end-to-end functionality quickly.
 - `client/src/features/prompts/*`: discovery, detail, create/edit flows mapped directly to backend capabilities.
@@ -134,6 +139,7 @@ GOOGLE_CLIENT_ID=<google-client-id>
 GOOGLE_CLIENT_SECRET=<google-client-secret>
 GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
 GOOGLE_ALLOWED_DOMAIN=salesforce.com
+NANO_BANANA_API_KEY=<google-generative-language-api-key>
 AUTH_RATE_LIMIT_WINDOW_MS=900000
 AUTH_RATE_LIMIT_MAX=60
 ```
@@ -192,5 +198,6 @@ git push heroku main
 - Expand frontend theme tests to include `system` mode reactivity to `prefers-color-scheme` changes and pre-paint boot behavior assertions.
 - Add integration tests for `SEED_RESET` behavior to prevent regression in relational cleanup order.
 - Expand API contract docs for prompt filters, pagination metadata, and collection membership mutation payloads.
+- Add operational safeguards for thumbnail generation retries (backoff/circuit-breaker) and observability on third-party generation failures.
 - Add observability instrumentation (structured logs + error reporting) for auth callbacks and seed operations.
 - Add performance/index tuning and query plans as prompt/usage data volume scales.

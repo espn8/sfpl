@@ -3,13 +3,16 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { listCollections } from "../collections/api";
 import { listTags } from "../tags/api";
-import { listPrompts, type ListPromptsFilters } from "./api";
+import { listPrompts, type ListPromptsFilters, PROMPT_MODALITY_OPTIONS, PROMPT_TOOL_OPTIONS } from "./api";
+import { PromptThumbnail } from "./PromptThumbnail";
 
 export function PromptListPage() {
   const [search, setSearch] = useState("");
   const [tag, setTag] = useState("");
   const [collectionId, setCollectionId] = useState("");
   const [status, setStatus] = useState<"" | "DRAFT" | "PUBLISHED" | "ARCHIVED">("");
+  const [tool, setTool] = useState("");
+  const [modality, setModality] = useState("");
   const [sort, setSort] = useState<"recent" | "topRated" | "mostUsed">("recent");
   const [page, setPage] = useState(1);
   const pageSize = 20;
@@ -32,8 +35,14 @@ export function PromptListPage() {
     if (status) {
       nextFilters.status = status;
     }
+    if (tool) {
+      nextFilters.tool = tool as (typeof PROMPT_TOOL_OPTIONS)[number];
+    }
+    if (modality) {
+      nextFilters.modality = modality as (typeof PROMPT_MODALITY_OPTIONS)[number];
+    }
     return nextFilters;
-  }, [collectionId, page, search, sort, status, tag]);
+  }, [collectionId, modality, page, search, sort, status, tag, tool]);
 
   const promptsQuery = useQuery({
     queryKey: ["prompts", filters],
@@ -104,6 +113,36 @@ export function PromptListPage() {
           ))}
         </select>
         <select
+          value={tool}
+          onChange={(event) => {
+            setTool(event.target.value);
+            setPage(1);
+          }}
+          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
+        >
+          <option value="">All tools</option>
+          {PROMPT_TOOL_OPTIONS.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+        <select
+          value={modality}
+          onChange={(event) => {
+            setModality(event.target.value);
+            setPage(1);
+          }}
+          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
+        >
+          <option value="">All modalities</option>
+          {PROMPT_MODALITY_OPTIONS.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+        <select
           value={collectionId}
           onChange={(event) => {
             setCollectionId(event.target.value);
@@ -125,8 +164,18 @@ export function PromptListPage() {
           to={`/prompts/${prompt.id}`}
           className="block rounded border border-(--color-border) bg-(--color-surface) p-4"
         >
-          <p className="font-semibold">{prompt.title}</p>
-          <p className="text-sm text-(--color-text-muted)">{prompt.summary ?? "No summary"}</p>
+          <div className="flex items-start gap-3">
+            <PromptThumbnail
+              title={prompt.title}
+              thumbnailUrl={prompt.thumbnailUrl}
+              thumbnailStatus={prompt.thumbnailStatus}
+              className="h-20 w-20 rounded object-cover"
+            />
+            <div className="min-w-0">
+              <p className="font-semibold">{prompt.title}</p>
+              <p className="text-sm text-(--color-text-muted)">{prompt.summary ?? "No summary"}</p>
+            </div>
+          </div>
         </Link>
       ))}
       {promptsQuery.data && promptsQuery.data.meta.totalPages > 1 ? (

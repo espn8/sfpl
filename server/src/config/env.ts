@@ -15,6 +15,7 @@ type Env = {
   googleCallbackUrl: string;
   appBaseUrl: string;
   googleAllowedDomain?: string;
+  nanoBananaApiKey?: string;
 };
 
 function getRequired(name: string): string {
@@ -65,4 +66,5 @@ export const env: Env = {
   googleCallbackUrl: getRequired("GOOGLE_CALLBACK_URL"),
   appBaseUrl: getRequired("APP_BASE_URL"),
   googleAllowedDomain: process.env.GOOGLE_ALLOWED_DOMAIN,
+  nanoBananaApiKey: process.env.NANO_BANANA_API_KEY,
 };

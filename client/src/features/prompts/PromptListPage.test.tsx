@@ -10,6 +10,8 @@ import { listPrompts } from "./api";
 
 vi.mock("./api", () => ({
   listPrompts: vi.fn(),
+  PROMPT_TOOL_OPTIONS: ["cursor", "claude_code", "meshmesh", "slackbot", "gemini", "notebooklm"],
+  PROMPT_MODALITY_OPTIONS: ["text", "code", "image", "video", "audio", "multimodal"],
 }));
 
 vi.mock("../tags/api", () => ({
@@ -51,10 +53,14 @@ describe("PromptListPage", () => {
           title: "Draft outreach prompt",
           summary: "Summarize account notes",
           status: "DRAFT",
+          tools: ["cursor"],
+          modality: "text",
           createdAt: "2026-04-01T10:00:00.000Z",
           updatedAt: "2026-04-01T10:00:00.000Z",
           averageRating: 4.3,
           usageCount: 10,
+          thumbnailStatus: "READY",
+          thumbnailUrl: "https://example.com/thumb.png",
         },
       ],
       meta: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
@@ -74,6 +80,7 @@ describe("PromptListPage", () => {
 
     expect(await screen.findByText("Draft outreach prompt")).toBeInTheDocument();
     expect(screen.getByText("Summarize account notes")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Draft outreach prompt thumbnail" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "sales" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Top prompts" })).toBeInTheDocument();
   });
