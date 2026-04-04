@@ -62,7 +62,7 @@ Extend `server/prisma/schema.prisma` with the models below. Keep `User` but add 
 
 ### Enums
 - `Role`: `OWNER`, `ADMIN`, `MEMBER`, `VIEWER`
-- `PromptVisibility`: `TEAM`, `PRIVATE`
+- `PromptVisibility`: `PUBLIC`, `PRIVATE`
 - `PromptStatus`: `DRAFT`, `PUBLISHED`, `ARCHIVED`
 - `UsageAction`: `VIEW`, `COPY`, `LAUNCH`
 
@@ -92,7 +92,7 @@ Extend `server/prisma/schema.prisma` with the models below. Keep `User` but add 
 - `title String`
 - `summary String?`
 - `body String` (latest published/current body)
-- `visibility PromptVisibility @default(TEAM)`
+- `visibility PromptVisibility @default(PUBLIC)`
 - `status PromptStatus @default(DRAFT)`
 - `modelHint String?` (e.g. claude/chatgpt/gemini)
 - `modality String?` (text/image/video/code)

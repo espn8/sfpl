@@ -1,16 +1,16 @@
 # Prompt Library - Technical Summary
 
-Last Updated: Saturday, April 04, 2026 at 11:00 CDT
-Build Version: ceea01a
+Last Updated: Saturday, April 04, 2026 at 11:13 CDT
+Build Version: ed18e9c
 
 ## Recent Changes
 
-- Fixed server TypeScript build failures in `server/src/routes/prompts.ts` by tightening `serializePromptWithModality` typing (`Record<string, unknown>` + explicit return contract), resolving spread errors that blocked Heroku deploy.
-- Added prompt metadata taxonomy support across API and persistence: `PromptModality` is now a controlled enum, `tools` is a first-class `TEXT[]` field, existing `modelHint` values are backfilled to canonical tool identifiers, and prompt list/edit/detail screens now use structured tool/modality values.
-- Implemented thumbnail generation lifecycle for prompts with new Prisma fields (`thumbnailUrl`, `thumbnailStatus`, `thumbnailError`) and a `server/src/services/nanoBanana.ts` integration that calls Google Generative Language (`nano-banana-1.0`) using `NANO_BANANA_API_KEY`.
-- Expanded prompt and collection route behavior with new error handling and detail operations, plus frontend UI support for collection detail edits/deletes/removals and prompt thumbnail rendering/regeneration controls.
-- Added/expanded test coverage for prompt and collection flows (`client` and `server`) including new `CollectionDetailPage` and `PromptEditPage` tests plus API route conflict/authorization coverage.
-- Revalidated TODO/FIXME scan and refreshed summary metadata to align documentation with the current implementation snapshot.
+- Added prompt privacy controls end-to-end: `Prompt.visibility` now defaults to `PUBLIC`, supports `PRIVATE`, and list/detail API behavior now enforces owner-or-admin visibility access rules for non-admin users.
+- Expanded prompt discovery UX in `client/src/features/prompts/PromptListPage.tsx` with a PromptMagic-style marketing/discovery hero, featured prompt rail, contributor/users leaderboards, and richer filter-driven browsing cards.
+- Updated prompt editor/list wiring to include visibility in create/edit/list API contracts (`client/src/features/prompts/api.ts`, `PromptEditPage`, `PromptEditorPage`) with matching test updates for prompt list and edit coverage.
+- Added migration `20260404193000_prompt_visibility_public_private` and refreshed seed defaults so generated prompt data aligns with new visibility + modality/tool taxonomy fields.
+- Refined shared app navigation and implementation notes to reflect latest prompt-library UX direction and visibility behavior rollout.
+- Revalidated TODO/FIXME scan and refreshed summary metadata for the current implementation snapshot.
 
 ## Technical Architecture
 

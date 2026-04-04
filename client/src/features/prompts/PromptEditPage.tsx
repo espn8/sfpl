@@ -29,7 +29,7 @@ export function PromptEditPage() {
       summary: string;
       body: string;
       status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
-      visibility: "TEAM" | "PRIVATE";
+      visibility: "PUBLIC" | "PRIVATE";
       tools: PromptTool[];
       modality: PromptModality;
     }) =>
@@ -66,7 +66,7 @@ export function PromptEditPage() {
         const summary = String(formData.get("summary") ?? "").trim();
         const body = String(formData.get("body") ?? "").trim();
         const status = String(formData.get("status") ?? "DRAFT") as "DRAFT" | "PUBLISHED" | "ARCHIVED";
-        const visibility = String(formData.get("visibility") ?? "TEAM") as "TEAM" | "PRIVATE";
+        const visibility = String(formData.get("visibility") ?? "PUBLIC") as "PUBLIC" | "PRIVATE";
         const selectedTools = formData
           .getAll("tools")
           .map((value) => String(value))
@@ -141,7 +141,7 @@ export function PromptEditPage() {
           defaultValue={promptQuery.data.visibility}
           className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
         >
-          <option value="TEAM">Team</option>
+          <option value="PUBLIC">Public</option>
           <option value="PRIVATE">Private</option>
         </select>
       </div>

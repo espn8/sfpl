@@ -145,7 +145,7 @@ async function main() {
     body: string;
     ownerId: number;
     status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
-    visibility: "TEAM" | "PRIVATE";
+    visibility: "PUBLIC" | "PRIVATE";
     tools: string[];
     modality: "TEXT" | "CODE" | "IMAGE" | "VIDEO" | "AUDIO" | "MULTIMODAL";
     modelHint: string;
@@ -160,7 +160,7 @@ async function main() {
       body: "You are an expert code reviewer. Analyze the diff below and return:\n1) High-risk defects\n2) Logic and edge-case gaps\n3) Performance and security concerns\n4) Suggested refactors with rationale\n\n[DIFF]",
       ownerId: admin.id,
       status: "PUBLISHED",
-      visibility: "TEAM",
+      visibility: "PUBLIC",
       tools: ["cursor"],
       modality: "CODE",
       modelHint: "chatgpt",
@@ -173,7 +173,7 @@ async function main() {
       body: "Write a support response using this context:\n- Customer message: [CUSTOMER_MESSAGE]\n- Account tier: [ACCOUNT_TIER]\n- Product area: [PRODUCT_AREA]\n\nReturn a response that acknowledges the issue, explains what happened, and provides next steps.",
       ownerId: member.id,
       status: "PUBLISHED",
-      visibility: "TEAM",
+      visibility: "PUBLIC",
       tools: ["claude_code"],
       modality: "TEXT",
       modelHint: "claude",
@@ -190,7 +190,7 @@ async function main() {
       body: "Create a detailed blog post outline for [TOPIC] targeting [AUDIENCE]. Include a title, intro hook, 4 sections, and a CTA.",
       ownerId: member.id,
       status: "PUBLISHED",
-      visibility: "TEAM",
+      visibility: "PUBLIC",
       tools: ["claude_code"],
       modality: "TEXT",
       modelHint: "claude",
@@ -206,7 +206,7 @@ async function main() {
       body: "Given objection [OBJECTION] and product capability [CAPABILITY], write a confident but honest response with proof points and a discovery question.",
       ownerId: owner.id,
       status: "PUBLISHED",
-      visibility: "TEAM",
+      visibility: "PUBLIC",
       tools: ["gemini"],
       modality: "TEXT",
       modelHint: "gemini",
@@ -222,7 +222,7 @@ async function main() {
       body: "Using timeline [TIMELINE] and impact [IMPACT], produce a blameless postmortem with root cause, contributing factors, and action items.",
       ownerId: admin.id,
       status: "DRAFT",
-      visibility: "TEAM",
+      visibility: "PUBLIC",
       tools: ["cursor"],
       modality: "TEXT",
       modelHint: "chatgpt",
@@ -255,7 +255,7 @@ async function main() {
       body: "Rewrite this legacy campaign copy [COPY] into modern product voice while preserving legal constraints [LEGAL].",
       ownerId: owner.id,
       status: "ARCHIVED",
-      visibility: "TEAM",
+      visibility: "PUBLIC",
       tools: ["claude_code"],
       modality: "TEXT",
       modelHint: "claude",
@@ -271,7 +271,7 @@ async function main() {
       body: "Summarize interviews [NOTES] into themes, evidence quotes, and product recommendations.",
       ownerId: member.id,
       status: "PUBLISHED",
-      visibility: "TEAM",
+      visibility: "PUBLIC",
       tools: ["gemini"],
       modality: "TEXT",
       modelHint: "gemini",

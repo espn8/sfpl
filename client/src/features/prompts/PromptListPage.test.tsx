@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { getAnalyticsOverview } from "../analytics/api";
 import { listCollections } from "../collections/api";
 import { listTags } from "../tags/api";
 import { PromptListPage } from "./PromptListPage";
@@ -20,6 +21,10 @@ vi.mock("../tags/api", () => ({
 
 vi.mock("../collections/api", () => ({
   listCollections: vi.fn(),
+}));
+
+vi.mock("../analytics/api", () => ({
+  getAnalyticsOverview: vi.fn(),
 }));
 
 function renderPromptListPage() {
@@ -43,6 +48,12 @@ function renderPromptListPage() {
 describe("PromptListPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(getAnalyticsOverview).mockResolvedValue({
+      topUsedPrompts: [{ id: 1, title: "Quota coaching", usageCount: 120 }],
+      topRatedPrompts: [{ id: 1, title: "Quota coaching", averageRating: 4.8, ratingCount: 12 }],
+      stalePrompts: [],
+      contributors: [{ id: 9, email: "user@example.com", name: "Alex", promptCount: 7 }],
+    });
   });
 
   it("renders prompt cards and filter options from API data", async () => {
@@ -78,9 +89,10 @@ describe("PromptListPage", () => {
 
     renderPromptListPage();
 
-    expect(await screen.findByText("Draft outreach prompt")).toBeInTheDocument();
-    expect(screen.getByText("Summarize account notes")).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "Draft outreach prompt thumbnail" })).toBeInTheDocument();
+    expect(await screen.findByText("Featured Prompts")).toBeInTheDocument();
+    expect((await screen.findAllByText("Draft outreach prompt")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Summarize account notes").length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("img", { name: "Draft outreach prompt thumbnail" }).length).toBeGreaterThan(0);
     expect(screen.getByRole("option", { name: "sales" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Top prompts" })).toBeInTheDocument();
   });
@@ -103,6 +115,7 @@ describe("PromptListPage", () => {
 
     renderPromptListPage();
 
+    expect(await screen.findByText("How Prompt Library Works")).toBeInTheDocument();
     expect(await screen.findByText("Page 1 of 2")).toBeInTheDocument();
 
     fireEvent.change(screen.getByPlaceholderText("Search title, summary, or body"), { target: { value: "quota" } });

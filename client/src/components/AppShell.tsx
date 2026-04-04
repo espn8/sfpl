@@ -92,7 +92,6 @@ export function AppShell({ children }: AppShellProps) {
                 />
               </button>
             ) : null}
-            <ThemeModeToggle />
             <button
               type="button"
               className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-1.5 text-sm hover:bg-(--color-surface) focus-visible:outline-none"
@@ -138,6 +137,10 @@ export function AppShell({ children }: AppShellProps) {
                 });
               }}
             >
+              <div className="rounded border border-(--color-border) bg-(--color-surface-muted) p-3">
+                <ThemeModeToggle />
+              </div>
+
               <label className="block text-sm">
                 <span className="mb-1 block">Display name</span>
                 <input

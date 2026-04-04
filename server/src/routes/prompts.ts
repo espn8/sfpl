@@ -13,7 +13,7 @@ type PromptStatusValue = "DRAFT" | "PUBLISHED" | "ARCHIVED";
 type UsageActionValue = "VIEW" | "COPY" | "LAUNCH";
 type ThumbnailStatusValue = "PENDING" | "READY" | "FAILED";
 const USAGE_ACTIONS: UsageActionValue[] = ["VIEW", "COPY", "LAUNCH"];
-const promptVisibilitySchema = z.enum(["TEAM", "PRIVATE"]);
+const promptVisibilitySchema = z.enum(["PUBLIC", "PRIVATE"]);
 const promptStatusSchema = z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]);
 const usageActionSchema = z.enum(USAGE_ACTIONS);
 const PROMPT_TOOLS = ["cursor", "claude_code", "meshmesh", "slackbot", "gemini", "notebooklm"] as const;
@@ -162,6 +162,10 @@ function badRequestFromZodError(error: z.ZodError) {
   };
 }
 
+function isAdminOrOwner(role: string): boolean {
+  return role === "ADMIN" || role === "OWNER";
+}
+
 function parseSort(value: unknown): PromptSort {
   if (value === "topRated" || value === "mostUsed") {
     return value;
@@ -239,14 +243,23 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
   const skip = (page - 1) * pageSize;
 
   const where: Prisma.PromptWhereInput = { teamId: auth.teamId };
+  if (!isAdminOrOwner(auth.role)) {
+    where.OR = [{ visibility: "PUBLIC" }, { ownerId: auth.userId }];
+  }
   if (status) {
     where.status = status;
   }
   if (q) {
-    where.OR = [
-      { title: { contains: q, mode: "insensitive" } },
-      { summary: { contains: q, mode: "insensitive" } },
-      { body: { contains: q, mode: "insensitive" } },
+    const existingAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
+    where.AND = [
+      ...existingAnd,
+      {
+        OR: [
+          { title: { contains: q, mode: "insensitive" } },
+          { summary: { contains: q, mode: "insensitive" } },
+          { body: { contains: q, mode: "insensitive" } },
+        ],
+      },
     ];
   }
   if (tag) {
@@ -347,7 +360,7 @@ promptsRouter.post("/", async (req: Request, res: Response) => {
       title: title.trim(),
       summary: summary?.trim() || null,
       body,
-      visibility: visibility ?? "TEAM",
+      visibility: visibility ?? "PUBLIC",
       status: status ?? "DRAFT",
       tools,
       modality: apiToDbModality[modality],
@@ -398,6 +411,9 @@ promptsRouter.get("/:id", async (req: Request, res: Response) => {
 
   if (!prompt) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
+  }
+  if (prompt.visibility === "PRIVATE" && prompt.ownerId !== auth.userId && !isAdminOrOwner(auth.role)) {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this prompt." } });
   }
 
   return res.status(200).json({

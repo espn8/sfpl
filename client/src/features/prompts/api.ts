@@ -26,7 +26,7 @@ export type Prompt = {
   summary: string | null;
   body: string;
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
-  visibility: "TEAM" | "PRIVATE";
+  visibility: "PUBLIC" | "PRIVATE";
   tools: PromptTool[];
   modality: PromptModality;
   modelHint?: string | null;
@@ -96,7 +96,7 @@ export async function createPrompt(payload: {
   summary?: string;
   body: string;
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
-  visibility?: "TEAM" | "PRIVATE";
+  visibility?: "PUBLIC" | "PRIVATE";
   tools: PromptTool[];
   modality: PromptModality;
   modelHint?: string;

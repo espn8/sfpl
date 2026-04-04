@@ -49,7 +49,7 @@ model Prompt {
   title        String
   summary      String?
   body         String
-  visibility   PromptVisibility  @default(TEAM)
+  visibility   PromptVisibility  @default(PUBLIC)
   status       PromptStatus      @default(DRAFT)
   modelHint    String?
   tools        String[]          @default([])
@@ -188,7 +188,7 @@ enum Role {
 }
 
 enum PromptVisibility {
-  TEAM
+  PUBLIC
   PRIVATE
 }
 
