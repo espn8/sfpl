@@ -12,6 +12,12 @@ export type PromptSummaryVariable = {
   required: boolean;
 };
 
+export type PromptOwnerInfo = {
+  id: number;
+  name: string | null;
+  avatarUrl: string | null;
+};
+
 export type PromptSummary = {
   id: number;
   title: string;
@@ -24,6 +30,12 @@ export type PromptSummary = {
   updatedAt: string;
   averageRating: number | null;
   usageCount: number;
+  viewCount: number;
+  favorited: boolean;
+  myRating: number | null;
+  owner: PromptOwnerInfo;
+  tags: string[];
+  modelHint?: string | null;
   thumbnailUrl?: string | null;
   thumbnailStatus: "PENDING" | "READY" | "FAILED";
   variables?: PromptSummaryVariable[];
@@ -58,6 +70,7 @@ export type PromptVersionRow = {
 export type Prompt = {
   id: number;
   ownerId?: number;
+  owner?: PromptOwnerInfo;
   createdAt: string;
   updatedAt: string;
   title: string;
@@ -82,6 +95,9 @@ export type Prompt = {
     favorites: number;
     usageEvents: number;
   };
+  viewCount?: number;
+  favorited?: boolean;
+  myRating?: number | null;
   thumbnailUrl?: string | null;
   thumbnailStatus: "PENDING" | "READY" | "FAILED";
   thumbnailError?: string | null;

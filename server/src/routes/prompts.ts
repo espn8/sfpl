@@ -1,4 +1,4 @@
-import { Prisma, PromptModality } from "@prisma/client";
+import { Prisma, PromptModality, UsageAction } from "@prisma/client";
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { z } from "zod";
@@ -365,6 +365,7 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
         thumbnailStatus: true,
         createdAt: true,
         updatedAt: true,
+        owner: { select: { id: true, name: true, avatarUrl: true } },
         variables: { select: { key: true, label: true, defaultValue: true, required: true } },
         _count: { select: { favorites: true, ratings: true, usageEvents: true } },
         ratings: { select: { value: true } },
@@ -394,6 +395,7 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
           modelHint: true,
           createdAt: true,
           updatedAt: true,
+          owner: { select: { id: true, name: true, avatarUrl: true } },
           variables: { select: { key: true, label: true, defaultValue: true, required: true } },
           _count: { select: { favorites: true, ratings: true, usageEvents: true } },
           ratings: { select: { value: true } },
@@ -422,13 +424,40 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
     thumbnailStatus?: string;
     createdAt: Date;
     updatedAt: Date;
+    owner: { id: number; name: string | null; avatarUrl: string | null };
     ratings: { value: number }[];
     promptTags: { tag: { name: string } }[];
     _count: { favorites: number; ratings: number; usageEvents: number };
     variables?: Array<{ key: string; label: string | null; defaultValue: string | null; required: boolean }>;
   };
 
-  const data = (prompts as ListedPromptRow[]).map((prompt) => ({
+  const listed = prompts as ListedPromptRow[];
+  const promptIds = listed.map((row) => row.id);
+  let viewCountByPrompt = new Map<number, number>();
+  let favoritedPromptIds = new Set<number>();
+  let myRatingByPrompt = new Map<number, number>();
+  if (promptIds.length > 0) {
+    const [viewGroups, favoriteRows, ratingRows] = await Promise.all([
+      prisma.usageEvent.groupBy({
+        by: ["promptId"],
+        where: { promptId: { in: promptIds }, action: UsageAction.VIEW },
+        _count: { _all: true },
+      }),
+      prisma.favorite.findMany({
+        where: { userId: auth.userId, promptId: { in: promptIds } },
+        select: { promptId: true },
+      }),
+      prisma.rating.findMany({
+        where: { userId: auth.userId, promptId: { in: promptIds } },
+        select: { promptId: true, value: true },
+      }),
+    ]);
+    viewCountByPrompt = new Map(viewGroups.map((group) => [group.promptId, group._count._all]));
+    favoritedPromptIds = new Set(favoriteRows.map((row) => row.promptId));
+    myRatingByPrompt = new Map(ratingRows.map((row) => [row.promptId, row.value]));
+  }
+
+  const data = listed.map((prompt) => ({
     id: prompt.id,
     title: prompt.title,
     summary: prompt.summary,
@@ -461,6 +490,14 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
           required: item.required,
         }))
       : [],
+    owner: {
+      id: prompt.owner.id,
+      name: prompt.owner.name,
+      avatarUrl: prompt.owner.avatarUrl,
+    },
+    viewCount: viewCountByPrompt.get(prompt.id) ?? 0,
+    favorited: favoritedPromptIds.has(prompt.id),
+    myRating: myRatingByPrompt.get(prompt.id) ?? null,
   }));
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -613,6 +650,7 @@ promptsRouter.get("/:id", async (req: Request, res: Response) => {
   const prompt = await prisma.prompt.findFirst({
     where: { id: promptId, teamId: auth.teamId },
     include: {
+      owner: { select: { id: true, name: true, avatarUrl: true } },
       promptTags: { include: { tag: true } },
       variables: true,
       ratings: true,
@@ -627,10 +665,19 @@ promptsRouter.get("/:id", async (req: Request, res: Response) => {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this prompt." } });
   }
 
+  const [viewCount, favoriteRow, ratingRow] = await Promise.all([
+    prisma.usageEvent.count({ where: { promptId, action: UsageAction.VIEW } }),
+    prisma.favorite.findUnique({ where: { userId_promptId: { userId: auth.userId, promptId } } }),
+    prisma.rating.findUnique({ where: { userId_promptId: { userId: auth.userId, promptId } } }),
+  ]);
+
   return res.status(200).json({
     data: {
       ...serializePromptWithModality(prompt),
       thumbnailStatus: prompt.thumbnailStatus as ThumbnailStatusValue,
+      viewCount,
+      favorited: Boolean(favoriteRow),
+      myRating: ratingRow?.value ?? null,
     },
   });
 });
