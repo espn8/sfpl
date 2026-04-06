@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockPromptFindMany = vi.fn();
 const mockPromptCount = vi.fn();
+const mockUserCount = vi.fn();
+const mockUsageEventCount = vi.fn();
 const mockCollectionFindMany = vi.fn();
 const mockCollectionCount = vi.fn();
 
@@ -20,6 +22,12 @@ vi.mock("../src/lib/prisma", () => ({
       findMany: mockPromptFindMany,
       count: mockPromptCount,
     },
+    user: {
+      count: mockUserCount,
+    },
+    usageEvent: {
+      count: mockUsageEventCount,
+    },
     collection: {
       findMany: mockCollectionFindMany,
       count: mockCollectionCount,
@@ -35,6 +43,8 @@ describe("list endpoint pagination", () => {
   it("paginates prompts with defaults and meta", async () => {
     mockPromptFindMany.mockResolvedValue([]);
     mockPromptCount.mockResolvedValue(0);
+    mockUserCount.mockResolvedValue(0);
+    mockUsageEventCount.mockResolvedValue(0);
 
     const { createApp } = await import("../src/app");
     const app = createApp({ sessionStore: new session.MemoryStore() });
@@ -46,6 +56,11 @@ describe("list endpoint pagination", () => {
       pageSize: 20,
       total: 0,
       totalPages: 1,
+      snapshot: {
+        promptsPublished: 0,
+        activeUsers: 0,
+        promptsViewed: 0,
+      },
     });
     expect(mockPromptFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -57,7 +72,9 @@ describe("list endpoint pagination", () => {
 
   it("paginates prompts using page and pageSize", async () => {
     mockPromptFindMany.mockResolvedValue([]);
-    mockPromptCount.mockResolvedValue(44);
+    mockPromptCount.mockResolvedValueOnce(44).mockResolvedValueOnce(31);
+    mockUserCount.mockResolvedValue(8);
+    mockUsageEventCount.mockResolvedValue(120);
 
     const { createApp } = await import("../src/app");
     const app = createApp({ sessionStore: new session.MemoryStore() });
@@ -69,6 +86,11 @@ describe("list endpoint pagination", () => {
       pageSize: 10,
       total: 44,
       totalPages: 5,
+      snapshot: {
+        promptsPublished: 31,
+        activeUsers: 8,
+        promptsViewed: 120,
+      },
     });
     expect(mockPromptFindMany).toHaveBeenCalledWith(
       expect.objectContaining({

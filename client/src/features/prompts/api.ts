@@ -112,6 +112,11 @@ type ListMeta = {
   pageSize: number;
   total: number;
   totalPages: number;
+  snapshot?: {
+    promptsPublished: number;
+    activeUsers: number;
+    promptsViewed: number;
+  };
 };
 
 type ListPromptsResponse = {

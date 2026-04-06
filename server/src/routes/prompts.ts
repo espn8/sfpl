@@ -348,7 +348,15 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
         ? { usageEvents: { _count: "desc" as const } }
         : { createdAt: "desc" as const };
 
-  const [prompts, total] = await Promise.all([
+  const publishedSnapshotWhere: Prisma.PromptWhereInput = {
+    teamId: auth.teamId,
+    status: "PUBLISHED",
+  };
+  if (!isAdminOrOwner(auth.role)) {
+    publishedSnapshotWhere.OR = [{ visibility: "PUBLIC" }, { ownerId: auth.userId }];
+  }
+
+  const [prompts, total, promptsPublished, activeUsers, promptsViewed] = await Promise.all([
     prisma.prompt.findMany({
       where,
       select: {
@@ -376,13 +384,21 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
       take: pageSize,
     }),
     prisma.prompt.count({ where }),
+    prisma.prompt.count({ where: publishedSnapshotWhere }),
+    prisma.user.count({ where: { teamId: auth.teamId } }),
+    prisma.usageEvent.count({
+      where: {
+        action: UsageAction.VIEW,
+        prompt: { teamId: auth.teamId },
+      },
+    }),
   ]).catch(async (error: unknown) => {
     // Backward-compatible fallback for databases missing newer Prompt columns.
     if (!isMissingColumnError(error)) {
       throw error;
     }
 
-    const [legacyPrompts, legacyTotal] = await Promise.all([
+    const [legacyPrompts, legacyTotal, legacyPublished, legacyUsers, legacyViews] = await Promise.all([
       prisma.prompt.findMany({
         where,
         select: {
@@ -406,8 +422,16 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
         take: pageSize,
       }),
       prisma.prompt.count({ where }),
+      prisma.prompt.count({ where: publishedSnapshotWhere }),
+      prisma.user.count({ where: { teamId: auth.teamId } }),
+      prisma.usageEvent.count({
+        where: {
+          action: UsageAction.VIEW,
+          prompt: { teamId: auth.teamId },
+        },
+      }),
     ]);
-    return [legacyPrompts, legacyTotal] as const;
+    return [legacyPrompts, legacyTotal, legacyPublished, legacyUsers, legacyViews] as const;
   });
 
   type ListedPromptRow = {
@@ -509,6 +533,11 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
       pageSize,
       total,
       totalPages,
+      snapshot: {
+        promptsPublished,
+        activeUsers,
+        promptsViewed,
+      },
     },
   });
 });

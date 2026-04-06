@@ -224,7 +224,7 @@ export function PromptListCard({ prompt, variant = "default" }: PromptListCardPr
             rel="noreferrer"
             className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors ${
               canCopyOrLaunch
-                ? "bg-amber-500 text-neutral-900 hover:bg-amber-400"
+                ? "bg-(--color-launch) text-(--color-text-inverse) hover:bg-(--color-launch-hover)"
                 : "pointer-events-none bg-(--color-surface-muted) text-(--color-text-muted) opacity-50"
             }`}
             aria-disabled={!canCopyOrLaunch}

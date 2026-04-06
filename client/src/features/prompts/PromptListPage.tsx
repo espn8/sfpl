@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { fetchMe } from "../auth/api";
 import { canAccessAdminUi } from "../auth/roles";
 import { getAnalyticsOverview } from "../analytics/api";
@@ -13,7 +12,7 @@ function pluralize(count: number, singular: string, plural = `${singular}s`): st
   return `${count.toLocaleString()} ${count === 1 ? singular : plural}`;
 }
 
-type HeroStatIconVariant = "published" | "people" | "activity";
+type HeroStatIconVariant = "published" | "people" | "views";
 
 function HeroStatIcon({ variant }: { variant: HeroStatIconVariant }) {
   const className = "h-7 w-7 shrink-0 text-(--color-text)";
@@ -36,8 +35,8 @@ function HeroStatIcon({ variant }: { variant: HeroStatIconVariant }) {
   }
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
-      <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="12" cy="12" r="3" />
+      <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="12" cy="12" r="3" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -55,7 +54,9 @@ function StatCounter({ end, active, delayMs = 0 }: StatCounterProps) {
     }
 
     const prefersReduced =
-      typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (prefersReduced) {
       setDisplay(end);
       return;
@@ -146,39 +147,31 @@ export function PromptListPage() {
     return <p className="text-red-700">Failed to load prompts.</p>;
   }
 
-  const promptTotal = promptsQuery.data?.meta.total ?? 0;
-  const contributorTotal = analyticsQuery.data?.contributors.length ?? 0;
-  const totalPromptRuns = analyticsQuery.data?.topUsedPrompts.reduce((total, prompt) => total + prompt.usageCount, 0) ?? 0;
-  const analyticsReady = analyticsQuery.isSuccess;
-  const heroStats = canViewAnalytics
-    ? ([
-        {
-          icon: "published" as const,
-          label: promptTotal === 1 ? "Prompt Published" : "Prompts Published",
-          value: promptTotal,
-          counterActive: true,
-        },
-        {
-          icon: "people" as const,
-          label: contributorTotal === 1 ? "Active Contributor" : "Active Contributors",
-          value: contributorTotal,
-          counterActive: analyticsReady,
-        },
-        {
-          icon: "activity" as const,
-          label: totalPromptRuns === 1 ? "Total Prompt Run" : "Total Prompt Runs",
-          value: totalPromptRuns,
-          counterActive: analyticsReady,
-        },
-      ] as const)
-    : ([
-        {
-          icon: "published" as const,
-          label: promptTotal === 1 ? "Prompt Published" : "Prompts Published",
-          value: promptTotal,
-          counterActive: true,
-        },
-      ] as const);
+  const snapshot = promptsQuery.data?.meta.snapshot;
+  const promptsPublished = snapshot?.promptsPublished ?? 0;
+  const activeUsers = snapshot?.activeUsers ?? 0;
+  const promptsViewed = snapshot?.promptsViewed ?? 0;
+  const snapshotReady = promptsQuery.isSuccess;
+  const heroStats = [
+    {
+      icon: "published" as const,
+      label: "Prompts Published",
+      value: promptsPublished,
+      counterActive: snapshotReady,
+    },
+    {
+      icon: "people" as const,
+      label: "Active Users",
+      value: activeUsers,
+      counterActive: snapshotReady,
+    },
+    {
+      icon: "views" as const,
+      label: "Prompts Viewed",
+      value: promptsViewed,
+      counterActive: snapshotReady,
+    },
+  ] as const;
   const featuredPrompts = (promptsQuery.data?.data ?? []).slice(0, 6);
 
   const contributorLeaderboard = (analyticsQuery.data?.contributors ?? []).slice(0, 5);
@@ -205,7 +198,7 @@ export function PromptListPage() {
         <div className="pointer-events-none absolute -bottom-16 -left-10 h-48 w-48 rounded-full bg-(--color-primary)/10 blur-3xl" />
         <div className="space-y-3">
           <p className="inline-block rounded-full border border-(--color-border) bg-(--color-surface) px-3 py-1 text-xs font-semibold tracking-[0.14em]">
-            Prompt Library Platform
+            Welcome to the Prompt Library
           </p>
           <h2 className="text-3xl font-bold md:text-4xl">Discover the magic behind every winning AI response</h2>
           <p className="max-w-3xl text-(--color-text-muted)">
@@ -217,7 +210,7 @@ export function PromptListPage() {
           <div className="w-full rounded-xl border border-(--color-border) bg-(--color-surface) px-4 py-5 transition-all duration-300 motion-reduce:transition-none sm:px-6 sm:py-6">
             <p className="text-xs uppercase tracking-wide text-(--color-text-muted)">Live platform snapshot</p>
             <div
-              className={`mt-5 grid w-full gap-8 ${canViewAnalytics ? "sm:grid-cols-3" : "grid-cols-1"}`}
+              className="mt-5 grid w-full grid-cols-1 gap-8 sm:grid-cols-3"
               role="list"
               aria-label="Platform statistics"
             >
@@ -225,7 +218,7 @@ export function PromptListPage() {
                 <div
                   key={stat.label}
                   role="listitem"
-                  className="flex flex-col items-center gap-2 text-center sm:items-center"
+                  className="flex flex-col items-center gap-2 text-center"
                 >
                   <HeroStatIcon variant={stat.icon} />
                   <StatCounter end={stat.value} active={stat.counterActive} delayMs={index * 90} />
@@ -234,31 +227,6 @@ export function PromptListPage() {
               ))}
             </div>
           </div>
-          <div className="w-full rounded-xl border border-(--color-border) bg-(--color-surface) p-4 transition-all duration-300 motion-reduce:transition-none">
-            <p className="text-xs uppercase tracking-wide text-(--color-text-muted)">What you unlock</p>
-            <ul className="mt-2 space-y-1 text-sm">
-              <li>Ship trusted prompts for high-stakes workflows</li>
-              <li>
-                Community Driven: Rate prompts, view the leaderboards, follow your favorite prompt
-                gurus, and get inspired.
-              </li>
-              <li>Scale what works with shared collections and rankings</li>
-            </ul>
-          </div>
-        </div>
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <Link
-            to="/prompts/new"
-            className="rounded-lg bg-(--color-primary) px-3 py-2 text-sm font-semibold text-(--color-text-inverse) shadow-sm transition hover:bg-(--color-primary-active)"
-          >
-            Create Winning Prompt
-          </Link>
-          <Link
-            to="/collections"
-            className="rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm font-semibold transition hover:border-(--color-primary) hover:bg-(--color-surface-muted)"
-          >
-            Explore Collections
-          </Link>
         </div>
       </section>
 

@@ -1,13 +1,17 @@
 # Prompt Library - Technical Summary
 
-Last Updated: Monday, April 06, 2026 at 13:59 CDT
-Build Version: dd72ca2
+Last Updated: Monday, April 06, 2026 at 17:45 CDT
+Build Version: pending
 
 ## Recent Changes
 
-- `PromptListPage` homepage refresh: replaced the rotating hero stat carousel with a single “Live platform snapshot” panel that shows all metrics at once (one column for members without admin analytics, three columns on larger breakpoints when analytics is available). Added `HeroStatIcon` SVGs and a `StatCounter` that animates counts with easing, staggers each stat slightly, resets while data is inactive, and respects `prefers-reduced-motion`. Contributor and total-run counters stay idle until the analytics overview query succeeds so totals are not flashed as zero. Hero layout stacks snapshot and “What you unlock” full width; unlock copy highlights community ratings and leaderboards. Removed the “Built for Salesforce by Salesforce” tri-card section; tightened “Built for Every AI Tool & User” copy (“Wherever you work”, “amazing prompts”, Notebook LM naming).
+- **`GET /api/prompts`**: List response `meta` now includes `snapshot` with `promptsPublished` (published prompts scoped by team; non-admin/owner users only count prompts that are `PUBLIC` or owned by them), `activeUsers` (users belonging to the team), and `promptsViewed` (team-scoped `UsageAction.VIEW` events). The legacy missing-column fallback returns the same `meta.snapshot` shape. `pagination.test.ts` mocks `prisma.user.count` and `prisma.usageEvent.count` and asserts snapshot values.
+- **`PromptListPage`**: Hero eyebrow reads “Welcome to the Prompt Library”; live snapshot stats use `meta.snapshot` from the list endpoint when present (test fixtures updated). Snapshot grid keeps a three-column layout from the `sm` breakpoint for all signed-in users. Removed the “What you unlock” panel and the hero secondary CTAs (“Create Winning Prompt” / “Explore Collections”). `client/src/features/prompts/api.ts` types `ListMeta.snapshot` accordingly.
+- **Branding**: Added `client/public/salesforce-logo.svg` (Simple Icons–style cloud, brand blue). `client/index.html` favicon links, `AppShell` header mark, and Express `/favicon.ico` redirect target `/salesforce-logo.svg` instead of `/favicon.svg`.
+- **Theme**: New CSS variables `--color-launch` and `--color-launch-hover`; list and detail “Open in …” / copy actions use them instead of hard-coded amber utilities.
+- **`AppShell`**: “New Prompt” moved into the right-hand header actions; header **Logout** removed. Profile/welcome modal footer now includes **Logout** (via `handleLogout`) with **Cancel** / **Save**, using a responsive row layout.
+- **Earlier `PromptListPage` work**: Single “Live platform snapshot” panel with `HeroStatIcon` and `StatCounter` (easing, stagger, `prefers-reduced-motion`, idle state until analytics when those metrics come from analytics). Removed the “Built for Salesforce by Salesforce” tri-card; tightened “Built for Every AI Tool & User” copy.
 - `PromptDetailPage` brought in line with list cards: average and personal star ratings, owner avatar, view count and relative activity label, modality/tool/tag chips, Web Share API or clipboard link copy, favorite toggle, `PromptCollectionMenu`, variable template section with live preview (or editable body when there are no variables), and a consolidated launch row with provider selector—rebuilt from Cursor checkpoint diff applied to the prior detail implementation.
-- Salesforce brand asset moved from bundled SVG to `client/public/salesforce-logo.png` with HTML/shell references updated for static hosting.
 - Account experience: removed dedicated `SettingsPage`; profile, appearance, and onboarding continue in `AppShell` modals; added `AppShell` component tests.
 - Admin access: `AdminRoute` + `features/auth/roles.ts` gate `/analytics` to `ADMIN` and `OWNER` roles; server assigns `ADMIN` on Google OAuth for emails listed in `BOOTSTRAP_ADMIN_EMAILS` (comma-separated, lowercased at parse) without ever demoting `OWNER`.
 - Prompts UX: `PromptListCard`, `PromptUpdatedBadge` / `recentPromptUpdate`, `interpolatePrompt` for `{{variable}}` substitution, and `launchProviders` (ChatGPT, Claude, Gemini) for opening composed text in external UIs; list/detail/edit/create flows expanded accordingly.
@@ -65,11 +69,11 @@ Build Version: dd72ca2
 ```text
 .
 ├── client/                                     # React + Vite frontend
+│   ├── public/                                 # Vite static assets (e.g. salesforce-logo.svg)
 │   ├── src/
 │   │   ├── app/
 │   │   │   ├── providers/ThemeProvider.tsx    # Theme state + persisted/system mode bootstrap
 │   │   │   └── router.tsx                      # Authenticated route graph
-│   │   ├── public/                             # Vite public assets (e.g. salesforce-logo.png)
 │   │   ├── assets/                             # Bundled static assets
 │   │   ├── components/                         # Shared UI shell/chrome (AppShell, ProtectedRoute, AdminRoute)
 │   │   ├── features/

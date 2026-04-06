@@ -5,8 +5,8 @@ import { fetchMe, logout, updateMyProfile } from "../features/auth/api";
 import { canAccessAdminUi } from "../features/auth/roles";
 import { ThemeModeToggle } from "./ui/ThemeModeToggle";
 
-/** Mark-only asset (no wordmark); matches `public/favicon.svg`. */
-const salesforceLogoSrc = "/favicon.svg";
+/** Salesforce cloud mark; `client/public/salesforce-logo.svg` (Simple Icons shape, brand blue). */
+const salesforceLogoSrc = "/salesforce-logo.svg";
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -56,6 +56,14 @@ export function AppShell({ children }: AppShellProps) {
   const showWelcomeModal = Boolean(meQuery.data && !meQuery.data.onboardingCompleted);
   const showProfileModal = showWelcomeModal || isProfileModalOpen;
 
+  const handleLogout = () => {
+    void (async () => {
+      await logout();
+      await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+      navigate("/login");
+    })();
+  };
+
   return (
     <main className="min-h-screen bg-(--color-bg) text-(--color-text)">
       <div className="mx-auto max-w-5xl px-6 py-8">
@@ -67,12 +75,6 @@ export function AppShell({ children }: AppShellProps) {
             <nav className="flex items-center gap-4 text-sm">
               <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/">
                 Prompts
-              </Link>
-              <Link
-                className="inline-flex items-center justify-center rounded-full bg-linear-to-r from-indigo-500 via-fuchsia-500 to-pink-500 px-4 py-2 text-sm font-semibold text-white no-underline shadow-md shadow-fuchsia-500/30 transition-[filter,box-shadow,transform] hover:brightness-110 hover:shadow-lg hover:shadow-fuchsia-500/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400 focus-visible:ring-offset-2 focus-visible:ring-offset-(--color-surface) active:scale-[0.98] active:brightness-105"
-                to="/prompts/new"
-              >
-                New Prompt
               </Link>
               <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/collections">
                 Collections
@@ -97,6 +99,12 @@ export function AppShell({ children }: AppShellProps) {
             </nav>
           </div>
           <div className="flex items-center gap-3">
+            <Link
+              className="inline-flex items-center justify-center rounded-full bg-linear-to-r from-indigo-500 via-fuchsia-500 to-pink-500 px-4 py-2 text-sm font-semibold text-white no-underline shadow-md shadow-fuchsia-500/30 transition-[filter,box-shadow,transform] hover:brightness-110 hover:shadow-lg hover:shadow-fuchsia-500/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400 focus-visible:ring-offset-2 focus-visible:ring-offset-(--color-surface) active:scale-[0.98] active:brightness-105"
+              to="/prompts/new"
+            >
+              New Prompt
+            </Link>
             {meQuery.data ? (
               <button
                 type="button"
@@ -114,19 +122,6 @@ export function AppShell({ children }: AppShellProps) {
                 />
               </button>
             ) : null}
-            <button
-              type="button"
-              className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-1.5 text-sm hover:bg-(--color-surface) focus-visible:outline-none"
-              onClick={() => {
-                void (async () => {
-                  await logout();
-                  await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
-                  navigate("/login");
-                })();
-              }}
-            >
-              Logout
-            </button>
           </div>
         </header>
         {children}
@@ -275,26 +270,35 @@ export function AppShell({ children }: AppShellProps) {
 
               {formError ? <p className="text-sm text-red-700">{formError}</p> : null}
 
-              <div className="flex justify-end">
-                {!showWelcomeModal ? (
-                  <button
-                    type="button"
-                    className="mr-2 rounded border border-(--color-border) bg-(--color-surface-muted) px-4 py-2"
-                    onClick={() => {
-                      setIsProfileModalOpen(false);
-                      setFormError(null);
-                    }}
-                  >
-                    Cancel
-                  </button>
-                ) : null}
+              <div className="mt-4 flex flex-col-reverse gap-3 border-t border-(--color-border) pt-4 sm:flex-row sm:items-center sm:justify-between">
                 <button
-                  type="submit"
-                  disabled={updateProfileMutation.isPending}
-                  className="rounded bg-(--color-primary) px-4 py-2 text-(--color-text-inverse) hover:bg-(--color-primary-active) active:bg-(--color-primary-active) disabled:opacity-60"
+                  type="button"
+                  className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-1.5 text-sm hover:bg-(--color-surface) focus-visible:outline-none sm:self-start"
+                  onClick={handleLogout}
                 >
-                  {updateProfileMutation.isPending ? "Saving..." : "Save"}
+                  Logout
                 </button>
+                <div className="flex justify-end gap-2">
+                  {!showWelcomeModal ? (
+                    <button
+                      type="button"
+                      className="rounded border border-(--color-border) bg-(--color-surface-muted) px-4 py-2"
+                      onClick={() => {
+                        setIsProfileModalOpen(false);
+                        setFormError(null);
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  ) : null}
+                  <button
+                    type="submit"
+                    disabled={updateProfileMutation.isPending}
+                    className="rounded bg-(--color-primary) px-4 py-2 text-(--color-text-inverse) hover:bg-(--color-primary-active) active:bg-(--color-primary-active) disabled:opacity-60"
+                  >
+                    {updateProfileMutation.isPending ? "Saving..." : "Save"}
+                  </button>
+                </div>
               </div>
             </form>
           </div>

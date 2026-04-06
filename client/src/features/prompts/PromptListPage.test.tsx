@@ -110,7 +110,13 @@ describe("PromptListPage", () => {
           variables: [{ key: "NOTES", label: "Notes", defaultValue: "demo", required: false }],
         },
       ],
-      meta: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
+      meta: {
+        page: 1,
+        pageSize: 20,
+        total: 1,
+        totalPages: 1,
+        snapshot: { promptsPublished: 1, activeUsers: 12, promptsViewed: 340 },
+      },
     });
     vi.mocked(listTags).mockResolvedValue([
       {
@@ -136,7 +142,13 @@ describe("PromptListPage", () => {
   it("updates query filters and paginates", async () => {
     vi.mocked(listPrompts).mockResolvedValue({
       data: [],
-      meta: { page: 1, pageSize: 20, total: 30, totalPages: 2 },
+      meta: {
+        page: 1,
+        pageSize: 20,
+        total: 30,
+        totalPages: 2,
+        snapshot: { promptsPublished: 24, activeUsers: 12, promptsViewed: 900 },
+      },
     });
     vi.mocked(listTags).mockResolvedValue([
       {
