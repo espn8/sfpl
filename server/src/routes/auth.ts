@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import { Router } from "express";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { randomBytes } from "node:crypto";
-import { Prisma } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
 import { z } from "zod";
 import { env } from "../config/env";
 import { prisma } from "../lib/prisma";
@@ -77,6 +77,21 @@ function toSlug(input: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 40);
+}
+
+/** Assigns ADMIN to listed emails on each Google sign-in; never demotes OWNER. */
+function roleAfterGoogleAuth(normalizedEmail: string, priorRole: Role): Role {
+  if (priorRole === Role.OWNER) {
+    return Role.OWNER;
+  }
+  if (env.bootstrapAdminEmails.has(normalizedEmail)) {
+    return Role.ADMIN;
+  }
+  return priorRole;
+}
+
+function initialRoleForNewGoogleUser(normalizedEmail: string): Role {
+  return env.bootstrapAdminEmails.has(normalizedEmail) ? Role.ADMIN : Role.MEMBER;
 }
 
 async function exchangeCodeForIdToken(code: string): Promise<string> {
@@ -229,6 +244,7 @@ authRouter.get("/google/callback", authRateLimit, async (req: Request, res: Resp
                 ? claims.picture
                 : null,
             teamId: team.id,
+            role: roleAfterGoogleAuth(normalizedEmail, existingByGoogle.role),
           },
           select: authUserSelect,
         })
@@ -248,6 +264,7 @@ authRouter.get("/google/callback", authRateLimit, async (req: Request, res: Resp
                   ? claims.picture
                   : existingByEmail.avatarUrl,
               teamId: team.id,
+              role: roleAfterGoogleAuth(normalizedEmail, existingByEmail.role),
             },
             select: authUserSelect,
           })
@@ -257,7 +274,7 @@ authRouter.get("/google/callback", authRateLimit, async (req: Request, res: Resp
               googleSub: claims.sub,
               name: typeof claims.name === "string" ? claims.name : null,
               avatarUrl: typeof claims.picture === "string" ? claims.picture : null,
-              role: "MEMBER",
+              role: initialRoleForNewGoogleUser(normalizedEmail),
               teamId: team.id,
             },
             select: authUserSelect,

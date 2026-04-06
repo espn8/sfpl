@@ -1,21 +1,45 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { listTags } from "../tags/api";
 import {
   getPrompt,
   PROMPT_MODALITY_OPTIONS,
   PROMPT_TOOL_OPTIONS,
   type PromptModality,
   type PromptTool,
+  type PromptVariable,
   regeneratePromptThumbnail,
+  replacePromptVariables,
   updatePrompt,
 } from "./api";
 import { PromptThumbnail } from "./PromptThumbnail";
+
+type VariableRow = {
+  clientId: string;
+  key: string;
+  label: string;
+  defaultValue: string;
+  required: boolean;
+};
+
+function rowsFromApi(variables: PromptVariable[]): VariableRow[] {
+  return variables.map((variable, index) => ({
+    clientId: `existing-${variable.id}-${index}`,
+    key: variable.key,
+    label: variable.label ?? "",
+    defaultValue: variable.defaultValue ?? "",
+    required: variable.required,
+  }));
+}
 
 export function PromptEditPage() {
   const params = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const promptId = Number(params.id);
+  const [variableRows, setVariableRows] = useState<VariableRow[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
 
   const promptQuery = useQuery({
     queryKey: ["prompt", promptId],
@@ -23,8 +47,13 @@ export function PromptEditPage() {
     enabled: Number.isInteger(promptId) && promptId > 0,
   });
 
+  const tagsQuery = useQuery({
+    queryKey: ["tags"],
+    queryFn: listTags,
+  });
+
   const updateMutation = useMutation({
-    mutationFn: (payload: {
+    mutationFn: async (payload: {
       title: string;
       summary: string;
       body: string;
@@ -32,8 +61,22 @@ export function PromptEditPage() {
       visibility: "PUBLIC" | "PRIVATE";
       tools: PromptTool[];
       modality: PromptModality;
-    }) =>
-      updatePrompt(promptId, payload),
+      modelHint: string | null;
+      tagIds: number[];
+      changelog?: string;
+    }) => {
+      await updatePrompt(promptId, payload);
+      const variables = variableRows
+        .map((row) => ({
+          key: row.key.trim(),
+          label: row.label.trim() || null,
+          defaultValue: row.defaultValue,
+          required: row.required,
+        }))
+        .filter((row) => row.key.length > 0);
+      await replacePromptVariables(promptId, { variables });
+      return payload;
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["prompt", promptId] });
       await queryClient.invalidateQueries({ queryKey: ["prompts"] });
@@ -48,6 +91,15 @@ export function PromptEditPage() {
     },
   });
 
+  useEffect(() => {
+    const data = promptQuery.data;
+    if (!data) {
+      return;
+    }
+    setVariableRows(rowsFromApi(data.variables ?? []));
+    setSelectedTagIds((data.promptTags ?? []).map((entry) => entry.tag.id));
+  }, [promptQuery.data?.id]);
+
   if (promptQuery.isLoading) {
     return <p>Loading prompt...</p>;
   }
@@ -55,6 +107,8 @@ export function PromptEditPage() {
   if (!promptQuery.data) {
     return <p className="text-red-700">Prompt not found.</p>;
   }
+
+  const prompt = promptQuery.data;
 
   return (
     <form
@@ -72,6 +126,9 @@ export function PromptEditPage() {
           .map((value) => String(value))
           .filter((value): value is PromptTool => PROMPT_TOOL_OPTIONS.includes(value as PromptTool));
         const modality = String(formData.get("modality") ?? "").trim();
+        const changelog = String(formData.get("changelog") ?? "").trim();
+        const modelHintRaw = String(formData.get("modelHint") ?? "").trim();
+        const modelHint = modelHintRaw.length > 0 ? modelHintRaw : null;
         if (!title || !body || selectedTools.length === 0 || !PROMPT_MODALITY_OPTIONS.includes(modality as PromptModality)) {
           return;
         }
@@ -83,24 +140,25 @@ export function PromptEditPage() {
           visibility,
           tools: selectedTools,
           modality: modality as PromptModality,
+          modelHint,
+          tagIds: selectedTagIds,
+          changelog: changelog.length > 0 ? changelog : undefined,
         });
       }}
     >
       <h2 className="text-2xl font-semibold">Edit Prompt</h2>
       <div className="flex items-center gap-3 rounded border border-(--color-border) bg-(--color-surface-muted) p-3">
         <PromptThumbnail
-          title={promptQuery.data.title}
-          thumbnailUrl={promptQuery.data.thumbnailUrl}
-          thumbnailStatus={promptQuery.data.thumbnailStatus}
+          title={prompt.title}
+          thumbnailUrl={prompt.thumbnailUrl}
+          thumbnailStatus={prompt.thumbnailStatus}
           className="h-20 w-20 rounded object-cover"
         />
         <div className="space-y-1">
           <p className="text-sm font-medium">Generated thumbnail</p>
           <p className="text-xs text-(--color-text-muted)">
-            Status: {promptQuery.data.thumbnailStatus}
-            {promptQuery.data.thumbnailStatus === "FAILED" && promptQuery.data.thumbnailError
-              ? ` - ${promptQuery.data.thumbnailError}`
-              : ""}
+            Status: {prompt.thumbnailStatus}
+            {prompt.thumbnailStatus === "FAILED" && prompt.thumbnailError ? ` - ${prompt.thumbnailError}` : ""}
           </p>
           <button
             type="button"
@@ -116,20 +174,27 @@ export function PromptEditPage() {
       </div>
       <input
         name="title"
-        defaultValue={promptQuery.data.title}
+        defaultValue={prompt.title}
         placeholder="Title"
         className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
       />
       <input
         name="summary"
-        defaultValue={promptQuery.data.summary ?? ""}
+        defaultValue={prompt.summary ?? ""}
         placeholder="Summary"
+        className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
+      />
+      <input
+        name="modelHint"
+        key={`modelHint-${prompt.id}`}
+        defaultValue={prompt.modelHint ?? ""}
+        placeholder="Model hint (optional, e.g. recommended model or stack)"
         className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
       />
       <div className="grid gap-2 md:grid-cols-2">
         <select
           name="status"
-          defaultValue={promptQuery.data.status}
+          defaultValue={prompt.status}
           className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
         >
           <option value="DRAFT">Draft</option>
@@ -138,7 +203,7 @@ export function PromptEditPage() {
         </select>
         <select
           name="visibility"
-          defaultValue={promptQuery.data.visibility}
+          defaultValue={prompt.visibility}
           className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
         >
           <option value="PUBLIC">Public</option>
@@ -151,7 +216,7 @@ export function PromptEditPage() {
           <div className="grid gap-2 sm:grid-cols-2">
             {PROMPT_TOOL_OPTIONS.map((tool) => (
               <label key={tool} className="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="tools" value={tool} defaultChecked={promptQuery.data.tools.includes(tool)} />
+                <input type="checkbox" name="tools" value={tool} defaultChecked={prompt.tools.includes(tool)} />
                 <span>{tool}</span>
               </label>
             ))}
@@ -159,7 +224,7 @@ export function PromptEditPage() {
         </div>
         <select
           name="modality"
-          defaultValue={promptQuery.data.modality}
+          defaultValue={prompt.modality}
           className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
         >
           {PROMPT_MODALITY_OPTIONS.map((option) => (
@@ -169,12 +234,155 @@ export function PromptEditPage() {
           ))}
         </select>
       </div>
+      <div className="space-y-2 rounded border border-(--color-border) bg-(--color-surface-muted) p-3">
+        <p className="text-sm font-medium">Tags</p>
+        {tagsQuery.isLoading ? <p className="text-xs text-(--color-text-muted)">Loading tags…</p> : null}
+        {!tagsQuery.isLoading && !tagsQuery.data?.length ? (
+          <p className="text-xs text-(--color-text-muted)">
+            No workspace tags yet. Add tags when filtering the library, or ask an admin to seed tags.
+          </p>
+        ) : null}
+        {tagsQuery.data && tagsQuery.data.length > 0 ? (
+          <div className="flex flex-wrap gap-x-4 gap-y-2">
+            {tagsQuery.data.map((tag) => (
+              <label key={tag.id} className="flex cursor-pointer items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={selectedTagIds.includes(tag.id)}
+                  onChange={(event) => {
+                    const checked = event.target.checked;
+                    setSelectedTagIds((current) =>
+                      checked
+                        ? current.includes(tag.id)
+                          ? current
+                          : [...current, tag.id]
+                        : current.filter((id) => id !== tag.id),
+                    );
+                  }}
+                />
+                <span>{tag.name}</span>
+              </label>
+            ))}
+          </div>
+        ) : null}
+      </div>
       <textarea
         name="body"
-        defaultValue={promptQuery.data.body}
-        placeholder="Prompt body"
+        defaultValue={prompt.body}
+        placeholder="Prompt body (use [KEY] or {{KEY}} for variables)"
         className="h-48 w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
       />
+      <input
+        name="changelog"
+        defaultValue=""
+        placeholder="Version note (optional, saved when the body changes)"
+        className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2 text-sm"
+      />
+      <section className="space-y-3 rounded border border-(--color-border) bg-(--color-surface-muted) p-3">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-medium">Template variables</p>
+          <button
+            type="button"
+            className="rounded border border-(--color-border) bg-(--color-surface) px-2 py-1 text-xs"
+            onClick={() => {
+              setVariableRows((current) => [
+                ...current,
+                {
+                  clientId: `new-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+                  key: "",
+                  label: "",
+                  defaultValue: "",
+                  required: false,
+                },
+              ]);
+            }}
+          >
+            Add variable
+          </button>
+        </div>
+        <p className="text-xs text-(--color-text-muted)">
+          Keys must match placeholders in the body (for example <code className="rounded bg-(--color-surface) px-1">DIFF</code>{" "}
+          for <code className="rounded bg-(--color-surface) px-1">[DIFF]</code>).
+        </p>
+        {variableRows.length === 0 ? (
+          <p className="text-sm text-(--color-text-muted)">No variables. Add one or leave empty for a static prompt.</p>
+        ) : (
+          <ul className="space-y-3">
+            {variableRows.map((row, index) => (
+              <li
+                key={row.clientId}
+                className="grid gap-2 rounded border border-(--color-border) bg-(--color-surface) p-3 md:grid-cols-2"
+              >
+                <label className="grid gap-1 text-sm md:col-span-2">
+                  Key
+                  <input
+                    className="rounded border border-(--color-border) bg-(--color-surface-muted) px-2 py-1"
+                    value={row.key}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setVariableRows((current) =>
+                        current.map((item, itemIndex) => (itemIndex === index ? { ...item, key: value } : item)),
+                      );
+                    }}
+                    placeholder="e.g. TOPIC"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm">
+                  Label
+                  <input
+                    className="rounded border border-(--color-border) bg-(--color-surface-muted) px-2 py-1"
+                    value={row.label}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setVariableRows((current) =>
+                        current.map((item, itemIndex) => (itemIndex === index ? { ...item, label: value } : item)),
+                      );
+                    }}
+                    placeholder="Display name"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm">
+                  Default
+                  <input
+                    className="rounded border border-(--color-border) bg-(--color-surface-muted) px-2 py-1"
+                    value={row.defaultValue}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setVariableRows((current) =>
+                        current.map((item, itemIndex) => (itemIndex === index ? { ...item, defaultValue: value } : item)),
+                      );
+                    }}
+                  />
+                </label>
+                <label className="flex items-center gap-2 text-sm md:col-span-2">
+                  <input
+                    type="checkbox"
+                    checked={row.required}
+                    onChange={(event) => {
+                      const checked = event.target.checked;
+                      setVariableRows((current) =>
+                        current.map((item, itemIndex) => (itemIndex === index ? { ...item, required: checked } : item)),
+                      );
+                    }}
+                  />
+                  Required before copy / launch
+                </label>
+                <div className="md:col-span-2">
+                  <button
+                    type="button"
+                    className="text-xs text-(--color-danger) underline"
+                    onClick={() => {
+                      setVariableRows((current) => current.filter((_, itemIndex) => itemIndex !== index));
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
       <button
         type="submit"
         className="rounded bg-(--color-primary) px-4 py-2 text-(--color-text-inverse) hover:bg-(--color-primary-active) active:bg-(--color-primary-active)"

@@ -16,6 +16,8 @@ type Env = {
   appBaseUrl: string;
   googleAllowedDomain?: string;
   nanoBananaApiKey?: string;
+  /** Lowercased emails that receive ADMIN on sign-in (comma-separated in env). OWNER is never changed. */
+  bootstrapAdminEmails: Set<string>;
 };
 
 function getRequired(name: string): string {
@@ -53,6 +55,19 @@ function parseSameSite(): "lax" | "strict" | "none" {
   throw new Error(`SESSION_SAME_SITE must be "lax", "strict", or "none".`);
 }
 
+function parseBootstrapAdminEmails(raw: string | undefined): Set<string> {
+  if (!raw?.trim()) {
+    return new Set();
+  }
+
+  return new Set(
+    raw
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter((e) => e.length > 0),
+  );
+}
+
 export const env: Env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
   port: Number(process.env.PORT ?? 5000),
@@ -67,4 +82,5 @@ export const env: Env = {
   appBaseUrl: getRequired("APP_BASE_URL"),
   googleAllowedDomain: process.env.GOOGLE_ALLOWED_DOMAIN,
   nanoBananaApiKey: process.env.NANO_BANANA_API_KEY,
+  bootstrapAdminEmails: parseBootstrapAdminEmails(process.env.BOOTSTRAP_ADMIN_EMAILS),
 };

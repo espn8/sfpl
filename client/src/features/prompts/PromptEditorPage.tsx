@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
 import {
@@ -9,8 +10,17 @@ import {
   type PromptTool,
 } from "./api";
 
+type VariableRow = {
+  clientId: string;
+  key: string;
+  label: string;
+  defaultValue: string;
+  required: boolean;
+};
+
 export function PromptEditorPage() {
   const navigate = useNavigate();
+  const [variableRows, setVariableRows] = useState<VariableRow[]>([]);
   const createMutation = useMutation({
     mutationFn: createPrompt,
     onSuccess: (prompt) => {
@@ -38,6 +48,14 @@ export function PromptEditorPage() {
         if (!title || !body || selectedTools.length === 0 || !PROMPT_MODALITY_OPTIONS.includes(modality as PromptModality)) {
           return;
         }
+        const variables = variableRows
+          .map((row) => ({
+            key: row.key.trim(),
+            label: row.label.trim() || null,
+            defaultValue: row.defaultValue,
+            required: row.required,
+          }))
+          .filter((row) => row.key.length > 0);
         createMutation.mutate({
           title,
           summary,
@@ -46,6 +64,7 @@ export function PromptEditorPage() {
           visibility,
           tools: selectedTools,
           modality: modality as PromptModality,
+          variables: variables.length > 0 ? variables : undefined,
         });
       }}
     >
@@ -108,9 +127,105 @@ export function PromptEditorPage() {
       </div>
       <textarea
         name="body"
-        placeholder="Prompt body"
+        placeholder="Prompt body (use [KEY] or {{KEY}} for variables)"
         className="h-48 w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
       />
+      <section className="space-y-3 rounded border border-(--color-border) bg-(--color-surface-muted) p-3">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-medium">Template variables (optional)</p>
+          <button
+            type="button"
+            className="rounded border border-(--color-border) bg-(--color-surface) px-2 py-1 text-xs"
+            onClick={() => {
+              setVariableRows((current) => [
+                ...current,
+                {
+                  clientId: `new-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+                  key: "",
+                  label: "",
+                  defaultValue: "",
+                  required: false,
+                },
+              ]);
+            }}
+          >
+            Add variable
+          </button>
+        </div>
+        {variableRows.length > 0 ? (
+          <ul className="space-y-3">
+            {variableRows.map((row, index) => (
+              <li
+                key={row.clientId}
+                className="grid gap-2 rounded border border-(--color-border) bg-(--color-surface) p-3 md:grid-cols-2"
+              >
+                <label className="grid gap-1 text-sm md:col-span-2">
+                  Key
+                  <input
+                    className="rounded border border-(--color-border) bg-(--color-surface-muted) px-2 py-1"
+                    value={row.key}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setVariableRows((current) =>
+                        current.map((item, itemIndex) => (itemIndex === index ? { ...item, key: value } : item)),
+                      );
+                    }}
+                    placeholder="e.g. TOPIC"
+                  />
+                </label>
+                <label className="grid gap-1 text-sm">
+                  Label
+                  <input
+                    className="rounded border border-(--color-border) bg-(--color-surface-muted) px-2 py-1"
+                    value={row.label}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setVariableRows((current) =>
+                        current.map((item, itemIndex) => (itemIndex === index ? { ...item, label: value } : item)),
+                      );
+                    }}
+                  />
+                </label>
+                <label className="grid gap-1 text-sm">
+                  Default
+                  <input
+                    className="rounded border border-(--color-border) bg-(--color-surface-muted) px-2 py-1"
+                    value={row.defaultValue}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setVariableRows((current) =>
+                        current.map((item, itemIndex) => (itemIndex === index ? { ...item, defaultValue: value } : item)),
+                      );
+                    }}
+                  />
+                </label>
+                <label className="flex items-center gap-2 text-sm md:col-span-2">
+                  <input
+                    type="checkbox"
+                    checked={row.required}
+                    onChange={(event) => {
+                      const checked = event.target.checked;
+                      setVariableRows((current) =>
+                        current.map((item, itemIndex) => (itemIndex === index ? { ...item, required: checked } : item)),
+                      );
+                    }}
+                  />
+                  Required
+                </label>
+                <button
+                  type="button"
+                  className="text-xs text-(--color-danger) underline md:col-span-2"
+                  onClick={() => {
+                    setVariableRows((current) => current.filter((_, itemIndex) => itemIndex !== index));
+                  }}
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </section>
       <button
         type="submit"
         className="rounded bg-(--color-primary) px-4 py-2 text-(--color-text-inverse) hover:bg-(--color-primary-active) active:bg-(--color-primary-active)"

@@ -63,10 +63,7 @@ export function createApp(options?: CreateAppOptions): express.Express {
   app.use(express.json());
 
   app.get("/favicon.ico", (_req, res) => {
-    res.redirect(
-      302,
-      "https://a.sfdcstatic.com/shared/images/c360-nav/salesforce-with-type-logo.svg",
-    );
+    res.redirect(302, "/favicon.svg");
   });
 
   app.get("/api/health", async (_req, res) => {

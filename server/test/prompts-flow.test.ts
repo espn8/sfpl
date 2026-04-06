@@ -9,9 +9,16 @@ const mockPromptUpdate = vi.fn();
 const mockPromptVersionFindFirst = vi.fn();
 const mockPromptVersionCreate = vi.fn();
 const mockGeneratePromptThumbnail = vi.fn();
+const mockPromptVariableDeleteMany = vi.fn();
+const mockPromptVariableCreateMany = vi.fn();
+const mockPrismaTransaction = vi.fn();
+const mockTagFindMany = vi.fn();
+const mockPromptTagDeleteMany = vi.fn();
+const mockPromptTagCreateMany = vi.fn();
 
 vi.mock("../src/middleware/auth", () => ({
   requireAuth: (_req: unknown, _res: unknown, next: () => void) => next(),
+  requireRole: () => (_req: unknown, _res: unknown, next: () => void) => next(),
   getAuthContext: () => ({ userId: 1, teamId: 1, role: "MEMBER" }),
 }));
 
@@ -27,6 +34,18 @@ vi.mock("../src/lib/prisma", () => ({
       findFirst: mockPromptVersionFindFirst,
       create: mockPromptVersionCreate,
     },
+    promptVariable: {
+      deleteMany: mockPromptVariableDeleteMany,
+      createMany: mockPromptVariableCreateMany,
+    },
+    tag: {
+      findMany: mockTagFindMany,
+    },
+    promptTag: {
+      deleteMany: mockPromptTagDeleteMany,
+      createMany: mockPromptTagCreateMany,
+    },
+    $transaction: mockPrismaTransaction,
   },
 }));
 
@@ -111,6 +130,59 @@ describe("prompts create/update/restore flows", () => {
         }),
       }),
     );
+  });
+
+  it("replaces prompt tags when tagIds is sent", async () => {
+    const app = await buildPromptsApp();
+    mockPromptFindFirst
+      .mockResolvedValueOnce({ id: 12, teamId: 1, ownerId: 1, body: "body" })
+      .mockResolvedValueOnce({
+        id: 12,
+        teamId: 1,
+        ownerId: 1,
+        title: "T",
+        body: "body",
+        summary: null,
+        tools: ["cursor"],
+        modality: "TEXT",
+        modelHint: null,
+        visibility: "PUBLIC",
+        thumbnailStatus: "PENDING",
+        promptTags: [{ tag: { id: 2, name: "alpha" } }],
+        variables: [],
+        ratings: [],
+        _count: { favorites: 0, usageEvents: 0 },
+      });
+    mockPromptUpdate.mockResolvedValue({
+      id: 12,
+      body: "body",
+      tools: ["cursor"],
+      modality: "TEXT",
+      modelHint: null,
+      thumbnailStatus: "PENDING",
+      promptTags: [],
+      variables: [],
+      ratings: [],
+      _count: { favorites: 0, usageEvents: 0 },
+    });
+    mockTagFindMany.mockResolvedValue([{ id: 2 }, { id: 3 }]);
+    mockPrismaTransaction.mockResolvedValue(undefined);
+
+    const response = await request(app).patch("/api/prompts/12").send({ tagIds: [2, 3] });
+
+    expect(response.status).toBe(200);
+    expect(mockTagFindMany).toHaveBeenCalledWith({
+      where: { id: { in: [2, 3] }, teamId: 1 },
+      select: { id: true },
+    });
+    expect(mockPrismaTransaction).toHaveBeenCalled();
+    expect(mockPromptTagDeleteMany).toHaveBeenCalledWith({ where: { promptId: 12 } });
+    expect(mockPromptTagCreateMany).toHaveBeenCalledWith({
+      data: [
+        { promptId: 12, tagId: 2 },
+        { promptId: 12, tagId: 3 },
+      ],
+    });
   });
 
   it("restores a prompt from target version", async () => {
@@ -201,5 +273,48 @@ describe("prompts create/update/restore flows", () => {
         }),
       }),
     );
+  });
+
+  it("replaces prompt variables", async () => {
+    const app = await buildPromptsApp();
+    mockPromptFindFirst
+      .mockResolvedValueOnce({ id: 9, teamId: 1, ownerId: 1, body: "x", visibility: "PUBLIC" })
+      .mockResolvedValueOnce({
+        id: 9,
+        teamId: 1,
+        ownerId: 1,
+        title: "T",
+        body: "Hello [NAME]",
+        summary: null,
+        tools: ["cursor"],
+        modality: "TEXT",
+        modelHint: null,
+        visibility: "PUBLIC",
+        thumbnailStatus: "PENDING",
+        promptTags: [],
+        variables: [{ id: 1, promptId: 9, key: "NAME", label: "Name", defaultValue: "there", required: false }],
+        ratings: [],
+        _count: { favorites: 0, usageEvents: 0 },
+      });
+    mockPrismaTransaction.mockResolvedValue(undefined);
+
+    const response = await request(app)
+      .put("/api/prompts/9/variables")
+      .send({ variables: [{ key: "NAME", label: "Name", defaultValue: "friend", required: true }] });
+
+    expect(response.status).toBe(200);
+    expect(mockPrismaTransaction).toHaveBeenCalled();
+    expect(mockPromptVariableDeleteMany).toHaveBeenCalledWith({ where: { promptId: 9 } });
+    expect(mockPromptVariableCreateMany).toHaveBeenCalledWith({
+      data: [
+        {
+          promptId: 9,
+          key: "NAME",
+          label: "Name",
+          defaultValue: "friend",
+          required: true,
+        },
+      ],
+    });
   });
 });

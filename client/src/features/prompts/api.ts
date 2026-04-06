@@ -5,10 +5,18 @@ export type PromptTool = (typeof PROMPT_TOOL_OPTIONS)[number];
 export const PROMPT_MODALITY_OPTIONS = ["text", "code", "image", "video", "audio", "multimodal"] as const;
 export type PromptModality = (typeof PROMPT_MODALITY_OPTIONS)[number];
 
+export type PromptSummaryVariable = {
+  key: string;
+  label: string | null;
+  defaultValue: string | null;
+  required: boolean;
+};
+
 export type PromptSummary = {
   id: number;
   title: string;
   summary: string | null;
+  body: string;
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   tools: PromptTool[];
   modality: PromptModality;
@@ -18,10 +26,40 @@ export type PromptSummary = {
   usageCount: number;
   thumbnailUrl?: string | null;
   thumbnailStatus: "PENDING" | "READY" | "FAILED";
+  variables?: PromptSummaryVariable[];
+};
+
+export type PromptVariable = {
+  id: number;
+  promptId: number;
+  key: string;
+  label: string | null;
+  defaultValue: string | null;
+  required: boolean;
+};
+
+export type PromptVariableInput = {
+  key: string;
+  label?: string | null;
+  defaultValue?: string | null;
+  required?: boolean;
+};
+
+export type PromptVersionRow = {
+  id: number;
+  promptId: number;
+  version: number;
+  body: string;
+  changelog: string | null;
+  createdById: number;
+  createdAt: string;
 };
 
 export type Prompt = {
   id: number;
+  ownerId?: number;
+  createdAt: string;
+  updatedAt: string;
   title: string;
   summary: string | null;
   body: string;
@@ -30,6 +68,7 @@ export type Prompt = {
   tools: PromptTool[];
   modality: PromptModality;
   modelHint?: string | null;
+  variables?: PromptVariable[];
   promptTags?: Array<{
     tag: {
       id: number;
@@ -100,12 +139,24 @@ export async function createPrompt(payload: {
   tools: PromptTool[];
   modality: PromptModality;
   modelHint?: string;
+  variables?: PromptVariableInput[];
 }): Promise<Prompt> {
   const response = await apiClient.post<ApiResponse<Prompt>>("/api/prompts", payload);
   return response.data.data;
 }
 
-export async function updatePrompt(id: number, payload: Partial<Prompt> & { changelog?: string }): Promise<Prompt> {
+export async function replacePromptVariables(
+  promptId: number,
+  payload: { variables: PromptVariableInput[] },
+): Promise<Prompt> {
+  const response = await apiClient.put<ApiResponse<Prompt>>(`/api/prompts/${promptId}/variables`, payload);
+  return response.data.data;
+}
+
+export async function updatePrompt(
+  id: number,
+  payload: Partial<Prompt> & { changelog?: string; tagIds?: number[] },
+): Promise<Prompt> {
   const response = await apiClient.patch<ApiResponse<Prompt>>(`/api/prompts/${id}`, payload);
   return response.data.data;
 }
@@ -126,6 +177,16 @@ export async function createPromptVersion(
     `/api/prompts/${id}/versions`,
     payload,
   );
+  return response.data.data;
+}
+
+export async function listPromptVersions(promptId: number): Promise<PromptVersionRow[]> {
+  const response = await apiClient.get<ApiResponse<PromptVersionRow[]>>(`/api/prompts/${promptId}/versions`);
+  return response.data.data;
+}
+
+export async function restorePromptVersion(promptId: number, version: number): Promise<Prompt> {
+  const response = await apiClient.post<ApiResponse<Prompt>>(`/api/prompts/${promptId}/restore/${version}`);
   return response.data.data;
 }
 

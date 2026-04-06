@@ -2,8 +2,11 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { fetchMe, logout, updateMyProfile } from "../features/auth/api";
+import { canAccessAdminUi } from "../features/auth/roles";
 import { ThemeModeToggle } from "./ui/ThemeModeToggle";
-import salesforceLogo from "../assets/salesforce-logo.svg";
+
+/** Mark-only asset (no wordmark); matches `public/favicon.svg`. */
+const salesforceLogoSrc = "/favicon.svg";
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -18,14 +21,13 @@ export function AppShell({ children }: AppShellProps) {
   });
 
   const [name, setName] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState("");
+  const defaultAvatarUrl = "https://api.dicebear.com/9.x/bottts/svg?seed=PromptLibrary";
+  const [avatarUrl, setAvatarUrl] = useState(defaultAvatarUrl);
   const [region, setRegion] = useState("");
   const [ou, setOu] = useState("");
   const [title, setTitle] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-
-  const defaultAvatarUrl = "https://api.dicebear.com/9.x/bottts/svg?seed=PromptLibrary";
 
   useEffect(() => {
     if (!meQuery.data) {
@@ -60,24 +62,38 @@ export function AppShell({ children }: AppShellProps) {
         <header className="mb-6 flex items-center justify-between rounded-lg border border-(--color-border) bg-(--color-surface) px-4 py-3">
           <div className="flex items-center gap-6">
             <Link to="/" className="inline-flex items-center focus-visible:outline-none" aria-label="Home">
-              <img src={salesforceLogo} alt="Salesforce" className="block h-10 w-auto max-w-none" />
+              <img src={salesforceLogoSrc} alt="" className="block h-10 w-auto max-w-none" />
             </Link>
-            <nav className="flex gap-4 text-sm">
+            <nav className="flex items-center gap-4 text-sm">
               <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/">
                 Prompts
               </Link>
-              <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/prompts/new">
+              <Link
+                className="inline-flex items-center justify-center rounded-full bg-linear-to-r from-indigo-500 via-fuchsia-500 to-pink-500 px-4 py-2 text-sm font-semibold text-white no-underline shadow-md shadow-fuchsia-500/30 transition-[filter,box-shadow,transform] hover:brightness-110 hover:shadow-lg hover:shadow-fuchsia-500/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400 focus-visible:ring-offset-2 focus-visible:ring-offset-(--color-surface) active:scale-[0.98] active:brightness-105"
+                to="/prompts/new"
+              >
                 New Prompt
               </Link>
               <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/collections">
                 Collections
               </Link>
-              <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/analytics">
-                Analytics
-              </Link>
-              <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/settings">
-                Settings
-              </Link>
+              {meQuery.data && canAccessAdminUi(meQuery.data.role) ? (
+                <>
+                  <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/analytics">
+                    Analytics
+                  </Link>
+                  <button
+                    type="button"
+                    className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none"
+                    onClick={() => {
+                      setFormError(null);
+                      setIsProfileModalOpen(true);
+                    }}
+                  >
+                    Settings
+                  </button>
+                </>
+              ) : null}
             </nav>
           </div>
           <div className="flex items-center gap-3">
@@ -89,7 +105,7 @@ export function AppShell({ children }: AppShellProps) {
                   setFormError(null);
                   setIsProfileModalOpen(true);
                 }}
-                aria-label="Edit profile"
+                aria-label="Account settings"
               >
                 <img
                   src={meQuery.data.avatarUrl ?? defaultAvatarUrl}
@@ -116,7 +132,7 @@ export function AppShell({ children }: AppShellProps) {
         {children}
         <footer className="mt-8 rounded-lg border border-(--color-border) bg-(--color-surface) px-4 py-3">
           <div className="flex items-center justify-between gap-4">
-            <img src={salesforceLogo} alt="Salesforce" className="block h-9 w-auto max-w-none" />
+            <img src={salesforceLogoSrc} alt="Salesforce" className="block h-9 w-auto max-w-none" />
             <p className="text-right text-sm text-(--color-text-muted)">
               Copyright 2026. All Rights Reserved. Created with ❤️ by{" "}
               <a
@@ -136,12 +152,12 @@ export function AppShell({ children }: AppShellProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-2xl rounded-lg border border-(--color-border) bg-(--color-surface) p-6 shadow-lg">
             <h2 className="text-xl font-semibold">
-              {showWelcomeModal ? "Welcome to Prompt Library" : "Update your profile"}
+              {showWelcomeModal ? "Welcome to Prompt Library" : "Account settings"}
             </h2>
             <p className="mt-1 text-sm text-(--color-text-muted)">
               {showWelcomeModal
                 ? "Please finish your profile before continuing."
-                : "Update how your profile appears across Prompt Library."}
+                : "Your profile, appearance, and account details."}
             </p>
             <form
               className="mt-4 space-y-4"
@@ -160,7 +176,28 @@ export function AppShell({ children }: AppShellProps) {
                 });
               }}
             >
+              {meQuery.data ? (
+                <div className="rounded border border-(--color-border) bg-(--color-surface-muted) p-3">
+                  <p className="mb-3 text-sm font-medium text-(--color-text)">Account</p>
+                  <dl className="grid gap-3 text-sm sm:grid-cols-2">
+                    <div>
+                      <dt className="text-(--color-text-muted)">Email</dt>
+                      <dd className="mt-0.5 font-medium">{meQuery.data.email}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-(--color-text-muted)">Role</dt>
+                      <dd className="mt-0.5 font-medium">{meQuery.data.role}</dd>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <dt className="text-(--color-text-muted)">Team ID</dt>
+                      <dd className="mt-0.5 font-medium">{meQuery.data.teamId}</dd>
+                    </div>
+                  </dl>
+                </div>
+              ) : null}
+
               <div className="rounded border border-(--color-border) bg-(--color-surface-muted) p-3">
+                <p className="mb-2 text-sm text-(--color-text-muted)">Appearance</p>
                 <ThemeModeToggle />
               </div>
 

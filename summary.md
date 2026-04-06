@@ -1,14 +1,16 @@
 # Prompt Library - Technical Summary
 
-Last Updated: Saturday, April 04, 2026 at 11:46 CDT
-Build Version: 11fa5a0
+Last Updated: Monday, April 06, 2026 at 12:48 CDT
+Build Version: 2060900
 
 ## Recent Changes
 
-- Replaced the temporary Salesforce icon with a full-width Salesforce logo lockup and updated header/footer sizing to avoid clipping.
-- Removed visual constraints around logo containers so the full logo renders cleanly in both top navigation and footer contexts.
-- Updated footer attribution copy to: `Copyright 2026. All Rights Reserved. Created with ❤️ by Amelia Ochodnicky.`
-- Preserved direct Slack profile linking on the author attribution for team discoverability.
+- Salesforce brand asset moved from bundled SVG to `client/public/salesforce-logo.png` with HTML/shell references updated for static hosting.
+- Account experience: removed dedicated `SettingsPage`; profile, appearance, and onboarding continue in `AppShell` modals; added `AppShell` component tests.
+- Admin access: `AdminRoute` + `features/auth/roles.ts` gate `/analytics` to `ADMIN` and `OWNER` roles; server assigns `ADMIN` on Google OAuth for emails listed in `BOOTSTRAP_ADMIN_EMAILS` (comma-separated, lowercased at parse) without ever demoting `OWNER`.
+- Prompts UX: `PromptListCard`, `PromptUpdatedBadge` / `recentPromptUpdate`, `interpolatePrompt` for `{{variable}}` substitution, and `launchProviders` (ChatGPT, Claude, Gemini) for opening composed text in external UIs; list/detail/edit/create flows expanded accordingly.
+- API/types: `Prompt` includes `createdAt` and `updatedAt`; client `api.ts` and server `prompts` routes extended with related behavior; analytics/auth routes adjusted; `prompts-flow` and other server tests extended, client tests for interpolation and recent-update helpers added.
+- Build fix: TypeScript test mocks updated for stricter `Prompt` typing (`AppShell.test.tsx` import cleanup, `PromptEditPage.test.tsx` timestamps).
 
 ## Technical Architecture
 
@@ -64,13 +66,14 @@ Build Version: 11fa5a0
 │   │   ├── app/
 │   │   │   ├── providers/ThemeProvider.tsx    # Theme state + persisted/system mode bootstrap
 │   │   │   └── router.tsx                      # Authenticated route graph
-│   │   ├── assets/                             # Static visual assets (including Salesforce brand logo SVG)
-│   │   ├── components/                         # Shared UI shell/chrome
+│   │   ├── public/                             # Vite public assets (e.g. salesforce-logo.png)
+│   │   ├── assets/                             # Bundled static assets
+│   │   ├── components/                         # Shared UI shell/chrome (AppShell, ProtectedRoute, AdminRoute)
 │   │   ├── features/
-│   │   │   ├── prompts/                        # Discovery/detail/create/edit + card layouts + filters
+│   │   │   ├── prompts/                        # Discovery/detail/create/edit, cards, filters, interpolation, external launch
 │   │   │   ├── analytics/                      # Typed analytics client contracts
 │   │   │   ├── collections/                    # Collection CRUD + membership surfaces
-│   │   │   └── auth/                           # OAuth entry + account settings
+│   │   │   └── auth/                           # OAuth entry + role helpers (no standalone settings route)
 │   │   ├── styles/                             # Design tokens + theme semantics
 │   │   └── main.tsx                            # Bootstrap + providers
 ├── server/                                     # Express + Prisma backend
@@ -113,7 +116,9 @@ Build Version: 11fa5a0
 - `server/src/routes/analytics.ts`: consolidated overview payload consumed by homepage dashboards and leaderboards.
 - `server/src/services/nanoBanana.ts`: external image-generation bridge for prompt thumbnails.
 - `server/prisma/schema.prisma`: source of truth for users/teams/prompts/engagement relations and enums.
-- `client/src/features/prompts/PromptListPage.tsx`: homepage/discovery UX, cards, filters, hero stats, and leaderboards.
+- `client/src/features/prompts/PromptListPage.tsx`: homepage/discovery UX, list cards, filters, hero stats, and leaderboards.
+- `client/src/components/AdminRoute.tsx`: redirects non-admin users away from admin-only routes (e.g. analytics).
+- `client/src/features/prompts/interpolatePrompt.ts` / `launchProviders.ts`: client-side prompt variable fill-in and deep links to external chat products.
 - `client/src/features/prompts/PromptThumbnail.tsx`: thumbnail rendering with graceful placeholder states.
 - `client/src/features/analytics/api.ts`: strict typed contract for analytics payload shape.
 
@@ -143,6 +148,7 @@ GOOGLE_CLIENT_ID=<google-client-id>
 GOOGLE_CLIENT_SECRET=<google-client-secret>
 GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
 GOOGLE_ALLOWED_DOMAIN=salesforce.com
+BOOTSTRAP_ADMIN_EMAILS=admin1@example.com,admin2@example.com
 NANO_BANANA_API_KEY=<google-generative-language-api-key>
 AUTH_RATE_LIMIT_WINDOW_MS=900000
 AUTH_RATE_LIMIT_MAX=60
@@ -193,9 +199,8 @@ git push heroku main
 
 ### TODO/FIXME Scan
 
-- Repository scan for `TODO|FIXME` completed.
-- No outstanding application-code TODO/FIXME markers were found in tracked source files.
-- One `TODO/FIXME` mention remains in workspace automation rule text and is non-runtime.
+- Repository scan for `TODO|FIXME` in `*.{ts,tsx,js,jsx}` completed (April 06, 2026): no matches in application source.
+- Workspace automation rules may still mention `TODO|FIXME` as documentation; that is non-runtime.
 
 ### Roadmap / Backlog
 

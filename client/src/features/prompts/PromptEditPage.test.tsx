@@ -3,8 +3,13 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { listTags } from "../tags/api";
 import { PromptEditPage } from "./PromptEditPage";
 import { getPrompt, regeneratePromptThumbnail, updatePrompt } from "./api";
+
+vi.mock("../tags/api", () => ({
+  listTags: vi.fn(),
+}));
 
 vi.mock("./api", () => ({
   getPrompt: vi.fn(),
@@ -13,6 +18,11 @@ vi.mock("./api", () => ({
   PROMPT_TOOL_OPTIONS: ["cursor", "claude_code", "meshmesh", "slackbot", "gemini", "notebooklm"],
   PROMPT_MODALITY_OPTIONS: ["text", "code", "image", "video", "audio", "multimodal"],
 }));
+
+const mockPromptTimestamps = {
+  createdAt: "2026-01-01T00:00:00.000Z",
+  updatedAt: "2026-01-02T00:00:00.000Z",
+};
 
 function renderPromptEditPage() {
   const queryClient = new QueryClient({
@@ -34,7 +44,9 @@ function renderPromptEditPage() {
 describe("PromptEditPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(listTags).mockResolvedValue([]);
     vi.mocked(getPrompt).mockResolvedValue({
+      ...mockPromptTimestamps,
       id: 44,
       title: "Pipeline helper",
       summary: "Summarize stage risk",
@@ -47,6 +59,7 @@ describe("PromptEditPage", () => {
       thumbnailError: "Previous generation failed",
     });
     vi.mocked(updatePrompt).mockResolvedValue({
+      ...mockPromptTimestamps,
       id: 44,
       title: "Pipeline helper",
       summary: "Summarize stage risk",
@@ -59,6 +72,7 @@ describe("PromptEditPage", () => {
       thumbnailError: "Previous generation failed",
     });
     vi.mocked(regeneratePromptThumbnail).mockResolvedValue({
+      ...mockPromptTimestamps,
       id: 44,
       title: "Pipeline helper",
       summary: "Summarize stage risk",

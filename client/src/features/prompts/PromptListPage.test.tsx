@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getAnalyticsOverview } from "../analytics/api";
+import { fetchMe } from "../auth/api";
 import { listCollections } from "../collections/api";
 import { listTags } from "../tags/api";
 import { PromptListPage } from "./PromptListPage";
@@ -11,6 +12,7 @@ import { listPrompts } from "./api";
 
 vi.mock("./api", () => ({
   listPrompts: vi.fn(),
+  logUsage: vi.fn().mockResolvedValue(undefined),
   PROMPT_TOOL_OPTIONS: ["cursor", "claude_code", "meshmesh", "slackbot", "gemini", "notebooklm"],
   PROMPT_MODALITY_OPTIONS: ["text", "code", "image", "video", "audio", "multimodal"],
 }));
@@ -25,6 +27,10 @@ vi.mock("../collections/api", () => ({
 
 vi.mock("../analytics/api", () => ({
   getAnalyticsOverview: vi.fn(),
+}));
+
+vi.mock("../auth/api", () => ({
+  fetchMe: vi.fn(),
 }));
 
 function renderPromptListPage() {
@@ -48,6 +54,18 @@ function renderPromptListPage() {
 describe("PromptListPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(fetchMe).mockResolvedValue({
+      id: 1,
+      email: "admin@example.com",
+      name: "Admin User",
+      avatarUrl: null,
+      region: null,
+      ou: null,
+      title: null,
+      onboardingCompleted: true,
+      role: "ADMIN",
+      teamId: 1,
+    });
     vi.mocked(getAnalyticsOverview).mockResolvedValue({
       topUsedPrompts: [{ id: 1, title: "Quota coaching", usageCount: 120 }],
       topRatedPrompts: [{ id: 1, title: "Quota coaching", averageRating: 4.8, ratingCount: 12 }],
@@ -74,6 +92,7 @@ describe("PromptListPage", () => {
           id: 12,
           title: "Draft outreach prompt",
           summary: "Summarize account notes",
+          body: "You are a sales assistant. Summarize: [NOTES]",
           status: "DRAFT",
           tools: ["cursor"],
           modality: "text",
@@ -83,6 +102,7 @@ describe("PromptListPage", () => {
           usageCount: 10,
           thumbnailStatus: "READY",
           thumbnailUrl: "https://example.com/thumb.png",
+          variables: [{ key: "NOTES", label: "Notes", defaultValue: "demo", required: false }],
         },
       ],
       meta: { page: 1, pageSize: 20, total: 1, totalPages: 1 },

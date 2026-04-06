@@ -2,10 +2,10 @@ import { useEffect } from "react";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { trackPageView } from "./analytics";
 import { AppShell } from "../components/AppShell";
+import { AdminRoute } from "../components/AdminRoute";
 import { ProtectedRoute } from "../components/ProtectedRoute";
 import { AnalyticsPage } from "../features/analytics/AnalyticsPage";
 import { LoginPage } from "../features/auth/LoginPage";
-import { SettingsPage } from "../features/auth/SettingsPage";
 import { CollectionDetailPage } from "../features/collections/CollectionDetailPage";
 import { CollectionsPage } from "../features/collections/CollectionsPage";
 import { PromptDetailPage } from "../features/prompts/PromptDetailPage";
@@ -96,17 +96,9 @@ export function AppRouter() {
           element={
             <ProtectedRoute>
               <AppShell>
-                <AnalyticsPage />
-              </AppShell>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <ProtectedRoute>
-              <AppShell>
-                <SettingsPage />
+                <AdminRoute>
+                  <AnalyticsPage />
+                </AdminRoute>
               </AppShell>
             </ProtectedRoute>
           }

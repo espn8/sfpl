@@ -1,10 +1,12 @@
 import type { Request, Response } from "express";
 import { Router } from "express";
-import { getAuthContext, requireAuth } from "../middleware/auth";
+import { Role } from "@prisma/client";
+import { getAuthContext, requireAuth, requireRole } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 
 const analyticsRouter = Router();
 analyticsRouter.use(requireAuth);
+analyticsRouter.use(requireRole([Role.ADMIN, Role.OWNER]));
 type RatedPrompt = {
   id: number;
   title: string;

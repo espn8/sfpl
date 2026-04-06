@@ -123,16 +123,69 @@ const promptRestoreParamsSchema = z.object({
   version: z.coerce.number().int().positive(),
 });
 
-const createPromptBodySchema = z.object({
-  title: z.string().trim().min(1, "title is required."),
-  summary: z.string().trim().optional(),
-  body: z.string().min(1, "body is required."),
-  visibility: promptVisibilitySchema.optional(),
-  status: promptStatusSchema.optional(),
-  tools: z.array(promptToolSchema).min(1, "at least one tool is required."),
-  modality: apiModalitySchema,
-  modelHint: z.string().trim().optional(),
+const promptVariableItemSchema = z.object({
+  key: z
+    .string()
+    .trim()
+    .min(1, "variable key is required.")
+    .max(64, "variable key is too long.")
+    .regex(/^[A-Za-z][A-Za-z0-9_]*$/, "variable key must start with a letter and use letters, numbers, or underscores."),
+  label: z.string().trim().max(200).optional().nullable(),
+  defaultValue: z.string().max(20000).optional().nullable(),
+  required: z.boolean().optional(),
 });
+
+const replacePromptVariablesBodySchema = z
+  .object({
+    variables: z.array(promptVariableItemSchema).max(40, "too many variables."),
+  })
+  .superRefine((value, ctx) => {
+    const keys = value.variables.map((item) => item.key);
+    const seen = new Set<string>();
+    for (let index = 0; index < keys.length; index += 1) {
+      const key = keys[index];
+      if (seen.has(key)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Duplicate variable key: ${key}.`,
+          path: ["variables", index, "key"],
+        });
+        return;
+      }
+      seen.add(key);
+    }
+  });
+
+const createPromptBodySchema = z
+  .object({
+    title: z.string().trim().min(1, "title is required."),
+    summary: z.string().trim().optional(),
+    body: z.string().min(1, "body is required."),
+    visibility: promptVisibilitySchema.optional(),
+    status: promptStatusSchema.optional(),
+    tools: z.array(promptToolSchema).min(1, "at least one tool is required."),
+    modality: apiModalitySchema,
+    modelHint: z.string().trim().optional(),
+    variables: z.array(promptVariableItemSchema).max(40).optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (!value.variables?.length) {
+      return;
+    }
+    const seen = new Set<string>();
+    for (let index = 0; index < value.variables.length; index += 1) {
+      const key = value.variables[index].key;
+      if (seen.has(key)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Duplicate variable key: ${key}.`,
+          path: ["variables", index, "key"],
+        });
+        return;
+      }
+      seen.add(key);
+    }
+  });
 
 const updatePromptBodySchema = z
   .object({
@@ -143,8 +196,9 @@ const updatePromptBodySchema = z
     status: promptStatusSchema.optional(),
     tools: z.array(promptToolSchema).min(1).optional(),
     modality: apiModalitySchema.optional(),
-    modelHint: z.string().trim().optional(),
+    modelHint: z.union([z.string(), z.null()]).optional(),
     changelog: z.string().optional(),
+    tagIds: z.array(z.coerce.number().int().positive()).max(50).optional(),
   })
   .refine(
     (value) => Object.values(value).some((item) => item !== undefined),
@@ -301,6 +355,7 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
         id: true,
         title: true,
         summary: true,
+        body: true,
         status: true,
         visibility: true,
         modelHint: true,
@@ -310,6 +365,7 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
         thumbnailStatus: true,
         createdAt: true,
         updatedAt: true,
+        variables: { select: { key: true, label: true, defaultValue: true, required: true } },
         _count: { select: { favorites: true, ratings: true, usageEvents: true } },
         ratings: { select: { value: true } },
         promptTags: { include: { tag: true } },
@@ -332,11 +388,13 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
           id: true,
           title: true,
           summary: true,
+          body: true,
           status: true,
           visibility: true,
           modelHint: true,
           createdAt: true,
           updatedAt: true,
+          variables: { select: { key: true, label: true, defaultValue: true, required: true } },
           _count: { select: { favorites: true, ratings: true, usageEvents: true } },
           ratings: { select: { value: true } },
           promptTags: { include: { tag: true } },
@@ -350,25 +408,38 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
     return [legacyPrompts, legacyTotal] as const;
   });
 
-  type PromptListItem = Prisma.PromptGetPayload<{
-    include: {
-      _count: { select: { favorites: true; ratings: true; usageEvents: true } };
-      ratings: { select: { value: true } };
-      promptTags: { include: { tag: true } };
-    };
-  }>;
+  type ListedPromptRow = {
+    id: number;
+    title: string;
+    summary: string | null;
+    body?: string;
+    status: string;
+    visibility: string;
+    modelHint?: string | null;
+    tools?: string[];
+    modality?: PromptModality;
+    thumbnailUrl?: string | null;
+    thumbnailStatus?: string;
+    createdAt: Date;
+    updatedAt: Date;
+    ratings: { value: number }[];
+    promptTags: { tag: { name: string } }[];
+    _count: { favorites: number; ratings: number; usageEvents: number };
+    variables?: Array<{ key: string; label: string | null; defaultValue: string | null; required: boolean }>;
+  };
 
-  const data = (prompts as PromptListItem[]).map((prompt: PromptListItem) => ({
+  const data = (prompts as ListedPromptRow[]).map((prompt) => ({
     id: prompt.id,
     title: prompt.title,
     summary: prompt.summary,
+    body: typeof prompt.body === "string" ? prompt.body : "",
     status: prompt.status,
     visibility: prompt.visibility,
     tools:
       "tools" in prompt && Array.isArray(prompt.tools) && prompt.tools.length > 0
         ? prompt.tools
         : mapLegacyModelHintToTools(prompt.modelHint),
-    modality: "modality" in prompt ? mapDbModalityToApi(prompt.modality) : "text",
+    modality: prompt.modality !== undefined ? mapDbModalityToApi(prompt.modality) : "text",
     modelHint: prompt.modelHint,
     thumbnailUrl: "thumbnailUrl" in prompt ? prompt.thumbnailUrl : null,
     thumbnailStatus: "thumbnailStatus" in prompt ? (prompt.thumbnailStatus as ThumbnailStatusValue) : "PENDING",
@@ -382,6 +453,14 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
       prompt.ratings.length === 0
         ? null
         : prompt.ratings.reduce((sum: number, item: { value: number }) => sum + item.value, 0) / prompt.ratings.length,
+    variables: Array.isArray(prompt.variables)
+      ? prompt.variables.map((item) => ({
+          key: item.key,
+          label: item.label,
+          defaultValue: item.defaultValue,
+          required: item.required,
+        }))
+      : [],
   }));
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -407,7 +486,7 @@ promptsRouter.post("/", async (req: Request, res: Response) => {
   if (!parsedBody.success) {
     return res.status(400).json(badRequestFromZodError(parsedBody.error));
   }
-  const { title, summary, body, visibility, status, modelHint, tools, modality } = parsedBody.data;
+  const { title, summary, body, visibility, status, modelHint, tools, modality, variables } = parsedBody.data;
 
   const prompt = await prisma.prompt.create({
     data: {
@@ -423,6 +502,17 @@ promptsRouter.post("/", async (req: Request, res: Response) => {
       modelHint: modelHint?.trim() || null,
       thumbnailStatus: "PENDING",
       thumbnailError: null,
+      variables:
+        variables && variables.length > 0
+          ? {
+              create: variables.map((item) => ({
+                key: item.key.trim(),
+                label: item.label?.trim() || null,
+                defaultValue: typeof item.defaultValue === "string" ? item.defaultValue : null,
+                required: item.required ?? false,
+              })),
+            }
+          : undefined,
       versions: {
         create: {
           version: 1,
@@ -432,11 +522,76 @@ promptsRouter.post("/", async (req: Request, res: Response) => {
         },
       },
     },
+    include: { variables: true },
   });
 
   void queuePromptThumbnailGeneration(prompt.id);
 
   return res.status(201).json({
+    data: {
+      ...serializePromptWithModality(prompt),
+      thumbnailStatus: prompt.thumbnailStatus as ThumbnailStatusValue,
+    },
+  });
+});
+
+promptsRouter.put("/:id/variables", async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+
+  const parsedParams = promptIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+  const parsedBody = replacePromptVariablesBodySchema.safeParse(req.body);
+  if (!parsedBody.success) {
+    return res.status(400).json(badRequestFromZodError(parsedBody.error));
+  }
+
+  const promptId = parsedParams.data.id;
+  const existing = await prisma.prompt.findFirst({ where: { id: promptId, teamId: auth.teamId } });
+  if (!existing) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
+  }
+
+  if (existing.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can modify this prompt." } });
+  }
+
+  const rows = parsedBody.data.variables.map((item) => ({
+    promptId,
+    key: item.key.trim(),
+    label: item.label?.trim() || null,
+    defaultValue: typeof item.defaultValue === "string" ? item.defaultValue : null,
+    required: item.required ?? false,
+  }));
+
+  const transactionSteps = [prisma.promptVariable.deleteMany({ where: { promptId } })];
+  if (rows.length > 0) {
+    transactionSteps.push(prisma.promptVariable.createMany({ data: rows }));
+  }
+  await prisma.$transaction(transactionSteps);
+
+  const prompt = await prisma.prompt.findFirst({
+    where: { id: promptId, teamId: auth.teamId },
+    include: {
+      promptTags: { include: { tag: true } },
+      variables: true,
+      ratings: true,
+      _count: { select: { favorites: true, usageEvents: true } },
+    },
+  });
+
+  if (!prompt) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
+  }
+  if (prompt.visibility === "PRIVATE" && prompt.ownerId !== auth.userId && !isAdminOrOwner(auth.role)) {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this prompt." } });
+  }
+
+  return res.status(200).json({
     data: {
       ...serializePromptWithModality(prompt),
       thumbnailStatus: prompt.thumbnailStatus as ThumbnailStatusValue,
@@ -507,7 +662,17 @@ promptsRouter.patch("/:id", async (req: Request, res: Response) => {
   }
 
   const nextBody = typeof updateData.body === "string" ? updateData.body : existing.body;
-  const updated = await prisma.prompt.update({
+  let modelHint: string | null | undefined;
+  if (updateData.modelHint !== undefined) {
+    if (updateData.modelHint === null) {
+      modelHint = null;
+    } else {
+      const trimmed = updateData.modelHint.trim();
+      modelHint = trimmed.length === 0 ? null : trimmed;
+    }
+  }
+
+  let updated = await prisma.prompt.update({
     where: { id: promptId },
     data: {
       title: typeof updateData.title === "string" ? updateData.title.trim() : undefined,
@@ -517,7 +682,13 @@ promptsRouter.patch("/:id", async (req: Request, res: Response) => {
       status: updateData.status,
       tools: Array.isArray(updateData.tools) ? updateData.tools : undefined,
       modality: typeof updateData.modality === "string" ? apiToDbModality[updateData.modality] : undefined,
-      modelHint: typeof updateData.modelHint === "string" ? updateData.modelHint.trim() : undefined,
+      ...(updateData.modelHint !== undefined ? { modelHint } : {}),
+    },
+    include: {
+      variables: true,
+      promptTags: { include: { tag: true } },
+      ratings: true,
+      _count: { select: { favorites: true, usageEvents: true } },
     },
   });
 
@@ -536,6 +707,42 @@ promptsRouter.patch("/:id", async (req: Request, res: Response) => {
         changelog: typeof updateData.changelog === "string" ? updateData.changelog : null,
       },
     });
+  }
+
+  if (updateData.tagIds !== undefined) {
+    const uniqueTagIds = [...new Set(updateData.tagIds)];
+    if (uniqueTagIds.length > 0) {
+      const foundTags = await prisma.tag.findMany({
+        where: { id: { in: uniqueTagIds }, teamId: auth.teamId },
+        select: { id: true },
+      });
+      if (foundTags.length !== uniqueTagIds.length) {
+        return res.status(400).json({
+          error: { code: "BAD_REQUEST", message: "One or more tags are invalid or not in your workspace." },
+        });
+      }
+    }
+    const tagSteps: Prisma.PrismaPromise<unknown>[] = [prisma.promptTag.deleteMany({ where: { promptId } })];
+    if (uniqueTagIds.length > 0) {
+      tagSteps.push(
+        prisma.promptTag.createMany({
+          data: uniqueTagIds.map((tagId) => ({ promptId, tagId })),
+        }),
+      );
+    }
+    await prisma.$transaction(tagSteps);
+    const refreshed = await prisma.prompt.findFirst({
+      where: { id: promptId, teamId: auth.teamId },
+      include: {
+        variables: true,
+        promptTags: { include: { tag: true } },
+        ratings: true,
+        _count: { select: { favorites: true, usageEvents: true } },
+      },
+    });
+    if (refreshed) {
+      updated = refreshed;
+    }
   }
 
   return res.status(200).json({
