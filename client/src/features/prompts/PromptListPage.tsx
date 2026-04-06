@@ -13,6 +13,78 @@ function pluralize(count: number, singular: string, plural = `${singular}s`): st
   return `${count.toLocaleString()} ${count === 1 ? singular : plural}`;
 }
 
+type HeroStatIconVariant = "published" | "people" | "activity";
+
+function HeroStatIcon({ variant }: { variant: HeroStatIconVariant }) {
+  const className = "h-7 w-7 shrink-0 text-(--color-text)";
+  if (variant === "published") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+        <path d="M12 3v3M12 18v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M3 12h3M18 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" strokeLinecap="round" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+    );
+  }
+  if (variant === "people") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+      <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+type StatCounterProps = { end: number; active: boolean; delayMs?: number };
+
+function StatCounter({ end, active, delayMs = 0 }: StatCounterProps) {
+  const [display, setDisplay] = useState(0);
+  const durationMs = 1200;
+
+  useEffect(() => {
+    if (!active) {
+      setDisplay(0);
+      return;
+    }
+
+    const prefersReduced =
+      typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReduced) {
+      setDisplay(end);
+      return;
+    }
+
+    setDisplay(0);
+    let frameId = 0;
+    const startAfter = window.setTimeout(() => {
+      const start = performance.now();
+      const tick = (now: number) => {
+        const t = Math.min(1, (now - start) / durationMs);
+        const eased = 1 - (1 - t) ** 3;
+        setDisplay(Math.round(end * eased));
+        if (t < 1) {
+          frameId = requestAnimationFrame(tick);
+        }
+      };
+      frameId = requestAnimationFrame(tick);
+    }, delayMs);
+
+    return () => {
+      window.clearTimeout(startAfter);
+      cancelAnimationFrame(frameId);
+    };
+  }, [end, active, durationMs, delayMs]);
+
+  return <span className="text-3xl font-bold tabular-nums tracking-tight md:text-4xl">{display.toLocaleString()}</span>;
+}
+
 export function PromptListPage() {
   const [search, setSearch] = useState("");
   const [tag, setTag] = useState("");
@@ -21,7 +93,6 @@ export function PromptListPage() {
   const [modality, setModality] = useState("");
   const [sort, setSort] = useState<"recent" | "topRated" | "mostUsed">("recent");
   const [page, setPage] = useState(1);
-  const [heroStatIndex, setHeroStatIndex] = useState(0);
   const pageSize = 20;
 
   const filters = useMemo<ListPromptsFilters>(() => {
@@ -67,21 +138,6 @@ export function PromptListPage() {
     enabled: canViewAnalytics,
   });
 
-  const heroStatsLength = canViewAnalytics ? 3 : 1;
-
-  useEffect(() => {
-    setHeroStatIndex((current) => current % heroStatsLength);
-  }, [heroStatsLength]);
-
-  useEffect(() => {
-    const interval = window.setInterval(() => {
-      setHeroStatIndex((current) => (current + 1) % heroStatsLength);
-    }, 3500);
-    return () => {
-      window.clearInterval(interval);
-    };
-  }, [heroStatsLength]);
-
   if (promptsQuery.isLoading) {
     return <p>Loading prompts...</p>;
   }
@@ -93,29 +149,36 @@ export function PromptListPage() {
   const promptTotal = promptsQuery.data?.meta.total ?? 0;
   const contributorTotal = analyticsQuery.data?.contributors.length ?? 0;
   const totalPromptRuns = analyticsQuery.data?.topUsedPrompts.reduce((total, prompt) => total + prompt.usageCount, 0) ?? 0;
+  const analyticsReady = analyticsQuery.isSuccess;
   const heroStats = canViewAnalytics
     ? ([
         {
+          icon: "published" as const,
           label: promptTotal === 1 ? "Prompt Published" : "Prompts Published",
           value: promptTotal,
+          counterActive: true,
         },
         {
+          icon: "people" as const,
           label: contributorTotal === 1 ? "Active Contributor" : "Active Contributors",
           value: contributorTotal,
+          counterActive: analyticsReady,
         },
         {
+          icon: "activity" as const,
           label: totalPromptRuns === 1 ? "Total Prompt Run" : "Total Prompt Runs",
           value: totalPromptRuns,
+          counterActive: analyticsReady,
         },
       ] as const)
     : ([
         {
+          icon: "published" as const,
           label: promptTotal === 1 ? "Prompt Published" : "Prompts Published",
           value: promptTotal,
+          counterActive: true,
         },
       ] as const);
-
-  const currentHeroStat = heroStats[heroStatIndex];
   const featuredPrompts = (promptsQuery.data?.data ?? []).slice(0, 6);
 
   const contributorLeaderboard = (analyticsQuery.data?.contributors ?? []).slice(0, 5);
@@ -150,32 +213,35 @@ export function PromptListPage() {
             and every AI power user who needs better outcomes, faster.
           </p>
         </div>
-        <div className="mt-5 grid gap-3 md:grid-cols-3">
-          <div className="rounded-xl border border-(--color-border) bg-(--color-surface) p-4 transition-all duration-300 motion-reduce:transition-none md:col-span-2">
+        <div className="mt-5 flex flex-col gap-3">
+          <div className="w-full rounded-xl border border-(--color-border) bg-(--color-surface) px-4 py-5 transition-all duration-300 motion-reduce:transition-none sm:px-6 sm:py-6">
             <p className="text-xs uppercase tracking-wide text-(--color-text-muted)">Live platform snapshot</p>
-            <p key={`hero-stat-value-${heroStatIndex}`} className="mt-2 text-3xl font-bold motion-reduce:animate-none animate-pulse">
-              {currentHeroStat.value.toLocaleString()}
-            </p>
-            <p
-              key={`hero-stat-label-${heroStatIndex}`}
-              className="text-sm text-(--color-text-muted) transition-opacity duration-300 motion-reduce:transition-none"
+            <div
+              className={`mt-5 grid w-full gap-8 ${canViewAnalytics ? "sm:grid-cols-3" : "grid-cols-1"}`}
+              role="list"
+              aria-label="Platform statistics"
             >
-              {currentHeroStat.label}
-            </p>
-            <div className="mt-3 flex items-center gap-2">
               {heroStats.map((stat, index) => (
-                <span
+                <div
                   key={stat.label}
-                  className={`h-1.5 w-8 rounded-full ${index === heroStatIndex ? "bg-(--color-primary)" : "bg-(--color-border)"}`}
-                />
+                  role="listitem"
+                  className="flex flex-col items-center gap-2 text-center sm:items-center"
+                >
+                  <HeroStatIcon variant={stat.icon} />
+                  <StatCounter end={stat.value} active={stat.counterActive} delayMs={index * 90} />
+                  <p className="text-sm text-(--color-text-muted)">{stat.label}</p>
+                </div>
               ))}
             </div>
           </div>
-          <div className="rounded-xl border border-(--color-border) bg-(--color-surface) p-4 transition-all duration-300 motion-reduce:transition-none">
+          <div className="w-full rounded-xl border border-(--color-border) bg-(--color-surface) p-4 transition-all duration-300 motion-reduce:transition-none">
             <p className="text-xs uppercase tracking-wide text-(--color-text-muted)">What you unlock</p>
             <ul className="mt-2 space-y-1 text-sm">
               <li>Ship trusted prompts for high-stakes workflows</li>
-              <li>Remix instantly for your exact audience and goal</li>
+              <li>
+                Community Driven: Rate prompts, view the leaderboards, follow your favorite prompt
+                gurus, and get inspired.
+              </li>
               <li>Scale what works with shared collections and rankings</li>
             </ul>
           </div>
@@ -247,36 +313,12 @@ export function PromptListPage() {
       </section>
 
       <section className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-sm transition-all duration-300 hover:shadow motion-reduce:transition-none">
-        <h3 className="text-xl font-semibold">Built for Salesforce by Salesforce</h3>
-        <div className="mt-3 grid gap-3 md:grid-cols-3">
-          <div className="rounded-xl border border-(--color-border) bg-(--color-surface-muted) p-4 transition-all duration-300 hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none">
-            <p className="font-semibold">Sales Enablement Ready</p>
-            <p className="mt-1 text-sm text-(--color-text-muted)">
-              Standardize outreach, discovery, and objection handling by region, segment, and OU.
-            </p>
-          </div>
-          <div className="rounded-xl border border-(--color-border) bg-(--color-surface-muted) p-4 transition-all duration-300 hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none">
-            <p className="font-semibold">Governed Collaboration</p>
-            <p className="mt-1 text-sm text-(--color-text-muted)">
-              Publish team-approved templates while preserving quality with ratings, usage, and contributor visibility.
-            </p>
-          </div>
-          <div className="rounded-xl border border-(--color-border) bg-(--color-surface-muted) p-4 transition-all duration-300 hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none">
-            <p className="font-semibold">Global Team Discoverability</p>
-            <p className="mt-1 text-sm text-(--color-text-muted)">
-              Surface top creators and what works across AMER, EMEA, JAPAC, and LATAM in one shared hub.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-sm transition-all duration-300 hover:shadow motion-reduce:transition-none">
         <h3 className="text-xl font-semibold">Built for Every AI Tool & User</h3>
         <div className="mt-3 grid gap-3 md:grid-cols-2">
           <div className="rounded-xl border border-(--color-border) bg-(--color-surface-muted) p-4 transition-all duration-300 hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none">
-            <p className="font-semibold">Where your teams work</p>
+            <p className="font-semibold">Wherever you work</p>
             <p className="mt-1 text-sm text-(--color-text-muted)">
-              Prompt Library supports real workflows across Cursor, Claude, Gemini, NotebookLM, and beyond.
+              Prompt Library supports amazing prompts across Cursor, Claude, Gemini, Notebook LM, and beyond.
             </p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs">
               {PROMPT_TOOL_OPTIONS.map((toolOption) => (
