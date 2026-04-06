@@ -1,7 +1,7 @@
 # Prompt Library - Technical Summary
 
-Last Updated: Monday, April 06, 2026 at 12:54 CDT
-Build Version: ad209b7
+Last Updated: Monday, April 06, 2026 at 12:57 CDT
+Build Version: ad21d3a
 
 ## Recent Changes
 
@@ -11,7 +11,7 @@ Build Version: ad209b7
 - Prompts UX: `PromptListCard`, `PromptUpdatedBadge` / `recentPromptUpdate`, `interpolatePrompt` for `{{variable}}` substitution, and `launchProviders` (ChatGPT, Claude, Gemini) for opening composed text in external UIs; list/detail/edit/create flows expanded accordingly.
 - API/types: `Prompt` includes `createdAt` and `updatedAt`; client `api.ts` and server `prompts` routes extended with related behavior; analytics/auth routes adjusted; `prompts-flow` and other server tests extended, client tests for interpolation and recent-update helpers added.
 - Build fix: TypeScript test mocks updated for stricter `Prompt` typing (`AppShell.test.tsx` import cleanup, `PromptEditPage.test.tsx` timestamps).
-- Prompt list API (`GET /api/prompts`): each row includes `owner`, `tags`, aggregated `viewCount` (`UsageAction.VIEW`), and per-session `favorited` / `myRating`. `PromptListCard` surfaces average stars, personal rating, favorite toggle, share/native copy, collection bookmark menu, activity label, and tool/modality/tag chips atop thumbnails and launch/copy actions.
+- Prompt list API (`GET /api/prompts`): each row includes `owner`, `tags`, aggregated `viewCount` (`UsageAction.VIEW`), and per-session `favorited` / `myRating`. `PromptListCard` surfaces average stars, personal rating, favorite toggle, share/native copy, collection bookmark menu, activity label, and tool/modality/tag chips atop thumbnails and launch/copy actions; list chrome splits into `promptActionIcons.tsx` and `promptTagChips.ts`.
 
 ## Technical Architecture
 
