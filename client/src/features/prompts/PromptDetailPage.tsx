@@ -4,8 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
 import { fetchMe } from "../auth/api";
-import { addPromptToCollection, listCollections, removePromptFromCollection } from "../collections/api";
-import type { Collection } from "../collections/api";
+import { listCollections } from "../collections/api";
 import {
   getPrompt,
   listPromptVersions,
@@ -22,8 +21,22 @@ import {
   LAUNCH_PROVIDER_IDS,
   type LaunchProviderId,
 } from "./launchProviders";
+import {
+  CalendarIcon,
+  CopyIcon,
+  EyeIcon,
+  HeartIcon,
+  ShareIcon,
+  SparkleIcon,
+} from "./promptActionIcons";
+import { PromptCollectionMenu } from "./PromptCollectionMenu";
+import { formatPromptActivityLabel } from "./promptActivityLabel";
+import { buildPromptTagChips, promptOwnerAvatarUrl } from "./promptTagChips";
+import { PromptAverageStars, PromptRateStars } from "./PromptStars";
 import { PromptThumbnail } from "./PromptThumbnail";
 import { PromptUpdatedBadge } from "./PromptUpdatedBadge";
+import { shareOrCopyPromptLink } from "./sharePrompt";
+import { usePromptCollectionMutations } from "./usePromptCollectionMutations";
 
 function pluralize(count: number, singular: string, plural = `${singular}s`): string {
   return `${count.toLocaleString()} ${count === 1 ? singular : plural}`;
@@ -53,7 +66,8 @@ function restoreErrorMessage(error: unknown): string {
 export function PromptDetailPage() {
   const params = useParams();
   const promptId = Number(params.id);
-  const [rating, setRating] = useState(5);
+  const [myRating, setMyRating] = useState<number | null>(null);
+  const [favorited, setFavorited] = useState(false);
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
   const [launchProvider, setLaunchProvider] = useState<LaunchProviderId>("chatgpt");
 
@@ -72,6 +86,10 @@ export function PromptDetailPage() {
     queryFn: fetchMe,
   });
   const queryClient = useQueryClient();
+  const { addToCollectionMutation, removeFromCollectionMutation } = usePromptCollectionMutations({
+    promptId,
+    promptTitle: promptQuery.data?.title,
+  });
   const updateMutation = useMutation({
     mutationFn: (payload: { body: string }) => updatePrompt(promptId, payload),
     onSuccess: () => {
@@ -91,56 +109,20 @@ export function PromptDetailPage() {
       await queryClient.invalidateQueries({ queryKey: ["prompt", promptId, "versions"] });
     },
   });
-  const addToCollectionMutation = useMutation({
-    mutationFn: (collectionId: number) => addPromptToCollection(collectionId, promptId),
-    onMutate: async (collectionId: number) => {
-      await queryClient.cancelQueries({ queryKey: ["collections"] });
-      const previousCollections = queryClient.getQueryData<Collection[]>(["collections"]);
-      queryClient.setQueryData<Collection[]>(["collections"], (current) =>
-        (current ?? []).map((collection) =>
-          collection.id !== collectionId || collection.prompts.some((entry) => entry.prompt.id === promptId)
-            ? collection
-            : {
-                ...collection,
-                prompts: [...collection.prompts, { prompt: { id: promptId, title: promptQuery.data?.title ?? "Prompt" } }],
-              },
-        ),
-      );
-      return { previousCollections };
-    },
-    onError: (_error, _collectionId, context) => {
-      if (context?.previousCollections) {
-        queryClient.setQueryData(["collections"], context.previousCollections);
-      }
-    },
-    onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["collections"] });
+  const rateMutation = useMutation({
+    mutationFn: (value: number) => ratePrompt(promptId, value),
+    onSuccess: async (_, value) => {
+      setMyRating(value);
+      await queryClient.invalidateQueries({ queryKey: ["prompt", promptId] });
+      await queryClient.invalidateQueries({ queryKey: ["prompts"] });
     },
   });
-  const removeFromCollectionMutation = useMutation({
-    mutationFn: (collectionId: number) => removePromptFromCollection(collectionId, promptId),
-    onMutate: async (collectionId: number) => {
-      await queryClient.cancelQueries({ queryKey: ["collections"] });
-      const previousCollections = queryClient.getQueryData<Collection[]>(["collections"]);
-      queryClient.setQueryData<Collection[]>(["collections"], (current) =>
-        (current ?? []).map((collection) =>
-          collection.id !== collectionId
-            ? collection
-            : {
-                ...collection,
-                prompts: collection.prompts.filter((entry) => entry.prompt.id !== promptId),
-              },
-        ),
-      );
-      return { previousCollections };
-    },
-    onError: (_error, _collectionId, context) => {
-      if (context?.previousCollections) {
-        queryClient.setQueryData(["collections"], context.previousCollections);
-      }
-    },
-    onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["collections"] });
+  const favoriteMutation = useMutation({
+    mutationFn: () => toggleFavorite(promptId),
+    onSuccess: async (data) => {
+      setFavorited(data.favorited);
+      await queryClient.invalidateQueries({ queryKey: ["prompt", promptId] });
+      await queryClient.invalidateQueries({ queryKey: ["prompts"] });
     },
   });
 
@@ -157,6 +139,14 @@ export function PromptDetailPage() {
     }
     setVariableValues(next);
   }, [promptData?.id]);
+
+  useEffect(() => {
+    if (!promptData) {
+      return;
+    }
+    setMyRating(promptData.myRating ?? null);
+    setFavorited(promptData.favorited ?? false);
+  }, [promptData?.id, promptData?.myRating, promptData?.favorited]);
 
   const composed = useMemo(() => {
     if (!promptData) {
@@ -205,21 +195,98 @@ export function PromptDetailPage() {
   const latestVersionNumber =
     versionsQuery.data && versionsQuery.data.length > 0 ? versionsQuery.data[0].version : null;
 
+  const owner =
+    promptData.owner ??
+    (typeof promptData.ownerId === "number"
+      ? { id: promptData.ownerId, name: null, avatarUrl: null }
+      : { id: 0, name: null, avatarUrl: null });
+  const viewCount = promptData.viewCount ?? 0;
+  const tagNames = promptData.promptTags?.map((item) => item.tag.name) ?? [];
+  const detailTagChips = buildPromptTagChips({
+    tools: promptData.tools,
+    modality: promptData.modality,
+    modelHint: promptData.modelHint,
+    tagNames,
+  });
+  const activityLabel = formatPromptActivityLabel(promptData.createdAt, promptData.updatedAt);
+  const shareUrl =
+    typeof window !== "undefined" ? `${window.location.origin}/prompts/${promptId}` : `/prompts/${promptId}`;
+  const varCount = promptData.variables?.length ?? 0;
+  const useLabel = varCount > 0 ? `Use prompt (${varCount})` : "Use prompt";
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="overflow-hidden rounded-xl border border-(--color-border) bg-(--color-surface)">
         <PromptThumbnail
           title={promptData.title}
           thumbnailUrl={promptData.thumbnailUrl}
           thumbnailStatus={promptData.thumbnailStatus}
-          className="h-24 w-24 rounded object-cover"
+          className="h-48 w-full object-cover"
         />
+        <div className="p-4">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <h2 className="text-2xl font-semibold">{promptData.title}</h2>
+            <h2 id="prompt-detail-title" className="text-2xl font-semibold">
+              {promptData.title}
+            </h2>
           <PromptUpdatedBadge createdAt={promptData.createdAt} updatedAt={promptData.updatedAt} />
+          </div>
+          <div className="mt-2">
+            <PromptAverageStars value={averageRating} size="md" />
+          </div>
+          <div className="mt-3 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm text-(--color-text-muted)">
+            <span className="flex min-w-0 items-center gap-2">
+              <img
+                src={promptOwnerAvatarUrl(owner)}
+                alt=""
+                className="h-8 w-8 shrink-0 rounded-full border border-(--color-border) bg-(--color-surface-muted) object-cover"
+              />
+              <span className="truncate font-medium text-(--color-text)">{owner.name ?? "Unknown"}</span>
+            </span>
+            <span className="text-(--color-border)" aria-hidden>
+              ·
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <EyeIcon className="h-4 w-4 shrink-0" aria-hidden />
+              <span>{viewCount.toLocaleString()} views</span>
+            </span>
+            <span className="text-(--color-border)" aria-hidden>
+              ·
+            </span>
+            <span
+              className="inline-flex items-center gap-1"
+              title={`Created ${new Date(promptData.createdAt).toLocaleString()}`}
+            >
+              <CalendarIcon className="h-4 w-4 shrink-0" aria-hidden />
+              <span>{activityLabel || "—"}</span>
+            </span>
+          </div>
+          {detailTagChips.length > 0 ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {detailTagChips.map((label, index) => (
+                <span
+                  key={`${index}-${label}`}
+                  className="rounded-full bg-(--color-text-inverse) px-2.5 py-0.5 text-xs font-medium text-(--color-bg)"
+                >
+                  {label}
+                </span>
+              ))}
+            </div>
+          ) : null}
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-(--color-border) pt-3">
+            <span className="text-sm text-(--color-text-muted)">Rate this prompt</span>
+            <PromptRateStars
+              value={myRating}
+              disabled={rateMutation.isPending}
+              size="md"
+              onChange={(value) => {
+                rateMutation.mutate(value);
+                trackEvent("prompt_rate", { prompt_id: promptId, value });
+              }}
+            />
+          </div>
         </div>
       </div>
-      <p>{promptData.summary}</p>
+      {promptData.summary ? <p className="text-(--color-text-muted)">{promptData.summary}</p> : null}
       <section className="space-y-3 rounded border border-(--color-border) bg-(--color-surface) p-4">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-(--color-text-muted)">Metadata</h3>
         <div className="flex flex-wrap gap-2 text-sm">
@@ -243,8 +310,7 @@ export function PromptDetailPage() {
         </div>
         <div className="grid gap-2 text-sm md:grid-cols-3">
           <p className="rounded border border-(--color-border) px-3 py-2">
-            <span className="font-semibold">Average rating:</span>{" "}
-            {averageRating === null ? "No ratings" : averageRating.toFixed(1)}
+            <span className="font-semibold">Views:</span> {viewCount.toLocaleString()}
           </p>
           <p className="rounded border border-(--color-border) px-3 py-2">
             <span className="font-semibold">Total ratings:</span> {pluralize(promptData.ratings?.length ?? 0, "rating")}
@@ -289,6 +355,145 @@ export function PromptDetailPage() {
           <p className="text-sm text-(--color-text-muted)">No collections available yet.</p>
         )}
       </section>
+
+      {hasVariables ? (
+        <section className="space-y-3 rounded border border-(--color-border) bg-(--color-surface) p-4">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-(--color-text-muted)">Template</h3>
+          <p className="text-xs text-(--color-text-muted)">
+            Use <code className="rounded bg-(--color-surface-muted) px-1">[KEY]</code> or{" "}
+            <code className="rounded bg-(--color-surface-muted) px-1">{"{{KEY}}"}</code> in the body. Fill fields below to
+            preview the composed prompt.
+          </p>
+          <pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded border border-(--color-border) bg-(--color-surface-muted) p-3 text-sm">
+            {promptData.body}
+          </pre>
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-(--color-text-muted)">Variables</h3>
+          <div className="grid gap-3">
+            {(promptData.variables ?? []).map((variable) => (
+              <label key={variable.id} className="grid gap-1 text-sm">
+                <span>
+                  {variable.label || variable.key}
+                  {variable.required ? <span className="text-(--color-danger)"> *</span> : null}
+                </span>
+                <textarea
+                  className="min-h-16 w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
+                  value={variableValues[variable.key] ?? ""}
+                  placeholder={variable.defaultValue ?? ""}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setVariableValues((current) => ({ ...current, [variable.key]: value }));
+                  }}
+                />
+              </label>
+            ))}
+          </div>
+          {composed.missingRequiredKeys.length > 0 ? (
+            <p className="text-sm text-(--color-danger)">
+              Fill required variables: {composed.missingRequiredKeys.join(", ")}
+            </p>
+          ) : null}
+          <div>
+            <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-(--color-text-muted)">Preview</h3>
+            <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded border border-(--color-border) bg-(--color-surface-muted) p-3 text-sm">
+              {composed.text}
+            </pre>
+          </div>
+        </section>
+      ) : (
+        <textarea
+          className="h-56 w-full rounded border border-(--color-border) bg-(--color-surface) px-3 py-2"
+          defaultValue={promptData.body}
+          onBlur={(event) => {
+            const body = event.target.value;
+            if (body && body !== promptData.body) {
+              updateMutation.mutate({ body });
+            }
+          }}
+        />
+      )}
+
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-(--color-border) bg-(--color-surface) p-3">
+        <div className="flex flex-wrap items-center gap-0.5">
+          <button
+            type="button"
+            disabled={!canCopyOrLaunch}
+            className="rounded-md border border-transparent p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text) disabled:pointer-events-none disabled:opacity-40"
+            aria-label="Copy prompt"
+            onClick={() => {
+              void navigator.clipboard.writeText(composed.text);
+              void logUsage(promptId, "COPY");
+              trackEvent("prompt_copy", { prompt_id: promptId, source: "detail" });
+            }}
+          >
+            <CopyIcon className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            className="rounded-md border border-transparent p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text)"
+            aria-label="Share prompt link"
+            onClick={() => {
+              void shareOrCopyPromptLink(promptData.title, shareUrl);
+              trackEvent("prompt_share", { prompt_id: promptId, source: "detail" });
+            }}
+          >
+            <ShareIcon className="h-5 w-5" />
+          </button>
+          <PromptCollectionMenu promptId={promptId} promptTitle={promptData.title} />
+          <button
+            type="button"
+            disabled={favoriteMutation.isPending}
+            className="rounded-md border border-transparent p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text) disabled:opacity-50"
+            aria-label={favorited ? "Remove favorite" : "Add favorite"}
+            onClick={() => {
+              favoriteMutation.mutate();
+              trackEvent("prompt_favorite_toggle", { prompt_id: promptId, source: "detail" });
+            }}
+          >
+            <HeartIcon className="h-5 w-5" filled={favorited} />
+          </button>
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <label className="flex items-center gap-2 text-sm">
+            <span className="text-(--color-text-muted)">Open in</span>
+            <select
+              value={launchProvider}
+              className="rounded border border-(--color-border) bg-(--color-surface-muted) px-2 py-1.5"
+              onChange={(event) => {
+                setLaunchProvider(event.target.value as LaunchProviderId);
+              }}
+            >
+              {LAUNCH_PROVIDER_IDS.map((id) => (
+                <option key={id} value={id}>
+                  {id === "chatgpt" ? "ChatGPT" : id === "claude" ? "Claude" : "Gemini"}
+                </option>
+              ))}
+            </select>
+          </label>
+          <a
+            href={canCopyOrLaunch ? launchUrl : undefined}
+            target="_blank"
+            rel="noreferrer"
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors ${
+              canCopyOrLaunch
+                ? "bg-amber-500 text-neutral-900 hover:bg-amber-400"
+                : "pointer-events-none bg-(--color-surface-muted) text-(--color-text-muted) opacity-50"
+            }`}
+            aria-disabled={!canCopyOrLaunch}
+            onClick={(event) => {
+              if (!canCopyOrLaunch) {
+                event.preventDefault();
+                return;
+              }
+              void logUsage(promptId, "LAUNCH");
+              trackEvent("prompt_launch", { prompt_id: promptId, provider: launchProvider });
+            }}
+          >
+            <SparkleIcon className="h-4 w-4" />
+            {useLabel}
+          </a>
+        </div>
+      </div>
+
       <div>
         <Link to={`/prompts/${promptId}/edit`} className="text-sm">
           Edit prompt
@@ -365,143 +570,6 @@ export function PromptDetailPage() {
           })}
         </div>
       </details>
-
-      {hasVariables ? (
-        <section className="space-y-3 rounded border border-(--color-border) bg-(--color-surface) p-4">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-(--color-text-muted)">Template</h3>
-          <p className="text-xs text-(--color-text-muted)">
-            Use <code className="rounded bg-(--color-surface-muted) px-1">[KEY]</code> or{" "}
-            <code className="rounded bg-(--color-surface-muted) px-1">{"{{KEY}}"}</code> in the body. Fill fields below to
-            preview the composed prompt.
-          </p>
-          <pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded border border-(--color-border) bg-(--color-surface-muted) p-3 text-sm">
-            {promptData.body}
-          </pre>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-(--color-text-muted)">Variables</h3>
-          <div className="grid gap-3">
-            {(promptData.variables ?? []).map((variable) => (
-              <label key={variable.id} className="grid gap-1 text-sm">
-                <span>
-                  {variable.label || variable.key}
-                  {variable.required ? <span className="text-(--color-danger)"> *</span> : null}
-                </span>
-                <textarea
-                  className="min-h-16 w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
-                  value={variableValues[variable.key] ?? ""}
-                  placeholder={variable.defaultValue ?? ""}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    setVariableValues((current) => ({ ...current, [variable.key]: value }));
-                  }}
-                />
-              </label>
-            ))}
-          </div>
-          {composed.missingRequiredKeys.length > 0 ? (
-            <p className="text-sm text-(--color-danger)">
-              Fill required variables: {composed.missingRequiredKeys.join(", ")}
-            </p>
-          ) : null}
-          <div>
-            <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-(--color-text-muted)">Preview</h3>
-            <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded border border-(--color-border) bg-(--color-surface-muted) p-3 text-sm">
-              {composed.text}
-            </pre>
-          </div>
-        </section>
-      ) : (
-        <textarea
-          className="h-56 w-full rounded border border-(--color-border) bg-(--color-surface) px-3 py-2"
-          defaultValue={promptData.body}
-          onBlur={(event) => {
-            const body = event.target.value;
-            if (body && body !== promptData.body) {
-              updateMutation.mutate({ body });
-            }
-          }}
-        />
-      )}
-
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="flex items-center gap-2 text-sm">
-          <span className="text-(--color-text-muted)">Open in</span>
-          <select
-            value={launchProvider}
-            className="rounded border border-(--color-border) bg-(--color-surface-muted) px-2 py-1.5"
-            onChange={(event) => {
-              setLaunchProvider(event.target.value as LaunchProviderId);
-            }}
-          >
-            {LAUNCH_PROVIDER_IDS.map((id) => (
-              <option key={id} value={id}>
-                {id === "chatgpt" ? "ChatGPT" : id === "claude" ? "Claude" : "Gemini"}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="button"
-          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-1.5 disabled:opacity-50"
-          disabled={!canCopyOrLaunch}
-          onClick={() => {
-            void navigator.clipboard.writeText(composed.text);
-            void logUsage(promptId, "COPY");
-            trackEvent("prompt_copy", { prompt_id: promptId });
-          }}
-        >
-          Copy
-        </button>
-        <a
-          href={canCopyOrLaunch ? launchUrl : undefined}
-          target="_blank"
-          rel="noreferrer"
-          className={`rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-1.5 ${!canCopyOrLaunch ? "pointer-events-none opacity-50" : ""}`}
-          aria-disabled={!canCopyOrLaunch}
-          onClick={(event) => {
-            if (!canCopyOrLaunch) {
-              event.preventDefault();
-              return;
-            }
-            void logUsage(promptId, "LAUNCH");
-            trackEvent("prompt_launch", { prompt_id: promptId, provider: launchProvider });
-          }}
-        >
-          Launch
-        </a>
-        <button
-          type="button"
-          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-1.5"
-          onClick={() => {
-            void toggleFavorite(promptId);
-            trackEvent("prompt_favorite_toggle", { prompt_id: promptId });
-          }}
-        >
-          Favorite
-        </button>
-        <select
-          value={rating}
-          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-2"
-          onChange={(event) => {
-            setRating(Number(event.target.value));
-          }}
-        >
-          {[1, 2, 3, 4, 5].map((value) => (
-            <option key={value} value={value}>
-              {pluralize(value, "star")}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-1.5"
-          onClick={() => {
-            void ratePrompt(promptId, rating);
-            trackEvent("prompt_rate", { prompt_id: promptId, value: rating });
-          }}
-        >
-          Submit Rating
-        </button>
-      </div>
     </div>
   );
 }

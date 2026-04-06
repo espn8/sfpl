@@ -1,10 +1,11 @@
 # Prompt Library - Technical Summary
 
-Last Updated: Monday, April 06, 2026 at 12:57 CDT
-Build Version: ad21d3a
+Last Updated: Monday, April 06, 2026 at 13:47 CDT
+Build Version: 7e75285
 
 ## Recent Changes
 
+- `PromptDetailPage` brought in line with list cards: average and personal star ratings, owner avatar, view count and relative activity label, modality/tool/tag chips, Web Share API or clipboard link copy, favorite toggle, `PromptCollectionMenu`, variable template section with live preview (or editable body when there are no variables), and a consolidated launch row with provider selector—rebuilt from Cursor checkpoint diff applied to the prior detail implementation.
 - Salesforce brand asset moved from bundled SVG to `client/public/salesforce-logo.png` with HTML/shell references updated for static hosting.
 - Account experience: removed dedicated `SettingsPage`; profile, appearance, and onboarding continue in `AppShell` modals; added `AppShell` component tests.
 - Admin access: `AdminRoute` + `features/auth/roles.ts` gate `/analytics` to `ADMIN` and `OWNER` roles; server assigns `ADMIN` on Google OAuth for emails listed in `BOOTSTRAP_ADMIN_EMAILS` (comma-separated, lowercased at parse) without ever demoting `OWNER`.
@@ -118,6 +119,7 @@ Build Version: ad21d3a
 - `server/src/services/nanoBanana.ts`: external image-generation bridge for prompt thumbnails.
 - `server/prisma/schema.prisma`: source of truth for users/teams/prompts/engagement relations and enums.
 - `client/src/features/prompts/PromptListPage.tsx`: homepage/discovery UX, list cards, filters, hero stats, and leaderboards.
+- `client/src/features/prompts/PromptDetailPage.tsx`: full prompt view with engagement chrome, variables/preview, versions, and external launch.
 - `client/src/components/AdminRoute.tsx`: redirects non-admin users away from admin-only routes (e.g. analytics).
 - `client/src/features/prompts/interpolatePrompt.ts` / `launchProviders.ts`: client-side prompt variable fill-in and deep links to external chat products.
 - `client/src/features/prompts/PromptThumbnail.tsx`: thumbnail rendering with graceful placeholder states.
