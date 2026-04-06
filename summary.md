@@ -1,10 +1,11 @@
 # Prompt Library - Technical Summary
 
-Last Updated: Monday, April 06, 2026 at 13:50 CDT
-Build Version: d499722
+Last Updated: Monday, April 06, 2026 at 13:55 CDT
+Build Version: ae75f14
 
 ## Recent Changes
 
+- `PromptListPage` homepage refresh: replaced the rotating hero stat carousel with a single “Live platform snapshot” panel that shows all metrics at once (one column for members without admin analytics, three columns on larger breakpoints when analytics is available). Added `HeroStatIcon` SVGs and a `StatCounter` that animates counts with easing, staggers each stat slightly, resets while data is inactive, and respects `prefers-reduced-motion`. Contributor and total-run counters stay idle until the analytics overview query succeeds so totals are not flashed as zero. Hero layout stacks snapshot and “What you unlock” full width; unlock copy highlights community ratings and leaderboards. Removed the “Built for Salesforce by Salesforce” tri-card section; tightened “Built for Every AI Tool & User” copy (“Wherever you work”, “amazing prompts”, Notebook LM naming).
 - `PromptDetailPage` brought in line with list cards: average and personal star ratings, owner avatar, view count and relative activity label, modality/tool/tag chips, Web Share API or clipboard link copy, favorite toggle, `PromptCollectionMenu`, variable template section with live preview (or editable body when there are no variables), and a consolidated launch row with provider selector—rebuilt from Cursor checkpoint diff applied to the prior detail implementation.
 - Salesforce brand asset moved from bundled SVG to `client/public/salesforce-logo.png` with HTML/shell references updated for static hosting.
 - Account experience: removed dedicated `SettingsPage`; profile, appearance, and onboarding continue in `AppShell` modals; added `AppShell` component tests.
