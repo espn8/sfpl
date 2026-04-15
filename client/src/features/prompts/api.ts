@@ -1,7 +1,30 @@
 import { apiClient } from "../../api/client";
 
-export const PROMPT_TOOL_OPTIONS = ["cursor", "claude_code", "meshmesh", "slackbot", "gemini", "notebooklm"] as const;
+export const PROMPT_TOOL_OPTIONS = ["claude_code", "cursor", "gemini", "meshmesh", "notebooklm", "other", "saleo", "slackbot"] as const;
 export type PromptTool = (typeof PROMPT_TOOL_OPTIONS)[number];
+
+export const PROMPT_TOOL_LABELS: Record<PromptTool, string> = {
+  claude_code: "Claude Code",
+  cursor: "Cursor",
+  gemini: "Gemini",
+  meshmesh: "MeshMesh",
+  notebooklm: "NotebookLM",
+  other: "Other",
+  saleo: "Saleo",
+  slackbot: "Slackbot",
+};
+
+export function getToolLabel(tool: PromptTool): string {
+  return PROMPT_TOOL_LABELS[tool] ?? tool;
+}
+
+export function getToolsSortedAlphabetically(): PromptTool[] {
+  return [...PROMPT_TOOL_OPTIONS].sort((a, b) =>
+    PROMPT_TOOL_LABELS[a].localeCompare(PROMPT_TOOL_LABELS[b])
+  );
+}
+
+export const TOOL_REQUEST_URL = "https://forms.gle/your-tool-request-form";
 export const PROMPT_MODALITY_OPTIONS = ["text", "code", "image", "video", "audio", "multimodal"] as const;
 export type PromptModality = (typeof PROMPT_MODALITY_OPTIONS)[number];
 

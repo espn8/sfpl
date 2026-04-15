@@ -29,7 +29,7 @@ Click "Continue with Google" on the login page using your Salesforce Google acco
 A prompt is a set of instructions you give to an AI tool. A good prompt tells the AI exactly what you need, in what format, and with what context. SF AI Library stores prompts that have been tested and proven to work well.
 
 ### How do I find prompts?
-Use the search bar to find prompts by keyword, topic, or author. Filter by tool (Slackbot, Claude, Gemini, etc.), modality (text, code, image), or tag. Sort by most recent, top rated, or most used. Browse featured prompts on the homepage for popular options.
+Use the search bar to find prompts by keyword, topic, or author. Filter by tool (Slackbot, Claude, Gemini, etc.), generated output type (text, code, image), or tag. Sort by most recent, top rated, or most used. Browse featured prompts on the homepage for popular options.
 
 ### How do I use a prompt?
 1. Click on any prompt card to view its details
@@ -44,7 +44,7 @@ Variables are customizable placeholders in a prompt. For example, a prompt might
 2. Give your prompt a title and summary
 3. Write your prompt in the body field (use [KEY] or {{KEY}} for any variables)
 4. Add variables if needed (define the key, label, and default value)
-5. Select the tools and modality it works with
+5. Select the tools and generated output type it works with
 6. Choose visibility (Public for everyone, Private for just you)
 7. Save as Draft or Publish immediately
 

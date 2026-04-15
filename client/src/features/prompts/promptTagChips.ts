@@ -1,17 +1,8 @@
-import type { PromptTool } from "./api";
-
-const TOOL_LABELS: Record<PromptTool, string> = {
-  cursor: "Cursor",
-  claude_code: "Claude",
-  meshmesh: "Meshmesh",
-  slackbot: "Slack",
-  gemini: "Gemini",
-  notebooklm: "NotebookLM",
-};
+import { getToolLabel, type PromptTool } from "./api";
 
 export function toolChipFromPrompt(tools: PromptTool[], modelHint: string | null | undefined): string | null {
   if (tools[0]) {
-    return TOOL_LABELS[tools[0]] ?? tools[0];
+    return getToolLabel(tools[0]);
   }
   const hint = modelHint?.trim();
   return hint && hint.length > 0 ? hint : null;

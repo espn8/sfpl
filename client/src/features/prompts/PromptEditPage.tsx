@@ -4,8 +4,10 @@ import { useNavigate, useParams } from "react-router-dom";
 import { listTags } from "../tags/api";
 import {
   getPrompt,
+  getToolLabel,
+  getToolsSortedAlphabetically,
   PROMPT_MODALITY_OPTIONS,
-  PROMPT_TOOL_OPTIONS,
+  TOOL_REQUEST_URL,
   type PromptModality,
   type PromptTool,
   type PromptVariable,
@@ -40,6 +42,8 @@ export function PromptEditPage() {
   const promptId = Number(params.id);
   const [variableRows, setVariableRows] = useState<VariableRow[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
+  const [selectedTools, setSelectedTools] = useState<Set<PromptTool>>(new Set());
+  const [otherToolName, setOtherToolName] = useState("");
 
   const promptQuery = useQuery({
     queryKey: ["prompt", promptId],
@@ -98,6 +102,10 @@ export function PromptEditPage() {
     }
     setVariableRows(rowsFromApi(data.variables ?? []));
     setSelectedTagIds((data.promptTags ?? []).map((entry) => entry.tag.id));
+    setSelectedTools(new Set(data.tools));
+    if (data.tools.includes("other") && data.modelHint) {
+      setOtherToolName(data.modelHint);
+    }
   }, [promptQuery.data?.id]);
 
   if (promptQuery.isLoading) {
@@ -121,15 +129,18 @@ export function PromptEditPage() {
         const body = String(formData.get("body") ?? "").trim();
         const status = String(formData.get("status") ?? "DRAFT") as "DRAFT" | "PUBLISHED" | "ARCHIVED";
         const visibility = String(formData.get("visibility") ?? "PUBLIC") as "PUBLIC" | "PRIVATE";
-        const selectedTools = formData
-          .getAll("tools")
-          .map((value) => String(value))
-          .filter((value): value is PromptTool => PROMPT_TOOL_OPTIONS.includes(value as PromptTool));
+        const toolsArray = Array.from(selectedTools);
         const modality = String(formData.get("modality") ?? "").trim();
         const changelog = String(formData.get("changelog") ?? "").trim();
         const modelHintRaw = String(formData.get("modelHint") ?? "").trim();
-        const modelHint = modelHintRaw.length > 0 ? modelHintRaw : null;
-        if (!title || !body || selectedTools.length === 0 || !PROMPT_MODALITY_OPTIONS.includes(modality as PromptModality)) {
+        let modelHint = modelHintRaw.length > 0 ? modelHintRaw : null;
+        if (selectedTools.has("other") && otherToolName.trim()) {
+          modelHint = otherToolName.trim();
+        }
+        if (!title || !body || toolsArray.length === 0 || !PROMPT_MODALITY_OPTIONS.includes(modality as PromptModality)) {
+          return;
+        }
+        if (selectedTools.has("other") && !otherToolName.trim()) {
           return;
         }
         updateMutation.mutate({
@@ -138,7 +149,7 @@ export function PromptEditPage() {
           body,
           status,
           visibility,
-          tools: selectedTools,
+          tools: toolsArray,
           modality: modality as PromptModality,
           modelHint,
           tagIds: selectedTagIds,
@@ -214,25 +225,71 @@ export function PromptEditPage() {
         <div className="space-y-2 rounded border border-(--color-border) bg-(--color-surface-muted) p-3">
           <p className="text-sm font-medium">Tools (select one or many)</p>
           <div className="grid gap-2 sm:grid-cols-2">
-            {PROMPT_TOOL_OPTIONS.map((tool) => (
+            {getToolsSortedAlphabetically().map((tool) => (
               <label key={tool} className="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="tools" value={tool} defaultChecked={prompt.tools.includes(tool)} />
-                <span>{tool}</span>
+                <input
+                  type="checkbox"
+                  checked={selectedTools.has(tool)}
+                  onChange={(event) => {
+                    const checked = event.target.checked;
+                    setSelectedTools((current) => {
+                      const next = new Set(current);
+                      if (checked) {
+                        next.add(tool);
+                      } else {
+                        next.delete(tool);
+                        if (tool === "other") {
+                          setOtherToolName("");
+                        }
+                      }
+                      return next;
+                    });
+                  }}
+                />
+                <span>{getToolLabel(tool)}</span>
               </label>
             ))}
           </div>
+          {selectedTools.has("other") && (
+            <div className="space-y-2 border-t border-(--color-border) pt-3">
+              <label className="block text-sm">
+                <span className="font-medium">Tool name</span>
+                <input
+                  type="text"
+                  value={otherToolName}
+                  onChange={(event) => setOtherToolName(event.target.value)}
+                  placeholder="Enter the tool name"
+                  className="mt-1 w-full rounded border border-(--color-border) bg-(--color-surface) px-3 py-2"
+                />
+              </label>
+              <p className="text-xs text-(--color-text-muted)">
+                Don't see your tool?{" "}
+                <a
+                  href={TOOL_REQUEST_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium text-(--color-primary) underline hover:text-(--color-primary-hover)"
+                >
+                  Request a new tool be added
+                </a>
+              </p>
+            </div>
+          )}
         </div>
-        <select
-          name="modality"
-          defaultValue={prompt.modality}
-          className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
-        >
-          {PROMPT_MODALITY_OPTIONS.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
+        <div className="space-y-2">
+          <p className="text-sm font-medium">Generated output</p>
+          <select
+            name="modality"
+            defaultValue={prompt.modality}
+            className="w-full rounded border border-(--color-border) bg-(--color-surface) px-3 py-2"
+          >
+            {PROMPT_MODALITY_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
       <div className="space-y-2 rounded border border-(--color-border) bg-(--color-surface-muted) p-3">
         <p className="text-sm font-medium">Tags</p>

@@ -5,7 +5,7 @@ import { canAccessAdminUi } from "../auth/roles";
 import { getAnalyticsOverview } from "../analytics/api";
 import { listCollections } from "../collections/api";
 import { listTags } from "../tags/api";
-import { listPrompts, type ListPromptsFilters, PROMPT_MODALITY_OPTIONS, PROMPT_TOOL_OPTIONS } from "./api";
+import { getToolLabel, getToolsSortedAlphabetically, listPrompts, type ListPromptsFilters, PROMPT_MODALITY_OPTIONS, PROMPT_TOOL_OPTIONS } from "./api";
 import { PromptListCard } from "./PromptListCard";
 
 function pluralize(count: number, singular: string, plural = `${singular}s`): string {
@@ -288,18 +288,14 @@ export function PromptListPage() {
               SF AI Library connects seamlessly with Slackbot, Cursor, Claude, Gemini, NotebookLM, and more. Pick your tool and get to work.
             </p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs">
-              {[...PROMPT_TOOL_OPTIONS]
-                .sort((a, b) => {
-                  if (a === "slackbot") return -1;
-                  if (b === "slackbot") return 1;
-                  return a.localeCompare(b);
-                })
+              {getToolsSortedAlphabetically()
+                .filter((t) => t !== "other")
                 .map((toolOption) => (
                   <span
                     key={toolOption}
                     className="rounded-full border border-(--color-border) bg-(--color-surface) px-2 py-1 font-medium"
                   >
-                    {toolOption}
+                    {getToolLabel(toolOption)}
                   </span>
                 ))}
             </div>
@@ -416,9 +412,9 @@ export function PromptListPage() {
           className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
         >
           <option value="">All tools</option>
-          {PROMPT_TOOL_OPTIONS.map((option) => (
+          {getToolsSortedAlphabetically().map((option) => (
             <option key={option} value={option}>
-              {option}
+              {getToolLabel(option)}
             </option>
           ))}
         </select>

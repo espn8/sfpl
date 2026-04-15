@@ -64,7 +64,7 @@ const helpContent: HelpSection[] = [
       {
         question: "How do I find prompts?",
         answer:
-          "Use the search bar to find prompts by keyword, topic, or author. Filter by tool (Slackbot, Claude, Gemini, etc.), modality (text, code, image), or tag. Sort by most recent, top rated, or most used. Browse featured prompts on the homepage for popular options.",
+          "Use the search bar to find prompts by keyword, topic, or author. Filter by tool (Slackbot, Claude, Gemini, etc.), generated output type (text, code, image), or tag. Sort by most recent, top rated, or most used. Browse featured prompts on the homepage for popular options.",
       },
       {
         question: "How do I use a prompt?",
@@ -79,7 +79,7 @@ const helpContent: HelpSection[] = [
       {
         question: "How do I create a prompt?",
         answer:
-          '1. Click "New Prompt" in the top navigation\n2. Give your prompt a title and summary\n3. Write your prompt in the body field (use [KEY] or {{KEY}} for any variables)\n4. Add variables if needed (define the key, label, and default value)\n5. Select the tools and modality it works with\n6. Choose visibility (Public for everyone, Private for just you)\n7. Save as Draft or Publish immediately',
+          '1. Click "New Prompt" in the top navigation\n2. Give your prompt a title and summary\n3. Write your prompt in the body field (use [KEY] or {{KEY}} for any variables)\n4. Add variables if needed (define the key, label, and default value)\n5. Select the tools and generated output type it works with\n6. Choose visibility (Public for everyone, Private for just you)\n7. Save as Draft or Publish immediately',
       },
       {
         question: "How do I edit or update a prompt?",

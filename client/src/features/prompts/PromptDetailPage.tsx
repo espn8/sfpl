@@ -7,6 +7,7 @@ import { fetchMe } from "../auth/api";
 import { listCollections } from "../collections/api";
 import {
   getPrompt,
+  getToolLabel,
   listPromptVersions,
   logUsage,
   ratePrompt,
@@ -293,9 +294,9 @@ export function PromptDetailPage() {
           <span className="rounded bg-(--color-surface-muted) px-2 py-1">Status: {promptData.status}</span>
           <span className="rounded bg-(--color-surface-muted) px-2 py-1">Visibility: {promptData.visibility}</span>
           <span className="rounded bg-(--color-surface-muted) px-2 py-1">
-            Tools: {promptData.tools.length > 0 ? promptData.tools.join(", ") : "Not set"}
+            Tools: {promptData.tools.length > 0 ? promptData.tools.map(getToolLabel).join(", ") : "Not set"}
           </span>
-          <span className="rounded bg-(--color-surface-muted) px-2 py-1">Modality: {promptData.modality}</span>
+          <span className="rounded bg-(--color-surface-muted) px-2 py-1">Generated output: {promptData.modality}</span>
         </div>
         <div className="flex flex-wrap gap-2">
           {promptData.promptTags && promptData.promptTags.length > 0 ? (

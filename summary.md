@@ -1,20 +1,20 @@
 # AI Library - Technical Summary
 
-Last Updated: Wednesday, April 15, 2026 — 16:34 CDT
-Build Version: 26bc46c
+Last Updated: Wednesday, April 15, 2026 — 16:58 CDT
+Build Version: f385746
 
 ## Recent Changes
 
+- **Expanded tool options**: Added "Saleo" and "Other" to `PROMPT_TOOL_OPTIONS` enum on both client and server. The "Other" option allows users to specify a custom tool name via the `modelHint` field.
+- **Centralized tool labels**: Created `PROMPT_TOOL_LABELS` dictionary and `getToolLabel()`/`getToolsSortedAlphabetically()` utilities in `api.ts` to provide human-readable tool names (e.g., "Claude Code" instead of "claude_code") and consistent alphabetical sorting.
+- **Tool selector UX overhaul**: Refactored PromptEditorPage and PromptEditPage with multi-select checkbox UI, conditional "Other" text input, and "Request a tool" link. Replaced raw tool values with display labels across PromptListPage, PromptDetailPage, and chip components.
+- **Terminology refinement**: Renamed "Modality" to "Generated output type" across UI and help documentation for clarity.
+- **Help content updates**: Updated HelpPage and helpSearch service to reflect terminology changes (modality → generated output type).
+- **Markdown download button**: Added markdown export functionality for Skills and Context detail pages.
 - **Header branding refinement**: Changed header title from "SF AI Library" to "AI Library" in AppShell navigation for cleaner branding presentation.
 - **Comprehensive copy rewrite**: Rewrote all user-facing content with Salesforce voice—warm, approachable, action-oriented, and individual-focused. Updated headings, CTAs, descriptions, empty states, and form labels across all pages.
 - **Searchable Help page**: Created new `/help` route with searchable, indexed help content organized by topic (Getting Started, Prompts, Skills, Context, Collections, Using AI Tools, Your Profile, Tips & Best Practices). Added footer links in AppShell and LoginPage.
-- **Skill/Context usability enhancements**: Added copy-to-clipboard buttons, markdown preview toggle with `react-markdown`, and share functionality (Web Share API with clipboard fallback) to SkillDetailPage and ContextDetailPage.
-- **Analytics dashboard expansion**: Added Top Rated Prompts, Contributors leaderboard, and User Engagement leaderboard sections to AnalyticsPage.
-- **Backend usage tracking for Skills/Context**: Added `/api/skills/:id/usage` and `/api/context/:id/usage` endpoints with Prisma schema updates for `SkillUsageEvent` and `ContextUsageEvent` models.
-- **AppShell styling**: Replaced off-brand gradient "New Prompt" button with on-brand `--color-launch` (Salesforce orange) styling.
-- **PromptListPage tool ordering**: Tool options now sort alphabetically with "slackbot" pinned first.
-- **Login page branding**: Updated tagline to "Prompts, Skills and Context for you, by you." and added footer with copyright/attribution.
-- **Earlier work (carried forward)**: Site audit against implementation spec; Salesforce logo inline with "AI Library" h1 in flex row; Skills and Context Document full-stack features; session cookie renamed to `ailibrary.sid`; AppShell navigation updated; full rebrand to AI Library at `https://ail.mysalesforcedemo.com`; prompt engagement UX (star ratings, favorites, share, launch providers, `{{variable}}` interpolation, thumbnail generation).
+- **Earlier work (carried forward)**: Skill/Context usability enhancements (copy buttons, markdown preview, share); Analytics dashboard expansion (Top Rated, Contributors, User Engagement leaderboards); Backend usage tracking for Skills/Context; prompt engagement UX (star ratings, favorites, share, launch providers, `{{variable}}` interpolation, thumbnail generation).
 
 ## Audit Summary
 
@@ -42,6 +42,7 @@ The application has achieved **substantial completion** of the core implementati
 
 1. **Feature Parity**: Skills/Context missing versioning, tags, collections, favorites, ratings.
 2. **Minor**: No dedicated `/settings` route (modal only); AppShell only has "New Prompt" quick-action (could add "New Skill"/"New Context").
+3. **Tool request form**: `TOOL_REQUEST_URL` placeholder needs actual Google Form URL.
 
 ### Remediation Roadmap (Updated)
 
