@@ -43,6 +43,8 @@ async function main() {
         await tx.collectionPrompt.deleteMany({ where: { collection: { teamId: existingTeam.id } } });
         await tx.collection.deleteMany({ where: { teamId: existingTeam.id } });
         await tx.prompt.deleteMany({ where: { teamId: existingTeam.id } });
+        await tx.skill.deleteMany({ where: { teamId: existingTeam.id } });
+        await tx.contextDocument.deleteMany({ where: { teamId: existingTeam.id } });
         await tx.tag.deleteMany({ where: { teamId: existingTeam.id } });
 
         if (userIds.length > 0) {
@@ -424,6 +426,37 @@ async function main() {
     }
   }
   console.log(`Ensured ${collectionSeeds.length} collections`);
+
+  const sampleSkillTitle = "Sample Team Skill";
+  if (!(await prisma.skill.findFirst({ where: { teamId: team.id, title: sampleSkillTitle } }))) {
+    await prisma.skill.create({
+      data: {
+        teamId: team.id,
+        ownerId: admin.id,
+        title: sampleSkillTitle,
+        summary: "A starter skill for local development.",
+        body: "## When to use\n\nApply this skill when reviewing internal docs.\n\n## Steps\n\n1. Read the draft\n2. Note gaps\n3. Suggest edits\n",
+        visibility: "PUBLIC",
+        status: "PUBLISHED",
+      },
+    });
+  }
+
+  const sampleContextTitle = "Engineering style guide";
+  if (!(await prisma.contextDocument.findFirst({ where: { teamId: team.id, title: sampleContextTitle } }))) {
+    await prisma.contextDocument.create({
+      data: {
+        teamId: team.id,
+        ownerId: member.id,
+        title: sampleContextTitle,
+        summary: "Markdown context file for tone and formatting.",
+        body: "# Voice\n\n- Clear and concise\n- Prefer active voice\n\n# Code samples\n\nUse fenced blocks with language tags.\n",
+        visibility: "PUBLIC",
+        status: "PUBLISHED",
+      },
+    });
+  }
+  console.log("Ensured sample skill and context document (if missing)");
 
   const ratingsSeed = [
     { userEmail: admin.email, promptTitle: "Code Review Assistant", value: 5 },

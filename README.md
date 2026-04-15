@@ -1,6 +1,6 @@
-# Prompt Library (Heroku Deployment)
+# SF AI Library (Heroku Deployment)
 
-This repository contains:
+Team workspace for **prompts**, **skills**, and **context** (markdown). This repository contains:
 
 - `client/` - React + Vite frontend
 - `server/` - Express + Prisma backend
@@ -47,7 +47,7 @@ The backend serves the built frontend from `server/public`.
 In Google Cloud Console, configure OAuth consent and add the callback URL:
 
 - Local: `http://localhost:5000/api/auth/google/callback`
-- Production: `http://sfpl.mysalesforcedemo.com/api/auth/google/callback`
+- Production: `https://ail.mysalesforcedemo.com/api/auth/google/callback` (must match `GOOGLE_CALLBACK_URL` exactly; add the same URL under **Authorized redirect URIs** and set **Authorized JavaScript origins** to `https://ail.mysalesforcedemo.com` in Google Cloud Console)
 
 Domain restriction is enabled to allow only @salesforce.com email addresses:
 
@@ -60,14 +60,14 @@ Domain restriction is enabled to allow only @salesforce.com email addresses:
    - `heroku addons:create heroku-postgresql:essential-0`
 2. Set config vars:
    - `heroku config:set NODE_ENV=production`
-   - `heroku config:set CORS_ORIGIN=http://sfpl.mysalesforcedemo.com`
-   - `heroku config:set APP_BASE_URL=http://sfpl.mysalesforcedemo.com`
+   - `heroku config:set CORS_ORIGIN=https://ail.mysalesforcedemo.com`
+   - `heroku config:set APP_BASE_URL=https://ail.mysalesforcedemo.com`
    - `heroku config:set SESSION_SECRET=<long-random-secret>`
    - `heroku config:set COOKIE_SECURE=true`
    - `heroku config:set SESSION_SAME_SITE=lax`
    - `heroku config:set GOOGLE_CLIENT_ID=<id>`
    - `heroku config:set GOOGLE_CLIENT_SECRET=<secret>`
-   - `heroku config:set GOOGLE_CALLBACK_URL=http://sfpl.mysalesforcedemo.com/api/auth/google/callback`
+   - `heroku config:set GOOGLE_CALLBACK_URL=https://ail.mysalesforcedemo.com/api/auth/google/callback`
    - `heroku config:set VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX`
    - `heroku config:set GOOGLE_ALLOWED_DOMAIN=salesforce.com`
 3. Deploy:
@@ -108,6 +108,10 @@ GitHub Actions runs a single matrix CI workflow automatically on every pull requ
 - Session-based authentication with PostgreSQL session store
 - Team-scoped authorization
 
+### Skills and Context
+- Create, read, update, archive team **skills** (markdown body)
+- Create, read, update, archive **context** documents (markdown, `.md` semantics in the product)
+
 ### Prompts
 - Create, read, update, archive prompts
 - Version history with restore capability
@@ -141,6 +145,20 @@ GitHub Actions runs a single matrix CI workflow automatically on every pull requ
 - `GET /api/auth/google/callback` - OAuth callback
 - `POST /api/auth/logout` - End session
 - `GET /api/auth/me` - Get current user
+
+### Skills
+- `GET /api/skills` - List skills with search and pagination
+- `POST /api/skills` - Create skill
+- `GET /api/skills/:id` - Get skill
+- `PATCH /api/skills/:id` - Update skill
+- `DELETE /api/skills/:id` - Archive skill
+
+### Context (markdown)
+- `GET /api/context` - List context documents
+- `POST /api/context` - Create document
+- `GET /api/context/:id` - Get document
+- `PATCH /api/context/:id` - Update document
+- `DELETE /api/context/:id` - Archive document
 
 ### Prompts
 - `GET /api/prompts` - List prompts with filters

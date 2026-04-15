@@ -1,23 +1,18 @@
-# Prompt Library - Technical Summary
+# AI Library - Technical Summary
 
-Last Updated: Monday, April 06, 2026 at 17:48 CDT
-Build Version: 555f1a9
+Last Updated: Wednesday, April 15, 2026
+Build Version: 171d921 (pre-release; updated on commit)
 
 ## Recent Changes
 
-- **`GET /api/prompts`**: List response `meta` now includes `snapshot` with `promptsPublished` (published prompts scoped by team; non-admin/owner users only count prompts that are `PUBLIC` or owned by them), `activeUsers` (users belonging to the team), and `promptsViewed` (team-scoped `UsageAction.VIEW` events). The legacy missing-column fallback returns the same `meta.snapshot` shape. `pagination.test.ts` mocks `prisma.user.count` and `prisma.usageEvent.count` and asserts snapshot values.
-- **`PromptListPage`**: Hero eyebrow reads “Welcome to the Prompt Library”; live snapshot stats use `meta.snapshot` from the list endpoint when present (test fixtures updated). Snapshot grid keeps a three-column layout from the `sm` breakpoint for all signed-in users. Removed the “What you unlock” panel and the hero secondary CTAs (“Create Winning Prompt” / “Explore Collections”). `client/src/features/prompts/api.ts` types `ListMeta.snapshot` accordingly.
-- **Branding**: Added `client/public/salesforce-logo.svg` (Simple Icons–style cloud, brand blue). `client/index.html` favicon links, `AppShell` header mark, and Express `/favicon.ico` redirect target `/salesforce-logo.svg` instead of `/favicon.svg`.
-- **Theme**: New CSS variables `--color-launch` and `--color-launch-hover`; list and detail “Open in …” / copy actions use them instead of hard-coded amber utilities.
-- **`AppShell`**: “New Prompt” moved into the right-hand header actions; header **Logout** removed. Profile/welcome modal footer now includes **Logout** (via `handleLogout`) with **Cancel** / **Save**, using a responsive row layout.
-- **Earlier `PromptListPage` work**: Single “Live platform snapshot” panel with `HeroStatIcon` and `StatCounter` (easing, stagger, `prefers-reduced-motion`, idle state until analytics when those metrics come from analytics). Removed the “Built for Salesforce by Salesforce” tri-card; tightened “Built for Every AI Tool & User” copy.
-- `PromptDetailPage` brought in line with list cards: average and personal star ratings, owner avatar, view count and relative activity label, modality/tool/tag chips, Web Share API or clipboard link copy, favorite toggle, `PromptCollectionMenu`, variable template section with live preview (or editable body when there are no variables), and a consolidated launch row with provider selector—rebuilt from Cursor checkpoint diff applied to the prior detail implementation.
-- Account experience: removed dedicated `SettingsPage`; profile, appearance, and onboarding continue in `AppShell` modals; added `AppShell` component tests.
-- Admin access: `AdminRoute` + `features/auth/roles.ts` gate `/analytics` to `ADMIN` and `OWNER` roles; server assigns `ADMIN` on Google OAuth for emails listed in `BOOTSTRAP_ADMIN_EMAILS` (comma-separated, lowercased at parse) without ever demoting `OWNER`.
-- Prompts UX: `PromptListCard`, `PromptUpdatedBadge` / `recentPromptUpdate`, `interpolatePrompt` for `{{variable}}` substitution, and `launchProviders` (ChatGPT, Claude, Gemini) for opening composed text in external UIs; list/detail/edit/create flows expanded accordingly.
-- API/types: `Prompt` includes `createdAt` and `updatedAt`; client `api.ts` and server `prompts` routes extended with related behavior; analytics/auth routes adjusted; `prompts-flow` and other server tests extended, client tests for interpolation and recent-update helpers added.
-- Build fix: TypeScript test mocks updated for stricter `Prompt` typing (`AppShell.test.tsx` import cleanup, `PromptEditPage.test.tsx` timestamps).
-- Prompt list API (`GET /api/prompts`): each row includes `owner`, `tags`, aggregated `viewCount` (`UsageAction.VIEW`), and per-session `favorited` / `myRating`. `PromptListCard` surfaces average stars, personal rating, favorite toggle, share/native copy, collection bookmark menu, activity label, and tool/modality/tag chips atop thumbnails and launch/copy actions; list chrome splits into `promptActionIcons.tsx` and `promptTagChips.ts`.
+- **Skills feature (full-stack)**: New `Skill` Prisma model (`id`, `teamId`, `ownerId`, `title`, `summary`, `body`, `visibility`, `status`, `createdAt`, `updatedAt`) with team-scoped compound index on `(teamId, updatedAt)`. Migration `20260414155302_skill_and_context_document` applies the DDL. Server route `/api/skills` (`server/src/routes/skills.ts`) provides paginated list with full-text search (`q`), status filter, and full CRUD; access gated by `requireAuth` with admin/owner checks for destructive operations. Client `features/skills/` delivers `SkillListPage`, `SkillDetailPage`, `SkillEditorPage` (create), and `SkillEditPage` (update) with a matching `api.ts` client. Router registers protected routes at `/skills`, `/skills/new`, `/skills/:id`, and `/skills/:id/edit`. Integration test in `server/test/skills-flow.test.ts`.
+- **Context Documents feature (full-stack)**: New `ContextDocument` Prisma model with identical shape to `Skill`. Server route `/api/context` (`server/src/routes/context.ts`) mirrors the skills API surface. Client `features/context/` delivers `ContextListPage`, `ContextDetailPage`, `ContextEditorPage`, and `ContextEditPage` with `api.ts`. Router registers protected routes at `/context`, `/context/new`, `/context/:id`, and `/context/:id/edit`. Integration test in `server/test/context-flow.test.ts`.
+- **`app.ts` route registration**: `skillsRouter` mounted at `/api/skills` and `contextRouter` at `/api/context`; session cookie renamed from `promptlibrary.sid` to `ailibrary.sid` to reflect rebrand.
+- **`AppShell` navigation**: Added "Skills" and "Context" nav links alongside "Prompts" and "Collections". Header brand mark now displays "SF AI Library" text label next to the Salesforce logo. Avatar DiceBear seed updated from `PromptLibrary` to `AILibrary`. Welcome modal title updated to "Welcome to SF AI Library".
+- **Seed**: `server/prisma/seed.ts` seeds sample `Skill` and `ContextDocument` records for the demo team/user.
+- **`app.json`**: Heroku app metadata updated (name and environment variable scaffolding aligned with AI Library rebrand).
+- **README**: Updated with Skills/Context feature sections, route table, and setup notes.
+- **Earlier work (carried forward)**: Full rebrand to **AI Library** at `https://ail.mysalesforcedemo.com`. `GET /api/prompts` `meta.snapshot` (published count, active users, view events). `PromptListPage` hero stats grid. Salesforce SVG favicon. `--color-launch` / `--color-launch-hover` CSS tokens. `AppShell` profile/logout modal. Admin-gated analytics route (`AdminRoute` + `roles.ts`). Full prompt engagement UX: star ratings, favorites, share, launch providers (ChatGPT, Claude, Gemini), `{{variable}}` interpolation, thumbnail generation via Google Generative Language API.
 
 ## Technical Architecture
 
@@ -78,6 +73,8 @@ Build Version: 555f1a9
 │   │   ├── components/                         # Shared UI shell/chrome (AppShell, ProtectedRoute, AdminRoute)
 │   │   ├── features/
 │   │   │   ├── prompts/                        # Discovery/detail/create/edit, cards, filters, interpolation, external launch
+│   │   │   ├── skills/                         # Skill list/detail/create/edit (markdown body)
+│   │   │   ├── context/                        # Context (markdown) list/detail/create/edit
 │   │   │   ├── analytics/                      # Typed analytics client contracts
 │   │   │   ├── collections/                    # Collection CRUD + membership surfaces
 │   │   │   └── auth/                           # OAuth entry + role helpers (no standalone settings route)
@@ -92,6 +89,8 @@ Build Version: 555f1a9
 │   │   ├── app.ts                              # Middleware + routes + SPA static hosting
 │   │   ├── routes/
 │   │   │   ├── prompts.ts                      # Prompt CRUD/search/rating/usage/favorites/thumbnail orchestration
+│   │   │   ├── skills.ts                       # Skill CRUD + list search (team-scoped)
+│   │   │   ├── context.ts                      # Context document CRUD + list search (team-scoped)
 │   │   │   ├── analytics.ts                    # Top-used/stale/contributors/user-engagement scoreboard
 │   │   │   ├── collections.ts                  # Collection operations
 │   │   │   ├── tags.ts                         # Tag management

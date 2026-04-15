@@ -10,7 +10,7 @@ export function TermsPage() {
           <div className="space-y-3">
             <h2 className="text-xl font-semibold">1. Acceptance of Terms</h2>
             <p>
-              By accessing and using the Prompt Library application ("Service"), you accept and agree to be bound by the terms and provision of this agreement.
+              By accessing and using the SF AI Library application ("Service"), you accept and agree to be bound by the terms and provision of this agreement.
             </p>
           </div>
 
@@ -31,7 +31,7 @@ export function TermsPage() {
           <div className="space-y-3">
             <h2 className="text-xl font-semibold">4. Content</h2>
             <p>
-              Users retain ownership of prompts and content they create. By submitting content to the Service, you grant the team permission to use, display, and share that content within the team workspace.
+              Users retain ownership of prompts, skills, context documents, and other content they create. By submitting content to the Service, you grant the team permission to use, display, and share that content within the team workspace.
             </p>
           </div>
 

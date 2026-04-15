@@ -198,7 +198,7 @@ export function PromptListPage() {
         <div className="pointer-events-none absolute -bottom-16 -left-10 h-48 w-48 rounded-full bg-(--color-primary)/10 blur-3xl" />
         <div className="space-y-3">
           <p className="inline-block rounded-full border border-(--color-border) bg-(--color-surface) px-3 py-1 text-xs font-semibold tracking-[0.14em]">
-            Welcome to the Prompt Library
+            Welcome to SF AI Library
           </p>
           <h2 className="text-3xl font-bold md:text-4xl">Discover the magic behind every winning AI response</h2>
           <p className="max-w-3xl text-(--color-text-muted)">
@@ -243,7 +243,7 @@ export function PromptListPage() {
       </section>
 
       <section className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-sm transition-all duration-300 hover:shadow motion-reduce:transition-none">
-        <h3 className="text-xl font-semibold">How Prompt Library Works</h3>
+        <h3 className="text-xl font-semibold">How SF AI Library Works</h3>
         <ol className="mt-6 flex list-none flex-col gap-0 p-0 md:mt-8 md:flex-row md:items-stretch">
           {howItWorksSteps.map((item, index) => {
             const isFirst = index === 0;
@@ -286,7 +286,7 @@ export function PromptListPage() {
           <div className="rounded-xl border border-(--color-border) bg-(--color-surface-muted) p-4 transition-all duration-300 hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none">
             <p className="font-semibold">Wherever you work</p>
             <p className="mt-1 text-sm text-(--color-text-muted)">
-              Prompt Library supports amazing prompts across Cursor, Claude, Gemini, Notebook LM, and beyond.
+              SF AI Library supports prompts, skills, and markdown context across Cursor, Claude, Gemini, Notebook LM, and beyond.
             </p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs">
               {PROMPT_TOOL_OPTIONS.map((toolOption) => (

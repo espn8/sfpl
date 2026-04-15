@@ -330,7 +330,7 @@ authRouter.get("/google/callback", authRateLimit, async (req: Request, res: Resp
 
 authRouter.post("/logout", authRateLimit, (req: Request, res: Response) => {
   req.session.destroy(() => {
-    res.clearCookie("promptlibrary.sid");
+    res.clearCookie("ailibrary.sid");
     res.status(200).json({ data: { ok: true } });
   });
 });

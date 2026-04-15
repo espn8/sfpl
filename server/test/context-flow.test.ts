@@ -1,0 +1,105 @@
+import express from "express";
+import request from "supertest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const mockContextCreate = vi.fn();
+const mockContextFindMany = vi.fn();
+const mockContextCount = vi.fn();
+const mockContextFindFirst = vi.fn();
+const mockContextUpdate = vi.fn();
+
+vi.mock("../src/middleware/auth", () => ({
+  requireAuth: (_req: unknown, _res: unknown, next: () => void) => next(),
+  requireRole: () => (_req: unknown, _res: unknown, next: () => void) => next(),
+  getAuthContext: () => ({ userId: 1, teamId: 1, role: "MEMBER" }),
+}));
+
+vi.mock("../src/lib/prisma", () => ({
+  prisma: {
+    contextDocument: {
+      create: mockContextCreate,
+      findMany: mockContextFindMany,
+      count: mockContextCount,
+      findFirst: mockContextFindFirst,
+      update: mockContextUpdate,
+    },
+  },
+}));
+
+async function buildContextApp() {
+  const { contextRouter } = await import("../src/routes/context");
+  const app = express();
+  app.use(express.json());
+  app.use("/api/context", contextRouter);
+  return app;
+}
+
+describe("context API", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("creates a context document", async () => {
+    const app = await buildContextApp();
+    mockContextCreate.mockResolvedValue({
+      id: 5,
+      teamId: 1,
+      ownerId: 1,
+      title: "Rules",
+      summary: null,
+      body: "# Rules\n\nBe kind.",
+      visibility: "PUBLIC",
+      status: "DRAFT",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      owner: { id: 1, name: "U", avatarUrl: null },
+    });
+
+    const response = await request(app).post("/api/context").send({
+      title: "Rules",
+      body: "# Rules\n\nBe kind.",
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.body.data.title).toBe("Rules");
+    expect(mockContextCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ teamId: 1, ownerId: 1 }),
+      }),
+    );
+  });
+
+  it("lists context documents", async () => {
+    const app = await buildContextApp();
+    mockContextFindMany.mockResolvedValue([]);
+    mockContextCount.mockResolvedValue(0);
+
+    const response = await request(app).get("/api/context");
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual([]);
+    expect(response.body.meta.total).toBe(0);
+  });
+
+  it("archives with DELETE", async () => {
+    const app = await buildContextApp();
+    mockContextFindFirst.mockResolvedValue({ id: 9, teamId: 1, ownerId: 1 });
+    mockContextUpdate.mockResolvedValue({
+      id: 9,
+      status: "ARCHIVED",
+      teamId: 1,
+      ownerId: 1,
+      title: "T",
+      summary: null,
+      body: "b",
+      visibility: "PUBLIC",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const response = await request(app).delete("/api/context/9");
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.status).toBe("ARCHIVED");
+  });
+});

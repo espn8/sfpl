@@ -1,6 +1,6 @@
 # Authentication Protection Summary
 
-This document describes how SSO authentication protection is implemented across the Prompt Library application.
+This document describes how SSO authentication protection is implemented across the AI Library application.
 
 ## Overview
 
@@ -21,6 +21,8 @@ The following API endpoints are accessible without authentication:
 ### Protected API Endpoints
 All other API endpoints require authentication via the `requireAuth` middleware:
 - `/api/prompts/*` - All prompt CRUD operations
+- `/api/skills/*` - All skill CRUD operations
+- `/api/context/*` - All context (markdown) document CRUD operations
 - `/api/collections/*` - All collection operations
 - `/api/analytics/*` - All analytics endpoints
 - `GET /api/auth/me` - Current user info
@@ -45,6 +47,8 @@ All other routes require authentication and use the `ProtectedRoute` component:
 - `/` - Prompt discovery/list
 - `/prompts/new` - Create prompt
 - `/prompts/:id` - View/edit prompt
+- `/skills`, `/skills/new`, `/skills/:id`, `/skills/:id/edit` - Skills
+- `/context`, `/context/new`, `/context/:id`, `/context/:id/edit` - Context (markdown)
 - `/collections` - Collections list
 - `/analytics` - Analytics dashboard
 
@@ -59,7 +63,7 @@ The `ProtectedRoute` wrapper in `client/src/app/router.tsx`:
 ## Session Management
 
 ### Server Session
-- Session cookie name: `promptlibrary.sid`
+- Session cookie name: `ailibrary.sid`
 - HttpOnly, secure in production
 - 7-day expiration
 - Contains: `userId`, `teamId`, `role`
@@ -121,7 +125,7 @@ curl http://localhost:5000/api/health
 curl http://localhost:5000/api/prompts
 
 # Protected endpoint with session cookie (should work)
-curl -b "promptlibrary.sid=<session-id>" http://localhost:5000/api/prompts
+curl -b "ailibrary.sid=<session-id>" http://localhost:5000/api/prompts
 ```
 
 ## Configuration

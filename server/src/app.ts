@@ -12,7 +12,9 @@ import { errorHandler } from "./middleware/errorHandler";
 import { analyticsRouter } from "./routes/analytics";
 import { authRouter } from "./routes/auth";
 import { collectionsRouter } from "./routes/collections";
+import { contextRouter } from "./routes/context";
 import { promptsRouter } from "./routes/prompts";
+import { skillsRouter } from "./routes/skills";
 import { tagsRouter } from "./routes/tags";
 
 type CreateAppOptions = {
@@ -48,7 +50,7 @@ export function createApp(options?: CreateAppOptions): express.Express {
   app.use(
     session({
       store: sessionStore,
-      name: "promptlibrary.sid",
+      name: "ailibrary.sid",
       secret: env.sessionSecret,
       resave: false,
       saveUninitialized: false,
@@ -77,6 +79,8 @@ export function createApp(options?: CreateAppOptions): express.Express {
 
   app.use("/api/auth", authRouter);
   app.use("/api/prompts", promptsRouter);
+  app.use("/api/skills", skillsRouter);
+  app.use("/api/context", contextRouter);
   app.use("/api/collections", collectionsRouter);
   app.use("/api/analytics", analyticsRouter);
   app.use("/api/tags", tagsRouter);

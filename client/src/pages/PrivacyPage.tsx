@@ -10,11 +10,11 @@ export function PrivacyPage() {
           <div className="space-y-3">
             <h2 className="text-xl font-semibold">1. Information We Collect</h2>
             <p>
-              When you use the Prompt Library, we collect the following information:
+              When you use SF AI Library, we collect the following information:
             </p>
             <ul className="list-disc space-y-1 pl-6">
               <li>Google account information (email, name, profile picture)</li>
-              <li>Prompts and content you create or share</li>
+              <li>Prompts, skills, context files, and other content you create or share</li>
               <li>Usage analytics (page views, interactions, feature usage)</li>
               <li>Session and authentication data</li>
             </ul>

@@ -21,7 +21,7 @@ export function AppShell({ children }: AppShellProps) {
   });
 
   const [name, setName] = useState("");
-  const defaultAvatarUrl = "https://api.dicebear.com/9.x/bottts/svg?seed=PromptLibrary";
+  const defaultAvatarUrl = "https://api.dicebear.com/9.x/bottts/svg?seed=AILibrary";
   const [avatarUrl, setAvatarUrl] = useState(defaultAvatarUrl);
   const [region, setRegion] = useState("");
   const [ou, setOu] = useState("");
@@ -69,12 +69,21 @@ export function AppShell({ children }: AppShellProps) {
       <div className="mx-auto max-w-5xl px-6 py-8">
         <header className="mb-6 flex items-center justify-between rounded-lg border border-(--color-border) bg-(--color-surface) px-4 py-3">
           <div className="flex items-center gap-6">
-            <Link to="/" className="inline-flex items-center focus-visible:outline-none" aria-label="Home">
-              <img src={salesforceLogoSrc} alt="" className="block h-10 w-auto max-w-none" />
-            </Link>
-            <nav className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-3">
+              <Link to="/" className="inline-flex items-center gap-2 focus-visible:outline-none" aria-label="SF AI Library home">
+                <img src={salesforceLogoSrc} alt="" className="block h-10 w-auto max-w-none" />
+                <span className="hidden font-semibold text-(--color-text) sm:inline">SF AI Library</span>
+              </Link>
+            </div>
+            <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
               <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/">
                 Prompts
+              </Link>
+              <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/skills">
+                Skills
+              </Link>
+              <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/context">
+                Context
               </Link>
               <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/collections">
                 Collections
@@ -147,7 +156,7 @@ export function AppShell({ children }: AppShellProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-2xl rounded-lg border border-(--color-border) bg-(--color-surface) p-6 shadow-lg">
             <h2 className="text-xl font-semibold">
-              {showWelcomeModal ? "Welcome to Prompt Library" : "Account settings"}
+              {showWelcomeModal ? "Welcome to SF AI Library" : "Account settings"}
             </h2>
             <p className="mt-1 text-sm text-(--color-text-muted)">
               {showWelcomeModal

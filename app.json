@@ -1,8 +1,8 @@
 {
   "name": "promptlibrary",
-  "description": "Team prompt library with Google SSO, analytics, and Heroku deployment.",
+  "description": "SF AI Library: team prompts, skills, and context (markdown) with Google SSO, analytics, and Heroku deployment.",
   "repository": "https://github.com/espn8/sfpl",
-  "keywords": ["node", "express", "react", "prisma", "prompt-library"],
+  "keywords": ["node", "express", "react", "prisma", "ai-library", "prompts", "skills", "markdown"],
   "addons": ["heroku-postgresql:essential-0"],
   "env": {
     "NODE_ENV": {
@@ -10,10 +10,10 @@
       "value": "production"
     },
     "CORS_ORIGIN": {
-      "description": "Frontend origin allowed by API CORS, e.g. http://sfpl.mysalesforcedemo.com."
+      "description": "Frontend origin allowed by API CORS, e.g. https://ail.mysalesforcedemo.com."
     },
     "APP_BASE_URL": {
-      "description": "Canonical application base URL used for auth redirects, e.g. http://sfpl.mysalesforcedemo.com."
+      "description": "Canonical application base URL used for auth redirects, e.g. https://ail.mysalesforcedemo.com."
     },
     "SESSION_SECRET": {
       "description": "Long random secret used to sign session cookies.",
@@ -30,7 +30,7 @@
       "description": "Google OAuth client secret."
     },
     "GOOGLE_CALLBACK_URL": {
-      "description": "OAuth callback URL, e.g. http://sfpl.mysalesforcedemo.com/api/auth/google/callback."
+      "description": "OAuth callback URL, e.g. https://ail.mysalesforcedemo.com/api/auth/google/callback."
     },
     "GOOGLE_ALLOWED_DOMAIN": {
       "description": "Restrict sign-in to a single domain, e.g. salesforce.com.",

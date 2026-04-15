@@ -85,7 +85,7 @@ describe("AppShell", () => {
 
     renderAppShell();
 
-    expect(await screen.findByRole("heading", { name: "Welcome to Prompt Library" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Welcome to SF AI Library" })).toBeInTheDocument();
     expect(screen.getByText("Please finish your profile before continuing.")).toBeInTheDocument();
   });
 });

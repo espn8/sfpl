@@ -163,7 +163,7 @@ describe("PromptListPage", () => {
 
     renderPromptListPage();
 
-    expect(await screen.findByText("How Prompt Library Works")).toBeInTheDocument();
+    expect(await screen.findByText("How SF AI Library Works")).toBeInTheDocument();
     expect(await screen.findByText("Page 1 of 2")).toBeInTheDocument();
 
     fireEvent.change(screen.getByPlaceholderText("Search title, summary, or body"), { target: { value: "quota" } });

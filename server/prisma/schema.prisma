@@ -23,6 +23,8 @@ model User {
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
   prompts    Prompt[]
+  skills     Skill[]
+  contextDocuments ContextDocument[]
   favorites  Favorite[]
   ratings    Rating[]
   versions   PromptVersion[]
@@ -36,6 +38,8 @@ model Team {
   slug        String       @unique
   users       User[]
   prompts     Prompt[]
+  skills      Skill[]
+  contextDocuments ContextDocument[]
   tags        Tag[]
   collections Collection[]
   createdAt   DateTime     @default(now())
@@ -68,6 +72,40 @@ model Prompt {
   ratings      Rating[]
   variables    PromptVariable[]
   usageEvents  UsageEvent[]
+}
+
+model Skill {
+  id          Int              @id @default(autoincrement())
+  teamId      Int
+  ownerId     Int
+  title       String
+  summary     String?
+  body        String
+  visibility  PromptVisibility @default(PUBLIC)
+  status      PromptStatus     @default(DRAFT)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  team        Team             @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  owner       User             @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+
+  @@index([teamId, updatedAt])
+}
+
+model ContextDocument {
+  id          Int              @id @default(autoincrement())
+  teamId      Int
+  ownerId     Int
+  title       String
+  summary     String?
+  body        String
+  visibility  PromptVisibility @default(PUBLIC)
+  status      PromptStatus     @default(DRAFT)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  team        Team             @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  owner       User             @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+
+  @@index([teamId, updatedAt])
 }
 
 model PromptVersion {
