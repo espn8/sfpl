@@ -430,7 +430,7 @@ export function PromptListPage() {
           }}
           className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
         >
-          <option value="">All modalities</option>
+          <option value="">All generated output</option>
           {PROMPT_MODALITY_OPTIONS.map((option) => (
             <option key={option} value={option}>
               {option}
@@ -443,7 +443,7 @@ export function PromptListPage() {
             setCollectionId(event.target.value);
             setPage(1);
           }}
-          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2 md:col-span-2"
+          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
         >
           <option value="">All collections</option>
           {collectionsQuery.data?.map((item) => (

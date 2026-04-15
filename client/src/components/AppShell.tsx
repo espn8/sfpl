@@ -64,8 +64,17 @@ export function AppShell({ children }: AppShellProps) {
         setCreateMenuOpen(false);
       }
     };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setCreateMenuOpen(false);
+      }
+    };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, [createMenuOpen]);
 
   const updateProfileMutation = useMutation({
@@ -199,6 +208,14 @@ export function AppShell({ children }: AppShellProps) {
               <Link to="/help" className="underline hover:no-underline mr-4">
                 Help
               </Link>
+              <a
+                href="https://salesforce.enterprise.slack.com/archives/C0ATAP14WEQ"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:no-underline mr-4"
+              >
+                #help-ailibrary
+              </a>
               <span>
                 Copyright 2026. All Rights Reserved. Created with ❤️ by{" "}
                 <a

@@ -3,10 +3,10 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
 import { MarkdownPreview } from "../../components/MarkdownPreview";
-import { buildShareUrl, copyToClipboard, shareOrCopyLink } from "../../lib/shareOrCopyLink";
+import { buildShareUrl, copyToClipboard, downloadAsMarkdown, shareOrCopyLink } from "../../lib/shareOrCopyLink";
 import { fetchMe } from "../auth/api";
 import { archiveSkill, getSkill, logSkillUsage, toggleSkillFavorite } from "./api";
-import { CopyIcon, EyeIcon, HeartIcon, ShareIcon } from "../prompts/promptActionIcons";
+import { CopyIcon, DownloadIcon, EyeIcon, HeartIcon, ShareIcon } from "../prompts/promptActionIcons";
 
 type ViewMode = "preview" | "raw";
 
@@ -91,6 +91,12 @@ export function SkillDetailPage() {
     }
   };
 
+  const handleDownload = () => {
+    const safeTitle = skill.title.replace(/[^a-zA-Z0-9-_]/g, "_").slice(0, 50);
+    downloadAsMarkdown(skill.body, `${safeTitle}.md`);
+    trackEvent("skill_download", { skill_id: skillId, source: "detail" });
+  };
+
   return (
     <article className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -145,6 +151,14 @@ export function SkillDetailPage() {
           onClick={() => void handleCopyContent()}
         >
           <CopyIcon className="h-5 w-5" />
+        </button>
+        <button
+          type="button"
+          className="rounded-md border border-transparent p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text)"
+          aria-label="Download as .md file"
+          onClick={handleDownload}
+        >
+          <DownloadIcon className="h-5 w-5" />
         </button>
         <button
           type="button"
