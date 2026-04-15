@@ -16,6 +16,8 @@ export type ContextDocument = {
   createdAt: string;
   updatedAt: string;
   owner: ContextOwner;
+  viewCount?: number;
+  favorited?: boolean;
 };
 
 export type ListContextFilters = {
@@ -68,4 +70,13 @@ export async function updateContextDocument(id: number, input: UpdateContextInpu
 
 export async function archiveContextDocument(id: number): Promise<void> {
   await apiClient.delete(`/api/context/${id}`);
+}
+
+export async function toggleContextFavorite(contextId: number): Promise<{ favorited: boolean }> {
+  const { data } = await apiClient.post<{ data: { favorited: boolean } }>(`/api/context/${contextId}/favorite`);
+  return data.data;
+}
+
+export async function logContextUsage(contextId: number, eventType: "VIEW" | "COPY"): Promise<void> {
+  await apiClient.post(`/api/context/${contextId}/usage`, { eventType });
 }

@@ -20,6 +20,8 @@ import { SkillDetailPage } from "../features/skills/SkillDetailPage";
 import { SkillEditPage } from "../features/skills/SkillEditPage";
 import { SkillEditorPage } from "../features/skills/SkillEditorPage";
 import { SkillListPage } from "../features/skills/SkillListPage";
+import { HelpPage } from "../features/help/HelpPage";
+import { SettingsPage } from "../features/settings/SettingsPage";
 import { PrivacyPage } from "../pages/PrivacyPage";
 import { TermsPage } from "../pages/TermsPage";
 
@@ -187,6 +189,26 @@ export function AppRouter() {
                 <AdminRoute>
                   <AnalyticsPage />
                 </AdminRoute>
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/help"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <HelpPage />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <SettingsPage />
               </AppShell>
             </ProtectedRoute>
           }

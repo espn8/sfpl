@@ -13,6 +13,7 @@ import { analyticsRouter } from "./routes/analytics";
 import { authRouter } from "./routes/auth";
 import { collectionsRouter } from "./routes/collections";
 import { contextRouter } from "./routes/context";
+import helpRouter from "./routes/help";
 import { promptsRouter } from "./routes/prompts";
 import { skillsRouter } from "./routes/skills";
 import { tagsRouter } from "./routes/tags";
@@ -80,6 +81,7 @@ export function createApp(options?: CreateAppOptions): express.Express {
   app.use("/api/collections", collectionsRouter);
   app.use("/api/analytics", analyticsRouter);
   app.use("/api/tags", tagsRouter);
+  app.use("/api/help", helpRouter);
 
   const publicPath = path.resolve(__dirname, "../public");
   app.use(express.static(publicPath));

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { fetchMe, logout, updateMyProfile } from "../features/auth/api";
@@ -6,6 +6,22 @@ import { canAccessAdminUi } from "../features/auth/roles";
 import { ThemeModeToggle } from "./ui/ThemeModeToggle";
 
 const SALESFORCE_LOGO = "/salesforce-logo.png";
+
+function PlusIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -27,6 +43,8 @@ export function AppShell({ children }: AppShellProps) {
   const [title, setTitle] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [createMenuOpen, setCreateMenuOpen] = useState(false);
+  const createMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!meQuery.data) {
@@ -38,6 +56,17 @@ export function AppShell({ children }: AppShellProps) {
     setOu(meQuery.data.ou ?? "");
     setTitle(meQuery.data.title ?? "");
   }, [meQuery.data]);
+
+  useEffect(() => {
+    if (!createMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (!createMenuRef.current?.contains(e.target as Node)) {
+        setCreateMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [createMenuOpen]);
 
   const updateProfileMutation = useMutation({
     mutationFn: updateMyProfile,
@@ -71,7 +100,7 @@ export function AppShell({ children }: AppShellProps) {
             <div className="flex items-center gap-3">
               <Link to="/" className="inline-flex items-center gap-2 focus-visible:outline-none" aria-label="SF AI Library home">
                 <img src={SALESFORCE_LOGO} alt="" className="h-10 w-auto object-contain" />
-                <span className="hidden font-semibold text-(--color-text) sm:inline">SF AI Library</span>
+                <span className="hidden font-semibold text-(--color-text) sm:inline">AI Library</span>
               </Link>
             </div>
             <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
@@ -88,31 +117,61 @@ export function AppShell({ children }: AppShellProps) {
                 Collections
               </Link>
               {meQuery.data && canAccessAdminUi(meQuery.data.role) ? (
-                <>
-                  <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/analytics">
-                    Analytics
-                  </Link>
-                  <button
-                    type="button"
-                    className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none"
-                    onClick={() => {
-                      setFormError(null);
-                      setIsProfileModalOpen(true);
-                    }}
-                  >
-                    Settings
-                  </button>
-                </>
+                <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/analytics">
+                  Analytics
+                </Link>
               ) : null}
+              <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/settings">
+                Settings
+              </Link>
             </nav>
           </div>
           <div className="flex items-center gap-3">
-            <Link
-              className="inline-flex items-center justify-center rounded-full bg-linear-to-r from-indigo-500 via-fuchsia-500 to-pink-500 px-4 py-2 text-sm font-semibold text-white no-underline shadow-md shadow-fuchsia-500/30 transition-[filter,box-shadow,transform] hover:brightness-110 hover:shadow-lg hover:shadow-fuchsia-500/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400 focus-visible:ring-offset-2 focus-visible:ring-offset-(--color-surface) active:scale-[0.98] active:brightness-105"
-              to="/prompts/new"
-            >
-              New Prompt
-            </Link>
+            <div className="relative" ref={createMenuRef}>
+              <button
+                type="button"
+                onClick={() => setCreateMenuOpen(!createMenuOpen)}
+                className="inline-flex items-center justify-center gap-1.5 rounded-full bg-(--color-launch) px-4 py-2 text-sm font-semibold text-white shadow-sm transition-[background-color,box-shadow,transform] hover:bg-(--color-launch-hover) hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--color-launch) focus-visible:ring-offset-2 focus-visible:ring-offset-(--color-surface) active:scale-[0.98]"
+                aria-haspopup="true"
+                aria-expanded={createMenuOpen}
+              >
+                <PlusIcon className="h-4 w-4" />
+                <span>Create</span>
+                <ChevronDownIcon className="h-4 w-4" />
+              </button>
+              {createMenuOpen && (
+                <div
+                  className="absolute right-0 z-50 mt-2 w-44 rounded-lg border border-(--color-border) bg-(--color-surface) py-1 shadow-lg"
+                  role="menu"
+                  aria-orientation="vertical"
+                >
+                  <Link
+                    to="/prompts/new"
+                    className="block px-4 py-2 text-sm text-(--color-text) hover:bg-(--color-surface-muted) focus-visible:bg-(--color-surface-muted) focus-visible:outline-none"
+                    role="menuitem"
+                    onClick={() => setCreateMenuOpen(false)}
+                  >
+                    New Prompt
+                  </Link>
+                  <Link
+                    to="/skills/new"
+                    className="block px-4 py-2 text-sm text-(--color-text) hover:bg-(--color-surface-muted) focus-visible:bg-(--color-surface-muted) focus-visible:outline-none"
+                    role="menuitem"
+                    onClick={() => setCreateMenuOpen(false)}
+                  >
+                    New Skill
+                  </Link>
+                  <Link
+                    to="/context/new"
+                    className="block px-4 py-2 text-sm text-(--color-text) hover:bg-(--color-surface-muted) focus-visible:bg-(--color-surface-muted) focus-visible:outline-none"
+                    role="menuitem"
+                    onClick={() => setCreateMenuOpen(false)}
+                  >
+                    New Context
+                  </Link>
+                </div>
+              )}
+            </div>
             {meQuery.data ? (
               <button
                 type="button"
@@ -136,18 +195,23 @@ export function AppShell({ children }: AppShellProps) {
         <footer className="mt-8 rounded-lg border border-(--color-border) bg-(--color-surface) px-4 py-3">
           <div className="flex items-center justify-between gap-4">
             <img src={SALESFORCE_LOGO} alt="Salesforce" className="h-9 w-auto object-contain" />
-            <p className="text-right text-sm text-(--color-text-muted)">
-              Copyright 2026. All Rights Reserved. Created with ❤️ by{" "}
-              <a
-                href="https://salesforce.enterprise.slack.com/team/U01G89VU4N7"
-                target="_blank"
-                rel="noreferrer"
-                className="underline hover:no-underline"
-              >
-                Amelia Ochodnicky
-              </a>
-              .
-            </p>
+            <div className="text-right text-sm text-(--color-text-muted)">
+              <Link to="/help" className="underline hover:no-underline mr-4">
+                Help
+              </Link>
+              <span>
+                Copyright 2026. All Rights Reserved. Created with ❤️ by{" "}
+                <a
+                  href="https://salesforce.enterprise.slack.com/team/U01G89VU4N7"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline hover:no-underline"
+                >
+                  Amelia Ochodnicky
+                </a>
+                .
+              </span>
+            </div>
           </div>
         </footer>
       </div>
@@ -155,12 +219,12 @@ export function AppShell({ children }: AppShellProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-2xl rounded-lg border border-(--color-border) bg-(--color-surface) p-6 shadow-lg">
             <h2 className="text-xl font-semibold">
-              {showWelcomeModal ? "Welcome to SF AI Library" : "Account settings"}
+              {showWelcomeModal ? "Welcome to Your AI Toolkit" : "Your Profile"}
             </h2>
             <p className="mt-1 text-sm text-(--color-text-muted)">
               {showWelcomeModal
-                ? "Please finish your profile before continuing."
-                : "Your profile, appearance, and account details."}
+                ? "Complete your profile to get started. It only takes a moment."
+                : "Manage your profile, preferences, and account settings."}
             </p>
             <form
               className="mt-4 space-y-4"

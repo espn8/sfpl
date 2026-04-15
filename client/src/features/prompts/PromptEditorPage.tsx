@@ -68,7 +68,7 @@ export function PromptEditorPage() {
         });
       }}
     >
-      <h2 className="text-2xl font-semibold">Create Prompt</h2>
+      <h2 className="text-2xl font-semibold">Create a New Prompt</h2>
       <input
         name="title"
         placeholder="Title"
@@ -127,7 +127,7 @@ export function PromptEditorPage() {
       </div>
       <textarea
         name="body"
-        placeholder="Prompt body (use [KEY] or {{KEY}} for variables)"
+        placeholder="Write your prompt here. Use [VARIABLE] or {{VARIABLE}} for customizable fields."
         className="h-48 w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
       />
       <section className="space-y-3 rounded border border-(--color-border) bg-(--color-surface-muted) p-3">

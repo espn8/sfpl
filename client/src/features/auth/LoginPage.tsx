@@ -6,9 +6,9 @@ export function LoginPage() {
       <div className="mx-auto flex max-w-xl flex-col gap-4 px-6 py-20">
         <div className="flex items-center gap-3">
           <img src="/salesforce-logo.png" alt="Salesforce" className="h-12 w-auto object-contain" />
-          <h1 className="text-3xl font-bold">AI Library</h1>
+          <h1 className="text-3xl font-bold">SF AI Library</h1>
         </div>
-        <p className="text-(--color-text-muted)">Prompts, Skills and Context for you, by you.</p>
+        <p className="text-(--color-text-muted)">Your AI toolkit. Find what works. Share what you've built.</p>
         <a
           className="inline-flex w-fit rounded bg-(--color-primary) px-4 py-2 font-bold text-white hover:bg-(--color-primary-active) active:bg-(--color-primary-active)"
           href={getGoogleLoginUrl()}
@@ -21,6 +21,9 @@ export function LoginPage() {
           </a>
           <a href="/privacy" className="link hover:underline">
             Privacy Policy
+          </a>
+          <a href="/help" className="link hover:underline">
+            Help
           </a>
         </div>
       </div>

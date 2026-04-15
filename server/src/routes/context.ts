@@ -37,6 +37,10 @@ const contextIdParamsSchema = z.object({
   id: z.coerce.number().int().positive(),
 });
 
+const usageBodySchema = z.object({
+  eventType: z.enum(["VIEW", "COPY"]),
+});
+
 const createContextBodySchema = z.object({
   title: z.string().trim().min(1, "title is required."),
   summary: z.string().trim().optional(),
@@ -180,8 +184,9 @@ contextRouter.get("/:id", async (req: Request, res: Response) => {
     return res.status(400).json(badRequestFromZodError(parsedParams.error));
   }
 
+  const contextId = parsedParams.data.id;
   const doc = await prisma.contextDocument.findFirst({
-    where: { id: parsedParams.data.id, teamId: auth.teamId },
+    where: { id: contextId, teamId: auth.teamId },
     include: { owner: { select: { id: true, name: true, avatarUrl: true } } },
   });
 
@@ -192,7 +197,18 @@ contextRouter.get("/:id", async (req: Request, res: Response) => {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this document." } });
   }
 
-  return res.status(200).json({ data: serializeContextDoc(doc) });
+  const [viewCount, favoriteRow] = await Promise.all([
+    prisma.contextUsageEvent.count({ where: { contextId, eventType: "VIEW" } }),
+    prisma.contextFavorite.findUnique({ where: { contextId_userId: { contextId, userId: auth.userId } } }),
+  ]);
+
+  return res.status(200).json({
+    data: {
+      ...serializeContextDoc(doc),
+      viewCount,
+      favorited: Boolean(favoriteRow),
+    },
+  });
 });
 
 contextRouter.patch("/:id", async (req: Request, res: Response) => {
@@ -263,6 +279,62 @@ contextRouter.delete("/:id", async (req: Request, res: Response) => {
   });
 
   return res.status(200).json({ data: archived });
+});
+
+contextRouter.post("/:id/favorite", async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+
+  const parsedParams = contextIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+
+  const contextId = parsedParams.data.id;
+  const doc = await prisma.contextDocument.findFirst({ where: { id: contextId, teamId: auth.teamId } });
+  if (!doc) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Context document not found." } });
+  }
+
+  const existing = await prisma.contextFavorite.findUnique({
+    where: { contextId_userId: { contextId, userId: auth.userId } },
+  });
+  if (existing) {
+    await prisma.contextFavorite.delete({ where: { contextId_userId: { contextId, userId: auth.userId } } });
+    return res.status(200).json({ data: { favorited: false } });
+  }
+  await prisma.contextFavorite.create({ data: { contextId, userId: auth.userId } });
+  return res.status(200).json({ data: { favorited: true } });
+});
+
+contextRouter.post("/:id/usage", async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+
+  const parsedParams = contextIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+
+  const parsedBody = usageBodySchema.safeParse(req.body);
+  if (!parsedBody.success) {
+    return res.status(400).json(badRequestFromZodError(parsedBody.error));
+  }
+
+  const contextId = parsedParams.data.id;
+  const { eventType } = parsedBody.data;
+
+  const doc = await prisma.contextDocument.findFirst({ where: { id: contextId, teamId: auth.teamId } });
+  if (!doc) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Context document not found." } });
+  }
+
+  await prisma.contextUsageEvent.create({ data: { contextId, userId: auth.userId, eventType } });
+  return res.status(200).json({ data: { ok: true } });
 });
 
 export { contextRouter };

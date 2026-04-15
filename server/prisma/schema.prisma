@@ -30,6 +30,10 @@ model User {
   versions   PromptVersion[]
   usage      UsageEvent[]
   collections Collection[] @relation("CollectionCreator")
+  skillFavorites    SkillFavorite[]
+  skillUsageEvents  SkillUsageEvent[]
+  contextFavorites  ContextFavorite[]
+  contextUsageEvents ContextUsageEvent[]
 }
 
 model Team {
@@ -87,6 +91,8 @@ model Skill {
   updatedAt   DateTime         @updatedAt
   team        Team             @relation(fields: [teamId], references: [id], onDelete: Restrict)
   owner       User             @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  favorites   SkillFavorite[]
+  usageEvents SkillUsageEvent[]
 
   @@index([teamId, updatedAt])
 }
@@ -104,6 +110,8 @@ model ContextDocument {
   updatedAt   DateTime         @updatedAt
   team        Team             @relation(fields: [teamId], references: [id], onDelete: Restrict)
   owner       User             @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  favorites   ContextFavorite[]
+  usageEvents ContextUsageEvent[]
 
   @@index([teamId, updatedAt])
 }
@@ -216,6 +224,54 @@ model UsageEvent {
   user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([promptId, action, createdAt])
+}
+
+model SkillFavorite {
+  id        Int      @id @default(autoincrement())
+  skillId   Int
+  userId    Int
+  createdAt DateTime @default(now())
+  skill     Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([skillId, userId])
+}
+
+model SkillUsageEvent {
+  id        Int      @id @default(autoincrement())
+  skillId   Int
+  userId    Int
+  eventType String   @default("VIEW")
+  createdAt DateTime @default(now())
+  skill     Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([skillId])
+  @@index([userId])
+}
+
+model ContextFavorite {
+  id        Int             @id @default(autoincrement())
+  contextId Int
+  userId    Int
+  createdAt DateTime        @default(now())
+  context   ContextDocument @relation(fields: [contextId], references: [id], onDelete: Cascade)
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([contextId, userId])
+}
+
+model ContextUsageEvent {
+  id        Int             @id @default(autoincrement())
+  contextId Int
+  userId    Int
+  eventType String          @default("VIEW")
+  createdAt DateTime        @default(now())
+  context   ContextDocument @relation(fields: [contextId], references: [id], onDelete: Cascade)
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([contextId])
+  @@index([userId])
 }
 
 enum Role {

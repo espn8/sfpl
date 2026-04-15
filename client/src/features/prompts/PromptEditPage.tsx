@@ -101,11 +101,11 @@ export function PromptEditPage() {
   }, [promptQuery.data?.id]);
 
   if (promptQuery.isLoading) {
-    return <p>Loading prompt...</p>;
+    return <p>Just a moment...</p>;
   }
 
   if (!promptQuery.data) {
-    return <p className="text-red-700">Prompt not found.</p>;
+    return <p className="text-red-700">This prompt doesn't exist or may have been removed.</p>;
   }
 
   const prompt = promptQuery.data;
@@ -301,11 +301,10 @@ export function PromptEditPage() {
           </button>
         </div>
         <p className="text-xs text-(--color-text-muted)">
-          Keys must match placeholders in the body (for example <code className="rounded bg-(--color-surface) px-1">DIFF</code>{" "}
-          for <code className="rounded bg-(--color-surface) px-1">[DIFF]</code>).
+          Variable names should match the placeholders in your prompt (e.g., [TOPIC] uses a TOPIC variable).
         </p>
         {variableRows.length === 0 ? (
-          <p className="text-sm text-(--color-text-muted)">No variables. Add one or leave empty for a static prompt.</p>
+          <p className="text-sm text-(--color-text-muted)">No variables yet. Add one to make this prompt customizable, or leave it as-is.</p>
         ) : (
           <ul className="space-y-3">
             {variableRows.map((row, index) => (

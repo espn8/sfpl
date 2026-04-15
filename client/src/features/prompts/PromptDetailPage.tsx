@@ -175,11 +175,11 @@ export function PromptDetailPage() {
   }, [promptId]);
 
   if (promptQuery.isLoading) {
-    return <p>Loading prompt...</p>;
+    return <p>Just a moment...</p>;
   }
 
   if (!promptData) {
-    return <p className="text-red-700">Prompt not found.</p>;
+    return <p className="text-red-700">This prompt doesn't exist or may have been removed.</p>;
   }
 
   const averageRating =
@@ -273,7 +273,7 @@ export function PromptDetailPage() {
             </div>
           ) : null}
           <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-(--color-border) pt-3">
-            <span className="text-sm text-(--color-text-muted)">Rate this prompt</span>
+            <span className="text-sm text-(--color-text-muted)">How helpful was this prompt?</span>
             <PromptRateStars
               value={myRating}
               disabled={rateMutation.isPending}
@@ -352,7 +352,7 @@ export function PromptDetailPage() {
             })}
           </div>
         ) : (
-          <p className="text-sm text-(--color-text-muted)">No collections available yet.</p>
+          <p className="text-sm text-(--color-text-muted)">No collections yet. Create one to organize your favorites.</p>
         )}
       </section>
 
@@ -360,9 +360,7 @@ export function PromptDetailPage() {
         <section className="space-y-3 rounded border border-(--color-border) bg-(--color-surface) p-4">
           <h3 className="text-sm font-semibold uppercase tracking-wide text-(--color-text-muted)">Template</h3>
           <p className="text-xs text-(--color-text-muted)">
-            Use <code className="rounded bg-(--color-surface-muted) px-1">[KEY]</code> or{" "}
-            <code className="rounded bg-(--color-surface-muted) px-1">{"{{KEY}}"}</code> in the body. Fill fields below to
-            preview the composed prompt.
+            This prompt uses variables. Fill them in below to see your customized version.
           </p>
           <pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded border border-(--color-border) bg-(--color-surface-muted) p-3 text-sm">
             {promptData.body}
@@ -502,7 +500,7 @@ export function PromptDetailPage() {
 
       <details className="rounded border border-(--color-border) bg-(--color-surface) p-4">
         <summary className="cursor-pointer text-sm font-semibold uppercase tracking-wide text-(--color-text-muted)">
-          Version history
+          History
           {versionsQuery.data ? ` (${versionsQuery.data.length})` : ""}
         </summary>
         <div className="mt-3 space-y-3">

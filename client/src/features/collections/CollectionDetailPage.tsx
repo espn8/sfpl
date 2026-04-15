@@ -2,8 +2,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
+import { buildShareUrl, shareOrCopyLink } from "../../lib/shareOrCopyLink";
 import { deleteCollection, getCollection, removePromptFromCollection, updateCollection } from "./api";
 import { PromptThumbnail } from "../prompts/PromptThumbnail";
+import { ShareIcon } from "../prompts/promptActionIcons";
 
 export function CollectionDetailPage() {
   const params = useParams();
@@ -61,11 +63,28 @@ export function CollectionDetailPage() {
     return <p className="text-red-700">Collection not found.</p>;
   }
 
+  const shareUrl = buildShareUrl(`/collections/${collectionId}`);
+
+  const handleShare = async () => {
+    await shareOrCopyLink(collection.name, shareUrl);
+    trackEvent("collection_share", { collection_id: collectionId, source: "detail" });
+  };
+
   return (
     <div className="space-y-4">
-      <div className="space-y-1">
-        <h2 className="text-2xl font-semibold">{collection.name}</h2>
-        <p className="text-(--color-text-muted)">{collection.description ?? "No description."}</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <h2 className="text-2xl font-semibold">{collection.name}</h2>
+          <p className="text-(--color-text-muted)">{collection.description ?? "No description."}</p>
+        </div>
+        <button
+          type="button"
+          className="rounded-md border border-(--color-border) p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text)"
+          aria-label="Share collection link"
+          onClick={() => void handleShare()}
+        >
+          <ShareIcon className="h-5 w-5" />
+        </button>
       </div>
       <form
         key={`${collection.id}-${collection.name}-${collection.description ?? ""}`}

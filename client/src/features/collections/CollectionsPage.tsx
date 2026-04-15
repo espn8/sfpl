@@ -48,12 +48,12 @@ export function CollectionsPage() {
           <input
             name="name"
             className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
-            placeholder="New collection name"
+            placeholder="Name your collection"
           />
           <input
             name="description"
             className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
-            placeholder="Optional description"
+            placeholder="What's this collection for?"
           />
           {formError ? <p className="text-sm text-red-700">{formError}</p> : null}
         </div>
@@ -62,7 +62,7 @@ export function CollectionsPage() {
           disabled={createMutation.isPending}
           className="rounded bg-(--color-primary) px-3 py-2 text-(--color-text-inverse) hover:bg-(--color-primary-active) active:bg-(--color-primary-active)"
         >
-          {createMutation.isPending ? "Creating..." : "Create"}
+          {createMutation.isPending ? "Creating..." : "Create Collection"}
         </button>
       </form>
       {collectionsQuery.data?.map((collection) => (

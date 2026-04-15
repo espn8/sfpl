@@ -1,49 +1,53 @@
 # AI Library - Technical Summary
 
-Last Updated: Wednesday, April 15, 2026 — 16:06 CDT
-Build Version: ab97d08
+Last Updated: Wednesday, April 15, 2026 — 16:30 CDT
+Build Version: 875176b
 
 ## Recent Changes
 
-- **Login page branding**: Updated tagline to "Prompts, Skills and Context for you, by you." and added footer with copyright notice and attribution to Amelia Ochodnicky.
+- **Comprehensive copy rewrite**: Rewrote all user-facing content with Salesforce voice—warm, approachable, action-oriented, and individual-focused. Updated headings, CTAs, descriptions, empty states, and form labels across all pages.
+- **Searchable Help page**: Created new `/help` route with searchable, indexed help content organized by topic (Getting Started, Prompts, Skills, Context, Collections, Using AI Tools, Your Profile, Tips & Best Practices). Added footer links in AppShell and LoginPage.
+- **Skill/Context usability enhancements**: Added copy-to-clipboard buttons, markdown preview toggle with `react-markdown`, and share functionality (Web Share API with clipboard fallback) to SkillDetailPage and ContextDetailPage.
+- **Analytics dashboard expansion**: Added Top Rated Prompts, Contributors leaderboard, and User Engagement leaderboard sections to AnalyticsPage.
+- **Backend usage tracking for Skills/Context**: Added `/api/skills/:id/usage` and `/api/context/:id/usage` endpoints with Prisma schema updates for `SkillUsageEvent` and `ContextUsageEvent` models.
+- **AppShell styling**: Replaced off-brand gradient "New Prompt" button with on-brand `--color-launch` (Salesforce orange) styling.
+- **PromptListPage tool ordering**: Tool options now sort alphabetically with "slackbot" pinned first.
+- **Login page branding**: Updated tagline to "Prompts, Skills and Context for you, by you." and added footer with copyright/attribution.
 - **Earlier work (carried forward)**: Site audit against implementation spec; Salesforce logo inline with "AI Library" h1 in flex row; Skills and Context Document full-stack features; session cookie renamed to `ailibrary.sid`; AppShell navigation updated; full rebrand to AI Library at `https://ail.mysalesforcedemo.com`; prompt engagement UX (star ratings, favorites, share, launch providers, `{{variable}}` interpolation, thumbnail generation).
 
 ## Audit Summary
 
-The application has achieved **substantial completion** of the core implementation spec. The original prompt-focused design has been extended to include Skills and Context Documents. Key gaps remain around sharing functionality for newer content types and analytics dashboard completeness.
+The application has achieved **substantial completion** of the core implementation spec with significant improvements deployed in recent sessions. The original prompt-focused design has been extended to include Skills and Context Documents with enhanced usability features.
 
 ### Implementation Status Overview
 
 | Component | Status |
 |-----------|--------|
 | Authentication (Google SSO, sessions, team scoping) | ✅ Complete |
-| Prisma Data Model (all spec models + Skill/ContextDocument) | ✅ Complete |
+| Prisma Data Model (all spec models + Skill/ContextDocument + usage events) | ✅ Complete |
 | Prompt APIs (CRUD, versions, engagement, thumbnails) | ✅ Complete |
-| Skills APIs (CRUD, list, search) | ✅ Complete |
-| Context Documents APIs (CRUD, list, search) | ✅ Complete |
+| Skills APIs (CRUD, list, search, usage tracking) | ✅ Complete |
+| Context Documents APIs (CRUD, list, search, usage tracking) | ✅ Complete |
 | Tags, Collections, Analytics APIs | ✅ Complete |
-| Frontend Routes (all spec routes + Skills/Context) | ✅ Complete |
+| Frontend Routes (all spec routes + Skills/Context + Help) | ✅ Complete |
 | Theme System (dark/light/system, persistence) | ✅ Complete |
-| Share Functionality | ⚠️ Partial (Prompts only) |
-| Analytics Dashboard UI | ⚠️ Partial (missing some backend data) |
+| Share Functionality | ✅ Complete (Prompts, Skills, Context, Collections) |
+| Analytics Dashboard UI | ✅ Complete (Top Used, Top Rated, Stale, Contributors, User Engagement) |
 | Skills/Context Feature Parity | ⚠️ Partial (no versioning, tags, favorites, ratings) |
+| Help Documentation | ✅ Complete (searchable, indexed by topic) |
+| Salesforce Brand Voice | ✅ Complete (individual-focused, action-oriented) |
 
 ### Identified Gaps (Prioritized)
 
-1. **Sharing**: Skills and Context Documents lack share buttons; Collections also missing share.
-2. **Analytics UI**: Backend returns `topRatedPrompts`, `contributors`, `userEngagementLeaderboard` but UI only displays `topUsedPrompts` and `stalePrompts`.
-3. **Feature Parity**: Skills/Context missing versioning, tags, collections, favorites, ratings, usage tracking, copy-to-clipboard.
-4. **Minor**: No dedicated `/settings` route (modal only); AppShell only has "New Prompt" quick-action.
+1. **Feature Parity**: Skills/Context missing versioning, tags, collections, favorites, ratings.
+2. **Minor**: No dedicated `/settings` route (modal only); AppShell only has "New Prompt" quick-action (could add "New Skill"/"New Context").
 
-### Remediation Roadmap
+### Remediation Roadmap (Updated)
 
 | Phase | Description | Scope |
 |-------|-------------|-------|
-| 1 | Sharing Feature Expansion | Generic share utility; add share to Skills, Context, Collections detail pages |
-| 2 | Analytics Dashboard Enhancement | Surface all backend data; add Top Rated, Contributors, User Engagement sections |
-| 3 | Content Copy & Markdown Preview | Copy buttons for Skills/Context; install `react-markdown`; rendered preview option |
-| 4 | Feature Parity for Skills/Context | Tags, Favorites, Usage tracking, Versioning (lower priority) |
-| 5 | Quick-Create Actions & Navigation | Add "New Skill"/"New Context" to AppShell; dedicated `/settings` route |
+| 1 | Feature Parity for Skills/Context | Tags, Favorites, Ratings, Versioning (lower priority) |
+| 2 | Quick-Create Actions & Navigation | Add "New Skill"/"New Context" to AppShell; dedicated `/settings` route |
 
 ## Technical Architecture
 
@@ -105,10 +109,11 @@ The application has achieved **substantial completion** of the core implementati
 │   │   ├── components/                         # Shared UI shell/chrome (AppShell, ProtectedRoute, AdminRoute)
 │   │   ├── features/
 │   │   │   ├── prompts/                        # Discovery/detail/create/edit, cards, filters, interpolation, external launch, share
-│   │   │   ├── skills/                         # Skill list/detail/create/edit (markdown body)
-│   │   │   ├── context/                        # Context (markdown) list/detail/create/edit
-│   │   │   ├── analytics/                      # Admin analytics dashboard + typed API contracts
-│   │   │   ├── collections/                    # Collection CRUD + membership surfaces
+│   │   │   ├── skills/                         # Skill list/detail/create/edit (markdown body, copy, share, usage tracking)
+│   │   │   ├── context/                        # Context (markdown) list/detail/create/edit (copy, share, usage tracking)
+│   │   │   ├── analytics/                      # Admin analytics dashboard (top used/rated, contributors, user engagement)
+│   │   │   ├── collections/                    # Collection CRUD + membership surfaces + share
+│   │   │   ├── help/                           # Searchable help documentation (HelpPage.tsx)
 │   │   │   └── auth/                           # OAuth entry + role helpers (LoginPage, api, roles)
 │   │   ├── pages/                              # Static pages (TermsPage, PrivacyPage)
 │   │   ├── styles/                             # Design tokens + theme semantics
@@ -126,13 +131,16 @@ The application has achieved **substantial completion** of the core implementati
 │   │   ├── middleware/                         # auth, errorHandler
 │   │   ├── routes/
 │   │   │   ├── prompts.ts                      # Prompt CRUD/search/rating/usage/favorites/thumbnail orchestration
-│   │   │   ├── skills.ts                       # Skill CRUD + list search (team-scoped)
-│   │   │   ├── context.ts                      # Context document CRUD + list search (team-scoped)
+│   │   │   ├── skills.ts                       # Skill CRUD + list search + usage tracking (team-scoped)
+│   │   │   ├── context.ts                      # Context document CRUD + list search + usage tracking (team-scoped)
 │   │   │   ├── analytics.ts                    # Top-used/stale/contributors/user-engagement scoreboard
 │   │   │   ├── collections.ts                  # Collection operations
 │   │   │   ├── tags.ts                         # Tag management
+│   │   │   ├── help.ts                         # Help search endpoint
 │   │   │   └── auth.ts                         # Google OAuth + session lifecycle
-│   │   └── services/nanoBanana.ts              # Image generation adapter (Gemini API)
+│   │   ├── services/
+│   │   │   ├── nanoBanana.ts                   # Image generation adapter (Gemini API)
+│   │   │   └── helpSearch.ts                   # Help content search service
 │   └── test/                                   # API behavior tests
 ├── Procfile                                    # Heroku process model
 ├── app.json                                    # Heroku app metadata/env scaffolding
@@ -142,7 +150,7 @@ The application has achieved **substantial completion** of the core implementati
 
 ### Prisma Data Model Summary
 
-**Models (17):**
+**Models (19):**
 - `User` - with `avatarUrl`, `region`, `ou`, `title`, `onboardingCompleted`, `googleSub`
 - `Team` - multi-tenant team container
 - `Prompt` - with `tools[]`, `modality`, `thumbnailUrl`, `thumbnailStatus`, `thumbnailError`
@@ -153,9 +161,11 @@ The application has achieved **substantial completion** of the core implementati
 - `Collection`, `CollectionPrompt` - curated prompt collections
 - `Favorite`, `Rating` - user engagement (prompts only currently)
 - `PromptVariable` - dynamic variable definitions
-- `UsageEvent` - VIEW/COPY/LAUNCH tracking (prompts only currently)
+- `UsageEvent` - VIEW/COPY/LAUNCH tracking (prompts)
+- `SkillUsageEvent` - VIEW/COPY/SHARE tracking (skills)
+- `ContextUsageEvent` - VIEW/COPY/SHARE tracking (context documents)
 
-**Enums (7):** `Role`, `PromptVisibility`, `PromptStatus`, `UsageAction`, `PromptModality`, `ThumbnailStatus`
+**Enums (9):** `Role`, `PromptVisibility`, `PromptStatus`, `UsageAction`, `PromptModality`, `ThumbnailStatus`, `SkillUsageAction`, `ContextUsageAction`
 
 ### Primary Data Flow / Lifecycle
 
@@ -176,11 +186,12 @@ The application has achieved **substantial completion** of the core implementati
 |------------|-----------|
 | `auth.ts` | `GET /google`, `GET /google/callback`, `POST /logout`, `GET /me`, `PATCH /me` |
 | `prompts.ts` | Full CRUD, `/versions`, `/restore/:version`, `/favorite`, `/rating`, `/usage`, `/regenerate-thumbnail` |
-| `skills.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id` |
-| `context.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id` |
+| `skills.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `POST /:id/usage` |
+| `context.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `POST /:id/usage` |
 | `collections.ts` | CRUD + `/prompts/:promptId` membership |
 | `tags.ts` | `GET /`, `POST /` |
 | `analytics.ts` | `GET /overview` (team-scoped aggregates) |
+| `help.ts` | `GET /search` (help content search) |
 
 ### Frontend Routes Inventory
 
@@ -189,6 +200,7 @@ The application has achieved **substantial completion** of the core implementati
 | `/login` | `LoginPage` | Public |
 | `/terms` | `TermsPage` | Public |
 | `/privacy` | `PrivacyPage` | Public |
+| `/help` | `HelpPage` | Public |
 | `/` | `PromptListPage` | Protected |
 | `/prompts/new` | `PromptEditorPage` | Protected |
 | `/prompts/:id` | `PromptDetailPage` | Protected |
@@ -208,18 +220,27 @@ The application has achieved **substantial completion** of the core implementati
 ### Major Modules and Why They Exist
 
 - `server/src/routes/prompts.ts`: primary prompt API with filtering, sorting, pagination, CRUD, versions, and engagement.
-- `server/src/routes/skills.ts`: skill CRUD with team scoping, search, and archive (soft delete).
-- `server/src/routes/context.ts`: context document CRUD with team scoping, search, and archive.
+- `server/src/routes/skills.ts`: skill CRUD with team scoping, search, archive (soft delete), and usage tracking.
+- `server/src/routes/context.ts`: context document CRUD with team scoping, search, archive, and usage tracking.
 - `server/src/routes/analytics.ts`: consolidated overview payload consumed by homepage dashboards and leaderboards.
+- `server/src/routes/help.ts`: help content search endpoint for the searchable help page.
 - `server/src/services/nanoBanana.ts`: external image-generation bridge for prompt thumbnails via Gemini API.
+- `server/src/services/helpSearch.ts`: help content search service with topic indexing.
 - `server/prisma/schema.prisma`: source of truth for users/teams/prompts/skills/context/engagement relations and enums.
 - `client/src/features/prompts/PromptListPage.tsx`: homepage/discovery UX, list cards, filters, hero stats, and leaderboards.
 - `client/src/features/prompts/PromptDetailPage.tsx`: full prompt view with engagement chrome, variables/preview, versions, and external launch.
-- `client/src/features/prompts/sharePrompt.ts`: Web Share API integration for prompt sharing (needs expansion to other content types).
+- `client/src/features/prompts/sharePrompt.ts`: Web Share API integration for prompt sharing.
+- `client/src/lib/shareOrCopyLink.ts`: generic share utility used by Skills, Context, and Collections.
+- `client/src/components/AppShell.tsx`: page chrome with navigation, theme toggle, and footer with Help link.
 - `client/src/components/AdminRoute.tsx`: redirects non-admin users away from admin-only routes (e.g. analytics).
+- `client/src/components/MarkdownPreview.tsx`: reusable markdown rendering component using `react-markdown`.
 - `client/src/features/prompts/interpolatePrompt.ts` / `launchProviders.ts`: client-side prompt variable fill-in and deep links to external chat products.
 - `client/src/features/prompts/PromptThumbnail.tsx`: thumbnail rendering with graceful placeholder states.
+- `client/src/features/analytics/AnalyticsPage.tsx`: admin dashboard with top used, top rated, stale prompts, contributors, and user engagement leaderboards.
 - `client/src/features/analytics/api.ts`: strict typed contract for analytics payload shape.
+- `client/src/features/help/HelpPage.tsx`: searchable help documentation with topic index sidebar.
+- `client/src/features/skills/SkillDetailPage.tsx`: skill detail view with copy button, markdown preview toggle, and share.
+- `client/src/features/context/ContextDetailPage.tsx`: context detail view with copy button, markdown preview toggle, and share.
 
 ## Replication and Setup
 
@@ -303,17 +324,21 @@ git push heroku main
 
 ### Roadmap / Backlog
 
-**From Audit (Prioritized):**
+**Remaining Feature Work:**
 
-1. **Sharing Feature Expansion** — Create generic `shareOrCopyLink.ts` utility; add share buttons to `SkillDetailPage`, `ContextDetailPage`, `CollectionDetailPage`; add GA4 tracking events for skill/context sharing.
+1. **Feature Parity for Skills/Context** — Tags (SkillTag/ContextTag models, endpoints, picker UI, filter chips); Favorites (SkillFavorite/ContextFavorite models, toggle endpoints, UI); Ratings; Versioning (lower priority).
 
-2. **Analytics Dashboard Enhancement** — Add "Top Rated Prompts" section; add "Contributors" leaderboard component; add "User Engagement" leaderboard component; add time-range selector; link prompts to detail pages.
+2. **Quick-Create Actions** — Add "New Skill" and "New Context" buttons to AppShell (dropdown menu); add dedicated `/settings` route.
 
-3. **Content Copy & Markdown Preview** — Add "Copy content" button to SkillDetailPage and ContextDetailPage; install markdown renderer (`react-markdown`); add rendered markdown preview option; add copy tracking to analytics.
+3. **Analytics Enhancements** — Add time-range selector; add skill/context usage stats to overview.
 
-4. **Feature Parity for Skills/Context** — Tags (SkillTag/ContextTag models, endpoints, picker UI, filter chips); Favorites (SkillFavorite/ContextFavorite models, toggle endpoints, UI); Usage tracking (SkillUsageEvent/ContextUsageEvent); Versioning (lower priority).
+**Completed in Recent Sessions:**
 
-5. **Quick-Create Actions** — Add "New Skill" and "New Context" buttons to AppShell (dropdown menu); add dedicated `/settings` route.
+- ✅ Sharing Feature Expansion — Created generic `shareOrCopyLink.ts` utility; added share to Skills, Context, Collections.
+- ✅ Analytics Dashboard Enhancement — Added Top Rated, Contributors, User Engagement leaderboards.
+- ✅ Content Copy & Markdown Preview — Added copy buttons, `react-markdown` preview, usage tracking.
+- ✅ Comprehensive Copy Rewrite — Salesforce voice, individual-focused, action-oriented.
+- ✅ Help Page — Searchable, indexed help documentation.
 
 **Technical Debt:**
 

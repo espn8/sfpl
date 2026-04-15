@@ -140,11 +140,11 @@ export function PromptListPage() {
   });
 
   if (promptsQuery.isLoading) {
-    return <p>Loading prompts...</p>;
+    return <p>Loading your prompts...</p>;
   }
 
   if (promptsQuery.error) {
-    return <p className="text-red-700">Failed to load prompts.</p>;
+    return <p className="text-red-700">We couldn't load prompts right now. Try refreshing.</p>;
   }
 
   const snapshot = promptsQuery.data?.meta.snapshot;
@@ -178,17 +178,17 @@ export function PromptListPage() {
   const usersLeaderboard = (analyticsQuery.data?.userEngagementLeaderboard ?? []).slice(0, 5);
 
   const aiToolAudience = [
-    "Prompt engineers building repeatable workflows",
-    "Sales teams writing account-ready outreach",
-    "Developers generating code, SQL, and debugging helpers",
-    "Marketing and content teams shipping campaigns faster",
+    "Prompt engineers building repeatable, scalable workflows",
+    "Salespeople crafting personalized, account-ready outreach",
+    "Developers generating code, SQL, and debugging solutions faster",
+    "Marketers and content creators shipping campaigns at AI speed",
   ] as const;
 
   const howItWorksSteps = [
-    { step: "1", title: "Discover", description: "Browse top-performing prompts by category, role, and business objective." },
-    { step: "2", title: "Customize", description: "Swap in your audience, tone, offer, and context with reusable variables." },
-    { step: "3", title: "Launch", description: "Run in your preferred AI tool and immediately put results into production." },
-    { step: "4", title: "Scale", description: "Save favorites, publish to collections, and compound team-wide wins." },
+    { step: "1", title: "Discover", description: "Browse prompts built by Salesforce experts across every role and use case." },
+    { step: "2", title: "Customize", description: "Fill in variables to tailor any prompt to your specific context and audience." },
+    { step: "3", title: "Launch", description: "Open directly in Slackbot, Claude, Gemini, or Cursor with one click." },
+    { step: "4", title: "Scale", description: "Save your favorites, build collections, and share what works." },
   ] as const;
 
   return (
@@ -198,17 +198,16 @@ export function PromptListPage() {
         <div className="pointer-events-none absolute -bottom-16 -left-10 h-48 w-48 rounded-full bg-(--color-primary)/10 blur-3xl" />
         <div className="space-y-3">
           <p className="inline-block rounded-full border border-(--color-border) bg-(--color-surface) px-3 py-1 text-xs font-semibold tracking-[0.14em]">
-            Welcome to SF AI Library
+            Your AI Advantage Starts Here
           </p>
-          <h2 className="text-3xl font-bold md:text-4xl">Discover the magic behind every winning AI response</h2>
+          <h2 className="text-3xl font-bold md:text-4xl">Find the prompts that get results. Share the ones you've perfected.</h2>
           <p className="max-w-3xl text-(--color-text-muted)">
-            Find proven prompts, personalize them for your context, and launch in seconds. Built for Salesforce
-            and every AI power user who needs better outcomes, faster.
+            Browse battle-tested prompts from fellow Salesforce employees, customize them for your work, and launch directly into your favorite AI tool. No more starting from scratch.
           </p>
         </div>
         <div className="mt-5 flex flex-col gap-3">
           <div className="w-full rounded-xl border border-(--color-border) bg-(--color-surface) px-4 py-5 transition-all duration-300 motion-reduce:transition-none sm:px-6 sm:py-6">
-            <p className="text-xs uppercase tracking-wide text-(--color-text-muted)">Live platform snapshot</p>
+            <p className="text-xs uppercase tracking-wide text-(--color-text-muted)">See what's happening now</p>
             <div
               className="mt-5 grid w-full grid-cols-1 gap-8 sm:grid-cols-3"
               role="list"
@@ -232,8 +231,8 @@ export function PromptListPage() {
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-xl font-semibold">Featured Prompts</h3>
-          <span className="text-sm font-medium text-(--color-text-muted)">Highest impact this week</span>
+          <h3 className="text-xl font-semibold">Top Performers This Week</h3>
+          <span className="text-sm font-medium text-(--color-text-muted)">The prompts people can't stop using</span>
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {featuredPrompts.map((prompt) => (
@@ -281,26 +280,32 @@ export function PromptListPage() {
       </section>
 
       <section className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-sm transition-all duration-300 hover:shadow motion-reduce:transition-none">
-        <h3 className="text-xl font-semibold">Built for Every AI Tool & User</h3>
+        <h3 className="text-xl font-semibold">Works Where You Work</h3>
         <div className="mt-3 grid gap-3 md:grid-cols-2">
           <div className="rounded-xl border border-(--color-border) bg-(--color-surface-muted) p-4 transition-all duration-300 hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none">
-            <p className="font-semibold">Wherever you work</p>
+            <p className="font-semibold">Your tools, ready to go</p>
             <p className="mt-1 text-sm text-(--color-text-muted)">
-              SF AI Library supports prompts, skills, and markdown context across Cursor, Claude, Gemini, Notebook LM, and beyond.
+              SF AI Library connects seamlessly with Slackbot, Cursor, Claude, Gemini, NotebookLM, and more. Pick your tool and get to work.
             </p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs">
-              {PROMPT_TOOL_OPTIONS.map((toolOption) => (
-                <span
-                  key={toolOption}
-                  className="rounded-full border border-(--color-border) bg-(--color-surface) px-2 py-1 font-medium"
-                >
-                  {toolOption}
-                </span>
-              ))}
+              {[...PROMPT_TOOL_OPTIONS]
+                .sort((a, b) => {
+                  if (a === "slackbot") return -1;
+                  if (b === "slackbot") return 1;
+                  return a.localeCompare(b);
+                })
+                .map((toolOption) => (
+                  <span
+                    key={toolOption}
+                    className="rounded-full border border-(--color-border) bg-(--color-surface) px-2 py-1 font-medium"
+                  >
+                    {toolOption}
+                  </span>
+                ))}
             </div>
           </div>
           <div className="rounded-xl border border-(--color-border) bg-(--color-surface-muted) p-4 transition-all duration-300 hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none">
-            <p className="font-semibold">Who benefits</p>
+            <p className="font-semibold">Built for people like you</p>
             <ul className="mt-2 space-y-1 text-sm text-(--color-text-muted)">
               {aiToolAudience.map((item) => (
                 <li key={item}>- {item}</li>
@@ -313,8 +318,8 @@ export function PromptListPage() {
       {canViewAnalytics ? (
       <section className="grid gap-4 md:grid-cols-2">
         <div className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-sm transition-all duration-300 hover:shadow motion-reduce:transition-none">
-          <h3 className="text-xl font-semibold">Contributors Leaderboard</h3>
-          <p className="mt-1 text-sm text-(--color-text-muted)">Contributors driving AI adoption</p>
+          <h3 className="text-xl font-semibold">Top Contributors</h3>
+          <p className="mt-1 text-sm text-(--color-text-muted)">The people driving AI adoption forward</p>
           <div className="mt-3 space-y-2">
             {contributorLeaderboard.map((contributor, index) => (
               <div
@@ -331,13 +336,13 @@ export function PromptListPage() {
               </div>
             ))}
             {contributorLeaderboard.length === 0 ? (
-              <p className="text-sm text-(--color-text-muted)">Leaderboard data will appear as your team contributes.</p>
+              <p className="text-sm text-(--color-text-muted)">Be the first to contribute and claim your spot.</p>
             ) : null}
           </div>
         </div>
         <div className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-sm transition-all duration-300 hover:shadow motion-reduce:transition-none">
-          <h3 className="text-xl font-semibold">Users Leaderboard</h3>
-          <p className="mt-1 text-sm text-(--color-text-muted)">Top users based on utilization and feedback</p>
+          <h3 className="text-xl font-semibold">Most Active</h3>
+          <p className="mt-1 text-sm text-(--color-text-muted)">The most engaged users</p>
           <div className="mt-3 space-y-2">
             {usersLeaderboard.map((user, index) => (
               <div
@@ -357,14 +362,14 @@ export function PromptListPage() {
               </div>
             ))}
             {usersLeaderboard.length === 0 ? (
-              <p className="text-sm text-(--color-text-muted)">User leaderboard updates as engagement activity comes in.</p>
+              <p className="text-sm text-(--color-text-muted)">Start engaging to see active users here.</p>
             ) : null}
           </div>
         </div>
       </section>
       ) : null}
 
-      <h3 className="text-2xl font-semibold">Prompt Discovery</h3>
+      <h3 className="text-2xl font-semibold">Explore Prompts</h3>
       <div className="grid gap-2 rounded border border-(--color-border) bg-(--color-surface) p-3 md:grid-cols-2">
         <input
           value={search}
@@ -373,7 +378,7 @@ export function PromptListPage() {
             setPage(1);
           }}
           className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
-          placeholder="Search title, summary, or body"
+          placeholder="Search by keyword, use case, or author..."
         />
         <select
           value={sort}

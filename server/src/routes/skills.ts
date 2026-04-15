@@ -37,6 +37,10 @@ const skillIdParamsSchema = z.object({
   id: z.coerce.number().int().positive(),
 });
 
+const usageBodySchema = z.object({
+  eventType: z.enum(["VIEW", "COPY"]),
+});
+
 const createSkillBodySchema = z.object({
   title: z.string().trim().min(1, "title is required."),
   summary: z.string().trim().optional(),
@@ -180,8 +184,9 @@ skillsRouter.get("/:id", async (req: Request, res: Response) => {
     return res.status(400).json(badRequestFromZodError(parsedParams.error));
   }
 
+  const skillId = parsedParams.data.id;
   const skill = await prisma.skill.findFirst({
-    where: { id: parsedParams.data.id, teamId: auth.teamId },
+    where: { id: skillId, teamId: auth.teamId },
     include: { owner: { select: { id: true, name: true, avatarUrl: true } } },
   });
 
@@ -192,7 +197,18 @@ skillsRouter.get("/:id", async (req: Request, res: Response) => {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this skill." } });
   }
 
-  return res.status(200).json({ data: serializeSkill(skill) });
+  const [viewCount, favoriteRow] = await Promise.all([
+    prisma.skillUsageEvent.count({ where: { skillId, eventType: "VIEW" } }),
+    prisma.skillFavorite.findUnique({ where: { skillId_userId: { skillId, userId: auth.userId } } }),
+  ]);
+
+  return res.status(200).json({
+    data: {
+      ...serializeSkill(skill),
+      viewCount,
+      favorited: Boolean(favoriteRow),
+    },
+  });
 });
 
 skillsRouter.patch("/:id", async (req: Request, res: Response) => {
@@ -263,6 +279,62 @@ skillsRouter.delete("/:id", async (req: Request, res: Response) => {
   });
 
   return res.status(200).json({ data: archived });
+});
+
+skillsRouter.post("/:id/favorite", async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+
+  const parsedParams = skillIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+
+  const skillId = parsedParams.data.id;
+  const skill = await prisma.skill.findFirst({ where: { id: skillId, teamId: auth.teamId } });
+  if (!skill) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not found." } });
+  }
+
+  const existing = await prisma.skillFavorite.findUnique({
+    where: { skillId_userId: { skillId, userId: auth.userId } },
+  });
+  if (existing) {
+    await prisma.skillFavorite.delete({ where: { skillId_userId: { skillId, userId: auth.userId } } });
+    return res.status(200).json({ data: { favorited: false } });
+  }
+  await prisma.skillFavorite.create({ data: { skillId, userId: auth.userId } });
+  return res.status(200).json({ data: { favorited: true } });
+});
+
+skillsRouter.post("/:id/usage", async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+
+  const parsedParams = skillIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+
+  const parsedBody = usageBodySchema.safeParse(req.body);
+  if (!parsedBody.success) {
+    return res.status(400).json(badRequestFromZodError(parsedBody.error));
+  }
+
+  const skillId = parsedParams.data.id;
+  const { eventType } = parsedBody.data;
+
+  const skill = await prisma.skill.findFirst({ where: { id: skillId, teamId: auth.teamId } });
+  if (!skill) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not found." } });
+  }
+
+  await prisma.skillUsageEvent.create({ data: { skillId, userId: auth.userId, eventType } });
+  return res.status(200).json({ data: { ok: true } });
 });
 
 export { skillsRouter };

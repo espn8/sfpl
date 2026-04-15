@@ -27,13 +27,13 @@ export function SkillListPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Skills</h1>
-          <p className="mt-1 text-sm text-(--color-text-muted)">Reusable skill instructions for your team (markdown).</p>
+          <p className="mt-1 text-sm text-(--color-text-muted)">Reusable AI skill definitions you can load into your tools. Think of them as instruction manuals your AI can follow.</p>
         </div>
         <Link
           to="/skills/new"
           className="inline-flex items-center justify-center rounded-full bg-linear-to-r from-indigo-500 via-fuchsia-500 to-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-md hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400"
         >
-          New skill
+          Create Skill
         </Link>
       </div>
 
@@ -53,10 +53,10 @@ export function SkillListPage() {
         />
       </div>
 
-      {query.isLoading ? <p className="text-sm text-(--color-text-muted)">Loading…</p> : null}
+      {query.isLoading ? <p className="text-sm text-(--color-text-muted)">Just a moment...</p> : null}
       {query.isError ? (
         <p className="text-sm text-red-600" role="alert">
-          Could not load skills.
+          We couldn't load skills right now. Try refreshing.
         </p>
       ) : null}
 
@@ -85,7 +85,7 @@ export function SkillListPage() {
               </li>
             ))}
           </ul>
-          {query.data.data.length === 0 ? <p className="text-sm text-(--color-text-muted)">No skills yet.</p> : null}
+          {query.data.data.length === 0 ? <p className="text-sm text-(--color-text-muted)">No skills yet. Be the first to share one.</p> : null}
           {query.data.meta.totalPages > 1 ? (
             <div className="flex items-center gap-2 text-sm">
               <button

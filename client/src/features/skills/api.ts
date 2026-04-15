@@ -16,6 +16,8 @@ export type Skill = {
   createdAt: string;
   updatedAt: string;
   owner: SkillOwner;
+  viewCount?: number;
+  favorited?: boolean;
 };
 
 export type ListSkillsFilters = {
@@ -68,4 +70,13 @@ export async function updateSkill(id: number, input: UpdateSkillInput): Promise<
 
 export async function archiveSkill(id: number): Promise<void> {
   await apiClient.delete(`/api/skills/${id}`);
+}
+
+export async function toggleSkillFavorite(skillId: number): Promise<{ favorited: boolean }> {
+  const { data } = await apiClient.post<{ data: { favorited: boolean } }>(`/api/skills/${skillId}/favorite`);
+  return data.data;
+}
+
+export async function logSkillUsage(skillId: number, eventType: "VIEW" | "COPY"): Promise<void> {
+  await apiClient.post(`/api/skills/${skillId}/usage`, { eventType });
 }

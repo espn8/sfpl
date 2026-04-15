@@ -28,14 +28,14 @@ export function ContextListPage() {
         <div>
           <h1 className="text-2xl font-semibold">Context</h1>
           <p className="mt-1 text-sm text-(--color-text-muted)">
-            Markdown references and rules (treat as <code className="rounded bg-(--color-surface-muted) px-1">.md</code>).
+            Reference documents, rules, and guidelines you can load into your AI tools. Add anything that helps your AI understand your world.
           </p>
         </div>
         <Link
           to="/context/new"
           className="inline-flex items-center justify-center rounded-full bg-linear-to-r from-indigo-500 via-fuchsia-500 to-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-md hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400"
         >
-          New context file
+          Add Context
         </Link>
       </div>
 
@@ -55,10 +55,10 @@ export function ContextListPage() {
         />
       </div>
 
-      {query.isLoading ? <p className="text-sm text-(--color-text-muted)">Loading…</p> : null}
+      {query.isLoading ? <p className="text-sm text-(--color-text-muted)">Just a moment...</p> : null}
       {query.isError ? (
         <p className="text-sm text-red-600" role="alert">
-          Could not load context documents.
+          We couldn't load context documents right now. Try refreshing.
         </p>
       ) : null}
 
@@ -87,7 +87,7 @@ export function ContextListPage() {
               </li>
             ))}
           </ul>
-          {query.data.data.length === 0 ? <p className="text-sm text-(--color-text-muted)">No context files yet.</p> : null}
+          {query.data.data.length === 0 ? <p className="text-sm text-(--color-text-muted)">No context files yet. Add documentation, rules, or references to help your AI stay informed.</p> : null}
           {query.data.meta.totalPages > 1 ? (
             <div className="flex items-center gap-2 text-sm">
               <button
