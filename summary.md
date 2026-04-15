@@ -1,12 +1,12 @@
 # AI Library - Technical Summary
 
-Last Updated: Wednesday, April 15, 2026 — 16:02 CDT
-Build Version: ae8a5d0
+Last Updated: Wednesday, April 15, 2026 — 16:05 CDT
+Build Version: d8f1259
 
 ## Recent Changes
 
-- **Audit completed**: Thorough site audit evaluating all functionalities against implementation spec ([Site Audit Session](d80c12ab-4910-487e-815f-cbf34e19a9b9)).
-- **Earlier work (carried forward)**: Login page header layout (Salesforce logo inline with "AI Library" h1 in flex row); Skills and Context Document full-stack features; session cookie renamed to `ailibrary.sid`; AppShell navigation updated; full rebrand to AI Library at `https://ail.mysalesforcedemo.com`; prompt engagement UX (star ratings, favorites, share, launch providers, `{{variable}}` interpolation, thumbnail generation).
+- **Login page branding**: Updated tagline to "Prompts, Skills and Context for you, by you." and added footer with copyright notice and attribution to Amelia Ochodnicky.
+- **Earlier work (carried forward)**: Site audit against implementation spec; Salesforce logo inline with "AI Library" h1 in flex row; Skills and Context Document full-stack features; session cookie renamed to `ailibrary.sid`; AppShell navigation updated; full rebrand to AI Library at `https://ail.mysalesforcedemo.com`; prompt engagement UX (star ratings, favorites, share, launch providers, `{{variable}}` interpolation, thumbnail generation).
 
 ## Audit Summary
 
