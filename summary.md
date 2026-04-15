@@ -1,10 +1,11 @@
 # AI Library - Technical Summary
 
-Last Updated: Wednesday, April 15, 2026 — 16:30 CDT
-Build Version: 875176b
+Last Updated: Wednesday, April 15, 2026 — 16:32 CDT
+Build Version: 73b5376
 
 ## Recent Changes
 
+- **Header branding refinement**: Changed header title from "SF AI Library" to "AI Library" in AppShell navigation for cleaner branding presentation.
 - **Comprehensive copy rewrite**: Rewrote all user-facing content with Salesforce voice—warm, approachable, action-oriented, and individual-focused. Updated headings, CTAs, descriptions, empty states, and form labels across all pages.
 - **Searchable Help page**: Created new `/help` route with searchable, indexed help content organized by topic (Getting Started, Prompts, Skills, Context, Collections, Using AI Tools, Your Profile, Tips & Best Practices). Added footer links in AppShell and LoginPage.
 - **Skill/Context usability enhancements**: Added copy-to-clipboard buttons, markdown preview toggle with `react-markdown`, and share functionality (Web Share API with clipboard fallback) to SkillDetailPage and ContextDetailPage.
