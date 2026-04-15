@@ -1,18 +1,13 @@
 # AI Library - Technical Summary
 
-Last Updated: Wednesday, April 15, 2026 — 19:57 CDT
-Build Version: 1f47748
+Last Updated: Wednesday, April 15, 2026 — 15:10 CDT
+Build Version: PENDING
 
 ## Recent Changes
 
-- **Skills feature (full-stack)**: New `Skill` Prisma model (`id`, `teamId`, `ownerId`, `title`, `summary`, `body`, `visibility`, `status`, `createdAt`, `updatedAt`) with team-scoped compound index on `(teamId, updatedAt)`. Migration `20260414155302_skill_and_context_document` applies the DDL. Server route `/api/skills` (`server/src/routes/skills.ts`) provides paginated list with full-text search (`q`), status filter, and full CRUD; access gated by `requireAuth` with admin/owner checks for destructive operations. Client `features/skills/` delivers `SkillListPage`, `SkillDetailPage`, `SkillEditorPage` (create), and `SkillEditPage` (update) with a matching `api.ts` client. Router registers protected routes at `/skills`, `/skills/new`, `/skills/:id`, and `/skills/:id/edit`. Integration test in `server/test/skills-flow.test.ts`.
-- **Context Documents feature (full-stack)**: New `ContextDocument` Prisma model with identical shape to `Skill`. Server route `/api/context` (`server/src/routes/context.ts`) mirrors the skills API surface. Client `features/context/` delivers `ContextListPage`, `ContextDetailPage`, `ContextEditorPage`, and `ContextEditPage` with `api.ts`. Router registers protected routes at `/context`, `/context/new`, `/context/:id`, and `/context/:id/edit`. Integration test in `server/test/context-flow.test.ts`.
-- **`app.ts` route registration**: `skillsRouter` mounted at `/api/skills` and `contextRouter` at `/api/context`; session cookie renamed from `promptlibrary.sid` to `ailibrary.sid` to reflect rebrand.
-- **`AppShell` navigation**: Added "Skills" and "Context" nav links alongside "Prompts" and "Collections". Header brand mark now displays "SF AI Library" text label next to the Salesforce logo. Avatar DiceBear seed updated from `PromptLibrary` to `AILibrary`. Welcome modal title updated to "Welcome to SF AI Library".
-- **Seed**: `server/prisma/seed.ts` seeds sample `Skill` and `ContextDocument` records for the demo team/user.
-- **`app.json`**: Heroku app metadata updated (name and environment variable scaffolding aligned with AI Library rebrand).
-- **README**: Updated with Skills/Context feature sections, route table, and setup notes.
-- **Earlier work (carried forward)**: Full rebrand to **AI Library** at `https://ail.mysalesforcedemo.com`. `GET /api/prompts` `meta.snapshot` (published count, active users, view events). `PromptListPage` hero stats grid. Salesforce SVG favicon. `--color-launch` / `--color-launch-hover` CSS tokens. `AppShell` profile/logout modal. Admin-gated analytics route (`AdminRoute` + `roles.ts`). Full prompt engagement UX: star ratings, favorites, share, launch providers (ChatGPT, Claude, Gemini), `{{variable}}` interpolation, thumbnail generation via Google Generative Language API.
+- **Login page header layout**: Salesforce logo and "AI Library" `<h1>` are now co-located in an inline flex row (`flex items-center gap-3`) rather than stacked vertically. The logo renders to the left of the heading at the same vertical midpoint, improving brand recognition on the entry screen.
+- **Login page CTA style**: "Continue with Google" button text carries `font-bold` for stronger visual weight.
+- **Earlier work (carried forward)**: Skills and Context Document full-stack features; session cookie renamed to `ailibrary.sid`; AppShell navigation updated; full rebrand to AI Library at `https://ail.mysalesforcedemo.com`; prompt engagement UX (star ratings, favorites, share, launch providers, `{{variable}}` interpolation, thumbnail generation).
 
 ## Technical Architecture
 
