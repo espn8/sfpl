@@ -5,7 +5,7 @@ export function LoginPage() {
     <main className="min-h-screen bg-(--color-bg) text-(--color-text)">
       <div className="mx-auto flex max-w-xl flex-col gap-4 px-6 py-20">
         <div className="flex items-center gap-3">
-          <img src="/salesforce-logo.svg" alt="Salesforce" className="h-12 w-auto" />
+          <img src="/salesforce-logo.png" alt="Salesforce" className="h-12 w-auto object-contain" />
           <h1 className="text-3xl font-bold">AI Library</h1>
         </div>
         <p className="text-(--color-text-muted)">Prompts, skills, and context for your team.</p>

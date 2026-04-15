@@ -64,10 +64,6 @@ export function createApp(options?: CreateAppOptions): express.Express {
   );
   app.use(express.json());
 
-  app.get("/favicon.ico", (_req, res) => {
-    res.redirect(302, "/salesforce-logo.svg");
-  });
-
   app.get("/api/health", async (_req, res) => {
     try {
       await prisma.$queryRaw`SELECT 1`;

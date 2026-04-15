@@ -1,13 +1,49 @@
 # AI Library - Technical Summary
 
-Last Updated: Wednesday, April 15, 2026 — 15:12 CDT
-Build Version: 6b4f094
+Last Updated: Wednesday, April 15, 2026 — (pending deploy)
+Build Version: 290bf8d
 
 ## Recent Changes
 
-- **Login page header layout**: Salesforce logo and "AI Library" `<h1>` are now co-located in an inline flex row (`flex items-center gap-3`) rather than stacked vertically. The logo renders to the left of the heading at the same vertical midpoint, improving brand recognition on the entry screen.
-- **Login page CTA style**: "Continue with Google" button text carries `font-bold` for stronger visual weight.
-- **Earlier work (carried forward)**: Skills and Context Document full-stack features; session cookie renamed to `ailibrary.sid`; AppShell navigation updated; full rebrand to AI Library at `https://ail.mysalesforcedemo.com`; prompt engagement UX (star ratings, favorites, share, launch providers, `{{variable}}` interpolation, thumbnail generation).
+- **Audit completed**: Thorough site audit evaluating all functionalities against implementation spec ([Site Audit Session](d80c12ab-4910-487e-815f-cbf34e19a9b9)).
+- **Earlier work (carried forward)**: Login page header layout (Salesforce logo inline with "AI Library" h1 in flex row); Skills and Context Document full-stack features; session cookie renamed to `ailibrary.sid`; AppShell navigation updated; full rebrand to AI Library at `https://ail.mysalesforcedemo.com`; prompt engagement UX (star ratings, favorites, share, launch providers, `{{variable}}` interpolation, thumbnail generation).
+
+## Audit Summary
+
+The application has achieved **substantial completion** of the core implementation spec. The original prompt-focused design has been extended to include Skills and Context Documents. Key gaps remain around sharing functionality for newer content types and analytics dashboard completeness.
+
+### Implementation Status Overview
+
+| Component | Status |
+|-----------|--------|
+| Authentication (Google SSO, sessions, team scoping) | ✅ Complete |
+| Prisma Data Model (all spec models + Skill/ContextDocument) | ✅ Complete |
+| Prompt APIs (CRUD, versions, engagement, thumbnails) | ✅ Complete |
+| Skills APIs (CRUD, list, search) | ✅ Complete |
+| Context Documents APIs (CRUD, list, search) | ✅ Complete |
+| Tags, Collections, Analytics APIs | ✅ Complete |
+| Frontend Routes (all spec routes + Skills/Context) | ✅ Complete |
+| Theme System (dark/light/system, persistence) | ✅ Complete |
+| Share Functionality | ⚠️ Partial (Prompts only) |
+| Analytics Dashboard UI | ⚠️ Partial (missing some backend data) |
+| Skills/Context Feature Parity | ⚠️ Partial (no versioning, tags, favorites, ratings) |
+
+### Identified Gaps (Prioritized)
+
+1. **Sharing**: Skills and Context Documents lack share buttons; Collections also missing share.
+2. **Analytics UI**: Backend returns `topRatedPrompts`, `contributors`, `userEngagementLeaderboard` but UI only displays `topUsedPrompts` and `stalePrompts`.
+3. **Feature Parity**: Skills/Context missing versioning, tags, collections, favorites, ratings, usage tracking, copy-to-clipboard.
+4. **Minor**: No dedicated `/settings` route (modal only); AppShell only has "New Prompt" quick-action.
+
+### Remediation Roadmap
+
+| Phase | Description | Scope |
+|-------|-------------|-------|
+| 1 | Sharing Feature Expansion | Generic share utility; add share to Skills, Context, Collections detail pages |
+| 2 | Analytics Dashboard Enhancement | Surface all backend data; add Top Rated, Contributors, User Engagement sections |
+| 3 | Content Copy & Markdown Preview | Copy buttons for Skills/Context; install `react-markdown`; rendered preview option |
+| 4 | Feature Parity for Skills/Context | Tags, Favorites, Usage tracking, Versioning (lower priority) |
+| 5 | Quick-Create Actions & Navigation | Add "New Skill"/"New Context" to AppShell; dedicated `/settings` route |
 
 ## Technical Architecture
 
@@ -59,29 +95,35 @@ Build Version: 6b4f094
 ```text
 .
 ├── client/                                     # React + Vite frontend
-│   ├── public/                                 # Vite static assets (e.g. salesforce-logo.svg)
+│   ├── public/                                 # Vite static assets (salesforce-logo.png, favicon.ico)
 │   ├── src/
 │   │   ├── app/
 │   │   │   ├── providers/ThemeProvider.tsx    # Theme state + persisted/system mode bootstrap
-│   │   │   └── router.tsx                      # Authenticated route graph
+│   │   │   ├── router.tsx                      # Authenticated route graph
+│   │   │   └── analytics.ts                    # GA4 page view tracking
 │   │   ├── assets/                             # Bundled static assets
 │   │   ├── components/                         # Shared UI shell/chrome (AppShell, ProtectedRoute, AdminRoute)
 │   │   ├── features/
-│   │   │   ├── prompts/                        # Discovery/detail/create/edit, cards, filters, interpolation, external launch
+│   │   │   ├── prompts/                        # Discovery/detail/create/edit, cards, filters, interpolation, external launch, share
 │   │   │   ├── skills/                         # Skill list/detail/create/edit (markdown body)
 │   │   │   ├── context/                        # Context (markdown) list/detail/create/edit
-│   │   │   ├── analytics/                      # Typed analytics client contracts
+│   │   │   ├── analytics/                      # Admin analytics dashboard + typed API contracts
 │   │   │   ├── collections/                    # Collection CRUD + membership surfaces
-│   │   │   └── auth/                           # OAuth entry + role helpers (no standalone settings route)
+│   │   │   └── auth/                           # OAuth entry + role helpers (LoginPage, api, roles)
+│   │   ├── pages/                              # Static pages (TermsPage, PrivacyPage)
 │   │   ├── styles/                             # Design tokens + theme semantics
 │   │   └── main.tsx                            # Bootstrap + providers
 ├── server/                                     # Express + Prisma backend
 │   ├── prisma/
-│   │   ├── schema.prisma                       # Canonical data model
+│   │   ├── schema.prisma                       # Canonical data model (17 models, 7 enums)
 │   │   ├── migrations/                         # Applied schema migrations
 │   │   └── seed.ts                             # Demo data generation/reset
 │   ├── src/
 │   │   ├── app.ts                              # Middleware + routes + SPA static hosting
+│   │   ├── index.ts                            # Server entry point
+│   │   ├── config/env.ts                       # Environment validation
+│   │   ├── lib/                                # prisma singleton, auth helpers
+│   │   ├── middleware/                         # auth, errorHandler
 │   │   ├── routes/
 │   │   │   ├── prompts.ts                      # Prompt CRUD/search/rating/usage/favorites/thumbnail orchestration
 │   │   │   ├── skills.ts                       # Skill CRUD + list search (team-scoped)
@@ -90,13 +132,30 @@ Build Version: 6b4f094
 │   │   │   ├── collections.ts                  # Collection operations
 │   │   │   ├── tags.ts                         # Tag management
 │   │   │   └── auth.ts                         # Google OAuth + session lifecycle
-│   │   └── services/nanoBanana.ts              # Image generation adapter
+│   │   └── services/nanoBanana.ts              # Image generation adapter (Gemini API)
 │   └── test/                                   # API behavior tests
 ├── Procfile                                    # Heroku process model
 ├── app.json                                    # Heroku app metadata/env scaffolding
 ├── README.md                                   # Setup and runbook
 └── summary.md                                  # This technical summary
 ```
+
+### Prisma Data Model Summary
+
+**Models (17):**
+- `User` - with `avatarUrl`, `region`, `ou`, `title`, `onboardingCompleted`, `googleSub`
+- `Team` - multi-tenant team container
+- `Prompt` - with `tools[]`, `modality`, `thumbnailUrl`, `thumbnailStatus`, `thumbnailError`
+- `PromptVersion` - version history for prompts
+- `Skill` - markdown body skill documents (team-scoped)
+- `ContextDocument` - markdown context files (team-scoped)
+- `Tag`, `PromptTag` - tagging system (prompts only currently)
+- `Collection`, `CollectionPrompt` - curated prompt collections
+- `Favorite`, `Rating` - user engagement (prompts only currently)
+- `PromptVariable` - dynamic variable definitions
+- `UsageEvent` - VIEW/COPY/LAUNCH tracking (prompts only currently)
+
+**Enums (7):** `Role`, `PromptVisibility`, `PromptStatus`, `UsageAction`, `PromptModality`, `ThumbnailStatus`
 
 ### Primary Data Flow / Lifecycle
 
@@ -111,14 +170,52 @@ Build Version: 6b4f094
 6. Prompt thumbnail generation executes async image generation and stores data URI/file URI in `Prompt.thumbnailUrl`.
 7. Heroku deploy flow builds frontend, compiles server, serves SPA static assets from Express.
 
+### API Routes Inventory
+
+| Route File | Endpoints |
+|------------|-----------|
+| `auth.ts` | `GET /google`, `GET /google/callback`, `POST /logout`, `GET /me`, `PATCH /me` |
+| `prompts.ts` | Full CRUD, `/versions`, `/restore/:version`, `/favorite`, `/rating`, `/usage`, `/regenerate-thumbnail` |
+| `skills.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id` |
+| `context.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id` |
+| `collections.ts` | CRUD + `/prompts/:promptId` membership |
+| `tags.ts` | `GET /`, `POST /` |
+| `analytics.ts` | `GET /overview` (team-scoped aggregates) |
+
+### Frontend Routes Inventory
+
+| Route | Component | Access |
+|-------|-----------|--------|
+| `/login` | `LoginPage` | Public |
+| `/terms` | `TermsPage` | Public |
+| `/privacy` | `PrivacyPage` | Public |
+| `/` | `PromptListPage` | Protected |
+| `/prompts/new` | `PromptEditorPage` | Protected |
+| `/prompts/:id` | `PromptDetailPage` | Protected |
+| `/prompts/:id/edit` | `PromptEditPage` | Protected |
+| `/skills` | `SkillListPage` | Protected |
+| `/skills/new` | `SkillEditorPage` | Protected |
+| `/skills/:id` | `SkillDetailPage` | Protected |
+| `/skills/:id/edit` | `SkillEditPage` | Protected |
+| `/context` | `ContextListPage` | Protected |
+| `/context/new` | `ContextEditorPage` | Protected |
+| `/context/:id` | `ContextDetailPage` | Protected |
+| `/context/:id/edit` | `ContextEditPage` | Protected |
+| `/collections` | `CollectionsPage` | Protected |
+| `/collections/:id` | `CollectionDetailPage` | Protected |
+| `/analytics` | `AnalyticsPage` | Admin only |
+
 ### Major Modules and Why They Exist
 
 - `server/src/routes/prompts.ts`: primary prompt API with filtering, sorting, pagination, CRUD, versions, and engagement.
+- `server/src/routes/skills.ts`: skill CRUD with team scoping, search, and archive (soft delete).
+- `server/src/routes/context.ts`: context document CRUD with team scoping, search, and archive.
 - `server/src/routes/analytics.ts`: consolidated overview payload consumed by homepage dashboards and leaderboards.
-- `server/src/services/nanoBanana.ts`: external image-generation bridge for prompt thumbnails.
-- `server/prisma/schema.prisma`: source of truth for users/teams/prompts/engagement relations and enums.
+- `server/src/services/nanoBanana.ts`: external image-generation bridge for prompt thumbnails via Gemini API.
+- `server/prisma/schema.prisma`: source of truth for users/teams/prompts/skills/context/engagement relations and enums.
 - `client/src/features/prompts/PromptListPage.tsx`: homepage/discovery UX, list cards, filters, hero stats, and leaderboards.
 - `client/src/features/prompts/PromptDetailPage.tsx`: full prompt view with engagement chrome, variables/preview, versions, and external launch.
+- `client/src/features/prompts/sharePrompt.ts`: Web Share API integration for prompt sharing (needs expansion to other content types).
 - `client/src/components/AdminRoute.tsx`: redirects non-admin users away from admin-only routes (e.g. analytics).
 - `client/src/features/prompts/interpolatePrompt.ts` / `launchProviders.ts`: client-side prompt variable fill-in and deep links to external chat products.
 - `client/src/features/prompts/PromptThumbnail.tsx`: thumbnail rendering with graceful placeholder states.
@@ -201,10 +298,24 @@ git push heroku main
 
 ### TODO/FIXME Scan
 
-- Repository scan for `TODO|FIXME` in `*.{ts,tsx,js,jsx}` completed (April 06, 2026): no matches in application source.
+- Repository scan for `TODO|FIXME` in `*.{ts,tsx,js,jsx}` completed (April 15, 2026): no matches in application source.
 - Workspace automation rules may still mention `TODO|FIXME` as documentation; that is non-runtime.
 
 ### Roadmap / Backlog
+
+**From Audit (Prioritized):**
+
+1. **Sharing Feature Expansion** — Create generic `shareOrCopyLink.ts` utility; add share buttons to `SkillDetailPage`, `ContextDetailPage`, `CollectionDetailPage`; add GA4 tracking events for skill/context sharing.
+
+2. **Analytics Dashboard Enhancement** — Add "Top Rated Prompts" section; add "Contributors" leaderboard component; add "User Engagement" leaderboard component; add time-range selector; link prompts to detail pages.
+
+3. **Content Copy & Markdown Preview** — Add "Copy content" button to SkillDetailPage and ContextDetailPage; install markdown renderer (`react-markdown`); add rendered markdown preview option; add copy tracking to analytics.
+
+4. **Feature Parity for Skills/Context** — Tags (SkillTag/ContextTag models, endpoints, picker UI, filter chips); Favorites (SkillFavorite/ContextFavorite models, toggle endpoints, UI); Usage tracking (SkillUsageEvent/ContextUsageEvent); Versioning (lower priority).
+
+5. **Quick-Create Actions** — Add "New Skill" and "New Context" buttons to AppShell (dropdown menu); add dedicated `/settings` route.
+
+**Technical Debt:**
 
 - Add retry guardrails for thumbnail backfill jobs to avoid repeated processing on persistent provider errors.
 - Add provider capability check/health endpoint for image model compatibility before runtime generation attempts.

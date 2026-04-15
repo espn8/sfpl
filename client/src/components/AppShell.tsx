@@ -5,8 +5,7 @@ import { fetchMe, logout, updateMyProfile } from "../features/auth/api";
 import { canAccessAdminUi } from "../features/auth/roles";
 import { ThemeModeToggle } from "./ui/ThemeModeToggle";
 
-/** Salesforce cloud mark; `client/public/salesforce-logo.svg` (Simple Icons shape, brand blue). */
-const salesforceLogoSrc = "/salesforce-logo.svg";
+const SALESFORCE_LOGO = "/salesforce-logo.png";
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -71,7 +70,7 @@ export function AppShell({ children }: AppShellProps) {
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-3">
               <Link to="/" className="inline-flex items-center gap-2 focus-visible:outline-none" aria-label="SF AI Library home">
-                <img src={salesforceLogoSrc} alt="" className="block h-10 w-auto max-w-none" />
+                <img src={SALESFORCE_LOGO} alt="" className="h-10 w-auto object-contain" />
                 <span className="hidden font-semibold text-(--color-text) sm:inline">SF AI Library</span>
               </Link>
             </div>
@@ -136,7 +135,7 @@ export function AppShell({ children }: AppShellProps) {
         {children}
         <footer className="mt-8 rounded-lg border border-(--color-border) bg-(--color-surface) px-4 py-3">
           <div className="flex items-center justify-between gap-4">
-            <img src={salesforceLogoSrc} alt="Salesforce" className="block h-9 w-auto max-w-none" />
+            <img src={SALESFORCE_LOGO} alt="Salesforce" className="h-9 w-auto object-contain" />
             <p className="text-right text-sm text-(--color-text-muted)">
               Copyright 2026. All Rights Reserved. Created with ❤️ by{" "}
               <a
