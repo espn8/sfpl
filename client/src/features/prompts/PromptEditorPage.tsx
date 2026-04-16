@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
 import { sanitizeTitle } from "../../lib/sanitizeTitle";
@@ -28,6 +28,26 @@ export function PromptEditorPage() {
   const [otherToolName, setOtherToolName] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
   const [showToolRequestModal, setShowToolRequestModal] = useState(false);
+  const [bodyText, setBodyText] = useState("");
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
+
+  const insertVariable = (key: string) => {
+    const textarea = bodyRef.current;
+    if (!textarea) return;
+
+    const placeholder = `[${key}]`;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+
+    const newText = bodyText.slice(0, start) + placeholder + bodyText.slice(end);
+    setBodyText(newText);
+
+    requestAnimationFrame(() => {
+      textarea.focus();
+      const newPos = start + placeholder.length;
+      textarea.setSelectionRange(newPos, newPos);
+    });
+  };
   const createMutation = useMutation({
     mutationFn: createPrompt,
     onSuccess: (prompt) => {
@@ -45,7 +65,7 @@ export function PromptEditorPage() {
         const formData = new FormData(event.currentTarget);
         const title = sanitizeTitle(String(formData.get("title") ?? ""));
         const summary = String(formData.get("summary") ?? "").trim();
-        const body = String(formData.get("body") ?? "").trim();
+        const body = bodyText.trim();
         const status = String(formData.get("status") ?? "DRAFT") as "DRAFT" | "PUBLISHED" | "ARCHIVED";
         const visibility = String(formData.get("visibility") ?? "PUBLIC") as "PUBLIC" | "TEAM" | "PRIVATE";
         const toolsArray = Array.from(selectedTools);
@@ -197,7 +217,10 @@ export function PromptEditorPage() {
         <ToolRequestModal isOpen={showToolRequestModal} onClose={() => setShowToolRequestModal(false)} />
       </div>
       <textarea
+        ref={bodyRef}
         name="body"
+        value={bodyText}
+        onChange={(e) => setBodyText(e.target.value)}
         placeholder="Write your prompt here. Use [VARIABLE] or {{VARIABLE}} for customizable fields."
         className="h-48 w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
       />
@@ -206,9 +229,10 @@ export function PromptEditorPage() {
           <div>
             <p className="text-sm font-medium">Template variables (optional)</p>
             <p className="text-xs text-(--color-text-muted)">
-              Define placeholders for dynamic content. Use <code className="rounded bg-(--color-surface) px-1">[KEY]</code> or{" "}
-              <code className="rounded bg-(--color-surface) px-1">{"{{KEY}}"}</code> in your prompt body above, then add the
-              matching key here to let users fill in values when using this prompt.
+              Define placeholders for dynamic content. Add a variable below and click{" "}
+              <strong>Insert</strong> to add it to your prompt body, or manually type{" "}
+              <code className="rounded bg-(--color-surface) px-1">[KEY]</code> or{" "}
+              <code className="rounded bg-(--color-surface) px-1">{"{{KEY}}"}</code>.
             </p>
           </div>
           <button
@@ -290,15 +314,26 @@ export function PromptEditorPage() {
                   />
                   Required
                 </label>
-                <button
-                  type="button"
-                  className="text-xs text-(--color-danger) underline md:col-span-2"
-                  onClick={() => {
-                    setVariableRows((current) => current.filter((_, itemIndex) => itemIndex !== index));
-                  }}
-                >
-                  Remove
-                </button>
+                <div className="flex items-center gap-3 md:col-span-2">
+                  {row.key.trim() && (
+                    <button
+                      type="button"
+                      className="rounded bg-(--color-primary) px-2 py-1 text-xs text-(--color-text-inverse) hover:bg-(--color-primary-hover)"
+                      onClick={() => insertVariable(row.key.trim())}
+                    >
+                      Insert [{row.key.trim()}]
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="text-xs text-(--color-danger) underline"
+                    onClick={() => {
+                      setVariableRows((current) => current.filter((_, itemIndex) => itemIndex !== index));
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

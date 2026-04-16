@@ -23,6 +23,7 @@ import { SkillEditorPage } from "../features/skills/SkillEditorPage";
 import { SkillListPage } from "../features/skills/SkillListPage";
 import { HelpPage } from "../features/help/HelpPage";
 import { SettingsPage } from "../features/settings/SettingsPage";
+import { ChangelogPage } from "../pages/ChangelogPage";
 import { PrivacyPage } from "../pages/PrivacyPage";
 import { TermsPage } from "../pages/TermsPage";
 
@@ -222,6 +223,16 @@ export function AppRouter() {
             <ProtectedRoute>
               <AppShell>
                 <SettingsPage />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/changelog"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <ChangelogPage />
               </AppShell>
             </ProtectedRoute>
           }

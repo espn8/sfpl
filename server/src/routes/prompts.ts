@@ -289,8 +289,11 @@ async function queuePromptThumbnailGeneration(promptId: number) {
     select: { id: true, title: true, summary: true, body: true },
   });
   if (!prompt) {
+    console.warn(`[Thumbnail] Prompt ${promptId} not found, skipping thumbnail generation.`);
     return;
   }
+
+  console.log(`[Thumbnail] Starting generation for prompt ${promptId}: "${prompt.title}"`);
 
   try {
     const thumbnailUrl = await generatePromptThumbnail({
@@ -306,8 +309,10 @@ async function queuePromptThumbnailGeneration(promptId: number) {
         thumbnailError: null,
       },
     });
+    console.log(`[Thumbnail] Successfully generated thumbnail for prompt ${promptId}`);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message.slice(0, 400) : "Unknown thumbnail generation error.";
+    console.error(`[Thumbnail] Failed to generate thumbnail for prompt ${promptId}:`, message);
     await prisma.prompt.update({
       where: { id: promptId },
       data: {

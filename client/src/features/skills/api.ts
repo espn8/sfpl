@@ -1,9 +1,36 @@
 import { apiClient } from "../../api/client";
+import {
+  PROMPT_TOOL_OPTIONS,
+  PROMPT_TOOL_LABELS,
+  getToolsSortedAlphabetically,
+  getToolsSortedWithDynamic,
+  getToolLabel,
+  fetchApprovedTools,
+} from "../prompts/api";
+import type { PromptTool } from "../prompts/api";
+
+export {
+  PROMPT_TOOL_OPTIONS as SKILL_TOOL_OPTIONS,
+  PROMPT_TOOL_LABELS as SKILL_TOOL_LABELS,
+  getToolsSortedAlphabetically as getSkillToolsSortedAlphabetically,
+  getToolsSortedWithDynamic as getSkillToolsSortedWithDynamic,
+  getToolLabel as getSkillToolLabel,
+  fetchApprovedTools as fetchApprovedSkillTools,
+};
+export type { PromptTool as SkillTool };
 
 export type SkillOwner = {
   id: number;
   name: string | null;
   avatarUrl: string | null;
+};
+
+export type SkillVariable = {
+  id: number;
+  key: string;
+  label: string | null;
+  defaultValue: string | null;
+  required: boolean;
 };
 
 export type Skill = {
@@ -13,9 +40,11 @@ export type Skill = {
   body: string;
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   visibility: "PUBLIC" | "TEAM" | "PRIVATE";
+  tools: string[];
   createdAt: string;
   updatedAt: string;
   owner: SkillOwner;
+  variables?: SkillVariable[];
   viewCount?: number;
   copyCount?: number;
   favoriteCount?: number;
@@ -46,12 +75,21 @@ export async function getSkill(id: number): Promise<Skill> {
   return data.data;
 }
 
+export type SkillVariableInput = {
+  key: string;
+  label?: string | null;
+  defaultValue?: string | null;
+  required?: boolean;
+};
+
 export type CreateSkillInput = {
   title: string;
   summary?: string;
   body: string;
   visibility?: "PUBLIC" | "TEAM" | "PRIVATE";
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  tools?: string[];
+  variables?: SkillVariableInput[];
 };
 
 export async function createSkill(input: CreateSkillInput): Promise<Skill> {
@@ -65,6 +103,7 @@ export type UpdateSkillInput = Partial<{
   body: string;
   visibility: "PUBLIC" | "TEAM" | "PRIVATE";
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  tools: string[];
 }>;
 
 export async function updateSkill(id: number, input: UpdateSkillInput): Promise<Skill> {
@@ -83,4 +122,12 @@ export async function toggleSkillFavorite(skillId: number): Promise<{ favorited:
 
 export async function logSkillUsage(skillId: number, eventType: "VIEW" | "COPY"): Promise<void> {
   await apiClient.post(`/api/skills/${skillId}/usage`, { eventType });
+}
+
+export async function replaceSkillVariables(
+  skillId: number,
+  variables: SkillVariableInput[],
+): Promise<Skill> {
+  const { data } = await apiClient.put<{ data: Skill }>(`/api/skills/${skillId}/variables`, { variables });
+  return data.data;
 }

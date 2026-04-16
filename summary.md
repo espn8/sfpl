@@ -1,29 +1,34 @@
 # AI Library - Technical Summary
 
-Last Updated: Thursday, April 16, 2026 — 20:45 CDT
-Build Version: cb7fba1
+Last Updated: Thursday, April 16, 2026 — 22:30 CDT
+Build Version: 165f64e
 
 ## Recent Changes
+
+- **Template variables for Skills and Context**: Extended the variable system from Prompts to Skills and Context Documents. Users can define `[KEY]` and `{{KEY}}` placeholders with labels, default values, and required flags. Added `SkillVariable` and `ContextVariable` Prisma models with full CRUD support.
+- **Variable interpolation system**: Created centralized `client/src/lib/interpolate.ts` module with `interpolateBody()` function for placeholder replacement. Refactored `interpolatePrompt.ts` to use shared utility.
+- **VariableEditor component**: New reusable `client/src/components/VariableEditor.tsx` for managing template variables across all asset types with add/edit/remove/insert functionality.
+- **VariableInputs component**: New `client/src/components/VariableInputs.tsx` for runtime variable value entry on detail pages.
+- **Skills/Context favorites**: Added `SkillFavorite` and `ContextFavorite` Prisma models with toggle endpoints (`POST /api/skills/:id/favorite`, `POST /api/context/:id/favorite`) and UI integration on detail pages.
+- **Variables API endpoints**: Added `PUT /api/skills/:id/variables` and `PUT /api/context/:id/variables` for bulk variable replacement.
+- **Editor pages variable support**: Updated `SkillEditorPage`, `SkillEditPage`, `ContextEditorPage`, and `ContextEditPage` to include VariableEditor with insert-to-body functionality.
+- **Detail pages variable support**: Updated `SkillDetailPage` and `ContextDetailPage` to display variable inputs, interpolate body content, and show favorite toggle with count.
+- **Changelog system**: Added `/changelog` route with `ChangelogPage` component displaying version history. Created `client/src/data/changelog.ts` data file with structured version entries.
+- **Version bump automation**: Added `scripts/version-bump.js` for automatic patch version increment during Heroku builds. Syncs version across root, client, and server `package.json` files.
+- **Footer version display**: AppShell footer now displays current app version with link to changelog page.
+- **Vite environment injection**: Added `VITE_APP_VERSION` environment variable injection from `package.json` version during build.
+- **Gemini model update**: Updated `nanoBanana.ts` to use `gemini-2.5-flash-preview-04-17` model for improved thumbnail generation.
+- **Help search refinements**: Minor improvements to help search service.
+
+### Previous Session Changes (carried forward from April 16)
 
 - **Tool Request System**: Added complete tool request submission and admin review workflow. Users can request new tools via a modal form accessible from prompt editor pages. Requests capture tool name, Salesforce approval status, details URL, and description. Admins can review, approve, decline, or put requests on hold via a dedicated admin page.
 - **ToolRequest data model**: Added `ToolRequest` Prisma model with fields for submission data (name, salesforceApproved, detailsUrl, description, submitter info), review state (status, reviewedAt, reviewedById, reviewNotes), and timestamps. Added `ToolRequestStatus` enum (PENDING, APPROVED, DECLINED, ON_HOLD).
 - **Tool Requests API**: New `/api/tool-requests` endpoints: `GET /approved-tools` (public, returns approved tool names), `POST /` (create request), `GET /` (admin list with filters/pagination), `PATCH /:id` (admin review).
-- **Tool Request Modal**: New `ToolRequestModal` component with form validation, user name pre-fill from auth context, success confirmation state, and mutation-based submission.
-- **Admin Tool Requests Page**: New `ToolRequestsPage` at `/admin/tool-requests` with status filtering, pagination, review modal for approve/decline/hold decisions with optional notes.
-- **Email notification service**: Added `nodemailer` integration with SMTP configuration support (Mailgun-ready). New `server/src/lib/email.ts` provides `sendEmail()`, `isEmailConfigured()`, `verifyEmailConnection()`, and `escapeHtml()` utilities. `server/src/services/email.ts` provides `sendToolRequestNotification()` for alerting admins of new submissions.
-- **SMTP environment configuration**: Added `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, and `TOOL_REQUEST_NOTIFY_EMAIL` environment variables with graceful degradation when SMTP is not configured.
-- **AppShell admin menu expansion**: Added "Tool Requests" link to admin dropdown menu for quick access to the review queue.
-- **Router update**: Added `/admin/tool-requests` route with AdminRoute wrapper.
-
-### Previous Session Changes (carried forward from April 16)
-
 - **Title sanitization utility**: Added `sanitizeTitle()` helper in `client/src/lib/sanitizeTitle.ts` that strips common asset type words (prompt, skill, context, rule, document, doc, file) from user-entered titles. Applied to all editor pages to prevent redundant naming like "My Prompt Prompt".
 - **Asset type badges on detail pages**: Added `[Prompt]`, `[Skill]`, and `[Context]` suffix badges to detail page titles for clearer asset type identification.
 - **Edit button visibility fix**: PromptDetailPage now only shows the Edit button when the current user has edit permissions (owner, admin, or content author).
-- **Hero section conditional display**: PromptListPage hero section hides when viewing "My Content" (`mine=true` filter) to reduce visual noise.
-- **AppShell cleanup**: Removed unused profile modal code and related icon components. Cleaned up unused state.
 - **TEAM visibility level**: Added new `TEAM` visibility option to Prompts, Skills, and Context Documents with OU-based access control.
-- **Skills/Context analytics in list views**: Added `mine` and `includeAnalytics` query parameters with analytics aggregates.
 - **Profile photo upload feature**: Added ability for users to upload custom profile photos via `POST /api/auth/me/profile-photo`.
 
 ### Earlier Session Changes
@@ -81,7 +86,7 @@ The application has achieved **substantial completion** of the core implementati
 
 | Phase | Description | Scope |
 |-------|-------------|-------|
-| 1 | Feature Parity for Skills/Context | Tags, Favorites, Ratings, Versioning (lower priority) |
+| 1 | Feature Parity for Skills/Context | Tags, Ratings, Versioning (lower priority) |
 
 ## Technical Architecture
 
@@ -191,20 +196,24 @@ The application has achieved **substantial completion** of the core implementati
 
 ### Prisma Data Model Summary
 
-**Models (20):**
+**Models (24):**
 - `User` - with `avatarUrl`, `region`, `ou`, `title`, `onboardingCompleted`, `googleSub`
 - `Team` - multi-tenant team container
 - `Prompt` - with `tools[]`, `modality`, `thumbnailUrl`, `thumbnailStatus`, `thumbnailError`
 - `PromptVersion` - version history for prompts
+- `PromptVariable` - dynamic variable definitions for prompts
 - `Skill` - markdown body skill documents (team-scoped)
+- `SkillVariable` - dynamic variable definitions for skills
+- `SkillFavorite` - user favorites for skills
+- `SkillUsageEvent` - VIEW/COPY/SHARE tracking (skills)
 - `ContextDocument` - markdown context files (team-scoped)
+- `ContextVariable` - dynamic variable definitions for context documents
+- `ContextFavorite` - user favorites for context documents
+- `ContextUsageEvent` - VIEW/COPY/SHARE tracking (context documents)
 - `Tag`, `PromptTag` - tagging system (prompts only currently)
 - `Collection`, `CollectionPrompt` - curated prompt collections with `isSystem` flag for protected system collections
 - `Favorite`, `Rating` - user engagement (prompts only currently)
-- `PromptVariable` - dynamic variable definitions
 - `UsageEvent` - VIEW/COPY/LAUNCH tracking (prompts)
-- `SkillUsageEvent` - VIEW/COPY/SHARE tracking (skills)
-- `ContextUsageEvent` - VIEW/COPY/SHARE tracking (context documents)
 - `ToolRequest` - tool submission requests with review workflow
 
 **Enums (10):** `Role`, `PromptVisibility` (PUBLIC, TEAM, PRIVATE), `PromptStatus`, `UsageAction`, `PromptModality`, `ThumbnailStatus`, `SkillUsageAction`, `ContextUsageAction`, `ToolRequestStatus`
@@ -228,8 +237,8 @@ The application has achieved **substantial completion** of the core implementati
 |------------|-----------|
 | `auth.ts` | `GET /google`, `GET /google/callback`, `POST /logout`, `GET /me`, `PATCH /me`, `POST /me/profile-photo` |
 | `prompts.ts` | Full CRUD, `/versions`, `/restore/:version`, `/favorite`, `/rating`, `/usage`, `/regenerate-thumbnail` |
-| `skills.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `POST /:id/usage` |
-| `context.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `POST /:id/usage` |
+| `skills.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `POST /:id/usage`, `POST /:id/favorite`, `PUT /:id/variables` |
+| `context.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `POST /:id/usage`, `POST /:id/favorite`, `PUT /:id/variables` |
 | `collections.ts` | CRUD + `/prompts/:promptId` membership + `POST /system/refresh` (admin-only system collection refresh) |
 | `tags.ts` | `GET /`, `POST /` |
 | `analytics.ts` | `GET /overview` (team-scoped aggregates) |
@@ -261,6 +270,7 @@ The application has achieved **substantial completion** of the core implementati
 | `/analytics` | `AnalyticsPage` | Admin only |
 | `/admin/tool-requests` | `ToolRequestsPage` | Admin only |
 | `/settings` | `SettingsPage` | Protected |
+| `/changelog` | `ChangelogPage` | Protected |
 
 ### Major Modules and Why They Exist
 
@@ -277,7 +287,13 @@ The application has achieved **substantial completion** of the core implementati
 - `client/src/features/prompts/PromptDetailPage.tsx`: full prompt view with engagement chrome, variables/preview, versions, and external launch.
 - `client/src/features/prompts/sharePrompt.ts`: Web Share API integration for prompt sharing.
 - `client/src/lib/shareOrCopyLink.ts`: generic share utility used by Skills, Context, and Collections.
-- `client/src/components/AppShell.tsx`: page chrome with navigation, theme toggle, and footer with Help link.
+- `client/src/components/AppShell.tsx`: page chrome with navigation, theme toggle, footer with Help link and version display.
+- `client/src/components/VariableEditor.tsx`: reusable component for defining template variables with key, label, default value, required flag.
+- `client/src/components/VariableInputs.tsx`: runtime variable value entry component for detail pages.
+- `client/src/lib/interpolate.ts`: centralized template variable interpolation logic for `[KEY]` and `{{KEY}}` placeholders.
+- `client/src/data/changelog.ts`: structured changelog data for version history display.
+- `client/src/pages/ChangelogPage.tsx`: version history display page with formatted entries.
+- `scripts/version-bump.js`: automatic patch version increment script for Heroku builds.
 - `client/src/components/AdminRoute.tsx`: redirects non-admin users away from admin-only routes (e.g. analytics).
 - `client/src/components/MarkdownPreview.tsx`: reusable markdown rendering component using `react-markdown`.
 - `client/src/features/prompts/interpolatePrompt.ts` / `launchProviders.ts`: client-side prompt variable fill-in and deep links to external chat products.
@@ -384,12 +400,15 @@ git push heroku main
 
 **Remaining Feature Work:**
 
-1. **Feature Parity for Skills/Context** — Tags (SkillTag/ContextTag models, endpoints, picker UI, filter chips); Favorites (SkillFavorite/ContextFavorite models, toggle endpoints, UI); Ratings; Versioning (lower priority).
+1. **Feature Parity for Skills/Context** — Tags (SkillTag/ContextTag models, endpoints, picker UI, filter chips); Ratings; Versioning (lower priority). Favorites and Variables are now complete.
 
 2. **Analytics Enhancements** — Add time-range selector; add skill/context usage stats to overview.
 
 **Completed in Recent Sessions:**
 
+- ✅ Template Variables for Skills/Context — Extended variable system with SkillVariable/ContextVariable models, editor UI, and interpolation.
+- ✅ Skills/Context Favorites — Added SkillFavorite/ContextFavorite models with toggle endpoints and UI.
+- ✅ Changelog System — Version history display with automatic version bump during deploys.
 - ✅ Dedicated Settings Page — Full-page `/settings` route with profile editing, my content, and my analytics.
 - ✅ Quick-Create Actions — Dropdown menu with "New Prompt", "New Skill", "New Context" options.
 - ✅ System Collections — Automatic tool-based and "Best of AI Library" collections with protection.

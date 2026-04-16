@@ -88,12 +88,14 @@ model Skill {
   body        String
   visibility  PromptVisibility @default(PUBLIC)
   status      PromptStatus     @default(DRAFT)
+  tools       String[]         @default([])
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   team        Team             @relation(fields: [teamId], references: [id], onDelete: Restrict)
   owner       User             @relation(fields: [ownerId], references: [id], onDelete: Restrict)
   favorites   SkillFavorite[]
   usageEvents SkillUsageEvent[]
+  variables   SkillVariable[]
 
   @@index([teamId, updatedAt])
 }
@@ -107,12 +109,14 @@ model ContextDocument {
   body        String
   visibility  PromptVisibility @default(PUBLIC)
   status      PromptStatus     @default(DRAFT)
+  tools       String[]         @default([])
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   team        Team             @relation(fields: [teamId], references: [id], onDelete: Restrict)
   owner       User             @relation(fields: [ownerId], references: [id], onDelete: Restrict)
   favorites   ContextFavorite[]
   usageEvents ContextUsageEvent[]
+  variables   ContextVariable[]
 
   @@index([teamId, updatedAt])
 }
@@ -214,6 +218,30 @@ model PromptVariable {
   prompt       Prompt   @relation(fields: [promptId], references: [id], onDelete: Cascade)
 
   @@unique([promptId, key])
+}
+
+model SkillVariable {
+  id           Int      @id @default(autoincrement())
+  skillId      Int
+  key          String
+  label        String?
+  defaultValue String?
+  required     Boolean  @default(false)
+  skill        Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([skillId, key])
+}
+
+model ContextVariable {
+  id           Int             @id @default(autoincrement())
+  contextId    Int
+  key          String
+  label        String?
+  defaultValue String?
+  required     Boolean         @default(false)
+  context      ContextDocument @relation(fields: [contextId], references: [id], onDelete: Cascade)
+
+  @@unique([contextId, key])
 }
 
 model UsageEvent {

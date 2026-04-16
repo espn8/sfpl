@@ -1,9 +1,36 @@
 import { apiClient } from "../../api/client";
+import {
+  PROMPT_TOOL_OPTIONS,
+  PROMPT_TOOL_LABELS,
+  getToolsSortedAlphabetically,
+  getToolsSortedWithDynamic,
+  getToolLabel,
+  fetchApprovedTools,
+} from "../prompts/api";
+import type { PromptTool } from "../prompts/api";
+
+export {
+  PROMPT_TOOL_OPTIONS as CONTEXT_TOOL_OPTIONS,
+  PROMPT_TOOL_LABELS as CONTEXT_TOOL_LABELS,
+  getToolsSortedAlphabetically as getContextToolsSortedAlphabetically,
+  getToolsSortedWithDynamic as getContextToolsSortedWithDynamic,
+  getToolLabel as getContextToolLabel,
+  fetchApprovedTools as fetchApprovedContextTools,
+};
+export type { PromptTool as ContextTool };
 
 export type ContextOwner = {
   id: number;
   name: string | null;
   avatarUrl: string | null;
+};
+
+export type ContextVariable = {
+  id: number;
+  key: string;
+  label: string | null;
+  defaultValue: string | null;
+  required: boolean;
 };
 
 export type ContextDocument = {
@@ -13,9 +40,11 @@ export type ContextDocument = {
   body: string;
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   visibility: "PUBLIC" | "TEAM" | "PRIVATE";
+  tools: string[];
   createdAt: string;
   updatedAt: string;
   owner: ContextOwner;
+  variables?: ContextVariable[];
   viewCount?: number;
   copyCount?: number;
   favoriteCount?: number;
@@ -46,12 +75,21 @@ export async function getContextDocument(id: number): Promise<ContextDocument> {
   return data.data;
 }
 
+export type ContextVariableInput = {
+  key: string;
+  label?: string | null;
+  defaultValue?: string | null;
+  required?: boolean;
+};
+
 export type CreateContextInput = {
   title: string;
   summary?: string;
   body: string;
   visibility?: "PUBLIC" | "TEAM" | "PRIVATE";
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  tools?: string[];
+  variables?: ContextVariableInput[];
 };
 
 export async function createContextDocument(input: CreateContextInput): Promise<ContextDocument> {
@@ -65,6 +103,7 @@ export type UpdateContextInput = Partial<{
   body: string;
   visibility: "PUBLIC" | "TEAM" | "PRIVATE";
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  tools: string[];
 }>;
 
 export async function updateContextDocument(id: number, input: UpdateContextInput): Promise<ContextDocument> {
@@ -83,4 +122,12 @@ export async function toggleContextFavorite(contextId: number): Promise<{ favori
 
 export async function logContextUsage(contextId: number, eventType: "VIEW" | "COPY"): Promise<void> {
   await apiClient.post(`/api/context/${contextId}/usage`, { eventType });
+}
+
+export async function replaceContextVariables(
+  contextId: number,
+  variables: ContextVariableInput[],
+): Promise<ContextDocument> {
+  const { data } = await apiClient.put<{ data: ContextDocument }>(`/api/context/${contextId}/variables`, { variables });
+  return data.data;
 }

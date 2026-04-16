@@ -27,8 +27,8 @@ export function LoginPage() {
           </a>
         </div>
       </div>
-      <footer className="mx-auto mt-8 max-w-xl rounded-lg border border-(--color-border) bg-(--color-surface) px-4 py-3">
-        Copyright 2026. All Rights Reserved. Created with ❤️ by Amelia Ochodnicky.
+      <footer className="mx-auto mt-8 max-w-xl rounded-lg border border-(--color-border) bg-(--color-surface) px-4 py-3 text-sm text-(--color-text-muted)">
+        Copyright 2026. All Rights Reserved. Created with ❤️ by Amelia Ochodnicky. v{import.meta.env.VITE_APP_VERSION}
       </footer>
     </main>
   );

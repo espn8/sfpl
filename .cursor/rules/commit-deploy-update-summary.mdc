@@ -41,7 +41,7 @@ Update root `summary.md` with enough detail for a developer to rebuild the proje
 ## Phase 2: Git & Deployment
 1. Stage all changes with `git add .`.
 2. Commit with a message based on **Recent Changes** from Phase 1.
-3. Verify branch, then deploy via `git push heroku master`.
+3. Verify branch, then deploy via `git push heroku main`.
 4. If Heroku push fails, stop and report the error log.
 5. If deploy succeeds, confirm the final `Last Updated` timestamp.
 

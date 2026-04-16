@@ -246,7 +246,10 @@ export function AppShell({ children }: AppShellProps) {
             >
               Amelia Ochodnicky
             </a>
-            .
+            .{" "}
+            <Link to="/changelog" className="underline hover:no-underline">
+              v{import.meta.env.VITE_APP_VERSION}
+            </Link>
           </div>
         </footer>
       </div>

@@ -42,8 +42,8 @@ Variables are customizable placeholders in a prompt. For example, a prompt might
 ### How do I create a prompt?
 1. Click "New Prompt" in the top navigation
 2. Give your prompt a title and summary
-3. Write your prompt in the body field (use [KEY] or {{KEY}} for any variables)
-4. Add variables if needed (define the key, label, and default value)
+3. Write your prompt in the body field
+4. Add variables if needed—click "Insert" to add [KEY] placeholders to your prompt, or type them manually
 5. Select the tools and generated output type it works with
 6. Choose visibility (Public for everyone, Private for just you)
 7. Save as Draft or Publish immediately

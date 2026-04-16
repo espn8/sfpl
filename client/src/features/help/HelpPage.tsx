@@ -79,7 +79,7 @@ const helpContent: HelpSection[] = [
       {
         question: "How do I create a prompt?",
         answer:
-          '1. Click "New Prompt" in the top navigation\n2. Give your prompt a title and summary\n3. Write your prompt in the body field (use [KEY] or {{KEY}} for any variables)\n4. Add variables if needed (define the key, label, and default value)\n5. Select the tools and generated output type it works with\n6. Choose visibility (Public for all users, Team for your OU only, or Private for just you)\n7. Save as Draft or Publish immediately',
+          '1. Click "New Prompt" in the top navigation\n2. Give your prompt a title and summary\n3. Write your prompt in the body field\n4. Add variables if needed—click "Insert" to add [KEY] placeholders to your prompt, or type them manually\n5. Select the tools and generated output type it works with\n6. Choose visibility (Public for all users, Team for your OU only, or Private for just you)\n7. Save as Draft or Publish immediately',
       },
       {
         question: "How do I edit or update a prompt?",

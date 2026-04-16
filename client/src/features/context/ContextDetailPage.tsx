@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
 import { MarkdownPreview } from "../../components/MarkdownPreview";
+import { VariableInputs } from "../../components/VariableInputs";
+import { interpolateBody } from "../../lib/interpolate";
 import { buildShareUrl, copyToClipboard, downloadAsMarkdown, shareOrCopyLink } from "../../lib/shareOrCopyLink";
 import { fetchMe } from "../auth/api";
 import { archiveContextDocument, getContextDocument, logContextUsage, toggleContextFavorite } from "./api";
@@ -13,6 +15,7 @@ type ViewMode = "preview" | "raw";
 export function ContextDetailPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("preview");
   const [favorited, setFavorited] = useState(false);
+  const [variableValues, setVariableValues] = useState<Record<string, string>>({});
   const params = useParams();
   const docId = Number(params.id);
   const navigate = useNavigate();
@@ -49,6 +52,11 @@ export function ContextDetailPage() {
   useEffect(() => {
     if (docQuery.data) {
       setFavorited(docQuery.data.favorited ?? false);
+      const next: Record<string, string> = {};
+      for (const variable of docQuery.data.variables ?? []) {
+        next[variable.key] = variable.defaultValue ?? "";
+      }
+      setVariableValues(next);
     }
   }, [docQuery.data?.id, docQuery.data?.favorited]);
 
@@ -76,6 +84,18 @@ export function ContextDetailPage() {
     meQuery.data &&
     (meQuery.data.id === doc.owner.id || meQuery.data.role === "ADMIN" || meQuery.data.role === "OWNER");
   const viewCount = doc.viewCount ?? 0;
+  const hasVariables = (doc.variables?.length ?? 0) > 0;
+
+  const composed = useMemo(() => {
+    if (!doc) {
+      return { text: "", missingRequiredKeys: [] as string[] };
+    }
+    const variables = doc.variables ?? [];
+    if (variables.length === 0) {
+      return { text: doc.body, missingRequiredKeys: [] as string[] };
+    }
+    return interpolateBody(doc.body, variables, variableValues);
+  }, [doc, variableValues]);
 
   const shareUrl = buildShareUrl(`/context/${docId}`);
 
@@ -85,7 +105,7 @@ export function ContextDetailPage() {
   };
 
   const handleCopyContent = async () => {
-    const success = await copyToClipboard(doc.body);
+    const success = await copyToClipboard(composed.text);
     if (success) {
       trackEvent("context_copy", { context_id: docId, source: "detail" });
     }
@@ -93,7 +113,7 @@ export function ContextDetailPage() {
 
   const handleDownload = () => {
     const safeTitle = doc.title.replace(/[^a-zA-Z0-9-_]/g, "_").slice(0, 50);
-    downloadAsMarkdown(doc.body, `${safeTitle}.md`);
+    downloadAsMarkdown(composed.text, `${safeTitle}.md`);
     trackEvent("context_download", { context_id: docId, source: "detail" });
   };
 
@@ -182,42 +202,103 @@ export function ContextDetailPage() {
         </button>
       </div>
 
-      <section className="rounded-lg border border-(--color-border) bg-(--color-surface-muted) p-4">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold text-(--color-text-muted)">Body (Markdown)</h2>
-          <div className="flex rounded-md border border-(--color-border) bg-(--color-surface) p-0.5">
-            <button
-              type="button"
-              onClick={() => setViewMode("preview")}
-              className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
-                viewMode === "preview"
-                  ? "bg-(--color-primary) text-(--color-text-inverse)"
-                  : "text-(--color-text-muted) hover:text-(--color-text)"
-              }`}
-            >
-              Preview
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("raw")}
-              className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
-                viewMode === "raw"
-                  ? "bg-(--color-primary) text-(--color-text-inverse)"
-                  : "text-(--color-text-muted) hover:text-(--color-text)"
-              }`}
-            >
-              Raw
-            </button>
+      {hasVariables ? (
+        <section className="space-y-3 rounded border border-(--color-border) bg-(--color-surface) p-4">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-(--color-text-muted)">Template</h3>
+          <p className="text-xs text-(--color-text-muted)">
+            This context uses variables. Fill them in below to see your customized version.
+          </p>
+          <pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded border border-(--color-border) bg-(--color-surface-muted) p-3 text-sm">
+            {doc.body}
+          </pre>
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-(--color-text-muted)">Variables</h3>
+          <VariableInputs
+            variables={doc.variables ?? []}
+            values={variableValues}
+            onChange={setVariableValues}
+          />
+          {composed.missingRequiredKeys.length > 0 ? (
+            <p className="text-sm text-(--color-danger)">
+              Fill required variables: {composed.missingRequiredKeys.join(", ")}
+            </p>
+          ) : null}
+          <div>
+            <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-(--color-text-muted)">Preview</h3>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex rounded-md border border-(--color-border) bg-(--color-surface) p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setViewMode("preview")}
+                  className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
+                    viewMode === "preview"
+                      ? "bg-(--color-primary) text-(--color-text-inverse)"
+                      : "text-(--color-text-muted) hover:text-(--color-text)"
+                  }`}
+                >
+                  Preview
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("raw")}
+                  className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
+                    viewMode === "raw"
+                      ? "bg-(--color-primary) text-(--color-text-inverse)"
+                      : "text-(--color-text-muted) hover:text-(--color-text)"
+                  }`}
+                >
+                  Raw
+                </button>
+              </div>
+            </div>
+            {viewMode === "preview" ? (
+              <div className="mt-3 max-h-128 overflow-auto">
+                <MarkdownPreview content={composed.text} />
+              </div>
+            ) : (
+              <pre className="mt-3 max-h-128 overflow-auto whitespace-pre-wrap rounded border border-(--color-border) bg-(--color-surface-muted) p-3 font-mono text-sm">
+                {composed.text}
+              </pre>
+            )}
           </div>
-        </div>
-        {viewMode === "preview" ? (
-          <div className="mt-3 max-h-128 overflow-auto">
-            <MarkdownPreview content={doc.body} />
+        </section>
+      ) : (
+        <section className="rounded-lg border border-(--color-border) bg-(--color-surface-muted) p-4">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold text-(--color-text-muted)">Body (Markdown)</h2>
+            <div className="flex rounded-md border border-(--color-border) bg-(--color-surface) p-0.5">
+              <button
+                type="button"
+                onClick={() => setViewMode("preview")}
+                className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
+                  viewMode === "preview"
+                    ? "bg-(--color-primary) text-(--color-text-inverse)"
+                    : "text-(--color-text-muted) hover:text-(--color-text)"
+                }`}
+              >
+                Preview
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("raw")}
+                className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
+                  viewMode === "raw"
+                    ? "bg-(--color-primary) text-(--color-text-inverse)"
+                    : "text-(--color-text-muted) hover:text-(--color-text)"
+                }`}
+              >
+                Raw
+              </button>
+            </div>
           </div>
-        ) : (
-          <pre className="mt-3 max-h-128 overflow-auto whitespace-pre-wrap font-mono text-sm">{doc.body}</pre>
-        )}
-      </section>
+          {viewMode === "preview" ? (
+            <div className="mt-3 max-h-128 overflow-auto">
+              <MarkdownPreview content={doc.body} />
+            </div>
+          ) : (
+            <pre className="mt-3 max-h-128 overflow-auto whitespace-pre-wrap font-mono text-sm">{doc.body}</pre>
+          )}
+        </section>
+      )}
     </article>
   );
 }
