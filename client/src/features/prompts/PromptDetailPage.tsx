@@ -442,19 +442,6 @@ export function PromptDetailPage() {
         <div className="flex flex-wrap items-center gap-0.5">
           <button
             type="button"
-            disabled={!canCopyOrLaunch}
-            className="rounded-md border border-transparent p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text) disabled:pointer-events-none disabled:opacity-40"
-            aria-label="Copy prompt"
-            onClick={() => {
-              void navigator.clipboard.writeText(composed.text);
-              void logUsage(promptId, "COPY");
-              trackEvent("prompt_copy", { prompt_id: promptId, source: "detail" });
-            }}
-          >
-            <CopyIcon className="h-5 w-5" />
-          </button>
-          <button
-            type="button"
             className="rounded-md border border-transparent p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text)"
             aria-label="Share prompt link"
             onClick={() => {
@@ -517,6 +504,24 @@ export function PromptDetailPage() {
             <SparkleIcon className="h-4 w-4" />
             {useLabel}
           </a>
+          <button
+            type="button"
+            disabled={!canCopyOrLaunch}
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors ${
+              canCopyOrLaunch
+                ? "bg-[#5A1BA9] text-white hover:bg-[#4A1589]"
+                : "pointer-events-none bg-(--color-surface-muted) text-(--color-text-muted) opacity-50"
+            }`}
+            aria-label="Copy prompt"
+            onClick={() => {
+              void navigator.clipboard.writeText(composed.text);
+              void logUsage(promptId, "COPY");
+              trackEvent("prompt_copy", { prompt_id: promptId, source: "detail" });
+            }}
+          >
+            <CopyIcon className="h-4 w-4" />
+            Copy
+          </button>
         </div>
       </div>
 

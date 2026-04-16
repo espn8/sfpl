@@ -1,9 +1,13 @@
 # AI Library - Technical Summary
 
-Last Updated: Thursday, April 17, 2026 — 00:20 CDT
-Build Version: 99edd43
+Last Updated: Thursday, April 17, 2026 — 00:35 CDT
+Build Version: a0d47aa
 
 ## Recent Changes
+
+- **Copy button redesign**: Moved the Copy button from the left action toolbar to the right side, placing it next to the "Use prompt" button. Updated styling to match the launch button (rounded-xl, px-4 py-2.5, text-sm font-semibold, shadow-sm) with Salesforce purple background (#5A1BA9) and added "Copy" text label for improved clarity.
+
+### Previous Session Changes (April 17, 2026)
 
 - **Thumbnail regenerate button fix**: Fixed the "Regenerate me" text on failed prompt thumbnails to be an actual clickable button. Added `onRegenerate` and `isRegenerating` props to `PromptThumbnail` component. The regenerate button now appears for users with edit permissions (admins, owners, prompt authors) when thumbnail generation has failed. Calls `POST /api/prompts/:id/regenerate-thumbnail` endpoint.
 - **Permanent asset deletion**: Users can now permanently delete their own created Prompts, Skills, and Context Documents. Added `ConfirmDeleteModal` component with clear warning that deletion cannot be undone and all analytics will be lost. Backend endpoints cascade-delete all related data (usage events, ratings, favorites, tags, variables, versions, collection memberships). Only the asset owner can permanently delete (not admins).
