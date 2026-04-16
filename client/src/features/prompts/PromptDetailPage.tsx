@@ -195,7 +195,7 @@ export function PromptDetailPage() {
     }
   }, [promptId]);
 
-  if (promptQuery.isLoading) {
+  if (promptQuery.isLoading || meQuery.isLoading) {
     return <p>Just a moment...</p>;
   }
 
