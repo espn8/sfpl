@@ -295,7 +295,7 @@ export function PromptDetailPage() {
           <span className="rounded bg-(--color-surface-muted) px-2 py-1">Status: {promptData.status}</span>
           <span className="rounded bg-(--color-surface-muted) px-2 py-1">Visibility: {promptData.visibility}</span>
           <span className="rounded bg-(--color-surface-muted) px-2 py-1">
-            Tools: {promptData.tools.length > 0 ? promptData.tools.map(getToolLabel).join(", ") : "Not set"}
+            Tools: {promptData.tools.length > 0 ? promptData.tools.map((t) => getToolLabel(t)).join(", ") : "Not set"}
           </span>
           <span className="rounded bg-(--color-surface-muted) px-2 py-1">Generated output: {promptData.modality}</span>
         </div>

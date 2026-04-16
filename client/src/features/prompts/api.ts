@@ -14,19 +14,36 @@ export const PROMPT_TOOL_LABELS: Record<PromptTool, string> = {
   slackbot: "Slackbot",
 };
 
-export function getToolLabel(tool: PromptTool): string {
-  return PROMPT_TOOL_LABELS[tool] ?? tool;
+export function getToolLabel(tool: PromptTool | string, dynamicToolLabels?: Map<string, string>): string {
+  if (tool in PROMPT_TOOL_LABELS) {
+    return PROMPT_TOOL_LABELS[tool as PromptTool];
+  }
+  return dynamicToolLabels?.get(tool) ?? tool;
 }
 
 export function getToolsSortedAlphabetically(): PromptTool[] {
-  const sorted = [...PROMPT_TOOL_OPTIONS]
-    .filter((t) => t !== "other")
+  const sorted: PromptTool[] = [...PROMPT_TOOL_OPTIONS]
+    .filter((t): t is Exclude<PromptTool, "other"> => t !== "other")
     .sort((a, b) => PROMPT_TOOL_LABELS[a].localeCompare(PROMPT_TOOL_LABELS[b]));
-  sorted.push("other");
-  return sorted;
+  return [...sorted, "other"];
 }
 
-export const TOOL_REQUEST_URL = "https://forms.gle/your-tool-request-form";
+export async function fetchApprovedTools(): Promise<string[]> {
+  const response = await apiClient.get<{ data: string[] }>("/api/tool-requests/approved-tools");
+  return response.data.data;
+}
+
+export function getToolsSortedWithDynamic(dynamicTools: string[]): string[] {
+  const staticTools: string[] = [...PROMPT_TOOL_OPTIONS].filter((t) => t !== "other");
+  const allTools = [...new Set([...staticTools, ...dynamicTools])];
+  const sorted = allTools.sort((a, b) => {
+    const labelA = a in PROMPT_TOOL_LABELS ? PROMPT_TOOL_LABELS[a as PromptTool] : a;
+    const labelB = b in PROMPT_TOOL_LABELS ? PROMPT_TOOL_LABELS[b as PromptTool] : b;
+    return labelA.localeCompare(labelB);
+  });
+  return [...sorted, "other"];
+}
+
 export const PROMPT_MODALITY_OPTIONS = ["text", "code", "image", "video", "audio", "multimodal"] as const;
 export type PromptModality = (typeof PROMPT_MODALITY_OPTIONS)[number];
 

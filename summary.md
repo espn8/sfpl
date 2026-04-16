@@ -1,27 +1,30 @@
 # AI Library - Technical Summary
 
-Last Updated: Thursday, April 16, 2026 — 17:45 CDT
-Build Version: 0baa8f4
+Last Updated: Thursday, April 16, 2026 — 20:30 CDT
+Build Version: dbf86bd
 
 ## Recent Changes
 
-- **Title sanitization utility**: Added `sanitizeTitle()` helper in `client/src/lib/sanitizeTitle.ts` that strips common asset type words (prompt, skill, context, rule, document, doc, file) from user-entered titles. Applied to all editor pages (PromptEditorPage, PromptEditPage, SkillEditorPage, SkillEditPage, ContextEditorPage, ContextEditPage) to prevent redundant naming like "My Prompt Prompt".
-- **Asset type badges on detail pages**: Added `[Prompt]`, `[Skill]`, and `[Context]` suffix badges to detail page titles for clearer asset type identification when sharing or bookmarking.
-- **Edit button visibility fix**: PromptDetailPage now only shows the Edit button when the current user has edit permissions (owner, admin, or content author). Previously the edit link was always visible.
-- **Hero section conditional display**: PromptListPage hero section (greeting, navigation cards, stats) now hides when viewing "My Content" (`mine=true` filter) to reduce visual noise.
-- **AppShell cleanup**: Removed unused profile modal code and related icon components (DocumentIcon, ChartIcon, SettingsIcon) from AppShell. Removed logout handler as it was unused. Cleaned up unused `isProfileModalOpen` state.
-- **Settings page simplification**: Removed Team ID display from SettingsPage account info section.
-- **Tool sort order fix**: Updated `getToolsSortedAlphabetically()` to use filter/push approach ensuring "Other" is always last.
+- **Tool Request System**: Added complete tool request submission and admin review workflow. Users can request new tools via a modal form accessible from prompt editor pages. Requests capture tool name, Salesforce approval status, details URL, and description. Admins can review, approve, decline, or put requests on hold via a dedicated admin page.
+- **ToolRequest data model**: Added `ToolRequest` Prisma model with fields for submission data (name, salesforceApproved, detailsUrl, description, submitter info), review state (status, reviewedAt, reviewedById, reviewNotes), and timestamps. Added `ToolRequestStatus` enum (PENDING, APPROVED, DECLINED, ON_HOLD).
+- **Tool Requests API**: New `/api/tool-requests` endpoints: `GET /approved-tools` (public, returns approved tool names), `POST /` (create request), `GET /` (admin list with filters/pagination), `PATCH /:id` (admin review).
+- **Tool Request Modal**: New `ToolRequestModal` component with form validation, user name pre-fill from auth context, success confirmation state, and mutation-based submission.
+- **Admin Tool Requests Page**: New `ToolRequestsPage` at `/admin/tool-requests` with status filtering, pagination, review modal for approve/decline/hold decisions with optional notes.
+- **Email notification service**: Added `nodemailer` integration with SMTP configuration support (Mailgun-ready). New `server/src/lib/email.ts` provides `sendEmail()`, `isEmailConfigured()`, `verifyEmailConnection()`, and `escapeHtml()` utilities. `server/src/services/email.ts` provides `sendToolRequestNotification()` for alerting admins of new submissions.
+- **SMTP environment configuration**: Added `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, and `TOOL_REQUEST_NOTIFY_EMAIL` environment variables with graceful degradation when SMTP is not configured.
+- **AppShell admin menu expansion**: Added "Tool Requests" link to admin dropdown menu for quick access to the review queue.
+- **Router update**: Added `/admin/tool-requests` route with AdminRoute wrapper.
 
 ### Previous Session Changes (carried forward from April 16)
 
-- **TEAM visibility level**: Added new `TEAM` visibility option to Prompts, Skills, and Context Documents. Content set to `TEAM` visibility is visible to users within the same organizational unit (OU). Updated Prisma schema enum, added `userOu` to auth context and session, implemented OU-based access control in all routes.
-- **OU-based access control**: Extended visibility checking across prompts, skills, and context routes with new `canAccessByVisibility()` helper functions. Users can now see TEAM-scoped content from others in their same OU.
-- **Skills/Context analytics in list views**: Added `mine` and `includeAnalytics` query parameters to Skills and Context list endpoints. When enabled, returns `viewCount`, `copyCount`, and `favoriteCount` aggregates. Frontend list pages updated to display analytics cards for "My Content" views.
-- **Visibility selector UX update**: Changed visibility dropdowns across all editor pages (Prompts, Skills, Context) to show clearer labels: "Public (All Users)", "Team (My OU Only)", "Private (Only Me)".
-- **Profile photo upload feature**: Added ability for users to upload custom profile photos (headshots). Server-side file handling via `multer` with `POST /api/auth/me/profile-photo` endpoint. Supports JPEG, PNG, GIF, and WebP formats up to 5MB. Uploaded files stored in `server/public/uploads/`. Frontend UI updated in both SettingsPage and AppShell profile modal with "Change Photo" button and upload mutation.
-- **Terminology update**: Changed all user-facing references from "avatar" to "profile photo" throughout the application. Updated help content to explain the new upload feature. Database field remains `avatarUrl` for backwards compatibility.
-- **Profile modal Quick Links fix**: Restructured profile modal to move Account info and Quick Links (`<nav>`) outside the `<form>` element. Links (`My Content`, `My Analytics`, `Settings`) were inside a form which caused navigation issues in React Router v7. Now Quick Links navigate correctly and close the modal as expected.
+- **Title sanitization utility**: Added `sanitizeTitle()` helper in `client/src/lib/sanitizeTitle.ts` that strips common asset type words (prompt, skill, context, rule, document, doc, file) from user-entered titles. Applied to all editor pages to prevent redundant naming like "My Prompt Prompt".
+- **Asset type badges on detail pages**: Added `[Prompt]`, `[Skill]`, and `[Context]` suffix badges to detail page titles for clearer asset type identification.
+- **Edit button visibility fix**: PromptDetailPage now only shows the Edit button when the current user has edit permissions (owner, admin, or content author).
+- **Hero section conditional display**: PromptListPage hero section hides when viewing "My Content" (`mine=true` filter) to reduce visual noise.
+- **AppShell cleanup**: Removed unused profile modal code and related icon components. Cleaned up unused state.
+- **TEAM visibility level**: Added new `TEAM` visibility option to Prompts, Skills, and Context Documents with OU-based access control.
+- **Skills/Context analytics in list views**: Added `mine` and `includeAnalytics` query parameters with analytics aggregates.
+- **Profile photo upload feature**: Added ability for users to upload custom profile photos via `POST /api/auth/me/profile-photo`.
 
 ### Earlier Session Changes
 
@@ -73,7 +76,6 @@ The application has achieved **substantial completion** of the core implementati
 ### Identified Gaps (Prioritized)
 
 1. **Feature Parity**: Skills/Context missing versioning, tags, collections, favorites, ratings.
-2. **Tool request form**: `TOOL_REQUEST_URL` placeholder needs actual Google Form URL.
 
 ### Remediation Roadmap (Updated)
 
@@ -140,11 +142,12 @@ The application has achieved **substantial completion** of the core implementati
 │   │   ├── assets/                             # Bundled static assets
 │   │   ├── components/                         # Shared UI shell/chrome (AppShell, ProtectedRoute, AdminRoute)
 │   │   ├── features/
-│   │   │   ├── prompts/                        # Discovery/detail/create/edit, cards, filters, interpolation, external launch, share
+│   │   │   ├── prompts/                        # Discovery/detail/create/edit, cards, filters, interpolation, external launch, share, ToolRequestModal
 │   │   │   ├── skills/                         # Skill list/detail/create/edit (markdown body, copy, share, usage tracking)
 │   │   │   ├── context/                        # Context (markdown) list/detail/create/edit (copy, share, usage tracking)
 │   │   │   ├── analytics/                      # Admin analytics dashboard (top used/rated, contributors, user engagement)
 │   │   │   ├── collections/                    # Collection CRUD + membership surfaces + share
+│   │   │   ├── admin/                          # Admin pages: ToolRequestsPage for tool submission review
 │   │   │   ├── help/                           # Searchable help documentation (HelpPage.tsx)
 │   │   │   └── auth/                           # OAuth entry + role helpers (LoginPage, api, roles)
 │   │   ├── pages/                              # Static pages (TermsPage, PrivacyPage)
@@ -169,10 +172,16 @@ The application has achieved **substantial completion** of the core implementati
 │   │   │   ├── collections.ts                  # Collection operations
 │   │   │   ├── tags.ts                         # Tag management
 │   │   │   ├── help.ts                         # Help search endpoint
+│   │   │   ├── toolRequests.ts                 # Tool request submission and admin review
 │   │   │   └── auth.ts                         # Google OAuth + session lifecycle
 │   │   ├── services/
 │   │   │   ├── nanoBanana.ts                   # Image generation adapter (Gemini API)
-│   │   │   └── helpSearch.ts                   # Help content search service
+│   │   │   ├── helpSearch.ts                   # Help content search service
+│   │   │   └── email.ts                        # Tool request email notifications
+│   │   ├── lib/
+│   │   │   ├── prisma.ts                       # Prisma singleton client
+│   │   │   ├── auth.ts                         # Session/token helpers
+│   │   │   └── email.ts                        # Nodemailer SMTP email client
 │   └── test/                                   # API behavior tests
 ├── Procfile                                    # Heroku process model
 ├── app.json                                    # Heroku app metadata/env scaffolding
@@ -182,7 +191,7 @@ The application has achieved **substantial completion** of the core implementati
 
 ### Prisma Data Model Summary
 
-**Models (19):**
+**Models (20):**
 - `User` - with `avatarUrl`, `region`, `ou`, `title`, `onboardingCompleted`, `googleSub`
 - `Team` - multi-tenant team container
 - `Prompt` - with `tools[]`, `modality`, `thumbnailUrl`, `thumbnailStatus`, `thumbnailError`
@@ -196,8 +205,9 @@ The application has achieved **substantial completion** of the core implementati
 - `UsageEvent` - VIEW/COPY/LAUNCH tracking (prompts)
 - `SkillUsageEvent` - VIEW/COPY/SHARE tracking (skills)
 - `ContextUsageEvent` - VIEW/COPY/SHARE tracking (context documents)
+- `ToolRequest` - tool submission requests with review workflow
 
-**Enums (9):** `Role`, `PromptVisibility` (PUBLIC, TEAM, PRIVATE), `PromptStatus`, `UsageAction`, `PromptModality`, `ThumbnailStatus`, `SkillUsageAction`, `ContextUsageAction`
+**Enums (10):** `Role`, `PromptVisibility` (PUBLIC, TEAM, PRIVATE), `PromptStatus`, `UsageAction`, `PromptModality`, `ThumbnailStatus`, `SkillUsageAction`, `ContextUsageAction`, `ToolRequestStatus`
 
 ### Primary Data Flow / Lifecycle
 
@@ -224,6 +234,7 @@ The application has achieved **substantial completion** of the core implementati
 | `tags.ts` | `GET /`, `POST /` |
 | `analytics.ts` | `GET /overview` (team-scoped aggregates) |
 | `help.ts` | `POST /search` (AI-powered help search) |
+| `toolRequests.ts` | `GET /approved-tools`, `POST /`, `GET /` (admin), `PATCH /:id` (admin review) |
 
 ### Frontend Routes Inventory
 
@@ -248,6 +259,7 @@ The application has achieved **substantial completion** of the core implementati
 | `/collections` | `CollectionsPage` | Protected |
 | `/collections/:id` | `CollectionDetailPage` | Protected |
 | `/analytics` | `AnalyticsPage` | Admin only |
+| `/admin/tool-requests` | `ToolRequestsPage` | Admin only |
 | `/settings` | `SettingsPage` | Protected |
 
 ### Major Modules and Why They Exist
@@ -276,6 +288,11 @@ The application has achieved **substantial completion** of the core implementati
 - `client/src/features/settings/SettingsPage.tsx`: dedicated settings page with profile editing, my content links, and my analytics links.
 - `client/src/features/skills/SkillDetailPage.tsx`: skill detail view with copy button, markdown preview toggle, and share.
 - `client/src/features/context/ContextDetailPage.tsx`: context detail view with copy button, markdown preview toggle, and share.
+- `client/src/features/admin/ToolRequestsPage.tsx`: admin page for reviewing tool submission requests with status filtering and review modal.
+- `client/src/features/prompts/ToolRequestModal.tsx`: modal form for submitting new tool requests with validation.
+- `server/src/routes/toolRequests.ts`: tool request submission and admin review API endpoints.
+- `server/src/lib/email.ts`: nodemailer-based email service with SMTP configuration.
+- `server/src/services/email.ts`: tool request notification email templates.
 
 ## Replication and Setup
 
@@ -307,6 +324,12 @@ BOOTSTRAP_ADMIN_EMAILS=admin1@example.com,admin2@example.com
 NANO_BANANA_API_KEY=<google-generative-language-api-key>
 AUTH_RATE_LIMIT_WINDOW_MS=900000
 AUTH_RATE_LIMIT_MAX=60
+SMTP_HOST=smtp.mailgun.org
+SMTP_PORT=587
+SMTP_USER=<mailgun-smtp-user>
+SMTP_PASS=<mailgun-smtp-password>
+SMTP_FROM=noreply@yourdomain.com
+TOOL_REQUEST_NOTIFY_EMAIL=admin@example.com
 ```
 
 Optional `client/.env`:

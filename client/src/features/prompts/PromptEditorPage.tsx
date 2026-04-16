@@ -8,10 +8,10 @@ import {
   getToolLabel,
   getToolsSortedAlphabetically,
   PROMPT_MODALITY_OPTIONS,
-  TOOL_REQUEST_URL,
   type PromptModality,
   type PromptTool,
 } from "./api";
+import { ToolRequestModal } from "./ToolRequestModal";
 
 type VariableRow = {
   clientId: string;
@@ -27,6 +27,7 @@ export function PromptEditorPage() {
   const [selectedTools, setSelectedTools] = useState<Set<PromptTool>>(new Set());
   const [otherToolName, setOtherToolName] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [showToolRequestModal, setShowToolRequestModal] = useState(false);
   const createMutation = useMutation({
     mutationFn: createPrompt,
     onSuccess: (prompt) => {
@@ -183,17 +184,17 @@ export function PromptEditorPage() {
             </label>
             <p className="text-xs text-(--color-text-muted)">
               Don't see your tool?{" "}
-              <a
-                href={TOOL_REQUEST_URL}
-                target="_blank"
-                rel="noreferrer"
+              <button
+                type="button"
+                onClick={() => setShowToolRequestModal(true)}
                 className="font-medium text-(--color-primary) underline hover:text-(--color-primary-hover)"
               >
                 Request a new tool be added
-              </a>
+              </button>
             </p>
           </div>
         )}
+        <ToolRequestModal isOpen={showToolRequestModal} onClose={() => setShowToolRequestModal(false)} />
       </div>
       <textarea
         name="body"
@@ -304,19 +305,19 @@ export function PromptEditorPage() {
         ) : null}
       </section>
       {validationError ? (
-        <p className="text-sm text-red-600" role="alert">
+        <p className="rounded border border-(--color-danger) bg-(--color-danger)/10 px-3 py-2 text-sm text-(--color-danger)" role="alert">
           {validationError}
         </p>
       ) : null}
       {createMutation.isError ? (
-        <p className="text-sm text-red-600" role="alert">
+        <p className="rounded border border-(--color-danger) bg-(--color-danger)/10 px-3 py-2 text-sm text-(--color-danger)" role="alert">
           Could not create prompt. Please try again.
         </p>
       ) : null}
       <button
         type="submit"
         disabled={createMutation.isPending}
-        className="rounded bg-(--color-primary) px-4 py-2 text-(--color-text-inverse) hover:bg-(--color-primary-active) active:bg-(--color-primary-active) disabled:opacity-50"
+        className="rounded bg-(--color-primary) px-4 py-2 text-(--color-text-inverse) hover:bg-(--color-primary-hover) active:bg-(--color-primary-active) disabled:cursor-not-allowed disabled:opacity-50"
       >
         {createMutation.isPending ? "Saving..." : "Save Prompt"}
       </button>

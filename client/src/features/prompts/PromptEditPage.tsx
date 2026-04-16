@@ -8,7 +8,6 @@ import {
   getToolLabel,
   getToolsSortedAlphabetically,
   PROMPT_MODALITY_OPTIONS,
-  TOOL_REQUEST_URL,
   type PromptModality,
   type PromptTool,
   type PromptVariable,
@@ -17,6 +16,7 @@ import {
   updatePrompt,
 } from "./api";
 import { PromptThumbnail } from "./PromptThumbnail";
+import { ToolRequestModal } from "./ToolRequestModal";
 
 type VariableRow = {
   clientId: string;
@@ -45,6 +45,7 @@ export function PromptEditPage() {
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [selectedTools, setSelectedTools] = useState<Set<PromptTool>>(new Set());
   const [otherToolName, setOtherToolName] = useState("");
+  const [showToolRequestModal, setShowToolRequestModal] = useState(false);
 
   const promptQuery = useQuery({
     queryKey: ["prompt", promptId],
@@ -276,17 +277,17 @@ export function PromptEditPage() {
             </label>
             <p className="text-xs text-(--color-text-muted)">
               Don't see your tool?{" "}
-              <a
-                href={TOOL_REQUEST_URL}
-                target="_blank"
-                rel="noreferrer"
+              <button
+                type="button"
+                onClick={() => setShowToolRequestModal(true)}
                 className="font-medium text-(--color-primary) underline hover:text-(--color-primary-hover)"
               >
                 Request a new tool be added
-              </a>
+              </button>
             </p>
           </div>
         )}
+        <ToolRequestModal isOpen={showToolRequestModal} onClose={() => setShowToolRequestModal(false)} />
       </div>
       <div className="space-y-2 rounded border border-(--color-border) bg-(--color-surface-muted) p-3">
         <p className="text-sm font-medium">Tags</p>

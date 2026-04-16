@@ -4,6 +4,7 @@ import { trackPageView } from "./analytics";
 import { AppShell } from "../components/AppShell";
 import { AdminRoute } from "../components/AdminRoute";
 import { ProtectedRoute } from "../components/ProtectedRoute";
+import { ToolRequestsPage } from "../features/admin/ToolRequestsPage";
 import { AnalyticsPage } from "../features/analytics/AnalyticsPage";
 import { LoginPage } from "../features/auth/LoginPage";
 import { CollectionDetailPage } from "../features/collections/CollectionDetailPage";
@@ -188,6 +189,18 @@ export function AppRouter() {
               <AppShell>
                 <AdminRoute>
                   <AnalyticsPage />
+                </AdminRoute>
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/tool-requests"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <AdminRoute>
+                  <ToolRequestsPage />
                 </AdminRoute>
               </AppShell>
             </ProtectedRoute>

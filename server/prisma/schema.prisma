@@ -34,6 +34,7 @@ model User {
   skillUsageEvents  SkillUsageEvent[]
   contextFavorites  ContextFavorite[]
   contextUsageEvents ContextUsageEvent[]
+  toolRequestsReviewed ToolRequest[]
 }
 
 model Team {
@@ -313,4 +314,31 @@ enum ThumbnailStatus {
   PENDING
   READY
   FAILED
+}
+
+model ToolRequest {
+  id                 Int               @id @default(autoincrement())
+  name               String
+  salesforceApproved Boolean
+  detailsUrl         String
+  description        String
+  submitterFirstName String
+  submitterLastName  String
+  submitterEmail     String
+  status             ToolRequestStatus @default(PENDING)
+  reviewedAt         DateTime?
+  reviewedById       Int?
+  reviewedBy         User?             @relation(fields: [reviewedById], references: [id])
+  reviewNotes        String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  @@index([status, createdAt])
+}
+
+enum ToolRequestStatus {
+  PENDING
+  APPROVED
+  DECLINED
+  ON_HOLD
 }

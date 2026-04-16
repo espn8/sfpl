@@ -146,9 +146,14 @@ export function AppShell({ children }: AppShellProps) {
                 Collections
               </Link>
               {meQuery.data && canAccessAdminUi(meQuery.data.role) ? (
-                <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/analytics">
-                  Analytics
-                </Link>
+                <>
+                  <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/analytics">
+                    Analytics
+                  </Link>
+                  <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/admin/tool-requests">
+                    Tool Requests
+                  </Link>
+                </>
               ) : null}
             </nav>
           </div>
