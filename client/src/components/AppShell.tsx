@@ -267,6 +267,56 @@ export function AppShell({ children }: AppShellProps) {
                 ? "Complete your profile to get started. It only takes a moment."
                 : "Manage your profile, preferences, and account settings."}
             </p>
+            {meQuery.data ? (
+              <div className="mt-4 rounded border border-(--color-border) bg-(--color-surface-muted) p-3">
+                <p className="mb-3 text-sm font-medium text-(--color-text)">Account</p>
+                <dl className="grid gap-3 text-sm sm:grid-cols-2">
+                  <div>
+                    <dt className="text-(--color-text-muted)">Email</dt>
+                    <dd className="mt-0.5 font-medium">{meQuery.data.email}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-(--color-text-muted)">Role</dt>
+                    <dd className="mt-0.5 font-medium">{meQuery.data.role}</dd>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <dt className="text-(--color-text-muted)">Team ID</dt>
+                    <dd className="mt-0.5 font-medium">{meQuery.data.teamId}</dd>
+                  </div>
+                </dl>
+              </div>
+            ) : null}
+
+            <nav className="mt-4 rounded border border-(--color-border) bg-(--color-surface-muted) p-3">
+              <p className="mb-3 text-sm font-medium text-(--color-text)">Quick Links</p>
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  to="/?mine=true"
+                  onClick={() => setIsProfileModalOpen(false)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-1.5 text-sm hover:bg-(--color-surface-muted)"
+                >
+                  <DocumentIcon className="h-4 w-4" />
+                  My Content
+                </Link>
+                <Link
+                  to="/?mine=true&showAnalytics=true"
+                  onClick={() => setIsProfileModalOpen(false)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-1.5 text-sm hover:bg-(--color-surface-muted)"
+                >
+                  <ChartIcon className="h-4 w-4" />
+                  My Analytics
+                </Link>
+                <Link
+                  to="/settings"
+                  onClick={() => setIsProfileModalOpen(false)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-1.5 text-sm hover:bg-(--color-surface-muted)"
+                >
+                  <SettingsIcon className="h-4 w-4" />
+                  Settings
+                </Link>
+              </div>
+            </nav>
+
             <form
               className="mt-4 space-y-4"
               onSubmit={(event) => {
@@ -284,56 +334,6 @@ export function AppShell({ children }: AppShellProps) {
                 });
               }}
             >
-              {meQuery.data ? (
-                <div className="rounded border border-(--color-border) bg-(--color-surface-muted) p-3">
-                  <p className="mb-3 text-sm font-medium text-(--color-text)">Account</p>
-                  <dl className="grid gap-3 text-sm sm:grid-cols-2">
-                    <div>
-                      <dt className="text-(--color-text-muted)">Email</dt>
-                      <dd className="mt-0.5 font-medium">{meQuery.data.email}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-(--color-text-muted)">Role</dt>
-                      <dd className="mt-0.5 font-medium">{meQuery.data.role}</dd>
-                    </div>
-                    <div className="sm:col-span-2">
-                      <dt className="text-(--color-text-muted)">Team ID</dt>
-                      <dd className="mt-0.5 font-medium">{meQuery.data.teamId}</dd>
-                    </div>
-                  </dl>
-                </div>
-              ) : null}
-
-              <div className="rounded border border-(--color-border) bg-(--color-surface-muted) p-3">
-                <p className="mb-3 text-sm font-medium text-(--color-text)">Quick Links</p>
-                <div className="flex flex-wrap gap-2">
-                  <Link
-                    to="/?mine=true"
-                    onClick={() => setIsProfileModalOpen(false)}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-1.5 text-sm hover:bg-(--color-surface-muted)"
-                  >
-                    <DocumentIcon className="h-4 w-4" />
-                    My Content
-                  </Link>
-                  <Link
-                    to="/?mine=true&showAnalytics=true"
-                    onClick={() => setIsProfileModalOpen(false)}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-1.5 text-sm hover:bg-(--color-surface-muted)"
-                  >
-                    <ChartIcon className="h-4 w-4" />
-                    My Analytics
-                  </Link>
-                  <Link
-                    to="/settings"
-                    onClick={() => setIsProfileModalOpen(false)}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-1.5 text-sm hover:bg-(--color-surface-muted)"
-                  >
-                    <SettingsIcon className="h-4 w-4" />
-                    Settings
-                  </Link>
-                </div>
-              </div>
-
               <div className="rounded border border-(--color-border) bg-(--color-surface-muted) p-3">
                 <p className="mb-2 text-sm text-(--color-text-muted)">Appearance</p>
                 <ThemeModeToggle />

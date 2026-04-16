@@ -1,12 +1,11 @@
 # AI Library - Technical Summary
 
-Last Updated: Thursday, April 16, 2026 — 07:48 CDT
-Build Version: 4276d76
+Last Updated: Thursday, April 16, 2026 — 08:29 CDT
+Build Version: 2ba5740
 
 ## Recent Changes
 
-- **Login page footer alignment**: Centered footer and constrained width to match login content area (`max-w-xl`, `mx-auto`).
-- **AppShell footer copyright line break**: Moved copyright text to a new line below logo and links for improved readability.
+- **Profile modal Quick Links fix**: Restructured profile modal to move Account info and Quick Links (`<nav>`) outside the `<form>` element. Links (`My Content`, `My Analytics`, `Settings`) were inside a form which caused navigation issues in React Router v7. Now Quick Links navigate correctly and close the modal as expected.
 
 ### Previous Session Changes (carried forward from April 16)
 
