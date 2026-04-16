@@ -1,7 +1,42 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { fetchMe } from "../auth/api";
 import { canAccessAdminUi } from "../auth/roles";
+
+const FIRST_VISIT_KEY = "sf-ai-library-first-visit-completed";
+
+function getFirstName(fullName: string | null | undefined): string {
+  if (!fullName) return "";
+  return fullName.split(" ")[0];
+}
+
+function usePersonalizedGreeting(userName: string | null | undefined) {
+  const hasCheckedRef = useRef(false);
+  const [isFirstVisit, setIsFirstVisit] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (hasCheckedRef.current) return;
+    hasCheckedRef.current = true;
+
+    const hasVisitedBefore = localStorage.getItem(FIRST_VISIT_KEY) === "true";
+    setIsFirstVisit(!hasVisitedBefore);
+
+    if (!hasVisitedBefore) {
+      localStorage.setItem(FIRST_VISIT_KEY, "true");
+    }
+  }, []);
+
+  const firstName = getFirstName(userName);
+
+  if (isFirstVisit === null || !firstName) {
+    return null;
+  }
+
+  return isFirstVisit
+    ? `Your AI Awesomeness Starts Here, ${firstName}!`
+    : `Welcome Back to AI Awesomeness, ${firstName}!`;
+}
 import { getAnalyticsOverview } from "../analytics/api";
 import { listCollections } from "../collections/api";
 import { listTags } from "../tags/api";
@@ -87,6 +122,7 @@ function StatCounter({ end, active, delayMs = 0 }: StatCounterProps) {
 }
 
 export function PromptListPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const [tag, setTag] = useState("");
   const [collectionId, setCollectionId] = useState("");
@@ -95,6 +131,9 @@ export function PromptListPage() {
   const [sort, setSort] = useState<"recent" | "topRated" | "mostUsed">("recent");
   const [page, setPage] = useState(1);
   const pageSize = 20;
+
+  const mineFilter = searchParams.get("mine") === "true";
+  const showAnalytics = searchParams.get("showAnalytics") === "true";
 
   const filters = useMemo<ListPromptsFilters>(() => {
     const nextFilters: ListPromptsFilters = {
@@ -117,8 +156,11 @@ export function PromptListPage() {
     if (modality) {
       nextFilters.modality = modality as (typeof PROMPT_MODALITY_OPTIONS)[number];
     }
+    if (mineFilter) {
+      nextFilters.mine = true;
+    }
     return nextFilters;
-  }, [collectionId, modality, page, search, sort, tag, tool]);
+  }, [collectionId, mineFilter, modality, page, search, sort, tag, tool]);
 
   const meQuery = useQuery({
     queryKey: ["auth", "me"],
@@ -126,6 +168,7 @@ export function PromptListPage() {
     retry: false,
   });
   const canViewAnalytics = Boolean(meQuery.data && canAccessAdminUi(meQuery.data.role));
+  const personalizedGreeting = usePersonalizedGreeting(meQuery.data?.name);
 
   const promptsQuery = useQuery({
     queryKey: ["prompts", filters],
@@ -140,11 +183,11 @@ export function PromptListPage() {
   });
 
   if (promptsQuery.isLoading) {
-    return <p>Loading your prompts...</p>;
+    return <p>Loading AI assets...</p>;
   }
 
   if (promptsQuery.error) {
-    return <p className="text-red-700">We couldn't load prompts right now. Try refreshing.</p>;
+    return <p className="text-red-700">We couldn't load AI assets right now. Try refreshing.</p>;
   }
 
   const snapshot = promptsQuery.data?.meta.snapshot;
@@ -155,7 +198,7 @@ export function PromptListPage() {
   const heroStats = [
     {
       icon: "published" as const,
-      label: "Prompts Published",
+      label: "AI Assets Published",
       value: promptsPublished,
       counterActive: snapshotReady,
     },
@@ -167,7 +210,7 @@ export function PromptListPage() {
     },
     {
       icon: "views" as const,
-      label: "Prompts Viewed",
+      label: "AI Assets Viewed",
       value: promptsViewed,
       counterActive: snapshotReady,
     },
@@ -178,14 +221,14 @@ export function PromptListPage() {
   const usersLeaderboard = (analyticsQuery.data?.userEngagementLeaderboard ?? []).slice(0, 5);
 
   const aiToolAudience = [
-    "Prompt engineers building repeatable, scalable workflows",
+    "AI Tool users building repeatable, scalable assets",
     "Salespeople crafting personalized, account-ready outreach",
     "Developers generating code, SQL, and debugging solutions faster",
     "Marketers and content creators shipping campaigns at AI speed",
   ] as const;
 
   const howItWorksSteps = [
-    { step: "1", title: "Discover", description: "Browse prompts built by Salesforce experts across every role and use case." },
+    { step: "1", title: "Discover", description: "Browse AI assets built by Salesforce experts across every role and use case." },
     { step: "2", title: "Customize", description: "Fill in variables to tailor any prompt to your specific context and audience." },
     { step: "3", title: "Launch", description: "Open directly in Slackbot, Claude, Gemini, or Cursor with one click." },
     { step: "4", title: "Scale", description: "Save your favorites, build collections, and share what works." },
@@ -198,11 +241,11 @@ export function PromptListPage() {
         <div className="pointer-events-none absolute -bottom-16 -left-10 h-48 w-48 rounded-full bg-(--color-primary)/10 blur-3xl" />
         <div className="space-y-3">
           <p className="inline-block rounded-full border border-(--color-border) bg-(--color-surface) px-3 py-1 text-xs font-semibold tracking-[0.14em]">
-            Your AI Advantage Starts Here
+            {personalizedGreeting ?? "Your AI Advantage Starts Here"}
           </p>
-          <h2 className="text-3xl font-bold md:text-4xl">Find the prompts that get results. Share the ones you've perfected.</h2>
+          <h2 className="text-3xl font-bold md:text-4xl">Find the AI assets that get results. Share the ones you've perfected.</h2>
           <p className="max-w-3xl text-(--color-text-muted)">
-            Browse battle-tested prompts from fellow Salesforce employees, customize them for your work, and launch directly into your favorite AI tool. No more starting from scratch.
+            Browse battle-tested AI assets from fellow Salesforce employees, customize them for your work, and launch directly into your favorite AI tool. No more starting from scratch.
           </p>
         </div>
         <div className="mt-5 flex flex-col gap-3">
@@ -232,7 +275,7 @@ export function PromptListPage() {
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-xl font-semibold">Top Performers This Week</h3>
-          <span className="text-sm font-medium text-(--color-text-muted)">The prompts people can't stop using</span>
+          <span className="text-sm font-medium text-(--color-text-muted)">The AI assets people can't stop using</span>
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {featuredPrompts.map((prompt) => (
@@ -328,7 +371,7 @@ export function PromptListPage() {
                   </span>
                   {contributor.name ?? contributor.email}
                 </p>
-                <p className="text-sm text-(--color-text-muted)">{pluralize(contributor.promptCount, "prompt")}</p>
+                <p className="text-sm text-(--color-text-muted)">{pluralize(contributor.promptCount, "AI asset")}</p>
               </div>
             ))}
             {contributorLeaderboard.length === 0 ? (
@@ -365,7 +408,29 @@ export function PromptListPage() {
       </section>
       ) : null}
 
-      <h3 className="text-2xl font-semibold">Explore Prompts</h3>
+      {mineFilter ? (
+        <div className="flex items-center justify-between rounded-lg border border-(--color-primary)/30 bg-(--color-primary)/5 p-4">
+          <div>
+            <h3 className="text-xl font-semibold">
+              {showAnalytics ? "My Prompt Analytics" : "My Prompts"}
+            </h3>
+            <p className="mt-1 text-sm text-(--color-text-muted)">
+              {showAnalytics
+                ? "View performance metrics for prompts you've created"
+                : "View and manage prompts you've created"}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSearchParams({})}
+            className="rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-1.5 text-sm hover:bg-(--color-surface-muted)"
+          >
+            Show All Prompts
+          </button>
+        </div>
+      ) : null}
+
+      <h3 className="text-2xl font-semibold">{mineFilter ? "Your Prompts" : "Explore AI Assets"}</h3>
       <div className="grid gap-2 rounded border border-(--color-border) bg-(--color-surface) p-3 md:grid-cols-2">
         <input
           value={search}
@@ -374,7 +439,7 @@ export function PromptListPage() {
             setPage(1);
           }}
           className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
-          placeholder="Search by keyword, use case, or author..."
+          placeholder="Search AI assets by keyword, use case, or author..."
         />
         <select
           value={sort}
@@ -450,7 +515,7 @@ export function PromptListPage() {
         </select>
       </div>
       {promptsQuery.data?.data.map((prompt) => (
-        <PromptListCard key={prompt.id} prompt={prompt} variant="default" />
+        <PromptListCard key={prompt.id} prompt={prompt} variant="default" showAnalytics={showAnalytics} />
       ))}
       {promptsQuery.data && promptsQuery.data.meta.totalPages > 1 ? (
         <div className="flex items-center justify-between pt-2">

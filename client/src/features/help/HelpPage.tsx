@@ -33,7 +33,7 @@ const helpContent: HelpSection[] = [
       {
         question: "What is SF AI Library?",
         answer:
-          "SF AI Library is your personal toolkit for AI. It's a place where you can discover, save, and share prompts, skills, and context documents that make working with AI tools faster and more effective. Think of it as a recipe book for AI—except the recipes are prompts, and you get to use (and contribute) the best ones.",
+          "SF AI Library is your personal toolkit for AI. It's a place where you can discover, save, and share prompts, skills, and context documents that make working with AI tools faster and more effective. Think of it as a recipe book for AI—except the recipes are AI assets, and you get to use (and contribute) the best ones.",
       },
       {
         question: "Who is this for?",
@@ -48,7 +48,7 @@ const helpContent: HelpSection[] = [
       {
         question: "What should I do first?",
         answer:
-          '1. Complete your profile (you\'ll be prompted when you first sign in)\n2. Browse the homepage to see featured prompts\n3. Try using a prompt by clicking "Use prompt" on any card\n4. Save prompts you like by clicking the heart icon',
+          '1. Complete your profile (you\'ll be prompted when you first sign in)\n2. Browse the homepage to see featured AI assets\n3. Try using a prompt by clicking "Use prompt" on any card\n4. Save AI assets you like by clicking the heart icon',
       },
     ],
   },
@@ -92,9 +92,9 @@ const helpContent: HelpSection[] = [
           "Users can rate prompts from 1-5 stars based on how helpful they found them. Higher-rated prompts appear more prominently in search results and featured sections.",
       },
       {
-        question: "How do I favorite a prompt?",
+        question: "How do I favorite an AI asset?",
         answer:
-          "Click the heart icon on any prompt card or detail page. Favorited prompts are easier to find later and help us understand what content is most valuable.",
+          "Click the heart icon on any prompt, skill, or context detail page. Favorited AI assets are easier to find later and help us understand what content is most valuable.",
       },
     ],
   },
@@ -122,6 +122,11 @@ const helpContent: HelpSection[] = [
         answer:
           '1. Go to Skills in the navigation\n2. Click "Create Skill"\n3. Write your skill instructions in markdown format\n4. Save it—and share it if you\'d like others to benefit',
       },
+      {
+        question: "How do I edit or update a skill?",
+        answer:
+          'Click "Edit skill" on any skill you own. You can update the title, description, and content at any time.',
+      },
     ],
   },
   {
@@ -143,6 +148,11 @@ const helpContent: HelpSection[] = [
         answer:
           '1. Go to Context in the navigation\n2. Click "Add Context"\n3. Paste or write your reference document in markdown\n4. Save it—and share it if it might help others',
       },
+      {
+        question: "How do I edit or update context?",
+        answer:
+          'Click "Edit context" on any context document you own. You can update the title, description, and content at any time.',
+      },
     ],
   },
   {
@@ -152,7 +162,7 @@ const helpContent: HelpSection[] = [
       {
         question: "What are collections?",
         answer:
-          "Collections are personal folders for organizing prompts. Use them to group related prompts by project, use case, or workflow.",
+          "Collections are personal folders for organizing AI assets. Use them to group related prompts, skills, and context by project, use case, or workflow.",
       },
       {
         question: "How do I create a collection?",
@@ -160,9 +170,9 @@ const helpContent: HelpSection[] = [
           '1. Go to Collections in the navigation\n2. Enter a name and optional description\n3. Click "Create Collection"',
       },
       {
-        question: "How do I add prompts to a collection?",
+        question: "How do I add AI assets to a collection?",
         answer:
-          "On any prompt card or detail page, click the folder icon and select the collection you want to add it to.",
+          "On any prompt, skill, or context detail page, click the folder icon and select the collection you want to add it to.",
       },
     ],
   },
@@ -205,6 +215,37 @@ const helpContent: HelpSection[] = [
         question: "What are Region and OU?",
         answer:
           "These help us understand how different parts of the organization use the library. Select the region and operating unit that matches your role.",
+      },
+    ],
+  },
+  {
+    id: "my-content",
+    title: "Your Content & Analytics",
+    articles: [
+      {
+        question: "Where can I see the prompts, skills, and context I've created?",
+        answer:
+          'Go to Settings and click "My Content" to see all the prompts, skills, and context documents you\'ve created. From there you can view, edit, or manage any of your assets.',
+      },
+      {
+        question: "How do I edit or update something I created?",
+        answer:
+          'There are two ways:\n1. Go to Settings > My Content to see all your created assets, then click "Edit" on any item\n2. Navigate directly to the prompt, skill, or context detail page and click the "Edit" button (only visible if you\'re the owner)',
+      },
+      {
+        question: "Where can I see analytics for my created content?",
+        answer:
+          'Go to Settings and click "My Analytics" to see performance metrics for all your created assets. You\'ll see view counts, usage statistics, ratings, and favorites for each prompt, skill, or context document you\'ve published.',
+      },
+      {
+        question: "What metrics are tracked for my content?",
+        answer:
+          "For each asset you create, we track:\n• Views: How many people have viewed your content\n• Uses: How many times someone has copied or launched your prompt\n• Ratings: The average star rating from users\n• Favorites: How many people have saved your content to their favorites",
+      },
+      {
+        question: "Can I see who is using my content?",
+        answer:
+          "For privacy reasons, you can see aggregate metrics (total views, uses, ratings) but not the specific users who viewed or used your content.",
       },
     ],
   },

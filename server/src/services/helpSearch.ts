@@ -9,7 +9,7 @@ const HELP_CONTENT = `
 ## Getting Started
 
 ### What is SF AI Library?
-SF AI Library is your personal toolkit for AI. It's a place where you can discover, save, and share prompts, skills, and context documents that make working with AI tools faster and more effective. Think of it as a recipe book for AI—except the recipes are prompts, and you get to use (and contribute) the best ones.
+SF AI Library is your personal toolkit for AI. It's a place where you can discover, save, and share prompts, skills, and context documents that make working with AI tools faster and more effective. Think of it as a recipe book for AI—except the recipes are AI assets, and you get to use (and contribute) the best ones.
 
 ### Who is this for?
 You, if you use AI tools like Slackbot, Claude, Gemini, Cursor, or NotebookLM. Whether you're writing emails, generating code, analyzing data, or brainstorming ideas—if you use AI, this library is for you.
@@ -19,9 +19,9 @@ Click "Continue with Google" on the login page using your Salesforce Google acco
 
 ### What should I do first?
 1. Complete your profile (you'll be prompted when you first sign in)
-2. Browse the homepage to see featured prompts
+2. Browse the homepage to see featured AI assets
 3. Try using a prompt by clicking "Use prompt" on any card
-4. Save prompts you like by clicking the heart icon
+4. Save AI assets you like by clicking the heart icon
 
 ## Prompts
 
@@ -54,8 +54,8 @@ Click "Edit prompt" on any prompt you own. Changes are saved as new versions, so
 ### What do the ratings mean?
 Users can rate prompts from 1-5 stars based on how helpful they found them. Higher-rated prompts appear more prominently in search results and featured sections.
 
-### How do I favorite a prompt?
-Click the heart icon on any prompt card or detail page. Favorited prompts are easier to find later and help us understand what content is most valuable.
+### How do I favorite an AI asset?
+Click the heart icon on any prompt, skill, or context detail page. Favorited AI assets are easier to find later and help us understand what content is most valuable.
 
 ## Skills
 
@@ -93,15 +93,15 @@ Use Context for reference information the AI should know about (facts, rules, do
 ## Collections
 
 ### What are collections?
-Collections are personal folders for organizing prompts. Use them to group related prompts by project, use case, or workflow.
+Collections are personal folders for organizing AI assets. Use them to group related prompts, skills, and context by project, use case, or workflow.
 
 ### How do I create a collection?
 1. Go to Collections in the navigation
 2. Enter a name and optional description
 3. Click "Create Collection"
 
-### How do I add prompts to a collection?
-On any prompt card or detail page, click the folder icon and select the collection you want to add it to.
+### How do I add AI assets to a collection?
+On any prompt, skill, or context detail page, click the folder icon and select the collection you want to add it to.
 
 ## Using AI Tools
 

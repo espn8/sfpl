@@ -129,10 +129,10 @@ export function AnalyticsPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <SectionCard
-          title="Most Used Prompts"
+          title="Most Used AI Assets"
           icon={<ChartIcon className="h-5 w-5 text-(--color-text-muted)" />}
           isEmpty={topUsedPrompts.length === 0}
-          emptyMessage="No prompts have been used yet."
+          emptyMessage="No AI assets have been used yet."
         >
           <div className="space-y-2">
             {topUsedPrompts.map((item, index) => (
@@ -160,10 +160,10 @@ export function AnalyticsPage() {
         </SectionCard>
 
         <SectionCard
-          title="Top Rated Prompts"
+          title="Top Rated AI Assets"
           icon={<StarIcon className="h-5 w-5 text-(--color-text-muted)" filled />}
           isEmpty={topRatedPrompts.length === 0 || topRatedPrompts.every((p) => p.ratingCount === 0)}
-          emptyMessage="No prompts have been rated yet."
+          emptyMessage="No AI assets have been rated yet."
         >
           <div className="space-y-2">
             {topRatedPrompts
@@ -228,7 +228,7 @@ export function AnalyticsPage() {
                     </div>
                   </div>
                   <span className="shrink-0 rounded-full bg-(--color-surface) px-2 py-0.5 text-xs text-(--color-text-muted)">
-                    {pluralize(item.promptCount, "prompt")}
+                    {pluralize(item.promptCount, "AI asset")}
                   </span>
                 </div>
               ))}
@@ -286,10 +286,10 @@ export function AnalyticsPage() {
         title="Ready for a Refresh"
         icon={<ClockIcon className="h-5 w-5 text-(--color-text-muted)" />}
         isEmpty={stalePrompts.length === 0}
-        emptyMessage="All prompts have been used recently. Nice work!"
+        emptyMessage="All AI assets have been used recently. Nice work!"
       >
         <p className="mb-3 text-xs text-(--color-text-muted)">
-          Prompts with no usage in the last 30 days. Consider updating or archiving these.
+          AI assets with no usage in the last 30 days. Consider updating or archiving these.
         </p>
         <div className="space-y-2">
           {stalePrompts.map((item) => (

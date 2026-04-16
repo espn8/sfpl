@@ -71,7 +71,7 @@ export function CollectionsPage() {
             {collection.name}
           </Link>
           <p className="text-sm text-(--color-text-muted)">{collection.description}</p>
-          <p className="text-xs text-(--color-text-muted)">{pluralize(collection.prompts.length, "prompt")}</p>
+          <p className="text-xs text-(--color-text-muted)">{pluralize(collection.prompts.length, "AI asset")}</p>
           <div className="mt-2 flex gap-2">
             {collection.prompts.slice(0, 3).map((entry) => (
               <PromptThumbnail

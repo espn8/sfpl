@@ -5,6 +5,7 @@ import { z } from "zod";
 import { getAuthContext, requireAuth } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 import { generatePromptThumbnail } from "../services/nanoBanana";
+import { refreshBestOfCollection, refreshToolCollection } from "../services/systemCollections";
 
 const promptsRouter = Router();
 
@@ -112,6 +113,7 @@ const listPromptsQuerySchema = z.object({
   sort: z.enum(["recent", "topRated", "mostUsed"]).optional(),
   page: z.coerce.number().int().positive().optional(),
   pageSize: z.coerce.number().int().positive().max(100).optional(),
+  mine: z.coerce.boolean().optional(),
 });
 
 const promptIdParamsSchema = z.object({
@@ -249,6 +251,19 @@ function serializePromptWithModality<
   };
 }
 
+function scheduleSystemCollectionRefresh(teamId: number, tools: string[]) {
+  setImmediate(async () => {
+    try {
+      for (const tool of tools) {
+        await refreshToolCollection(teamId, tool);
+      }
+      await refreshBestOfCollection(teamId);
+    } catch (error) {
+      console.error("Failed to refresh system collections:", error);
+    }
+  });
+}
+
 async function queuePromptThumbnailGeneration(promptId: number) {
   const prompt = await prisma.prompt.findUnique({
     where: { id: promptId },
@@ -307,9 +322,12 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
   const page = parsedQuery.data.page ?? 1;
   const pageSize = parsedQuery.data.pageSize ?? 20;
   const skip = (page - 1) * pageSize;
+  const mine = parsedQuery.data.mine;
 
   const where: Prisma.PromptWhereInput = { teamId: auth.teamId };
-  if (!isAdminOrOwner(auth.role)) {
+  if (mine) {
+    where.ownerId = auth.userId;
+  } else if (!isAdminOrOwner(auth.role)) {
     where.OR = [{ visibility: "PUBLIC" }, { ownerId: auth.userId }];
   }
   if (status) {
@@ -593,6 +611,10 @@ promptsRouter.post("/", async (req: Request, res: Response) => {
 
   void queuePromptThumbnailGeneration(prompt.id);
 
+  if (status === "PUBLISHED") {
+    scheduleSystemCollectionRefresh(auth.teamId, tools);
+  }
+
   return res.status(201).json({
     data: {
       ...serializePromptWithModality(prompt),
@@ -821,6 +843,18 @@ promptsRouter.patch("/:id", async (req: Request, res: Response) => {
     }
   }
 
+  const toolsChanged =
+    Array.isArray(updateData.tools) &&
+    (updateData.tools.length !== existing.tools.length ||
+      updateData.tools.some((t) => !existing.tools.includes(t)));
+  const statusChanged = updateData.status !== undefined && updateData.status !== existing.status;
+  const isNowPublished = updated.status === "PUBLISHED";
+
+  if ((toolsChanged || statusChanged) && isNowPublished) {
+    const allTools = new Set([...existing.tools, ...updated.tools]);
+    scheduleSystemCollectionRefresh(auth.teamId, Array.from(allTools));
+  }
+
   return res.status(200).json({
     data: {
       ...serializePromptWithModality(updated),
@@ -892,6 +926,10 @@ promptsRouter.delete("/:id", async (req: Request, res: Response) => {
     where: { id: promptId },
     data: { status: "ARCHIVED" },
   });
+
+  if (existing.status === "PUBLISHED") {
+    scheduleSystemCollectionRefresh(auth.teamId, existing.tools);
+  }
 
   return res.status(200).json({ data: archived });
 });

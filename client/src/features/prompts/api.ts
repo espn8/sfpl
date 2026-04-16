@@ -157,6 +157,7 @@ export type ListPromptsFilters = {
   sort?: "recent" | "topRated" | "mostUsed";
   page?: number;
   pageSize?: number;
+  mine?: boolean;
 };
 
 export async function listPrompts(filters: ListPromptsFilters = {}): Promise<ListPromptsResponse> {

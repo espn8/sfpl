@@ -1,8 +1,34 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { fetchMe, logout, updateMyProfile } from "../auth/api";
 import { ThemeModeToggle } from "../../components/ui/ThemeModeToggle";
+
+function ChevronRightIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function DocumentIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Z" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ChartIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <path d="M3 3v18h18" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="m19 9-5 5-4-4-3 3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 export function SettingsPage() {
   const queryClient = useQueryClient();
@@ -88,7 +114,105 @@ export function SettingsPage() {
     <div className="mx-auto max-w-2xl">
       <h1 className="mb-6 text-2xl font-semibold">Settings</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="space-y-6">
+        <section className="rounded-lg border border-(--color-border) bg-(--color-surface) p-6">
+          <h2 className="mb-4 text-lg font-medium">Your Content</h2>
+          <p className="mb-4 text-sm text-(--color-text-muted)">
+            View and manage the prompts, skills, and context documents you've created.
+          </p>
+          <div className="space-y-2">
+            <Link
+              to="/?mine=true"
+              className="flex items-center justify-between rounded-lg border border-(--color-border) bg-(--color-surface-muted) px-4 py-3 transition-colors hover:bg-(--color-surface)"
+            >
+              <div className="flex items-center gap-3">
+                <DocumentIcon className="h-5 w-5 text-(--color-text-muted)" />
+                <div>
+                  <p className="font-medium">My Prompts</p>
+                  <p className="text-sm text-(--color-text-muted)">View and edit prompts you've created</p>
+                </div>
+              </div>
+              <ChevronRightIcon className="h-5 w-5 text-(--color-text-muted)" />
+            </Link>
+            <Link
+              to="/skills?mine=true"
+              className="flex items-center justify-between rounded-lg border border-(--color-border) bg-(--color-surface-muted) px-4 py-3 transition-colors hover:bg-(--color-surface)"
+            >
+              <div className="flex items-center gap-3">
+                <DocumentIcon className="h-5 w-5 text-(--color-text-muted)" />
+                <div>
+                  <p className="font-medium">My Skills</p>
+                  <p className="text-sm text-(--color-text-muted)">View and edit skills you've created</p>
+                </div>
+              </div>
+              <ChevronRightIcon className="h-5 w-5 text-(--color-text-muted)" />
+            </Link>
+            <Link
+              to="/context?mine=true"
+              className="flex items-center justify-between rounded-lg border border-(--color-border) bg-(--color-surface-muted) px-4 py-3 transition-colors hover:bg-(--color-surface)"
+            >
+              <div className="flex items-center gap-3">
+                <DocumentIcon className="h-5 w-5 text-(--color-text-muted)" />
+                <div>
+                  <p className="font-medium">My Context</p>
+                  <p className="text-sm text-(--color-text-muted)">View and edit context documents you've created</p>
+                </div>
+              </div>
+              <ChevronRightIcon className="h-5 w-5 text-(--color-text-muted)" />
+            </Link>
+          </div>
+        </section>
+
+        <section className="rounded-lg border border-(--color-border) bg-(--color-surface) p-6">
+          <h2 className="mb-4 text-lg font-medium">Your Analytics</h2>
+          <p className="mb-4 text-sm text-(--color-text-muted)">
+            See how your created content is performing with views, uses, ratings, and favorites.
+          </p>
+          <div className="space-y-2">
+            <Link
+              to="/?mine=true&showAnalytics=true"
+              className="flex items-center justify-between rounded-lg border border-(--color-border) bg-(--color-surface-muted) px-4 py-3 transition-colors hover:bg-(--color-surface)"
+            >
+              <div className="flex items-center gap-3">
+                <ChartIcon className="h-5 w-5 text-(--color-text-muted)" />
+                <div>
+                  <p className="font-medium">My Prompt Analytics</p>
+                  <p className="text-sm text-(--color-text-muted)">Views, uses, ratings, and favorites for your prompts</p>
+                </div>
+              </div>
+              <ChevronRightIcon className="h-5 w-5 text-(--color-text-muted)" />
+            </Link>
+            <Link
+              to="/skills?mine=true&showAnalytics=true"
+              className="flex items-center justify-between rounded-lg border border-(--color-border) bg-(--color-surface-muted) px-4 py-3 transition-colors hover:bg-(--color-surface)"
+            >
+              <div className="flex items-center gap-3">
+                <ChartIcon className="h-5 w-5 text-(--color-text-muted)" />
+                <div>
+                  <p className="font-medium">My Skill Analytics</p>
+                  <p className="text-sm text-(--color-text-muted)">Views and engagement for your skills</p>
+                </div>
+              </div>
+              <ChevronRightIcon className="h-5 w-5 text-(--color-text-muted)" />
+            </Link>
+            <Link
+              to="/context?mine=true&showAnalytics=true"
+              className="flex items-center justify-between rounded-lg border border-(--color-border) bg-(--color-surface-muted) px-4 py-3 transition-colors hover:bg-(--color-surface)"
+            >
+              <div className="flex items-center gap-3">
+                <ChartIcon className="h-5 w-5 text-(--color-text-muted)" />
+                <div>
+                  <p className="font-medium">My Context Analytics</p>
+                  <p className="text-sm text-(--color-text-muted)">Views and engagement for your context documents</p>
+                </div>
+              </div>
+              <ChevronRightIcon className="h-5 w-5 text-(--color-text-muted)" />
+            </Link>
+          </div>
+        </section>
+      </div>
+
+      <form onSubmit={handleSubmit} className="mt-6 space-y-6">
         <section className="rounded-lg border border-(--color-border) bg-(--color-surface) p-6">
           <h2 className="mb-4 text-lg font-medium">Account Information</h2>
           <dl className="grid gap-4 text-sm sm:grid-cols-2">

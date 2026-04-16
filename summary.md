@@ -1,20 +1,30 @@
 # AI Library - Technical Summary
 
-Last Updated: Wednesday, April 15, 2026 — 17:01 CDT
-Build Version: 0924043
+Last Updated: Wednesday, April 15, 2026 — 17:15 CDT
+Build Version: a208fe6
 
 ## Recent Changes
 
-- **Expanded tool options**: Added "Saleo" and "Other" to `PROMPT_TOOL_OPTIONS` enum on both client and server. The "Other" option allows users to specify a custom tool name via the `modelHint` field.
-- **Centralized tool labels**: Created `PROMPT_TOOL_LABELS` dictionary and `getToolLabel()`/`getToolsSortedAlphabetically()` utilities in `api.ts` to provide human-readable tool names (e.g., "Claude Code" instead of "claude_code") and consistent alphabetical sorting.
-- **Tool selector UX overhaul**: Refactored PromptEditorPage and PromptEditPage with multi-select checkbox UI, conditional "Other" text input, and "Request a tool" link. Replaced raw tool values with display labels across PromptListPage, PromptDetailPage, and chip components.
-- **Terminology refinement**: Renamed "Modality" to "Generated output type" across UI and help documentation for clarity.
-- **Help content updates**: Updated HelpPage and helpSearch service to reflect terminology changes (modality → generated output type).
-- **Markdown download button**: Added markdown export functionality for Skills and Context detail pages.
-- **Header branding refinement**: Changed header title from "SF AI Library" to "AI Library" in AppShell navigation for cleaner branding presentation.
-- **Comprehensive copy rewrite**: Rewrote all user-facing content with Salesforce voice—warm, approachable, action-oriented, and individual-focused. Updated headings, CTAs, descriptions, empty states, and form labels across all pages.
-- **Searchable Help page**: Created new `/help` route with searchable, indexed help content organized by topic (Getting Started, Prompts, Skills, Context, Collections, Using AI Tools, Your Profile, Tips & Best Practices). Added footer links in AppShell and LoginPage.
-- **Earlier work (carried forward)**: Skill/Context usability enhancements (copy buttons, markdown preview, share); Analytics dashboard expansion (Top Rated, Contributors, User Engagement leaderboards); Backend usage tracking for Skills/Context; prompt engagement UX (star ratings, favorites, share, launch providers, `{{variable}}` interpolation, thumbnail generation).
+- **Dedicated Settings page**: Created full-page `/settings` route with organized sections for "Your Content" (My Prompts, My Skills, My Context) and "Your Analytics" (performance metrics for created assets). Migrated profile editing from modal to dedicated page UX with improved layout.
+- **System Collections**: Introduced automatic tool-based and "Best of AI Library" collections. Added `systemCollections.ts` service with `ensureSystemCollections()`, `refreshToolCollection()`, `refreshBestOfCollection()`, and related utilities. Collections auto-populate with matching prompts based on tool tags or top performance metrics.
+- **Collection system protections**: Added `isSystem` flag to Collection model. System collections cannot be modified or deleted by users. PATCH/DELETE endpoints now check `isSystem` and return 403 for protected collections.
+- **Collections refresh endpoint**: Added `POST /api/collections/system/refresh` (admin-only) to manually trigger system collection refresh for tool-specific, best-of, or all system collections.
+- **Automatic collection refresh**: Prompt create/update/delete operations now trigger async system collection refresh when status or tools change.
+- **Help page AI search**: Added "Ask AI" beta feature to Help page with server-side AI-powered question answering via `/api/help/search` endpoint. Enhanced help content with "Your Content & Analytics" topic explaining Settings page features.
+- **Navigation update**: Added Settings link to main navigation in AppShell. Create dropdown now includes "New Prompt", "New Skill", and "New Context" quick actions.
+- **PromptListCard analytics**: Added `showAnalytics` prop to display view count, usage stats, ratings, and favorites inline when viewing "My Content" with analytics mode enabled.
+- **Seed script enhancements**: Updated `seed.ts` to create system collections during database seeding via `ensureSystemCollections()`.
+
+### Previous Session Changes (carried forward)
+
+- **Expanded tool options**: Added "Saleo" and "Other" to `PROMPT_TOOL_OPTIONS` enum on both client and server.
+- **Centralized tool labels**: Created `PROMPT_TOOL_LABELS` dictionary and utilities for human-readable tool names.
+- **Tool selector UX overhaul**: Multi-select checkbox UI with conditional "Other" text input.
+- **Terminology refinement**: Renamed "Modality" to "Generated output type" across UI and help documentation.
+- **Markdown download button**: Added markdown export for Skills and Context detail pages.
+- **Header branding refinement**: Changed header title from "SF AI Library" to "AI Library".
+- **Comprehensive copy rewrite**: Salesforce voice across all user-facing content.
+- **Searchable Help page**: Created `/help` route with indexed help content organized by topic.
 
 ## Audit Summary
 
@@ -30,26 +40,27 @@ The application has achieved **substantial completion** of the core implementati
 | Skills APIs (CRUD, list, search, usage tracking) | ✅ Complete |
 | Context Documents APIs (CRUD, list, search, usage tracking) | ✅ Complete |
 | Tags, Collections, Analytics APIs | ✅ Complete |
-| Frontend Routes (all spec routes + Skills/Context + Help) | ✅ Complete |
+| System Collections (tool-based, best-of) | ✅ Complete |
+| Frontend Routes (all spec routes + Skills/Context + Help + Settings) | ✅ Complete |
 | Theme System (dark/light/system, persistence) | ✅ Complete |
 | Share Functionality | ✅ Complete (Prompts, Skills, Context, Collections) |
 | Analytics Dashboard UI | ✅ Complete (Top Used, Top Rated, Stale, Contributors, User Engagement) |
+| Dedicated Settings Page | ✅ Complete (profile editing, my content, my analytics) |
+| Quick-Create Actions | ✅ Complete (New Prompt/Skill/Context dropdown) |
 | Skills/Context Feature Parity | ⚠️ Partial (no versioning, tags, favorites, ratings) |
-| Help Documentation | ✅ Complete (searchable, indexed by topic) |
+| Help Documentation | ✅ Complete (searchable, indexed by topic, AI search beta) |
 | Salesforce Brand Voice | ✅ Complete (individual-focused, action-oriented) |
 
 ### Identified Gaps (Prioritized)
 
 1. **Feature Parity**: Skills/Context missing versioning, tags, collections, favorites, ratings.
-2. **Minor**: No dedicated `/settings` route (modal only); AppShell only has "New Prompt" quick-action (could add "New Skill"/"New Context").
-3. **Tool request form**: `TOOL_REQUEST_URL` placeholder needs actual Google Form URL.
+2. **Tool request form**: `TOOL_REQUEST_URL` placeholder needs actual Google Form URL.
 
 ### Remediation Roadmap (Updated)
 
 | Phase | Description | Scope |
 |-------|-------------|-------|
 | 1 | Feature Parity for Skills/Context | Tags, Favorites, Ratings, Versioning (lower priority) |
-| 2 | Quick-Create Actions & Navigation | Add "New Skill"/"New Context" to AppShell; dedicated `/settings` route |
 
 ## Technical Architecture
 
@@ -160,7 +171,7 @@ The application has achieved **substantial completion** of the core implementati
 - `Skill` - markdown body skill documents (team-scoped)
 - `ContextDocument` - markdown context files (team-scoped)
 - `Tag`, `PromptTag` - tagging system (prompts only currently)
-- `Collection`, `CollectionPrompt` - curated prompt collections
+- `Collection`, `CollectionPrompt` - curated prompt collections with `isSystem` flag for protected system collections
 - `Favorite`, `Rating` - user engagement (prompts only currently)
 - `PromptVariable` - dynamic variable definitions
 - `UsageEvent` - VIEW/COPY/LAUNCH tracking (prompts)
@@ -190,10 +201,10 @@ The application has achieved **substantial completion** of the core implementati
 | `prompts.ts` | Full CRUD, `/versions`, `/restore/:version`, `/favorite`, `/rating`, `/usage`, `/regenerate-thumbnail` |
 | `skills.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `POST /:id/usage` |
 | `context.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `POST /:id/usage` |
-| `collections.ts` | CRUD + `/prompts/:promptId` membership |
+| `collections.ts` | CRUD + `/prompts/:promptId` membership + `POST /system/refresh` (admin-only system collection refresh) |
 | `tags.ts` | `GET /`, `POST /` |
 | `analytics.ts` | `GET /overview` (team-scoped aggregates) |
-| `help.ts` | `GET /search` (help content search) |
+| `help.ts` | `POST /search` (AI-powered help search) |
 
 ### Frontend Routes Inventory
 
@@ -218,6 +229,7 @@ The application has achieved **substantial completion** of the core implementati
 | `/collections` | `CollectionsPage` | Protected |
 | `/collections/:id` | `CollectionDetailPage` | Protected |
 | `/analytics` | `AnalyticsPage` | Admin only |
+| `/settings` | `SettingsPage` | Protected |
 
 ### Major Modules and Why They Exist
 
@@ -227,7 +239,8 @@ The application has achieved **substantial completion** of the core implementati
 - `server/src/routes/analytics.ts`: consolidated overview payload consumed by homepage dashboards and leaderboards.
 - `server/src/routes/help.ts`: help content search endpoint for the searchable help page.
 - `server/src/services/nanoBanana.ts`: external image-generation bridge for prompt thumbnails via Gemini API.
-- `server/src/services/helpSearch.ts`: help content search service with topic indexing.
+- `server/src/services/helpSearch.ts`: help content search service with AI-powered question answering.
+- `server/src/services/systemCollections.ts`: automatic tool-based and "Best of AI Library" collection management.
 - `server/prisma/schema.prisma`: source of truth for users/teams/prompts/skills/context/engagement relations and enums.
 - `client/src/features/prompts/PromptListPage.tsx`: homepage/discovery UX, list cards, filters, hero stats, and leaderboards.
 - `client/src/features/prompts/PromptDetailPage.tsx`: full prompt view with engagement chrome, variables/preview, versions, and external launch.
@@ -240,7 +253,8 @@ The application has achieved **substantial completion** of the core implementati
 - `client/src/features/prompts/PromptThumbnail.tsx`: thumbnail rendering with graceful placeholder states.
 - `client/src/features/analytics/AnalyticsPage.tsx`: admin dashboard with top used, top rated, stale prompts, contributors, and user engagement leaderboards.
 - `client/src/features/analytics/api.ts`: strict typed contract for analytics payload shape.
-- `client/src/features/help/HelpPage.tsx`: searchable help documentation with topic index sidebar.
+- `client/src/features/help/HelpPage.tsx`: searchable help documentation with topic index sidebar and AI search beta feature.
+- `client/src/features/settings/SettingsPage.tsx`: dedicated settings page with profile editing, my content links, and my analytics links.
 - `client/src/features/skills/SkillDetailPage.tsx`: skill detail view with copy button, markdown preview toggle, and share.
 - `client/src/features/context/ContextDetailPage.tsx`: context detail view with copy button, markdown preview toggle, and share.
 
@@ -330,12 +344,14 @@ git push heroku main
 
 1. **Feature Parity for Skills/Context** — Tags (SkillTag/ContextTag models, endpoints, picker UI, filter chips); Favorites (SkillFavorite/ContextFavorite models, toggle endpoints, UI); Ratings; Versioning (lower priority).
 
-2. **Quick-Create Actions** — Add "New Skill" and "New Context" buttons to AppShell (dropdown menu); add dedicated `/settings` route.
-
-3. **Analytics Enhancements** — Add time-range selector; add skill/context usage stats to overview.
+2. **Analytics Enhancements** — Add time-range selector; add skill/context usage stats to overview.
 
 **Completed in Recent Sessions:**
 
+- ✅ Dedicated Settings Page — Full-page `/settings` route with profile editing, my content, and my analytics.
+- ✅ Quick-Create Actions — Dropdown menu with "New Prompt", "New Skill", "New Context" options.
+- ✅ System Collections — Automatic tool-based and "Best of AI Library" collections with protection.
+- ✅ Help Page AI Search — Beta AI-powered question answering for help content.
 - ✅ Sharing Feature Expansion — Created generic `shareOrCopyLink.ts` utility; added share to Skills, Context, Collections.
 - ✅ Analytics Dashboard Enhancement — Added Top Rated, Contributors, User Engagement leaderboards.
 - ✅ Content Copy & Markdown Preview — Added copy buttons, `react-markdown` preview, usage tracking.

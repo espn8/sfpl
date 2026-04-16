@@ -23,6 +23,24 @@ function ChevronDownIcon({ className }: { className?: string }) {
   );
 }
 
+function DocumentIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Z" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ChartIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <path d="M3 3v18h18" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="m19 9-5 5-4-4-3 3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 type AppShellProps = {
   children: React.ReactNode;
 };
@@ -279,6 +297,28 @@ export function AppShell({ children }: AppShellProps) {
                   </dl>
                 </div>
               ) : null}
+
+              <div className="rounded border border-(--color-border) bg-(--color-surface-muted) p-3">
+                <p className="mb-3 text-sm font-medium text-(--color-text)">Quick Links</p>
+                <div className="flex flex-wrap gap-2">
+                  <Link
+                    to="/?mine=true"
+                    onClick={() => setIsProfileModalOpen(false)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-1.5 text-sm hover:bg-(--color-surface-muted)"
+                  >
+                    <DocumentIcon className="h-4 w-4" />
+                    My Content
+                  </Link>
+                  <Link
+                    to="/?mine=true&showAnalytics=true"
+                    onClick={() => setIsProfileModalOpen(false)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-1.5 text-sm hover:bg-(--color-surface-muted)"
+                  >
+                    <ChartIcon className="h-4 w-4" />
+                    My Analytics
+                  </Link>
+                </div>
+              </div>
 
               <div className="rounded border border-(--color-border) bg-(--color-surface-muted) p-3">
                 <p className="mb-2 text-sm text-(--color-text-muted)">Appearance</p>

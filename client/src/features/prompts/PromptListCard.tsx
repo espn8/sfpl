@@ -42,9 +42,10 @@ function composedTextForList(prompt: PromptSummary): { text: string; canCopyOrLa
 type PromptListCardProps = {
   prompt: PromptSummary;
   variant?: "featured" | "default";
+  showAnalytics?: boolean;
 };
 
-export function PromptListCard({ prompt, variant = "default" }: PromptListCardProps) {
+export function PromptListCard({ prompt, variant = "default", showAnalytics = false }: PromptListCardProps) {
   const queryClient = useQueryClient();
   const { text, canCopyOrLaunch } = composedTextForList(prompt);
   const provider = defaultLaunchProviderForTools(prompt.tools);
@@ -163,6 +164,29 @@ export function PromptListCard({ prompt, variant = "default" }: PromptListCardPr
                 {label}
               </span>
             ))}
+          </div>
+        ) : null}
+
+        {showAnalytics ? (
+          <div className="mt-3 grid grid-cols-2 gap-2 rounded-lg border border-(--color-primary)/20 bg-(--color-primary)/5 p-3 sm:grid-cols-4">
+            <div className="text-center">
+              <p className="text-lg font-bold text-(--color-text)">{prompt.viewCount.toLocaleString()}</p>
+              <p className="text-xs text-(--color-text-muted)">Views</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold text-(--color-text)">{prompt.usageCount.toLocaleString()}</p>
+              <p className="text-xs text-(--color-text-muted)">Uses</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold text-(--color-text)">
+                {prompt.averageRating ? prompt.averageRating.toFixed(1) : "—"}
+              </p>
+              <p className="text-xs text-(--color-text-muted)">Avg Rating</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold text-(--color-text)">{prompt.favorited ? "Yes" : "No"}</p>
+              <p className="text-xs text-(--color-text-muted)">Favorited</p>
+            </div>
           </div>
         ) : null}
 

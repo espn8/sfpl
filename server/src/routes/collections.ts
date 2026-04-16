@@ -4,6 +4,11 @@ import { Router } from "express";
 import { z } from "zod";
 import { getAuthContext, requireAuth } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
+import {
+  refreshAllToolCollections,
+  refreshBestOfCollection,
+  refreshToolCollection,
+} from "../services/systemCollections";
 
 const collectionsRouter = Router();
 collectionsRouter.use(requireAuth);
@@ -162,10 +167,15 @@ collectionsRouter.patch("/:id", async (req: Request, res: Response) => {
   const collectionId = parsedParams.data.id;
   const existing = await prisma.collection.findFirst({
     where: { id: collectionId, teamId: auth.teamId },
-    select: { id: true, createdById: true },
+    select: { id: true, createdById: true, isSystem: true },
   });
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Collection not found." } });
+  }
+  if (existing.isSystem) {
+    return res
+      .status(403)
+      .json({ error: { code: "FORBIDDEN", message: "System collections cannot be modified." } });
   }
   if (existing.createdById !== auth.userId && !isOwnerOrAdmin(auth.role)) {
     return res
@@ -206,10 +216,15 @@ collectionsRouter.delete("/:id", async (req: Request, res: Response) => {
   const collectionId = parsedParams.data.id;
   const existing = await prisma.collection.findFirst({
     where: { id: collectionId, teamId: auth.teamId },
-    select: { id: true, createdById: true },
+    select: { id: true, createdById: true, isSystem: true },
   });
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Collection not found." } });
+  }
+  if (existing.isSystem) {
+    return res
+      .status(403)
+      .json({ error: { code: "FORBIDDEN", message: "System collections cannot be deleted." } });
   }
   if (existing.createdById !== auth.userId && !isOwnerOrAdmin(auth.role)) {
     return res
@@ -284,6 +299,50 @@ collectionsRouter.delete("/:id/prompts/:promptId", async (req: Request, res: Res
   }
   await prisma.collectionPrompt.delete({ where: { collectionId_promptId: { collectionId, promptId } } });
   return res.status(200).json({ data: { ok: true } });
+});
+
+const refreshSystemCollectionsBodySchema = z
+  .object({
+    type: z.enum(["all", "best_of", "tool"]).optional(),
+    tool: z.string().optional(),
+  })
+  .optional();
+
+collectionsRouter.post("/system/refresh", async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+
+  if (!isOwnerOrAdmin(auth.role)) {
+    return res
+      .status(403)
+      .json({ error: { code: "FORBIDDEN", message: "Only owner/admin can refresh system collections." } });
+  }
+
+  const parsedBody = refreshSystemCollectionsBodySchema.safeParse(req.body);
+  if (!parsedBody.success) {
+    return res.status(400).json(badRequestFromZodError(parsedBody.error));
+  }
+
+  const refreshType = parsedBody.data?.type ?? "all";
+
+  try {
+    if (refreshType === "best_of") {
+      await refreshBestOfCollection(auth.teamId);
+    } else if (refreshType === "tool" && parsedBody.data?.tool) {
+      await refreshToolCollection(auth.teamId, parsedBody.data.tool);
+    } else {
+      await refreshAllToolCollections(auth.teamId);
+      await refreshBestOfCollection(auth.teamId);
+    }
+    return res.status(200).json({ data: { ok: true } });
+  } catch (error) {
+    console.error("Failed to refresh system collections:", error);
+    return res.status(500).json({
+      error: { code: "INTERNAL_ERROR", message: "Failed to refresh system collections." },
+    });
+  }
 });
 
 export { collectionsRouter };
