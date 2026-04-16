@@ -6,6 +6,7 @@ Build Version: 9b1757b
 ## Recent Changes
 
 - **Personalized hero greeting**: Homepage hero section now displays personalized greeting using user's first name. First-time visitors see "Your AI Awesomeness Starts Here, {firstName}!" and returning visitors see "Welcome Back to AI Awesomeness, {firstName}!". Uses localStorage to track first visit state. Falls back to generic "Your AI Advantage Starts Here" when user data is loading.
+- **Hero navigation cards**: Added three navigation cards to homepage hero section providing quick access to Prompts, Skills, and Context sections with descriptions of each asset type and hover effects.
 - **Dedicated Settings page**: Created full-page `/settings` route with organized sections for "Your Content" (My Prompts, My Skills, My Context) and "Your Analytics" (performance metrics for created assets). Migrated profile editing from modal to dedicated page UX with improved layout.
 - **System Collections**: Introduced automatic tool-based and "Best of AI Library" collections. Added `systemCollections.ts` service with `ensureSystemCollections()`, `refreshToolCollection()`, `refreshBestOfCollection()`, and related utilities. Collections auto-populate with matching prompts based on tool tags or top performance metrics.
 - **Collection system protections**: Added `isSystem` flag to Collection model. System collections cannot be modified or deleted by users. PATCH/DELETE endpoints now check `isSystem` and return 403 for protected collections.
