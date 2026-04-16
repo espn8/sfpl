@@ -1,10 +1,11 @@
 # AI Library - Technical Summary
 
-Last Updated: Thursday, April 16, 2026 — 23:50 CDT
-Build Version: c5a888d
+Last Updated: Thursday, April 17, 2026 — 00:15 CDT
+Build Version: e1add20
 
 ## Recent Changes
 
+- **Thumbnail regenerate button fix**: Fixed the "Regenerate me" text on failed prompt thumbnails to be an actual clickable button. Added `onRegenerate` and `isRegenerating` props to `PromptThumbnail` component. The regenerate button now appears for users with edit permissions (admins, owners, prompt authors) when thumbnail generation has failed. Calls `POST /api/prompts/:id/regenerate-thumbnail` endpoint.
 - **Permanent asset deletion**: Users can now permanently delete their own created Prompts, Skills, and Context Documents. Added `ConfirmDeleteModal` component with clear warning that deletion cannot be undone and all analytics will be lost. Backend endpoints cascade-delete all related data (usage events, ratings, favorites, tags, variables, versions, collection memberships). Only the asset owner can permanently delete (not admins).
 - **Delete button styling**: Added red "Delete" button to detail pages for asset owners. Archive button now uses amber/yellow styling to differentiate from the more destructive delete action.
 - **New API endpoints**: `DELETE /api/prompts/:id/permanent`, `DELETE /api/skills/:id/permanent`, `DELETE /api/context/:id/permanent` for permanent asset removal with full cascade.
@@ -305,7 +306,7 @@ The application has achieved **substantial completion** of the core implementati
 - `client/src/components/AdminRoute.tsx`: redirects non-admin users away from admin-only routes (e.g. analytics).
 - `client/src/components/MarkdownPreview.tsx`: reusable markdown rendering component using `react-markdown`.
 - `client/src/features/prompts/interpolatePrompt.ts` / `launchProviders.ts`: client-side prompt variable fill-in and deep links to external chat products.
-- `client/src/features/prompts/PromptThumbnail.tsx`: thumbnail rendering with graceful placeholder states.
+- `client/src/features/prompts/PromptThumbnail.tsx`: thumbnail rendering with graceful placeholder states and clickable regenerate button for failed thumbnails.
 - `client/src/components/ConfirmDeleteModal.tsx`: reusable confirmation dialog for permanent asset deletion with warning messaging.
 - `client/src/features/analytics/AnalyticsPage.tsx`: admin dashboard with top used, top rated, stale prompts, contributors, and user engagement leaderboards.
 - `client/src/features/analytics/api.ts`: strict typed contract for analytics payload shape.
