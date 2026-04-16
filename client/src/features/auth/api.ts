@@ -35,6 +35,17 @@ export async function updateMyProfile(input: UpdateProfileInput): Promise<AuthUs
   return response.data.data;
 }
 
+export async function uploadProfilePhoto(file: File): Promise<AuthUser> {
+  const formData = new FormData();
+  formData.append("profilePhoto", file);
+  const response = await apiClient.post<MeResponse>("/api/auth/me/profile-photo", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return response.data.data;
+}
+
 export async function logout(): Promise<void> {
   await apiClient.post("/api/auth/logout");
 }

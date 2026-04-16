@@ -1,10 +1,12 @@
 # AI Library - Technical Summary
 
-Last Updated: Thursday, April 16, 2026 — 08:32 CDT
-Build Version: 3342c55
+Last Updated: Thursday, April 16, 2026 — 09:15 CDT
+Build Version: e87514e
 
 ## Recent Changes
 
+- **Profile photo upload feature**: Added ability for users to upload custom profile photos (headshots). Server-side file handling via `multer` with `POST /api/auth/me/profile-photo` endpoint. Supports JPEG, PNG, GIF, and WebP formats up to 5MB. Uploaded files stored in `server/public/uploads/`. Frontend UI updated in both SettingsPage and AppShell profile modal with "Change Photo" button and upload mutation.
+- **Terminology update**: Changed all user-facing references from "avatar" to "profile photo" throughout the application. Updated help content to explain the new upload feature. Database field remains `avatarUrl` for backwards compatibility.
 - **Profile modal Quick Links fix**: Restructured profile modal to move Account info and Quick Links (`<nav>`) outside the `<form>` element. Links (`My Content`, `My Analytics`, `Settings`) were inside a form which caused navigation issues in React Router v7. Now Quick Links navigate correctly and close the modal as expected.
 
 ### Previous Session Changes (carried forward from April 16)
@@ -78,7 +80,7 @@ The application has achieved **substantial completion** of the core implementati
 - Validation: Zod `^4.3.6`
 - Database/ORM: PostgreSQL + Prisma (`@prisma/client` `^6.19.3`, `prisma` `^6.19.3`)
 - Session/auth infra: `express-session` `^1.19.0`, `connect-pg-simple` `^10.0.0`, `jose` `^6.2.2`
-- Data/HTTP utilities: `pg` `^8.20.0`, `cors` `^2.8.6`, `cookie-parser` `^1.4.7`
+- Data/HTTP utilities: `pg` `^8.20.0`, `cors` `^2.8.6`, `cookie-parser` `^1.4.7`, `multer` `^2.1.1`
 - Frontend framework: React `^19.2.4`
 - Frontend tooling: Vite `^8.0.1`, TypeScript `~5.9.3`, Tailwind CSS `^4.2.2`
 - Frontend data/routing: TanStack Query `^5.95.2`, React Router DOM `^7.13.2`, Axios `^1.14.0`
@@ -203,7 +205,7 @@ The application has achieved **substantial completion** of the core implementati
 
 | Route File | Endpoints |
 |------------|-----------|
-| `auth.ts` | `GET /google`, `GET /google/callback`, `POST /logout`, `GET /me`, `PATCH /me` |
+| `auth.ts` | `GET /google`, `GET /google/callback`, `POST /logout`, `GET /me`, `PATCH /me`, `POST /me/profile-photo` |
 | `prompts.ts` | Full CRUD, `/versions`, `/restore/:version`, `/favorite`, `/rating`, `/usage`, `/regenerate-thumbnail` |
 | `skills.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `POST /:id/usage` |
 | `context.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `POST /:id/usage` |

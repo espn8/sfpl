@@ -2,11 +2,45 @@ import type { Request, Response } from "express";
 import { Router } from "express";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { randomBytes } from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
 import { Prisma, Role } from "@prisma/client";
+import multer from "multer";
 import { z } from "zod";
 import { env } from "../config/env";
 import { prisma } from "../lib/prisma";
 import { authRateLimit } from "../middleware/rateLimit";
+
+const uploadsDir = path.resolve(__dirname, "../../public/uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const profilePhotoStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (_req, file, cb) => {
+    const uniqueSuffix = `${Date.now()}-${randomBytes(8).toString("hex")}`;
+    const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
+    cb(null, `profile-${uniqueSuffix}${ext}`);
+  },
+});
+
+const profilePhotoUpload = multer({
+  storage: profilePhotoStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  },
+  fileFilter: (_req, file, cb) => {
+    const allowedMimes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only JPEG, PNG, GIF, and WebP images are allowed."));
+    }
+  },
+});
 
 const authRouter = Router();
 const googleIssuer = "https://accounts.google.com";
@@ -443,5 +477,62 @@ authRouter.patch("/me", async (req: Request, res: Response) => {
 
   return res.status(200).json({ data: updatedUser });
 });
+
+authRouter.post(
+  "/me/profile-photo",
+  profilePhotoUpload.single("profilePhoto"),
+  async (req: Request, res: Response) => {
+    const sessionAuth = getValidSessionAuth(req);
+    if (!sessionAuth) {
+      return res.status(401).json({
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Not authenticated.",
+        },
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        error: {
+          code: "BAD_REQUEST",
+          message: "No file uploaded. Please select an image file.",
+        },
+      });
+    }
+
+    const photoUrl = `/uploads/${req.file.filename}`;
+
+    try {
+      const updatedUser = await prisma.user.update({
+        where: { id: sessionAuth.userId },
+        data: {
+          avatarUrl: photoUrl,
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          avatarUrl: true,
+          region: true,
+          ou: true,
+          title: true,
+          onboardingCompleted: true,
+          role: true,
+          teamId: true,
+        },
+      });
+
+      return res.status(200).json({ data: updatedUser });
+    } catch (_error) {
+      return res.status(500).json({
+        error: {
+          code: "UPLOAD_FAILED",
+          message: "Failed to save profile photo.",
+        },
+      });
+    }
+  },
+);
 
 export { authRouter };

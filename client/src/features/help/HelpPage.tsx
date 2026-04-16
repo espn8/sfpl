@@ -204,12 +204,12 @@ const helpContent: HelpSection[] = [
       {
         question: "How do I update my profile?",
         answer:
-          "Click your avatar in the top-right corner to open profile settings. You can update your display name, region, OU, and title.",
+          "Click your profile photo in the top-right corner to open profile settings. You can update your display name, region, OU, title, and profile photo.",
       },
       {
-        question: "Where does my avatar come from?",
+        question: "How do I change my profile photo?",
         answer:
-          "Your avatar is pulled from your Google profile photo. To change it, update your Google account photo.",
+          "Click your profile photo in the top-right corner, then click 'Change Photo' to upload a new headshot. Supported formats are JPEG, PNG, GIF, and WebP (max 5MB).",
       },
       {
         question: "What are Region and OU?",

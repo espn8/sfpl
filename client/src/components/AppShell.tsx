@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
-import { fetchMe, logout, updateMyProfile } from "../features/auth/api";
+import { fetchMe, logout, updateMyProfile, uploadProfilePhoto } from "../features/auth/api";
 import { canAccessAdminUi } from "../features/auth/roles";
 import { ThemeModeToggle } from "./ui/ThemeModeToggle";
 
@@ -57,14 +57,15 @@ type AppShellProps = {
 export function AppShell({ children }: AppShellProps) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const meQuery = useQuery({
     queryKey: ["auth", "me"],
     queryFn: fetchMe,
   });
 
   const [name, setName] = useState("");
-  const defaultAvatarUrl = "https://api.dicebear.com/9.x/bottts/svg?seed=AILibrary";
-  const [avatarUrl, setAvatarUrl] = useState(defaultAvatarUrl);
+  const defaultProfilePhotoUrl = "https://api.dicebear.com/9.x/bottts/svg?seed=AILibrary";
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState(defaultProfilePhotoUrl);
   const [region, setRegion] = useState("");
   const [ou, setOu] = useState("");
   const [title, setTitle] = useState("");
@@ -78,7 +79,7 @@ export function AppShell({ children }: AppShellProps) {
       return;
     }
     setName(meQuery.data.name ?? "");
-    setAvatarUrl(meQuery.data.avatarUrl ?? defaultAvatarUrl);
+    setProfilePhotoUrl(meQuery.data.avatarUrl ?? defaultProfilePhotoUrl);
     setRegion(meQuery.data.region ?? "");
     setOu(meQuery.data.ou ?? "");
     setTitle(meQuery.data.title ?? "");
@@ -116,6 +117,37 @@ export function AppShell({ children }: AppShellProps) {
       setFormError("Unable to save your profile. Please try again.");
     },
   });
+
+  const uploadPhotoMutation = useMutation({
+    mutationFn: uploadProfilePhoto,
+    onSuccess: async (updatedUser) => {
+      queryClient.setQueryData(["auth", "me"], updatedUser);
+      await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+      setProfilePhotoUrl(updatedUser.avatarUrl ?? defaultProfilePhotoUrl);
+      setFormError(null);
+    },
+    onError: () => {
+      setFormError("Unable to upload profile photo. Please try again.");
+    },
+  });
+
+  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      setFormError("Please select a JPEG, PNG, GIF, or WebP image.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setFormError("Image must be less than 5MB.");
+      return;
+    }
+
+    uploadPhotoMutation.mutate(file);
+  };
 
   const showWelcomeModal = Boolean(meQuery.data && !meQuery.data.onboardingCompleted);
   const showProfileModal = showWelcomeModal || isProfileModalOpen;
@@ -216,8 +248,8 @@ export function AppShell({ children }: AppShellProps) {
                 aria-label="Account settings"
               >
                 <img
-                  src={meQuery.data.avatarUrl ?? defaultAvatarUrl}
-                  alt={meQuery.data.name ? `${meQuery.data.name} avatar` : "User avatar"}
+                  src={meQuery.data.avatarUrl ?? defaultProfilePhotoUrl}
+                  alt={meQuery.data.name ? `${meQuery.data.name}'s profile photo` : "User profile photo"}
                   className="h-8 w-8 rounded-full object-cover"
                 />
               </button>
@@ -321,13 +353,13 @@ export function AppShell({ children }: AppShellProps) {
               className="mt-4 space-y-4"
               onSubmit={(event) => {
                 event.preventDefault();
-                if (!name || !avatarUrl || !region || !ou || !title) {
+                if (!name || !profilePhotoUrl || !region || !ou || !title) {
                   setFormError("All fields are required.");
                   return;
                 }
                 updateProfileMutation.mutate({
                   name,
-                  avatarUrl,
+                  avatarUrl: profilePhotoUrl,
                   region,
                   ou,
                   title,
@@ -350,12 +382,31 @@ export function AppShell({ children }: AppShellProps) {
               </label>
 
               <div>
-                <p className="mb-2 text-sm">Avatar</p>
+                <p className="mb-2 text-sm">Profile Photo</p>
                 <div className="flex items-center gap-3 rounded border border-(--color-border) bg-(--color-surface-muted) p-3">
-                  <img src={avatarUrl} alt="Current avatar" className="h-16 w-16 rounded object-cover" />
-                  <p className="text-sm text-(--color-text-muted)">
-                    Your avatar comes from your Google profile photo or your uploaded profile image.
-                  </p>
+                  <img src={profilePhotoUrl} alt="Current profile photo" className="h-16 w-16 rounded object-cover" />
+                  <div className="flex flex-col gap-2">
+                    <p className="text-sm text-(--color-text-muted)">
+                      Upload a new profile photo or keep your current one.
+                    </p>
+                    <div>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/gif,image/webp"
+                        onChange={handlePhotoUpload}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadPhotoMutation.isPending}
+                        className="rounded border border-(--color-border) bg-(--color-surface) px-3 py-1.5 text-sm hover:bg-(--color-surface-muted) disabled:opacity-60"
+                      >
+                        {uploadPhotoMutation.isPending ? "Uploading..." : "Change Photo"}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
 
