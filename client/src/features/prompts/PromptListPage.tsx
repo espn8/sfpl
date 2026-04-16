@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { fetchMe } from "../auth/api";
 import { canAccessAdminUi } from "../auth/roles";
 
@@ -247,6 +247,47 @@ export function PromptListPage() {
           <p className="max-w-3xl text-(--color-text-muted)">
             Browse battle-tested AI assets from fellow Salesforce employees, customize them for your work, and launch directly into your favorite AI tool. No more starting from scratch.
           </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <Link
+              to="/"
+              className="group rounded-xl border border-(--color-border) bg-(--color-surface) p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-(--color-primary)/50 hover:shadow-md motion-reduce:transform-none"
+            >
+              <div className="mb-2 flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-(--color-primary)/10 text-lg">📝</span>
+                <h3 className="font-semibold">Prompts</h3>
+              </div>
+              <p className="text-sm text-(--color-text-muted)">
+                Ready-to-use instructions you give to AI tools. Fill in a few details, hit launch, and get results—no prompt engineering required.
+              </p>
+              <p className="mt-2 text-xs font-medium text-(--color-primary) group-hover:underline">Explore prompts →</p>
+            </Link>
+            <Link
+              to="/skills"
+              className="group rounded-xl border border-(--color-border) bg-(--color-surface) p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-(--color-primary)/50 hover:shadow-md motion-reduce:transform-none"
+            >
+              <div className="mb-2 flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-(--color-primary)/10 text-lg">⚡</span>
+                <h3 className="font-semibold">Skills</h3>
+              </div>
+              <p className="text-sm text-(--color-text-muted)">
+                Reusable behavior guides that teach AI how to act. Load them once, and your AI becomes a specialist—code reviewer, meeting summarizer, brand voice expert.
+              </p>
+              <p className="mt-2 text-xs font-medium text-(--color-primary) group-hover:underline">Explore skills →</p>
+            </Link>
+            <Link
+              to="/context"
+              className="group rounded-xl border border-(--color-border) bg-(--color-surface) p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-(--color-primary)/50 hover:shadow-md motion-reduce:transform-none"
+            >
+              <div className="mb-2 flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-(--color-primary)/10 text-lg">📚</span>
+                <h3 className="font-semibold">Context</h3>
+              </div>
+              <p className="text-sm text-(--color-text-muted)">
+                Reference documents that give AI the background it needs—style guides, policies, product docs. The knowledge your AI should have before it starts working.
+              </p>
+              <p className="mt-2 text-xs font-medium text-(--color-primary) group-hover:underline">Explore context →</p>
+            </Link>
+          </div>
         </div>
         <div className="mt-5 flex flex-col gap-3">
           <div className="w-full rounded-xl border border-(--color-border) bg-(--color-surface) px-4 py-5 transition-all duration-300 motion-reduce:transition-none sm:px-6 sm:py-6">
