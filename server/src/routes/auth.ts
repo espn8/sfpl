@@ -64,6 +64,7 @@ const authUserSelect = {
   googleSub: true,
   name: true,
   avatarUrl: true,
+  ou: true,
   onboardingCompleted: true,
   role: true,
   teamId: true,
@@ -84,6 +85,7 @@ function getValidSessionAuth(req: Request): {
   userId: number;
   teamId: number;
   role: string;
+  userOu: string | null;
 } | null {
   const auth = req.session.auth;
   if (!auth) {
@@ -318,6 +320,7 @@ authRouter.get("/google/callback", authRateLimit, async (req: Request, res: Resp
       userId: user.id,
       teamId: user.teamId,
       role: user.role,
+      userOu: user.ou,
     };
     delete req.session.oauth;
 
@@ -473,6 +476,10 @@ authRouter.patch("/me", async (req: Request, res: Response) => {
         message: "Session user could not be updated.",
       },
     });
+  }
+
+  if (req.session.auth) {
+    req.session.auth.userOu = updatedUser.ou;
   }
 
   return res.status(200).json({ data: updatedUser });

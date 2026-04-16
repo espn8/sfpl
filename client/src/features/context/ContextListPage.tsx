@@ -1,9 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { listContext } from "./api";
 
 export function ContextListPage() {
+  const [searchParams] = useSearchParams();
+  const mineFilter = searchParams.get("mine") === "true";
+  const showAnalytics = searchParams.get("showAnalytics") === "true";
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 20;
@@ -11,10 +14,12 @@ export function ContextListPage() {
   const filters = useMemo(
     () => ({
       q: search.trim() || undefined,
+      mine: mineFilter || undefined,
+      includeAnalytics: showAnalytics || undefined,
       page,
       pageSize,
     }),
-    [search, page, pageSize],
+    [search, mineFilter, showAnalytics, page, pageSize],
   );
 
   const query = useQuery({
@@ -26,9 +31,15 @@ export function ContextListPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Context</h1>
+          <h1 className="text-2xl font-semibold">
+            {showAnalytics ? "My Context Analytics" : mineFilter ? "Your Context" : "Context"}
+          </h1>
           <p className="mt-1 text-sm text-(--color-text-muted)">
-            Reference documents, rules, and guidelines you can load into your AI tools. Add anything that helps your AI understand your world.
+            {showAnalytics
+              ? "See how your context documents are performing with views, copies, and favorites."
+              : mineFilter
+                ? "Context documents you've created. Edit or manage your contributions."
+                : "Reference documents, rules, and guidelines you can load into your AI tools. Add anything that helps your AI understand your world."}
           </p>
         </div>
         <Link
@@ -80,6 +91,22 @@ export function ContextListPage() {
                       {doc.status}
                     </span>
                   </div>
+                  {showAnalytics ? (
+                    <div className="mt-3 grid grid-cols-3 gap-2 rounded-lg border border-(--color-primary)/20 bg-(--color-primary)/5 p-3">
+                      <div className="text-center">
+                        <p className="text-lg font-bold text-(--color-text)">{(doc.viewCount ?? 0).toLocaleString()}</p>
+                        <p className="text-xs text-(--color-text-muted)">Views</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-lg font-bold text-(--color-text)">{(doc.copyCount ?? 0).toLocaleString()}</p>
+                        <p className="text-xs text-(--color-text-muted)">Copies</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-lg font-bold text-(--color-text)">{(doc.favoriteCount ?? 0).toLocaleString()}</p>
+                        <p className="text-xs text-(--color-text-muted)">Favorites</p>
+                      </div>
+                    </div>
+                  ) : null}
                   <p className="mt-2 text-xs text-(--color-text-muted)">
                     Updated {new Date(doc.updatedAt).toLocaleString()} · {doc.owner.name ?? "Member"}
                   </p>

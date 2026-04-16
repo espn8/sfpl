@@ -14,7 +14,7 @@ type PromptStatusValue = "DRAFT" | "PUBLISHED" | "ARCHIVED";
 type UsageActionValue = "VIEW" | "COPY" | "LAUNCH";
 type ThumbnailStatusValue = "PENDING" | "READY" | "FAILED";
 const USAGE_ACTIONS: UsageActionValue[] = ["VIEW", "COPY", "LAUNCH"];
-const promptVisibilitySchema = z.enum(["PUBLIC", "PRIVATE"]);
+const promptVisibilitySchema = z.enum(["PUBLIC", "TEAM", "PRIVATE"]);
 const promptStatusSchema = z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]);
 const usageActionSchema = z.enum(USAGE_ACTIONS);
 const PROMPT_TOOLS = ["claude_code", "cursor", "gemini", "meshmesh", "notebooklm", "other", "saleo", "slackbot"] as const;
@@ -264,6 +264,25 @@ function scheduleSystemCollectionRefresh(teamId: number, tools: string[]) {
   });
 }
 
+function canAccessPromptByVisibility(
+  prompt: { visibility: string; ownerId: number; owner?: { ou: string | null } | null },
+  auth: { userId: number; userOu: string | null; role: string },
+): boolean {
+  if (prompt.visibility === "PUBLIC") {
+    return true;
+  }
+  if (prompt.ownerId === auth.userId) {
+    return true;
+  }
+  if (isAdminOrOwner(auth.role)) {
+    return true;
+  }
+  if (prompt.visibility === "TEAM" && auth.userOu && prompt.owner?.ou === auth.userOu) {
+    return true;
+  }
+  return false;
+}
+
 async function queuePromptThumbnailGeneration(promptId: number) {
   const prompt = await prisma.prompt.findUnique({
     where: { id: promptId },
@@ -328,7 +347,17 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
   if (mine) {
     where.ownerId = auth.userId;
   } else if (!isAdminOrOwner(auth.role)) {
-    where.OR = [{ visibility: "PUBLIC" }, { ownerId: auth.userId }];
+    const visibilityConditions: Prisma.PromptWhereInput[] = [
+      { visibility: "PUBLIC" },
+      { ownerId: auth.userId },
+    ];
+    if (auth.userOu) {
+      visibilityConditions.push({
+        visibility: "TEAM",
+        owner: { ou: auth.userOu },
+      });
+    }
+    where.OR = visibilityConditions;
   }
   if (status) {
     where.status = status;
@@ -371,7 +400,17 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
     status: "PUBLISHED",
   };
   if (!isAdminOrOwner(auth.role)) {
-    publishedSnapshotWhere.OR = [{ visibility: "PUBLIC" }, { ownerId: auth.userId }];
+    const snapshotVisibilityConditions: Prisma.PromptWhereInput[] = [
+      { visibility: "PUBLIC" },
+      { ownerId: auth.userId },
+    ];
+    if (auth.userOu) {
+      snapshotVisibilityConditions.push({
+        visibility: "TEAM",
+        owner: { ou: auth.userOu },
+      });
+    }
+    publishedSnapshotWhere.OR = snapshotVisibilityConditions;
   }
 
   const [prompts, total, promptsPublished, activeUsers, promptsViewed] = await Promise.all([
@@ -665,6 +704,7 @@ promptsRouter.put("/:id/variables", async (req: Request, res: Response) => {
   const prompt = await prisma.prompt.findFirst({
     where: { id: promptId, teamId: auth.teamId },
     include: {
+      owner: { select: { id: true, name: true, avatarUrl: true, ou: true } },
       promptTags: { include: { tag: true } },
       variables: true,
       ratings: true,
@@ -675,7 +715,7 @@ promptsRouter.put("/:id/variables", async (req: Request, res: Response) => {
   if (!prompt) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
   }
-  if (prompt.visibility === "PRIVATE" && prompt.ownerId !== auth.userId && !isAdminOrOwner(auth.role)) {
+  if (!canAccessPromptByVisibility(prompt, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this prompt." } });
   }
 
@@ -701,7 +741,7 @@ promptsRouter.get("/:id", async (req: Request, res: Response) => {
   const prompt = await prisma.prompt.findFirst({
     where: { id: promptId, teamId: auth.teamId },
     include: {
-      owner: { select: { id: true, name: true, avatarUrl: true } },
+      owner: { select: { id: true, name: true, avatarUrl: true, ou: true } },
       promptTags: { include: { tag: true } },
       variables: true,
       ratings: true,
@@ -712,7 +752,7 @@ promptsRouter.get("/:id", async (req: Request, res: Response) => {
   if (!prompt) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
   }
-  if (prompt.visibility === "PRIVATE" && prompt.ownerId !== auth.userId && !isAdminOrOwner(auth.role)) {
+  if (!canAccessPromptByVisibility(prompt, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this prompt." } });
   }
 

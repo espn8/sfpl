@@ -19,9 +19,11 @@ export function getToolLabel(tool: PromptTool): string {
 }
 
 export function getToolsSortedAlphabetically(): PromptTool[] {
-  return [...PROMPT_TOOL_OPTIONS].sort((a, b) =>
-    PROMPT_TOOL_LABELS[a].localeCompare(PROMPT_TOOL_LABELS[b])
-  );
+  return [...PROMPT_TOOL_OPTIONS].sort((a, b) => {
+    if (a === "other") return 1;
+    if (b === "other") return -1;
+    return PROMPT_TOOL_LABELS[a].localeCompare(PROMPT_TOOL_LABELS[b]);
+  });
 }
 
 export const TOOL_REQUEST_URL = "https://forms.gle/your-tool-request-form";
@@ -100,7 +102,7 @@ export type Prompt = {
   summary: string | null;
   body: string;
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
-  visibility: "PUBLIC" | "PRIVATE";
+  visibility: "PUBLIC" | "TEAM" | "PRIVATE";
   tools: PromptTool[];
   modality: PromptModality;
   modelHint?: string | null;
@@ -180,7 +182,7 @@ export async function createPrompt(payload: {
   summary?: string;
   body: string;
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
-  visibility?: "PUBLIC" | "PRIVATE";
+  visibility?: "PUBLIC" | "TEAM" | "PRIVATE";
   tools: PromptTool[];
   modality: PromptModality;
   modelHint?: string;

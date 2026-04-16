@@ -7,7 +7,7 @@ import { prisma } from "../lib/prisma";
 
 const contextRouter = Router();
 
-const promptVisibilitySchema = z.enum(["PUBLIC", "PRIVATE"]);
+const promptVisibilitySchema = z.enum(["PUBLIC", "TEAM", "PRIVATE"]);
 const promptStatusSchema = z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]);
 
 const MAX_BODY_LENGTH = 500_000;
@@ -26,9 +26,30 @@ function isAdminOrOwner(role: string): boolean {
   return role === "ADMIN" || role === "OWNER";
 }
 
+function canAccessByVisibility(
+  item: { visibility: string; ownerId: number; owner?: { ou: string | null } | null },
+  auth: { userId: number; userOu: string | null; role: string },
+): boolean {
+  if (item.visibility === "PUBLIC") {
+    return true;
+  }
+  if (item.ownerId === auth.userId) {
+    return true;
+  }
+  if (isAdminOrOwner(auth.role)) {
+    return true;
+  }
+  if (item.visibility === "TEAM" && auth.userOu && item.owner?.ou === auth.userOu) {
+    return true;
+  }
+  return false;
+}
+
 const listContextQuerySchema = z.object({
   q: z.string().trim().optional(),
   status: promptStatusSchema.optional(),
+  mine: z.coerce.boolean().optional(),
+  includeAnalytics: z.coerce.boolean().optional(),
   page: z.coerce.number().int().positive().optional(),
   pageSize: z.coerce.number().int().positive().max(100).optional(),
 });
@@ -90,13 +111,27 @@ contextRouter.get("/", async (req: Request, res: Response) => {
 
   const q = parsedQuery.data.q ?? "";
   const status = parsedQuery.data.status;
+  const mine = parsedQuery.data.mine ?? false;
+  const includeAnalytics = parsedQuery.data.includeAnalytics ?? false;
   const page = parsedQuery.data.page ?? 1;
   const pageSize = parsedQuery.data.pageSize ?? 20;
   const skip = (page - 1) * pageSize;
 
   const where: Prisma.ContextDocumentWhereInput = { teamId: auth.teamId };
-  if (!isAdminOrOwner(auth.role)) {
-    where.OR = [{ visibility: "PUBLIC" }, { ownerId: auth.userId }];
+  if (mine) {
+    where.ownerId = auth.userId;
+  } else if (!isAdminOrOwner(auth.role)) {
+    const visibilityConditions: Prisma.ContextDocumentWhereInput[] = [
+      { visibility: "PUBLIC" },
+      { ownerId: auth.userId },
+    ];
+    if (auth.userOu) {
+      visibilityConditions.push({
+        visibility: "TEAM",
+        owner: { ou: auth.userOu },
+      });
+    }
+    where.OR = visibilityConditions;
   }
   if (status) {
     where.status = status;
@@ -137,6 +172,43 @@ contextRouter.get("/", async (req: Request, res: Response) => {
   ]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  if (includeAnalytics && rows.length > 0) {
+    const contextIds = rows.map((r) => r.id);
+    const [viewCounts, copyCounts, favoriteCounts] = await Promise.all([
+      prisma.contextUsageEvent.groupBy({
+        by: ["contextId"],
+        where: { contextId: { in: contextIds }, eventType: "VIEW" },
+        _count: { contextId: true },
+      }),
+      prisma.contextUsageEvent.groupBy({
+        by: ["contextId"],
+        where: { contextId: { in: contextIds }, eventType: "COPY" },
+        _count: { contextId: true },
+      }),
+      prisma.contextFavorite.groupBy({
+        by: ["contextId"],
+        where: { contextId: { in: contextIds } },
+        _count: { contextId: true },
+      }),
+    ]);
+
+    const viewMap = new Map(viewCounts.map((v) => [v.contextId, v._count.contextId]));
+    const copyMap = new Map(copyCounts.map((c) => [c.contextId, c._count.contextId]));
+    const favoriteMap = new Map(favoriteCounts.map((f) => [f.contextId, f._count.contextId]));
+
+    const dataWithAnalytics = rows.map((row) => ({
+      ...serializeContextDoc(row),
+      viewCount: viewMap.get(row.id) ?? 0,
+      copyCount: copyMap.get(row.id) ?? 0,
+      favoriteCount: favoriteMap.get(row.id) ?? 0,
+    }));
+
+    return res.status(200).json({
+      data: dataWithAnalytics,
+      meta: { page, pageSize, total, totalPages },
+    });
+  }
 
   return res.status(200).json({
     data: rows.map((row) => serializeContextDoc(row)),
@@ -187,13 +259,13 @@ contextRouter.get("/:id", async (req: Request, res: Response) => {
   const contextId = parsedParams.data.id;
   const doc = await prisma.contextDocument.findFirst({
     where: { id: contextId, teamId: auth.teamId },
-    include: { owner: { select: { id: true, name: true, avatarUrl: true } } },
+    include: { owner: { select: { id: true, name: true, avatarUrl: true, ou: true } } },
   });
 
   if (!doc) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Context document not found." } });
   }
-  if (doc.visibility === "PRIVATE" && doc.ownerId !== auth.userId && !isAdminOrOwner(auth.role)) {
+  if (!canAccessByVisibility(doc, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this document." } });
   }
 

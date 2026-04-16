@@ -62,7 +62,7 @@ export function PromptEditPage() {
       summary: string;
       body: string;
       status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
-      visibility: "PUBLIC" | "PRIVATE";
+      visibility: "PUBLIC" | "TEAM" | "PRIVATE";
       tools: PromptTool[];
       modality: PromptModality;
       modelHint: string | null;
@@ -128,7 +128,7 @@ export function PromptEditPage() {
         const summary = String(formData.get("summary") ?? "").trim();
         const body = String(formData.get("body") ?? "").trim();
         const status = String(formData.get("status") ?? "DRAFT") as "DRAFT" | "PUBLISHED" | "ARCHIVED";
-        const visibility = String(formData.get("visibility") ?? "PUBLIC") as "PUBLIC" | "PRIVATE";
+        const visibility = String(formData.get("visibility") ?? "PUBLIC") as "PUBLIC" | "TEAM" | "PRIVATE";
         const toolsArray = Array.from(selectedTools);
         const modality = String(formData.get("modality") ?? "").trim();
         const changelog = String(formData.get("changelog") ?? "").trim();
@@ -202,7 +202,7 @@ export function PromptEditPage() {
         placeholder="Model hint (optional, e.g. recommended model or stack)"
         className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
       />
-      <div className="grid gap-2 md:grid-cols-2">
+      <div className="grid gap-2 md:grid-cols-3">
         <select
           name="status"
           defaultValue={prompt.status}
@@ -217,79 +217,75 @@ export function PromptEditPage() {
           defaultValue={prompt.visibility}
           className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
         >
-          <option value="PUBLIC">Public</option>
-          <option value="PRIVATE">Private</option>
+          <option value="PUBLIC">Public (All Users)</option>
+          <option value="TEAM">Team (My OU Only)</option>
+          <option value="PRIVATE">Private (Only Me)</option>
+        </select>
+        <select
+          name="modality"
+          defaultValue={prompt.modality}
+          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
+        >
+          {PROMPT_MODALITY_OPTIONS.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
         </select>
       </div>
-      <div className="grid gap-2 md:grid-cols-2">
-        <div className="space-y-2 rounded border border-(--color-border) bg-(--color-surface-muted) p-3">
-          <p className="text-sm font-medium">Tools (select one or many)</p>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {getToolsSortedAlphabetically().map((tool) => (
-              <label key={tool} className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={selectedTools.has(tool)}
-                  onChange={(event) => {
-                    const checked = event.target.checked;
-                    setSelectedTools((current) => {
-                      const next = new Set(current);
-                      if (checked) {
-                        next.add(tool);
-                      } else {
-                        next.delete(tool);
-                        if (tool === "other") {
-                          setOtherToolName("");
-                        }
+      <div className="space-y-2 rounded border border-(--color-border) bg-(--color-surface-muted) p-3">
+        <p className="text-sm font-medium">Tools (select one or many)</p>
+        <div className="grid gap-2 sm:grid-cols-4">
+          {getToolsSortedAlphabetically().map((tool) => (
+            <label key={tool} className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={selectedTools.has(tool)}
+                onChange={(event) => {
+                  const checked = event.target.checked;
+                  setSelectedTools((current) => {
+                    const next = new Set(current);
+                    if (checked) {
+                      next.add(tool);
+                    } else {
+                      next.delete(tool);
+                      if (tool === "other") {
+                        setOtherToolName("");
                       }
-                      return next;
-                    });
-                  }}
-                />
-                <span>{getToolLabel(tool)}</span>
-              </label>
-            ))}
+                    }
+                    return next;
+                  });
+                }}
+              />
+              <span>{getToolLabel(tool)}</span>
+            </label>
+          ))}
+        </div>
+        {selectedTools.has("other") && (
+          <div className="space-y-2 border-t border-(--color-border) pt-3">
+            <label className="block text-sm">
+              <span className="font-medium">Tool name</span>
+              <input
+                type="text"
+                value={otherToolName}
+                onChange={(event) => setOtherToolName(event.target.value)}
+                placeholder="Enter the tool name"
+                className="mt-1 w-full rounded border border-(--color-border) bg-(--color-surface) px-3 py-2"
+              />
+            </label>
+            <p className="text-xs text-(--color-text-muted)">
+              Don't see your tool?{" "}
+              <a
+                href={TOOL_REQUEST_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium text-(--color-primary) underline hover:text-(--color-primary-hover)"
+              >
+                Request a new tool be added
+              </a>
+            </p>
           </div>
-          {selectedTools.has("other") && (
-            <div className="space-y-2 border-t border-(--color-border) pt-3">
-              <label className="block text-sm">
-                <span className="font-medium">Tool name</span>
-                <input
-                  type="text"
-                  value={otherToolName}
-                  onChange={(event) => setOtherToolName(event.target.value)}
-                  placeholder="Enter the tool name"
-                  className="mt-1 w-full rounded border border-(--color-border) bg-(--color-surface) px-3 py-2"
-                />
-              </label>
-              <p className="text-xs text-(--color-text-muted)">
-                Don't see your tool?{" "}
-                <a
-                  href={TOOL_REQUEST_URL}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="font-medium text-(--color-primary) underline hover:text-(--color-primary-hover)"
-                >
-                  Request a new tool be added
-                </a>
-              </p>
-            </div>
-          )}
-        </div>
-        <div className="space-y-2">
-          <p className="text-sm font-medium">Generated output</p>
-          <select
-            name="modality"
-            defaultValue={prompt.modality}
-            className="w-full rounded border border-(--color-border) bg-(--color-surface) px-3 py-2"
-          >
-            {PROMPT_MODALITY_OPTIONS.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </div>
+        )}
       </div>
       <div className="space-y-2 rounded border border-(--color-border) bg-(--color-surface-muted) p-3">
         <p className="text-sm font-medium">Tags</p>
@@ -337,7 +333,14 @@ export function PromptEditPage() {
       />
       <section className="space-y-3 rounded border border-(--color-border) bg-(--color-surface-muted) p-3">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-medium">Template variables</p>
+          <div>
+            <p className="text-sm font-medium">Template variables (optional)</p>
+            <p className="text-xs text-(--color-text-muted)">
+              Define placeholders for dynamic content. Use <code className="rounded bg-(--color-surface) px-1">[KEY]</code> or{" "}
+              <code className="rounded bg-(--color-surface) px-1">{"{{KEY}}"}</code> in your prompt body above, then add the
+              matching key here to let users fill in values when using this prompt.
+            </p>
+          </div>
           <button
             type="button"
             className="rounded border border-(--color-border) bg-(--color-surface) px-2 py-1 text-xs"
@@ -357,9 +360,6 @@ export function PromptEditPage() {
             Add variable
           </button>
         </div>
-        <p className="text-xs text-(--color-text-muted)">
-          Variable names should match the placeholders in your prompt (e.g., [TOPIC] uses a TOPIC variable).
-        </p>
         {variableRows.length === 0 ? (
           <p className="text-sm text-(--color-text-muted)">No variables yet. Add one to make this prompt customizable, or leave it as-is.</p>
         ) : (

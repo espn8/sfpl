@@ -45,6 +45,7 @@ export type AuthContext = {
   userId: number;
   teamId: number;
   role: Role;
+  userOu: string | null;
 };
 
 export function getAuthContext(req: Request): AuthContext | null {
@@ -56,5 +57,6 @@ export function getAuthContext(req: Request): AuthContext | null {
     userId: req.session.auth.userId,
     teamId: req.session.auth.teamId,
     role: req.session.auth.role,
+    userOu: req.session.auth.userOu,
   };
 }

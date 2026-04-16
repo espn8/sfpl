@@ -12,17 +12,21 @@ export type ContextDocument = {
   summary: string | null;
   body: string;
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
-  visibility: "PUBLIC" | "PRIVATE";
+  visibility: "PUBLIC" | "TEAM" | "PRIVATE";
   createdAt: string;
   updatedAt: string;
   owner: ContextOwner;
   viewCount?: number;
+  copyCount?: number;
+  favoriteCount?: number;
   favorited?: boolean;
 };
 
 export type ListContextFilters = {
   q?: string;
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  mine?: boolean;
+  includeAnalytics?: boolean;
   page?: number;
   pageSize?: number;
 };
@@ -46,7 +50,7 @@ export type CreateContextInput = {
   title: string;
   summary?: string;
   body: string;
-  visibility?: "PUBLIC" | "PRIVATE";
+  visibility?: "PUBLIC" | "TEAM" | "PRIVATE";
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
 };
 
@@ -59,7 +63,7 @@ export type UpdateContextInput = Partial<{
   title: string;
   summary: string;
   body: string;
-  visibility: "PUBLIC" | "PRIVATE";
+  visibility: "PUBLIC" | "TEAM" | "PRIVATE";
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
 }>;
 

@@ -1,15 +1,24 @@
 # AI Library - Technical Summary
 
-Last Updated: Thursday, April 16, 2026 — 08:37 CDT
-Build Version: 9def0a9
+Last Updated: Thursday, April 16, 2026 — 14:22 CDT
+Build Version: 6506384
 
 ## Recent Changes
+
+- **TEAM visibility level**: Added new `TEAM` visibility option to Prompts, Skills, and Context Documents. Content set to `TEAM` visibility is visible to users within the same organizational unit (OU). Updated Prisma schema enum, added `userOu` to auth context and session, implemented OU-based access control in all routes.
+- **OU-based access control**: Extended visibility checking across prompts, skills, and context routes with new `canAccessByVisibility()` helper functions. Users can now see TEAM-scoped content from others in their same OU.
+- **Skills/Context analytics in list views**: Added `mine` and `includeAnalytics` query parameters to Skills and Context list endpoints. When enabled, returns `viewCount`, `copyCount`, and `favoriteCount` aggregates. Frontend list pages updated to display analytics cards for "My Content" views.
+- **Visibility selector UX update**: Changed visibility dropdowns across all editor pages (Prompts, Skills, Context) to show clearer labels: "Public (All Users)", "Team (My OU Only)", "Private (Only Me)".
+- **Tool sort order fix**: Updated `getToolsSortedAlphabetically()` to always place "Other" at the end of the sorted list rather than alphabetically.
+- **Form validation improvements**: Added explicit validation error messages in SkillEditorPage and ContextEditorPage for missing title/body fields.
+
+### Previous Session Changes (carried forward from April 16)
 
 - **Profile photo upload feature**: Added ability for users to upload custom profile photos (headshots). Server-side file handling via `multer` with `POST /api/auth/me/profile-photo` endpoint. Supports JPEG, PNG, GIF, and WebP formats up to 5MB. Uploaded files stored in `server/public/uploads/`. Frontend UI updated in both SettingsPage and AppShell profile modal with "Change Photo" button and upload mutation.
 - **Terminology update**: Changed all user-facing references from "avatar" to "profile photo" throughout the application. Updated help content to explain the new upload feature. Database field remains `avatarUrl` for backwards compatibility.
 - **Profile modal Quick Links fix**: Restructured profile modal to move Account info and Quick Links (`<nav>`) outside the `<form>` element. Links (`My Content`, `My Analytics`, `Settings`) were inside a form which caused navigation issues in React Router v7. Now Quick Links navigate correctly and close the modal as expected.
 
-### Previous Session Changes (carried forward from April 16)
+### Earlier Session Changes
 
 - **Settings link moved to user menu**: Moved Settings link from main navigation bar to user profile modal for cleaner navigation. Profile modal now includes Quick Links section with My Content, My Analytics, and Settings buttons.
 - **Personalized hero greeting**: Homepage hero section now displays personalized greeting using user's first name. First-time visitors see "Your AI Awesomeness Starts Here, {firstName}!" and returning visitors see "Welcome Back to AI Awesomeness, {firstName}!". Uses localStorage to track first visit state. Falls back to generic "Your AI Advantage Starts Here" when user data is loading.
@@ -22,9 +31,6 @@ Build Version: 9def0a9
 - **Help page AI search**: Added "Ask AI" beta feature to Help page with server-side AI-powered question answering via `/api/help/search` endpoint. Enhanced help content with "Your Content & Analytics" topic explaining Settings page features.
 - **PromptListCard analytics**: Added `showAnalytics` prop to display view count, usage stats, ratings, and favorites inline when viewing "My Content" with analytics mode enabled.
 - **Seed script enhancements**: Updated `seed.ts` to create system collections during database seeding via `ensureSystemCollections()`.
-
-### Earlier Session Changes
-
 - **Expanded tool options**: Added "Saleo" and "Other" to `PROMPT_TOOL_OPTIONS` enum on both client and server.
 - **Centralized tool labels**: Created `PROMPT_TOOL_LABELS` dictionary and utilities for human-readable tool names.
 - **Tool selector UX overhaul**: Multi-select checkbox UI with conditional "Other" text input.
@@ -186,7 +192,7 @@ The application has achieved **substantial completion** of the core implementati
 - `SkillUsageEvent` - VIEW/COPY/SHARE tracking (skills)
 - `ContextUsageEvent` - VIEW/COPY/SHARE tracking (context documents)
 
-**Enums (9):** `Role`, `PromptVisibility`, `PromptStatus`, `UsageAction`, `PromptModality`, `ThumbnailStatus`, `SkillUsageAction`, `ContextUsageAction`
+**Enums (9):** `Role`, `PromptVisibility` (PUBLIC, TEAM, PRIVATE), `PromptStatus`, `UsageAction`, `PromptModality`, `ThumbnailStatus`, `SkillUsageAction`, `ContextUsageAction`
 
 ### Primary Data Flow / Lifecycle
 

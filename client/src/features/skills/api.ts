@@ -12,17 +12,21 @@ export type Skill = {
   summary: string | null;
   body: string;
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
-  visibility: "PUBLIC" | "PRIVATE";
+  visibility: "PUBLIC" | "TEAM" | "PRIVATE";
   createdAt: string;
   updatedAt: string;
   owner: SkillOwner;
   viewCount?: number;
+  copyCount?: number;
+  favoriteCount?: number;
   favorited?: boolean;
 };
 
 export type ListSkillsFilters = {
   q?: string;
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  mine?: boolean;
+  includeAnalytics?: boolean;
   page?: number;
   pageSize?: number;
 };
@@ -46,7 +50,7 @@ export type CreateSkillInput = {
   title: string;
   summary?: string;
   body: string;
-  visibility?: "PUBLIC" | "PRIVATE";
+  visibility?: "PUBLIC" | "TEAM" | "PRIVATE";
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
 };
 
@@ -59,7 +63,7 @@ export type UpdateSkillInput = Partial<{
   title: string;
   summary: string;
   body: string;
-  visibility: "PUBLIC" | "PRIVATE";
+  visibility: "PUBLIC" | "TEAM" | "PRIVATE";
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
 }>;
 

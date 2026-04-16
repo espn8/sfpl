@@ -7,6 +7,7 @@ declare module "express-session" {
       userId: number;
       teamId: number;
       role: Role;
+      userOu: string | null;
     };
     oauth?: {
       state: string;

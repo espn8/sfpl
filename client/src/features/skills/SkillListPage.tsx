@@ -1,9 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { listSkills } from "./api";
 
 export function SkillListPage() {
+  const [searchParams] = useSearchParams();
+  const mineFilter = searchParams.get("mine") === "true";
+  const showAnalytics = searchParams.get("showAnalytics") === "true";
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 20;
@@ -11,10 +14,12 @@ export function SkillListPage() {
   const filters = useMemo(
     () => ({
       q: search.trim() || undefined,
+      mine: mineFilter || undefined,
+      includeAnalytics: showAnalytics || undefined,
       page,
       pageSize,
     }),
-    [search, page, pageSize],
+    [search, mineFilter, showAnalytics, page, pageSize],
   );
 
   const query = useQuery({
@@ -26,8 +31,16 @@ export function SkillListPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Skills</h1>
-          <p className="mt-1 text-sm text-(--color-text-muted)">Reusable AI skill definitions you can load into your tools. Think of them as instruction manuals your AI can follow.</p>
+          <h1 className="text-2xl font-semibold">
+            {showAnalytics ? "My Skill Analytics" : mineFilter ? "Your Skills" : "Skills"}
+          </h1>
+          <p className="mt-1 text-sm text-(--color-text-muted)">
+            {showAnalytics
+              ? "See how your skills are performing with views, copies, and favorites."
+              : mineFilter
+                ? "Skills you've created. Edit or manage your contributions."
+                : "Reusable AI skill definitions you can load into your tools. Think of them as instruction manuals your AI can follow."}
+          </p>
         </div>
         <Link
           to="/skills/new"
@@ -78,6 +91,22 @@ export function SkillListPage() {
                       {skill.status}
                     </span>
                   </div>
+                  {showAnalytics ? (
+                    <div className="mt-3 grid grid-cols-3 gap-2 rounded-lg border border-(--color-primary)/20 bg-(--color-primary)/5 p-3">
+                      <div className="text-center">
+                        <p className="text-lg font-bold text-(--color-text)">{(skill.viewCount ?? 0).toLocaleString()}</p>
+                        <p className="text-xs text-(--color-text-muted)">Views</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-lg font-bold text-(--color-text)">{(skill.copyCount ?? 0).toLocaleString()}</p>
+                        <p className="text-xs text-(--color-text-muted)">Copies</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-lg font-bold text-(--color-text)">{(skill.favoriteCount ?? 0).toLocaleString()}</p>
+                        <p className="text-xs text-(--color-text-muted)">Favorites</p>
+                      </div>
+                    </div>
+                  ) : null}
                   <p className="mt-2 text-xs text-(--color-text-muted)">
                     Updated {new Date(skill.updatedAt).toLocaleString()} · {skill.owner.name ?? "Member"}
                   </p>

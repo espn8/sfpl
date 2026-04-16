@@ -1,9 +1,11 @@
 import { useMutation } from "@tanstack/react-query";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createSkill } from "./api";
 
 export function SkillEditorPage() {
   const navigate = useNavigate();
+  const [validationError, setValidationError] = useState<string | null>(null);
   const createMutation = useMutation({
     mutationFn: createSkill,
     onSuccess: (skill) => {
@@ -16,13 +18,19 @@ export function SkillEditorPage() {
       className="space-y-3 rounded border border-(--color-border) bg-(--color-surface) p-4"
       onSubmit={(event) => {
         event.preventDefault();
+        setValidationError(null);
         const formData = new FormData(event.currentTarget);
         const title = String(formData.get("title") ?? "").trim();
         const summary = String(formData.get("summary") ?? "").trim();
         const body = String(formData.get("body") ?? "");
         const status = String(formData.get("status") ?? "DRAFT") as "DRAFT" | "PUBLISHED" | "ARCHIVED";
-        const visibility = String(formData.get("visibility") ?? "PUBLIC") as "PUBLIC" | "PRIVATE";
-        if (!title || !body.trim()) {
+        const visibility = String(formData.get("visibility") ?? "PUBLIC") as "PUBLIC" | "TEAM" | "PRIVATE";
+        if (!title) {
+          setValidationError("Title is required.");
+          return;
+        }
+        if (!body.trim()) {
+          setValidationError("Body is required.");
           return;
         }
         createMutation.mutate({ title, summary: summary || undefined, body, status, visibility });
@@ -56,8 +64,9 @@ export function SkillEditorPage() {
           defaultValue="PUBLIC"
           className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
         >
-          <option value="PUBLIC">Public</option>
-          <option value="PRIVATE">Private</option>
+          <option value="PUBLIC">Public (All Users)</option>
+          <option value="TEAM">Team (My OU Only)</option>
+          <option value="PRIVATE">Private (Only Me)</option>
         </select>
       </div>
       <textarea
@@ -67,9 +76,14 @@ export function SkillEditorPage() {
         rows={16}
         className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2 font-mono text-sm"
       />
+      {validationError ? (
+        <p className="text-sm text-red-600" role="alert">
+          {validationError}
+        </p>
+      ) : null}
       {createMutation.isError ? (
         <p className="text-sm text-red-600" role="alert">
-          Could not create skill.
+          Could not create skill. Please try again.
         </p>
       ) : null}
       <button

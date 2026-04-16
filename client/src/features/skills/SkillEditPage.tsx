@@ -89,8 +89,9 @@ export function SkillEditPage() {
           defaultValue={skill.visibility}
           className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
         >
-          <option value="PUBLIC">Public</option>
-          <option value="PRIVATE">Private</option>
+          <option value="PUBLIC">Public (All Users)</option>
+          <option value="TEAM">Team (My OU Only)</option>
+          <option value="PRIVATE">Private (Only Me)</option>
         </select>
       </div>
       <textarea

@@ -147,7 +147,7 @@ async function main() {
     body: string;
     ownerId: number;
     status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
-    visibility: "PUBLIC" | "PRIVATE";
+    visibility: "PUBLIC" | "TEAM";
     tools: string[];
     modality: "TEXT" | "CODE" | "IMAGE" | "VIDEO" | "AUDIO" | "MULTIMODAL";
     modelHint: string;
@@ -240,7 +240,7 @@ async function main() {
       body: "Prepare 1:1 notes from:\n- Wins: [WINS]\n- Risks: [RISKS]\n- Topics to discuss: [TOPICS]\nReturn concise bullets.",
       ownerId: viewer.id,
       status: "DRAFT",
-      visibility: "PRIVATE",
+      visibility: "TEAM",
       tools: ["cursor"],
       modality: "TEXT",
       modelHint: "chatgpt",

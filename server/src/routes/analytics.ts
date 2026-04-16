@@ -1,12 +1,17 @@
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { Role } from "@prisma/client";
+import { z } from "zod";
 import { getAuthContext, requireAuth, requireRole } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 
 const analyticsRouter = Router();
 analyticsRouter.use(requireAuth);
 analyticsRouter.use(requireRole([Role.ADMIN, Role.OWNER]));
+
+const ouQuerySchema = z.object({
+  ou: z.string().trim().optional(),
+});
 type RatedPrompt = {
   id: number;
   title: string;
@@ -203,6 +208,142 @@ analyticsRouter.get("/overview", async (req: Request, res: Response) => {
         promptCount: user._count.prompts,
       })),
       userEngagementLeaderboard,
+    },
+  });
+});
+
+analyticsRouter.get("/ou", async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+
+  const parsedQuery = ouQuerySchema.safeParse(req.query);
+  const filterOu = parsedQuery.success ? parsedQuery.data.ou : undefined;
+
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const userWhereClause = filterOu
+    ? { teamId: auth.teamId, ou: filterOu }
+    : { teamId: auth.teamId, ou: { not: null } };
+
+  const [
+    usersByOu,
+    promptsByOwnerOu,
+    usageEventsByUserOu,
+    topPromptsPerOu,
+  ] = await Promise.all([
+    prisma.user.groupBy({
+      by: ["ou"],
+      where: userWhereClause,
+      _count: { _all: true },
+    }),
+    prisma.prompt.findMany({
+      where: {
+        teamId: auth.teamId,
+        owner: filterOu ? { ou: filterOu } : { ou: { not: null } },
+      },
+      select: {
+        id: true,
+        owner: { select: { ou: true } },
+      },
+    }),
+    prisma.usageEvent.findMany({
+      where: {
+        user: filterOu ? { teamId: auth.teamId, ou: filterOu } : { teamId: auth.teamId, ou: { not: null } },
+        createdAt: { gte: thirtyDaysAgo },
+      },
+      select: {
+        id: true,
+        action: true,
+        user: { select: { ou: true } },
+      },
+    }),
+    prisma.prompt.findMany({
+      where: {
+        teamId: auth.teamId,
+        owner: filterOu ? { ou: filterOu } : { ou: { not: null } },
+        status: "PUBLISHED",
+      },
+      select: {
+        id: true,
+        title: true,
+        owner: { select: { ou: true } },
+        _count: { select: { usageEvents: true } },
+      },
+      orderBy: { usageEvents: { _count: "desc" } },
+      take: 50,
+    }),
+  ]);
+
+  const promptCountByOu = new Map<string, number>();
+  for (const prompt of promptsByOwnerOu) {
+    const ou = prompt.owner.ou;
+    if (ou) {
+      promptCountByOu.set(ou, (promptCountByOu.get(ou) ?? 0) + 1);
+    }
+  }
+
+  const usageByOu = new Map<string, { views: number; copies: number; launches: number }>();
+  for (const event of usageEventsByUserOu) {
+    const ou = event.user.ou;
+    if (ou) {
+      const existing = usageByOu.get(ou) ?? { views: 0, copies: 0, launches: 0 };
+      if (event.action === "VIEW") {
+        existing.views += 1;
+      } else if (event.action === "COPY") {
+        existing.copies += 1;
+      } else if (event.action === "LAUNCH") {
+        existing.launches += 1;
+      }
+      usageByOu.set(ou, existing);
+    }
+  }
+
+  const topPromptsByOu = new Map<string, Array<{ id: number; title: string; usageCount: number }>>();
+  for (const prompt of topPromptsPerOu) {
+    const ou = prompt.owner.ou;
+    if (ou) {
+      const list = topPromptsByOu.get(ou) ?? [];
+      if (list.length < 5) {
+        list.push({ id: prompt.id, title: prompt.title, usageCount: prompt._count.usageEvents });
+      }
+      topPromptsByOu.set(ou, list);
+    }
+  }
+
+  const ouBreakdown = usersByOu
+    .filter((row): row is typeof row & { ou: string } => row.ou !== null)
+    .map((row) => ({
+      ou: row.ou,
+      userCount: row._count._all,
+      promptCount: promptCountByOu.get(row.ou) ?? 0,
+      usage: usageByOu.get(row.ou) ?? { views: 0, copies: 0, launches: 0 },
+      topPrompts: topPromptsByOu.get(row.ou) ?? [],
+    }))
+    .sort((a, b) => b.userCount - a.userCount);
+
+  const totalUsers = ouBreakdown.reduce((sum, ou) => sum + ou.userCount, 0);
+  const totalPrompts = ouBreakdown.reduce((sum, ou) => sum + ou.promptCount, 0);
+  const totalUsage = ouBreakdown.reduce(
+    (sum, ou) => ({
+      views: sum.views + ou.usage.views,
+      copies: sum.copies + ou.usage.copies,
+      launches: sum.launches + ou.usage.launches,
+    }),
+    { views: 0, copies: 0, launches: 0 },
+  );
+
+  return res.status(200).json({
+    data: {
+      summary: {
+        totalOus: ouBreakdown.length,
+        totalUsers,
+        totalPrompts,
+        totalUsage,
+      },
+      ouBreakdown,
     },
   });
 });
