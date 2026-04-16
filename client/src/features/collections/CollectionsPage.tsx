@@ -65,6 +65,17 @@ export function CollectionsPage() {
           {createMutation.isPending ? "Creating..." : "Create Collection"}
         </button>
       </form>
+      {collectionsQuery.isLoading ? (
+        <p className="text-sm text-(--color-text-muted)">Loading collections...</p>
+      ) : null}
+      {collectionsQuery.isError ? (
+        <p className="text-sm text-red-600" role="alert">
+          We couldn't load collections right now. Try refreshing.
+        </p>
+      ) : null}
+      {collectionsQuery.data?.length === 0 ? (
+        <p className="text-sm text-(--color-text-muted)">No collections yet. Create one above to organize your favorite prompts.</p>
+      ) : null}
       {collectionsQuery.data?.map((collection) => (
         <div key={collection.id} className="rounded border border-(--color-border) bg-(--color-surface) p-4">
           <Link to={`/collections/${collection.id}`} className="font-semibold hover:underline">

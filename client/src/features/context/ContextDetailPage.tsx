@@ -50,10 +50,10 @@ export function ContextDetailPage() {
 
   const deleteMutation = useMutation({
     mutationFn: () => deleteContextDocumentPermanently(docId),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["context"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["context"] });
       trackEvent("context_delete", { context_id: docId });
-      void navigate("/context");
+      navigate("/context");
     },
   });
 

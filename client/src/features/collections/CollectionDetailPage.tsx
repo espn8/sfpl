@@ -46,7 +46,7 @@ export function CollectionDetailPage() {
     onSuccess: async () => {
       trackEvent("collection_delete", { collection_id: collectionId });
       await queryClient.invalidateQueries({ queryKey: ["collections"] });
-      void navigate("/collections");
+      navigate("/collections");
     },
     onError: () => {
       setMessage("Could not delete collection.");

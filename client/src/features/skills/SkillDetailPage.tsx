@@ -44,10 +44,10 @@ export function SkillDetailPage() {
 
   const deleteMutation = useMutation({
     mutationFn: () => deleteSkillPermanently(skillId),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["skills"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["skills"] });
       trackEvent("skill_delete", { skill_id: skillId });
-      void navigate("/skills");
+      navigate("/skills");
     },
   });
 

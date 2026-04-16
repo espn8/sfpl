@@ -133,10 +133,10 @@ export function PromptDetailPage() {
   });
   const deleteMutation = useMutation({
     mutationFn: () => deletePromptPermanently(promptId),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["prompts"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["prompts"] });
       trackEvent("prompt_delete", { prompt_id: promptId });
-      void navigate("/prompts");
+      navigate("/");
     },
   });
   const regenerateMutation = useMutation({
