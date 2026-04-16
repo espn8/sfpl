@@ -27,7 +27,7 @@ export function LoginPage() {
           </a>
         </div>
       </div>
-      <footer className="mt-8 rounded-lg border border-(--color-border) bg-(--color-surface) px-4 py-3">
+      <footer className="mx-auto mt-8 max-w-xl rounded-lg border border-(--color-border) bg-(--color-surface) px-4 py-3">
         Copyright 2026. All Rights Reserved. Created with ❤️ by Amelia Ochodnicky.
       </footer>
     </main>

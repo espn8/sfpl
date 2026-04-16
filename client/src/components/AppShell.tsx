@@ -236,23 +236,23 @@ export function AppShell({ children }: AppShellProps) {
                 href="https://salesforce.enterprise.slack.com/archives/C0ATAP14WEQ"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline hover:no-underline mr-4"
+                className="underline hover:no-underline"
               >
                 #help-ailibrary
               </a>
-              <span>
-                Copyright 2026. All Rights Reserved. Created with ❤️ by{" "}
-                <a
-                  href="https://salesforce.enterprise.slack.com/team/U01G89VU4N7"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline hover:no-underline"
-                >
-                  Amelia Ochodnicky
-                </a>
-                .
-              </span>
             </div>
+          </div>
+          <div className="mt-2 text-right text-sm text-(--color-text-muted)">
+            Copyright 2026. All Rights Reserved. Created with ❤️ by{" "}
+            <a
+              href="https://salesforce.enterprise.slack.com/team/U01G89VU4N7"
+              target="_blank"
+              rel="noreferrer"
+              className="underline hover:no-underline"
+            >
+              Amelia Ochodnicky
+            </a>
+            .
           </div>
         </footer>
       </div>

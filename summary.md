@@ -1,9 +1,14 @@
 # AI Library - Technical Summary
 
-Last Updated: Wednesday, April 16, 2026 — 10:35 CDT
-Build Version: c12c02a
+Last Updated: Thursday, April 16, 2026 — 07:46 CDT
+Build Version: 6dd28f2
 
 ## Recent Changes
+
+- **Login page footer alignment**: Centered footer and constrained width to match login content area (`max-w-xl`, `mx-auto`).
+- **AppShell footer copyright line break**: Moved copyright text to a new line below logo and links for improved readability.
+
+### Previous Session Changes (carried forward from April 16)
 
 - **Settings link moved to user menu**: Moved Settings link from main navigation bar to user profile modal for cleaner navigation. Profile modal now includes Quick Links section with My Content, My Analytics, and Settings buttons.
 - **Personalized hero greeting**: Homepage hero section now displays personalized greeting using user's first name. First-time visitors see "Your AI Awesomeness Starts Here, {firstName}!" and returning visitors see "Welcome Back to AI Awesomeness, {firstName}!". Uses localStorage to track first visit state. Falls back to generic "Your AI Advantage Starts Here" when user data is loading.
@@ -17,7 +22,7 @@ Build Version: c12c02a
 - **PromptListCard analytics**: Added `showAnalytics` prop to display view count, usage stats, ratings, and favorites inline when viewing "My Content" with analytics mode enabled.
 - **Seed script enhancements**: Updated `seed.ts` to create system collections during database seeding via `ensureSystemCollections()`.
 
-### Previous Session Changes (carried forward)
+### Earlier Session Changes
 
 - **Expanded tool options**: Added "Saleo" and "Other" to `PROMPT_TOOL_OPTIONS` enum on both client and server.
 - **Centralized tool labels**: Created `PROMPT_TOOL_LABELS` dictionary and utilities for human-readable tool names.
@@ -337,7 +342,7 @@ git push heroku main
 
 ### TODO/FIXME Scan
 
-- Repository scan for `TODO|FIXME` in `*.{ts,tsx,js,jsx}` completed (April 15, 2026): no matches in application source.
+- Repository scan for `TODO|FIXME` in `*.{ts,tsx,js,jsx}` completed (April 16, 2026): no matches in application source.
 - Workspace automation rules may still mention `TODO|FIXME` as documentation; that is non-runtime.
 
 ### Roadmap / Backlog
