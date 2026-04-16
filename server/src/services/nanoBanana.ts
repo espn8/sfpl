@@ -46,6 +46,7 @@ export async function generatePromptThumbnail(input: GenerateThumbnailInput): Pr
         },
       ],
       generationConfig: {
+        responseModalities: ["IMAGE"],
         temperature: 0.8,
       },
     }),

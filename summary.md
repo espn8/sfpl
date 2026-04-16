@@ -1,9 +1,13 @@
 # AI Library - Technical Summary
 
-Last Updated: Thursday, April 16, 2026 — 22:45 CDT
-Build Version: 96801d1
+Last Updated: Thursday, April 16, 2026 — 23:15 CDT
+Build Version: aa8ce11
 
 ## Recent Changes
+
+- **Image generation config fix**: Added `responseModalities: ["IMAGE"]` to Gemini API request config in `nanoBanana.ts` to explicitly request image output, fixing thumbnail generation reliability.
+
+### Previous Session Changes (April 16, 2026)
 
 - **Template variables for Skills and Context**: Extended the variable system from Prompts to Skills and Context Documents. Users can define `[KEY]` and `{{KEY}}` placeholders with labels, default values, and required flags. Added `SkillVariable` and `ContextVariable` Prisma models with full CRUD support.
 - **Variable interpolation system**: Created centralized `client/src/lib/interpolate.ts` module with `interpolateBody()` function for placeholder replacement. Refactored `interpolatePrompt.ts` to use shared utility.
@@ -17,7 +21,7 @@ Build Version: 96801d1
 - **Version bump automation**: Added `scripts/version-bump.js` for automatic patch version increment during Heroku builds. Syncs version across root, client, and server `package.json` files.
 - **Footer version display**: AppShell footer now displays current app version with link to changelog page.
 - **Vite environment injection**: Added `VITE_APP_VERSION` environment variable injection from `package.json` version during build.
-- **Gemini model update**: Updated `nanoBanana.ts` to use `gemini-2.5-flash-preview-04-17` model for improved thumbnail generation.
+- **Gemini model update**: Updated `nanoBanana.ts` to use `gemini-2.5-flash-image` model for thumbnail generation.
 - **Help search refinements**: Minor improvements to help search service.
 
 ### Previous Session Changes (carried forward from April 16)
