@@ -2,12 +2,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
+import { ConfirmDeleteModal } from "../../components/ConfirmDeleteModal";
 import { MarkdownPreview } from "../../components/MarkdownPreview";
 import { VariableInputs } from "../../components/VariableInputs";
 import { interpolateBody } from "../../lib/interpolate";
 import { buildShareUrl, copyToClipboard, downloadAsMarkdown, shareOrCopyLink } from "../../lib/shareOrCopyLink";
 import { fetchMe } from "../auth/api";
-import { archiveSkill, getSkill, logSkillUsage, toggleSkillFavorite } from "./api";
+import { archiveSkill, deleteSkillPermanently, getSkill, logSkillUsage, toggleSkillFavorite } from "./api";
 import { CopyIcon, DownloadIcon, EyeIcon, HeartIcon, ShareIcon } from "../prompts/promptActionIcons";
 
 type ViewMode = "preview" | "raw";
@@ -16,6 +17,7 @@ export function SkillDetailPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("preview");
   const [favorited, setFavorited] = useState(false);
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const params = useParams();
   const skillId = Number(params.id);
   const navigate = useNavigate();
@@ -37,6 +39,15 @@ export function SkillDetailPage() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["skills"] });
       void queryClient.invalidateQueries({ queryKey: ["skill", skillId] });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteSkillPermanently(skillId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["skills"] });
+      trackEvent("skill_delete", { skill_id: skillId });
+      void navigate("/skills");
     },
   });
 
@@ -83,6 +94,7 @@ export function SkillDetailPage() {
   const canEdit =
     meQuery.data &&
     (meQuery.data.id === skill.owner.id || meQuery.data.role === "ADMIN" || meQuery.data.role === "OWNER");
+  const canDelete = meQuery.data && meQuery.data.id === skill.owner.id;
   const viewCount = skill.viewCount ?? 0;
   const hasVariables = (skill.variables?.length ?? 0) > 0;
 
@@ -137,7 +149,7 @@ export function SkillDetailPage() {
           {canEdit ? (
             <button
               type="button"
-              className="rounded border border-red-200 px-3 py-1.5 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/40"
+              className="rounded border border-amber-200 px-3 py-1.5 text-sm text-amber-700 hover:bg-amber-50 disabled:opacity-50 dark:border-amber-900 dark:text-amber-300 dark:hover:bg-amber-950/40"
               disabled={archiveMutation.isPending || skill.status === "ARCHIVED"}
               onClick={() => {
                 if (window.confirm("Archive this skill?")) {
@@ -150,6 +162,15 @@ export function SkillDetailPage() {
               }}
             >
               Archive
+            </button>
+          ) : null}
+          {canDelete ? (
+            <button
+              type="button"
+              className="rounded border border-red-200 px-3 py-1.5 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/40"
+              onClick={() => setShowDeleteModal(true)}
+            >
+              Delete
             </button>
           ) : null}
         </div>
@@ -299,6 +320,16 @@ export function SkillDetailPage() {
           )}
         </section>
       )}
+
+      <ConfirmDeleteModal
+        isOpen={showDeleteModal}
+        title="Delete Skill"
+        assetType="skill"
+        assetName={skill.title}
+        isDeleting={deleteMutation.isPending}
+        onConfirm={() => deleteMutation.mutate()}
+        onCancel={() => setShowDeleteModal(false)}
+      />
     </article>
   );
 }

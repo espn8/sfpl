@@ -979,6 +979,47 @@ promptsRouter.delete("/:id", async (req: Request, res: Response) => {
   return res.status(200).json({ data: archived });
 });
 
+promptsRouter.delete("/:id/permanent", async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+
+  const parsedParams = promptIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+
+  const promptId = parsedParams.data.id;
+  const existing = await prisma.prompt.findFirst({ where: { id: promptId, teamId: auth.teamId } });
+  if (!existing) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
+  }
+
+  if (existing.ownerId !== auth.userId) {
+    return res.status(403).json({
+      error: { code: "FORBIDDEN", message: "Only the owner can permanently delete this prompt." },
+    });
+  }
+
+  await prisma.$transaction([
+    prisma.usageEvent.deleteMany({ where: { promptId } }),
+    prisma.rating.deleteMany({ where: { promptId } }),
+    prisma.favorite.deleteMany({ where: { promptId } }),
+    prisma.promptTag.deleteMany({ where: { promptId } }),
+    prisma.promptVariable.deleteMany({ where: { promptId } }),
+    prisma.promptVersion.deleteMany({ where: { promptId } }),
+    prisma.collectionPrompt.deleteMany({ where: { promptId } }),
+    prisma.prompt.delete({ where: { id: promptId } }),
+  ]);
+
+  if (existing.status === "PUBLISHED") {
+    scheduleSystemCollectionRefresh(auth.teamId, existing.tools);
+  }
+
+  return res.status(200).json({ data: { deleted: true, id: promptId } });
+});
+
 promptsRouter.get("/:id/versions", async (req: Request, res: Response) => {
   const auth = getAuthContext(req);
   if (!auth) {

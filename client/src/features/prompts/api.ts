@@ -266,3 +266,7 @@ export async function ratePrompt(promptId: number, value: number): Promise<void>
 export async function logUsage(promptId: number, action: "VIEW" | "COPY" | "LAUNCH"): Promise<void> {
   await apiClient.post(`/api/prompts/${promptId}/usage`, { action });
 }
+
+export async function deletePromptPermanently(promptId: number): Promise<void> {
+  await apiClient.delete(`/api/prompts/${promptId}/permanent`);
+}

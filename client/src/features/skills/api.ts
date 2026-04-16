@@ -131,3 +131,7 @@ export async function replaceSkillVariables(
   const { data } = await apiClient.put<{ data: Skill }>(`/api/skills/${skillId}/variables`, { variables });
   return data.data;
 }
+
+export async function deleteSkillPermanently(skillId: number): Promise<void> {
+  await apiClient.delete(`/api/skills/${skillId}/permanent`);
+}

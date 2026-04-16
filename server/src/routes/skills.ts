@@ -492,6 +492,39 @@ skillsRouter.delete("/:id", async (req: Request, res: Response) => {
   return res.status(200).json({ data: archived });
 });
 
+skillsRouter.delete("/:id/permanent", async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+
+  const parsedParams = skillIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+
+  const skillId = parsedParams.data.id;
+  const existing = await prisma.skill.findFirst({ where: { id: skillId, teamId: auth.teamId } });
+  if (!existing) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not found." } });
+  }
+
+  if (existing.ownerId !== auth.userId) {
+    return res.status(403).json({
+      error: { code: "FORBIDDEN", message: "Only the owner can permanently delete this skill." },
+    });
+  }
+
+  await prisma.$transaction([
+    prisma.skillUsageEvent.deleteMany({ where: { skillId } }),
+    prisma.skillFavorite.deleteMany({ where: { skillId } }),
+    prisma.skillVariable.deleteMany({ where: { skillId } }),
+    prisma.skill.delete({ where: { id: skillId } }),
+  ]);
+
+  return res.status(200).json({ data: { deleted: true, id: skillId } });
+});
+
 skillsRouter.post("/:id/favorite", async (req: Request, res: Response) => {
   const auth = getAuthContext(req);
   if (!auth) {

@@ -1,13 +1,17 @@
 # AI Library - Technical Summary
 
-Last Updated: Thursday, April 16, 2026 — 23:20 CDT
-Build Version: 0d52b5f
+Last Updated: Thursday, April 16, 2026 — 23:45 CDT
+Build Version: 7a9aa65
 
 ## Recent Changes
 
-- **Image generation config fix**: Added `responseModalities: ["IMAGE"]` to Gemini API request config in `nanoBanana.ts` to explicitly request image output, fixing thumbnail generation reliability.
+- **Permanent asset deletion**: Users can now permanently delete their own created Prompts, Skills, and Context Documents. Added `ConfirmDeleteModal` component with clear warning that deletion cannot be undone and all analytics will be lost. Backend endpoints cascade-delete all related data (usage events, ratings, favorites, tags, variables, versions, collection memberships). Only the asset owner can permanently delete (not admins).
+- **Delete button styling**: Added red "Delete" button to detail pages for asset owners. Archive button now uses amber/yellow styling to differentiate from the more destructive delete action.
+- **New API endpoints**: `DELETE /api/prompts/:id/permanent`, `DELETE /api/skills/:id/permanent`, `DELETE /api/context/:id/permanent` for permanent asset removal with full cascade.
 
 ### Previous Session Changes (April 16, 2026)
+
+- **Image generation config fix**: Added `responseModalities: ["IMAGE"]` to Gemini API request config in `nanoBanana.ts` to explicitly request image output, fixing thumbnail generation reliability.
 
 - **Template variables for Skills and Context**: Extended the variable system from Prompts to Skills and Context Documents. Users can define `[KEY]` and `{{KEY}}` placeholders with labels, default values, and required flags. Added `SkillVariable` and `ContextVariable` Prisma models with full CRUD support.
 - **Variable interpolation system**: Created centralized `client/src/lib/interpolate.ts` module with `interpolateBody()` function for placeholder replacement. Refactored `interpolatePrompt.ts` to use shared utility.
@@ -68,8 +72,8 @@ The application has achieved **substantial completion** of the core implementati
 | Authentication (Google SSO, sessions, team scoping) | ✅ Complete |
 | Prisma Data Model (all spec models + Skill/ContextDocument + usage events) | ✅ Complete |
 | Prompt APIs (CRUD, versions, engagement, thumbnails) | ✅ Complete |
-| Skills APIs (CRUD, list, search, usage tracking) | ✅ Complete |
-| Context Documents APIs (CRUD, list, search, usage tracking) | ✅ Complete |
+| Skills APIs (CRUD, list, search, usage tracking, permanent delete) | ✅ Complete |
+| Context Documents APIs (CRUD, list, search, usage tracking, permanent delete) | ✅ Complete |
 | Tags, Collections, Analytics APIs | ✅ Complete |
 | System Collections (tool-based, best-of) | ✅ Complete |
 | Frontend Routes (all spec routes + Skills/Context + Help + Settings) | ✅ Complete |
@@ -240,9 +244,9 @@ The application has achieved **substantial completion** of the core implementati
 | Route File | Endpoints |
 |------------|-----------|
 | `auth.ts` | `GET /google`, `GET /google/callback`, `POST /logout`, `GET /me`, `PATCH /me`, `POST /me/profile-photo` |
-| `prompts.ts` | Full CRUD, `/versions`, `/restore/:version`, `/favorite`, `/rating`, `/usage`, `/regenerate-thumbnail` |
-| `skills.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `POST /:id/usage`, `POST /:id/favorite`, `PUT /:id/variables` |
-| `context.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `POST /:id/usage`, `POST /:id/favorite`, `PUT /:id/variables` |
+| `prompts.ts` | Full CRUD, `DELETE /:id/permanent`, `/versions`, `/restore/:version`, `/favorite`, `/rating`, `/usage`, `/regenerate-thumbnail` |
+| `skills.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `DELETE /:id/permanent`, `POST /:id/usage`, `POST /:id/favorite`, `PUT /:id/variables` |
+| `context.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `DELETE /:id/permanent`, `POST /:id/usage`, `POST /:id/favorite`, `PUT /:id/variables` |
 | `collections.ts` | CRUD + `/prompts/:promptId` membership + `POST /system/refresh` (admin-only system collection refresh) |
 | `tags.ts` | `GET /`, `POST /` |
 | `analytics.ts` | `GET /overview` (team-scoped aggregates) |
@@ -302,6 +306,7 @@ The application has achieved **substantial completion** of the core implementati
 - `client/src/components/MarkdownPreview.tsx`: reusable markdown rendering component using `react-markdown`.
 - `client/src/features/prompts/interpolatePrompt.ts` / `launchProviders.ts`: client-side prompt variable fill-in and deep links to external chat products.
 - `client/src/features/prompts/PromptThumbnail.tsx`: thumbnail rendering with graceful placeholder states.
+- `client/src/components/ConfirmDeleteModal.tsx`: reusable confirmation dialog for permanent asset deletion with warning messaging.
 - `client/src/features/analytics/AnalyticsPage.tsx`: admin dashboard with top used, top rated, stale prompts, contributors, and user engagement leaderboards.
 - `client/src/features/analytics/api.ts`: strict typed contract for analytics payload shape.
 - `client/src/features/help/HelpPage.tsx`: searchable help documentation with topic index sidebar and AI search beta feature.

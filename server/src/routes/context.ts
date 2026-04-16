@@ -492,6 +492,39 @@ contextRouter.delete("/:id", async (req: Request, res: Response) => {
   return res.status(200).json({ data: archived });
 });
 
+contextRouter.delete("/:id/permanent", async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+
+  const parsedParams = contextIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+
+  const contextId = parsedParams.data.id;
+  const existing = await prisma.contextDocument.findFirst({ where: { id: contextId, teamId: auth.teamId } });
+  if (!existing) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Context document not found." } });
+  }
+
+  if (existing.ownerId !== auth.userId) {
+    return res.status(403).json({
+      error: { code: "FORBIDDEN", message: "Only the owner can permanently delete this context file." },
+    });
+  }
+
+  await prisma.$transaction([
+    prisma.contextUsageEvent.deleteMany({ where: { contextId } }),
+    prisma.contextFavorite.deleteMany({ where: { contextId } }),
+    prisma.contextVariable.deleteMany({ where: { contextId } }),
+    prisma.contextDocument.delete({ where: { id: contextId } }),
+  ]);
+
+  return res.status(200).json({ data: { deleted: true, id: contextId } });
+});
+
 contextRouter.post("/:id/favorite", async (req: Request, res: Response) => {
   const auth = getAuthContext(req);
   if (!auth) {

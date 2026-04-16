@@ -1,16 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
+import { ConfirmDeleteModal } from "../../components/ConfirmDeleteModal";
 import { fetchMe } from "../auth/api";
 import { listCollections } from "../collections/api";
 import {
+  deletePromptPermanently,
   getPrompt,
   getToolLabel,
   listPromptVersions,
   logUsage,
   ratePrompt,
+  regeneratePromptThumbnail,
   restorePromptVersion,
   toggleFavorite,
   updatePrompt,
@@ -67,10 +70,12 @@ function restoreErrorMessage(error: unknown): string {
 export function PromptDetailPage() {
   const params = useParams();
   const promptId = Number(params.id);
+  const navigate = useNavigate();
   const [myRating, setMyRating] = useState<number | null>(null);
   const [favorited, setFavorited] = useState(false);
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
   const [launchProvider, setLaunchProvider] = useState<LaunchProviderId>("chatgpt");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const promptQuery = useQuery({
     queryKey: ["prompt", promptId],
@@ -124,6 +129,21 @@ export function PromptDetailPage() {
       setFavorited(data.favorited);
       await queryClient.invalidateQueries({ queryKey: ["prompt", promptId] });
       await queryClient.invalidateQueries({ queryKey: ["prompts"] });
+    },
+  });
+  const deleteMutation = useMutation({
+    mutationFn: () => deletePromptPermanently(promptId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["prompts"] });
+      trackEvent("prompt_delete", { prompt_id: promptId });
+      void navigate("/prompts");
+    },
+  });
+  const regenerateMutation = useMutation({
+    mutationFn: () => regeneratePromptThumbnail(promptId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["prompt", promptId] });
+      void queryClient.invalidateQueries({ queryKey: ["prompts"] });
     },
   });
 
@@ -192,6 +212,10 @@ export function PromptDetailPage() {
   const canEdit =
     me !== undefined &&
     (me.role === "OWNER" || me.role === "ADMIN" || (typeof promptData.ownerId === "number" && me.id === promptData.ownerId));
+  const canDelete =
+    me !== undefined &&
+    typeof promptData.ownerId === "number" &&
+    me.id === promptData.ownerId;
   const canRestoreVersions = canEdit;
 
   const latestVersionNumber =
@@ -224,6 +248,8 @@ export function PromptDetailPage() {
           thumbnailUrl={promptData.thumbnailUrl}
           thumbnailStatus={promptData.thumbnailStatus}
           className="h-48 w-full object-cover"
+          onRegenerate={canEdit ? () => regenerateMutation.mutate() : undefined}
+          isRegenerating={regenerateMutation.isPending}
         />
         <div className="p-4">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -494,14 +520,25 @@ export function PromptDetailPage() {
         </div>
       </div>
 
-      {canEdit ? (
-        <div>
-          <Link
-            to={`/prompts/${promptId}/edit`}
-            className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-1.5 text-sm hover:bg-(--color-surface)"
-          >
-            Edit
-          </Link>
+      {canEdit || canDelete ? (
+        <div className="flex flex-wrap gap-2">
+          {canEdit ? (
+            <Link
+              to={`/prompts/${promptId}/edit`}
+              className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-1.5 text-sm hover:bg-(--color-surface)"
+            >
+              Edit
+            </Link>
+          ) : null}
+          {canDelete ? (
+            <button
+              type="button"
+              className="rounded border border-red-200 px-3 py-1.5 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/40"
+              onClick={() => setShowDeleteModal(true)}
+            >
+              Delete
+            </button>
+          ) : null}
         </div>
       ) : null}
 
@@ -575,6 +612,16 @@ export function PromptDetailPage() {
           })}
         </div>
       </details>
+
+      <ConfirmDeleteModal
+        isOpen={showDeleteModal}
+        title="Delete Prompt"
+        assetType="prompt"
+        assetName={promptData.title}
+        isDeleting={deleteMutation.isPending}
+        onConfirm={() => deleteMutation.mutate()}
+        onCancel={() => setShowDeleteModal(false)}
+      />
     </div>
   );
 }

@@ -131,3 +131,7 @@ export async function replaceContextVariables(
   const { data } = await apiClient.put<{ data: ContextDocument }>(`/api/context/${contextId}/variables`, { variables });
   return data.data;
 }
+
+export async function deleteContextDocumentPermanently(contextId: number): Promise<void> {
+  await apiClient.delete(`/api/context/${contextId}/permanent`);
+}

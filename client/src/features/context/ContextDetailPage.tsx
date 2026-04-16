@@ -2,12 +2,19 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
+import { ConfirmDeleteModal } from "../../components/ConfirmDeleteModal";
 import { MarkdownPreview } from "../../components/MarkdownPreview";
 import { VariableInputs } from "../../components/VariableInputs";
 import { interpolateBody } from "../../lib/interpolate";
 import { buildShareUrl, copyToClipboard, downloadAsMarkdown, shareOrCopyLink } from "../../lib/shareOrCopyLink";
 import { fetchMe } from "../auth/api";
-import { archiveContextDocument, getContextDocument, logContextUsage, toggleContextFavorite } from "./api";
+import {
+  archiveContextDocument,
+  deleteContextDocumentPermanently,
+  getContextDocument,
+  logContextUsage,
+  toggleContextFavorite,
+} from "./api";
 import { CopyIcon, DownloadIcon, EyeIcon, HeartIcon, ShareIcon } from "../prompts/promptActionIcons";
 
 type ViewMode = "preview" | "raw";
@@ -16,6 +23,7 @@ export function ContextDetailPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("preview");
   const [favorited, setFavorited] = useState(false);
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const params = useParams();
   const docId = Number(params.id);
   const navigate = useNavigate();
@@ -37,6 +45,15 @@ export function ContextDetailPage() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["context"] });
       void queryClient.invalidateQueries({ queryKey: ["context", docId] });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteContextDocumentPermanently(docId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["context"] });
+      trackEvent("context_delete", { context_id: docId });
+      void navigate("/context");
     },
   });
 
@@ -83,6 +100,7 @@ export function ContextDetailPage() {
   const canEdit =
     meQuery.data &&
     (meQuery.data.id === doc.owner.id || meQuery.data.role === "ADMIN" || meQuery.data.role === "OWNER");
+  const canDelete = meQuery.data && meQuery.data.id === doc.owner.id;
   const viewCount = doc.viewCount ?? 0;
   const hasVariables = (doc.variables?.length ?? 0) > 0;
 
@@ -137,7 +155,7 @@ export function ContextDetailPage() {
           {canEdit ? (
             <button
               type="button"
-              className="rounded border border-red-200 px-3 py-1.5 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/40"
+              className="rounded border border-amber-200 px-3 py-1.5 text-sm text-amber-700 hover:bg-amber-50 disabled:opacity-50 dark:border-amber-900 dark:text-amber-300 dark:hover:bg-amber-950/40"
               disabled={archiveMutation.isPending || doc.status === "ARCHIVED"}
               onClick={() => {
                 if (window.confirm("Archive this context file?")) {
@@ -150,6 +168,15 @@ export function ContextDetailPage() {
               }}
             >
               Archive
+            </button>
+          ) : null}
+          {canDelete ? (
+            <button
+              type="button"
+              className="rounded border border-red-200 px-3 py-1.5 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/40"
+              onClick={() => setShowDeleteModal(true)}
+            >
+              Delete
             </button>
           ) : null}
         </div>
@@ -299,6 +326,16 @@ export function ContextDetailPage() {
           )}
         </section>
       )}
+
+      <ConfirmDeleteModal
+        isOpen={showDeleteModal}
+        title="Delete Context File"
+        assetType="context"
+        assetName={doc.title}
+        isDeleting={deleteMutation.isPending}
+        onConfirm={() => deleteMutation.mutate()}
+        onCancel={() => setShowDeleteModal(false)}
+      />
     </article>
   );
 }
