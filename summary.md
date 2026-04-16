@@ -1,10 +1,11 @@
 # AI Library - Technical Summary
 
-Last Updated: Wednesday, April 15, 2026 — 19:55 CDT
-Build Version: a25d886
+Last Updated: Wednesday, April 16, 2026 — 10:30 CDT
+Build Version: 7e9ae9f
 
 ## Recent Changes
 
+- **Settings link moved to user menu**: Moved Settings link from main navigation bar to user profile modal for cleaner navigation. Profile modal now includes Quick Links section with My Content, My Analytics, and Settings buttons.
 - **Personalized hero greeting**: Homepage hero section now displays personalized greeting using user's first name. First-time visitors see "Your AI Awesomeness Starts Here, {firstName}!" and returning visitors see "Welcome Back to AI Awesomeness, {firstName}!". Uses localStorage to track first visit state. Falls back to generic "Your AI Advantage Starts Here" when user data is loading.
 - **Hero navigation cards**: Added three navigation cards to homepage hero section providing quick access to Prompts, Skills, and Context sections with descriptions of each asset type and hover effects.
 - **Dedicated Settings page**: Created full-page `/settings` route with organized sections for "Your Content" (My Prompts, My Skills, My Context) and "Your Analytics" (performance metrics for created assets). Migrated profile editing from modal to dedicated page UX with improved layout.
@@ -13,7 +14,6 @@ Build Version: a25d886
 - **Collections refresh endpoint**: Added `POST /api/collections/system/refresh` (admin-only) to manually trigger system collection refresh for tool-specific, best-of, or all system collections.
 - **Automatic collection refresh**: Prompt create/update/delete operations now trigger async system collection refresh when status or tools change.
 - **Help page AI search**: Added "Ask AI" beta feature to Help page with server-side AI-powered question answering via `/api/help/search` endpoint. Enhanced help content with "Your Content & Analytics" topic explaining Settings page features.
-- **Navigation update**: Added Settings link to main navigation in AppShell. Create dropdown now includes "New Prompt", "New Skill", and "New Context" quick actions.
 - **PromptListCard analytics**: Added `showAnalytics` prop to display view count, usage stats, ratings, and favorites inline when viewing "My Content" with analytics mode enabled.
 - **Seed script enhancements**: Updated `seed.ts` to create system collections during database seeding via `ensureSystemCollections()`.
 
