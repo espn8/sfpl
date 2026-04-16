@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
+import { sanitizeTitle } from "../../lib/sanitizeTitle";
 import { getSkill, updateSkill } from "./api";
 
 export function SkillEditPage() {
@@ -44,7 +45,7 @@ export function SkillEditPage() {
       onSubmit={(event) => {
         event.preventDefault();
         const formData = new FormData(event.currentTarget);
-        const title = String(formData.get("title") ?? "").trim();
+        const title = sanitizeTitle(String(formData.get("title") ?? ""));
         const summary = String(formData.get("summary") ?? "").trim();
         const body = String(formData.get("body") ?? "");
         const status = String(formData.get("status") ?? skill.status) as typeof skill.status;

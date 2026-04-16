@@ -84,7 +84,7 @@ export function SkillListPage() {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <h2 className="font-semibold">{skill.title}</h2>
+                      <h2 className="font-semibold">{skill.title} <span className="text-(--color-text-muted)">[Skill]</span></h2>
                       {skill.summary ? <p className="mt-1 text-sm text-(--color-text-muted)">{skill.summary}</p> : null}
                     </div>
                     <span className="shrink-0 rounded-full border border-(--color-border) px-2 py-0.5 text-xs font-medium uppercase">

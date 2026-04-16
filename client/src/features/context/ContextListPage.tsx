@@ -84,7 +84,7 @@ export function ContextListPage() {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <h2 className="font-semibold">{doc.title}</h2>
+                      <h2 className="font-semibold">{doc.title} <span className="text-(--color-text-muted)">[Context]</span></h2>
                       {doc.summary ? <p className="mt-1 text-sm text-(--color-text-muted)">{doc.summary}</p> : null}
                     </div>
                     <span className="shrink-0 rounded-full border border-(--color-border) px-2 py-0.5 text-xs font-medium uppercase">

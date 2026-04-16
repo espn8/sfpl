@@ -112,7 +112,7 @@ export function PromptListCard({ prompt, variant = "default", showAnalytics = fa
                 variant === "featured" ? "min-w-0 flex-1 truncate font-semibold" : "min-w-0 flex-1 font-semibold"
               }
             >
-              {prompt.title}
+              {prompt.title} <span className="text-(--color-text-muted)">[Prompt]</span>
             </p>
             <PromptUpdatedBadge createdAt={prompt.createdAt} updatedAt={prompt.updatedAt} />
           </div>

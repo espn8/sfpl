@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate } from "react-router-dom";
-import { fetchMe, logout, updateMyProfile, uploadProfilePhoto } from "../features/auth/api";
+import { Link } from "react-router-dom";
+import { fetchMe, updateMyProfile, uploadProfilePhoto } from "../features/auth/api";
 import { canAccessAdminUi } from "../features/auth/roles";
 import { ThemeModeToggle } from "./ui/ThemeModeToggle";
 
@@ -23,54 +23,25 @@ function ChevronDownIcon({ className }: { className?: string }) {
   );
 }
 
-function DocumentIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Z" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function ChartIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M3 3v18h18" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="m19 9-5 5-4-4-3 3" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function SettingsIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-
 type AppShellProps = {
   children: React.ReactNode;
 };
 
 export function AppShell({ children }: AppShellProps) {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const meQuery = useQuery({
     queryKey: ["auth", "me"],
     queryFn: fetchMe,
   });
 
-  const [name, setName] = useState("");
   const defaultProfilePhotoUrl = "https://api.dicebear.com/9.x/bottts/svg?seed=AILibrary";
+  const [name, setName] = useState("");
   const [profilePhotoUrl, setProfilePhotoUrl] = useState(defaultProfilePhotoUrl);
   const [region, setRegion] = useState("");
   const [ou, setOu] = useState("");
   const [title, setTitle] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
   const createMenuRef = useRef<HTMLDivElement>(null);
 
@@ -111,7 +82,6 @@ export function AppShell({ children }: AppShellProps) {
       queryClient.setQueryData(["auth", "me"], updatedUser);
       await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
       setFormError(null);
-      setIsProfileModalOpen(false);
     },
     onError: () => {
       setFormError("Unable to save your profile. Please try again.");
@@ -150,15 +120,6 @@ export function AppShell({ children }: AppShellProps) {
   };
 
   const showWelcomeModal = Boolean(meQuery.data && !meQuery.data.onboardingCompleted);
-  const showProfileModal = showWelcomeModal || isProfileModalOpen;
-
-  const handleLogout = () => {
-    void (async () => {
-      await logout();
-      await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
-      navigate("/login");
-    })();
-  };
 
   return (
     <main className="min-h-screen bg-(--color-bg) text-(--color-text)">
@@ -238,21 +199,17 @@ export function AppShell({ children }: AppShellProps) {
               )}
             </div>
             {meQuery.data ? (
-              <button
-                type="button"
+              <Link
+                to="/settings"
                 className="rounded-full border border-(--color-border) p-0.5 focus-visible:outline-none"
-                onClick={() => {
-                  setFormError(null);
-                  setIsProfileModalOpen(true);
-                }}
-                aria-label="Account settings"
+                aria-label="Settings"
               >
                 <img
                   src={meQuery.data.avatarUrl ?? defaultProfilePhotoUrl}
                   alt={meQuery.data.name ? `${meQuery.data.name}'s profile photo` : "User profile photo"}
                   className="h-8 w-8 rounded-full object-cover"
                 />
-              </button>
+              </Link>
             ) : null}
           </div>
         </header>
@@ -288,66 +245,13 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         </footer>
       </div>
-      {showProfileModal ? (
+      {showWelcomeModal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-2xl rounded-lg border border-(--color-border) bg-(--color-surface) p-6 shadow-lg">
-            <h2 className="text-xl font-semibold">
-              {showWelcomeModal ? "Welcome to Your AI Toolkit" : "Your Profile"}
-            </h2>
+            <h2 className="text-xl font-semibold">Welcome to Your AI Toolkit</h2>
             <p className="mt-1 text-sm text-(--color-text-muted)">
-              {showWelcomeModal
-                ? "Complete your profile to get started. It only takes a moment."
-                : "Manage your profile, preferences, and account settings."}
+              Complete your profile to get started. It only takes a moment.
             </p>
-            {meQuery.data ? (
-              <div className="mt-4 rounded border border-(--color-border) bg-(--color-surface-muted) p-3">
-                <p className="mb-3 text-sm font-medium text-(--color-text)">Account</p>
-                <dl className="grid gap-3 text-sm sm:grid-cols-2">
-                  <div>
-                    <dt className="text-(--color-text-muted)">Email</dt>
-                    <dd className="mt-0.5 font-medium">{meQuery.data.email}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-(--color-text-muted)">Role</dt>
-                    <dd className="mt-0.5 font-medium">{meQuery.data.role}</dd>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <dt className="text-(--color-text-muted)">Team ID</dt>
-                    <dd className="mt-0.5 font-medium">{meQuery.data.teamId}</dd>
-                  </div>
-                </dl>
-              </div>
-            ) : null}
-
-            <nav className="mt-4 rounded border border-(--color-border) bg-(--color-surface-muted) p-3">
-              <p className="mb-3 text-sm font-medium text-(--color-text)">Quick Links</p>
-              <div className="flex flex-wrap gap-2">
-                <Link
-                  to="/?mine=true"
-                  onClick={() => setIsProfileModalOpen(false)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-1.5 text-sm hover:bg-(--color-surface-muted)"
-                >
-                  <DocumentIcon className="h-4 w-4" />
-                  My Content
-                </Link>
-                <Link
-                  to="/?mine=true&showAnalytics=true"
-                  onClick={() => setIsProfileModalOpen(false)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-1.5 text-sm hover:bg-(--color-surface-muted)"
-                >
-                  <ChartIcon className="h-4 w-4" />
-                  My Analytics
-                </Link>
-                <Link
-                  to="/settings"
-                  onClick={() => setIsProfileModalOpen(false)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-1.5 text-sm hover:bg-(--color-surface-muted)"
-                >
-                  <SettingsIcon className="h-4 w-4" />
-                  Settings
-                </Link>
-              </div>
-            </nav>
 
             <form
               className="mt-4 space-y-4"
@@ -464,35 +368,14 @@ export function AppShell({ children }: AppShellProps) {
 
               {formError ? <p className="text-sm text-red-700">{formError}</p> : null}
 
-              <div className="mt-4 flex flex-col-reverse gap-3 border-t border-(--color-border) pt-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="mt-4 flex justify-end gap-2 border-t border-(--color-border) pt-4">
                 <button
-                  type="button"
-                  className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-1.5 text-sm hover:bg-(--color-surface) focus-visible:outline-none sm:self-start"
-                  onClick={handleLogout}
+                  type="submit"
+                  disabled={updateProfileMutation.isPending}
+                  className="rounded bg-(--color-primary) px-4 py-2 text-(--color-text-inverse) hover:bg-(--color-primary-active) active:bg-(--color-primary-active) disabled:opacity-60"
                 >
-                  Logout
+                  {updateProfileMutation.isPending ? "Saving..." : "Get Started"}
                 </button>
-                <div className="flex justify-end gap-2">
-                  {!showWelcomeModal ? (
-                    <button
-                      type="button"
-                      className="rounded border border-(--color-border) bg-(--color-surface-muted) px-4 py-2"
-                      onClick={() => {
-                        setIsProfileModalOpen(false);
-                        setFormError(null);
-                      }}
-                    >
-                      Cancel
-                    </button>
-                  ) : null}
-                  <button
-                    type="submit"
-                    disabled={updateProfileMutation.isPending}
-                    className="rounded bg-(--color-primary) px-4 py-2 text-(--color-text-inverse) hover:bg-(--color-primary-active) active:bg-(--color-primary-active) disabled:opacity-60"
-                  >
-                    {updateProfileMutation.isPending ? "Saving..." : "Save"}
-                  </button>
-                </div>
               </div>
             </form>
           </div>

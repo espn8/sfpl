@@ -236,217 +236,221 @@ export function PromptListPage() {
 
   return (
     <div className="space-y-7">
-      <section className="relative overflow-hidden rounded-2xl border border-(--color-border) bg-linear-to-br from-(--color-primary)/25 via-(--color-surface) to-(--color-surface-muted) p-6 shadow-sm transition-all duration-300 motion-reduce:transition-none">
-        <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-(--color-primary)/20 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-16 -left-10 h-48 w-48 rounded-full bg-(--color-primary)/10 blur-3xl" />
-        <div className="space-y-3">
-          <p className="inline-block rounded-full border border-(--color-border) bg-(--color-surface) px-3 py-1 text-xs font-semibold tracking-[0.14em]">
-            {personalizedGreeting ?? "Your AI Advantage Starts Here"}
-          </p>
-          <h2 className="text-3xl font-bold md:text-4xl">Find the AI assets that get results. Share the ones you've perfected.</h2>
-          <p className="max-w-3xl text-(--color-text-muted)">
-            Browse battle-tested AI assets from fellow Salesforce employees, customize them for your work, and launch directly into your favorite AI tool. No more starting from scratch.
-          </p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <Link
-              to="/"
-              className="group rounded-xl border border-(--color-border) bg-(--color-surface) p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-(--color-primary)/50 hover:shadow-md motion-reduce:transform-none"
-            >
-              <div className="mb-2 flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-(--color-primary)/10 text-lg">📝</span>
-                <h3 className="font-semibold">Prompts</h3>
-              </div>
-              <p className="text-sm text-(--color-text-muted)">
-                Ready-to-use instructions you give to AI tools. Fill in a few details, hit launch, and get results—no prompt engineering required.
+      {!mineFilter ? (
+        <>
+          <section className="relative overflow-hidden rounded-2xl border border-(--color-border) bg-linear-to-br from-(--color-primary)/25 via-(--color-surface) to-(--color-surface-muted) p-6 shadow-sm transition-all duration-300 motion-reduce:transition-none">
+            <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-(--color-primary)/20 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-16 -left-10 h-48 w-48 rounded-full bg-(--color-primary)/10 blur-3xl" />
+            <div className="space-y-3">
+              <p className="inline-block rounded-full border border-(--color-border) bg-(--color-surface) px-3 py-1 text-xs font-semibold tracking-[0.14em]">
+                {personalizedGreeting ?? "Your AI Advantage Starts Here"}
               </p>
-              <p className="mt-2 text-xs font-medium text-(--color-primary) group-hover:underline">Explore prompts →</p>
-            </Link>
-            <Link
-              to="/skills"
-              className="group rounded-xl border border-(--color-border) bg-(--color-surface) p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-(--color-primary)/50 hover:shadow-md motion-reduce:transform-none"
-            >
-              <div className="mb-2 flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-(--color-primary)/10 text-lg">⚡</span>
-                <h3 className="font-semibold">Skills</h3>
-              </div>
-              <p className="text-sm text-(--color-text-muted)">
-                Reusable behavior guides that teach AI how to act. Load them once, and your AI becomes a specialist—code reviewer, meeting summarizer, brand voice expert.
+              <h2 className="text-3xl font-bold md:text-4xl">Find the AI assets that get results. Share the ones you've perfected.</h2>
+              <p className="max-w-3xl text-(--color-text-muted)">
+                Browse battle-tested AI assets from fellow Salesforce employees, customize them for your work, and launch directly into your favorite AI tool. No more starting from scratch.
               </p>
-              <p className="mt-2 text-xs font-medium text-(--color-primary) group-hover:underline">Explore skills →</p>
-            </Link>
-            <Link
-              to="/context"
-              className="group rounded-xl border border-(--color-border) bg-(--color-surface) p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-(--color-primary)/50 hover:shadow-md motion-reduce:transform-none"
-            >
-              <div className="mb-2 flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-(--color-primary)/10 text-lg">📚</span>
-                <h3 className="font-semibold">Context</h3>
-              </div>
-              <p className="text-sm text-(--color-text-muted)">
-                Reference documents that give AI the background it needs—style guides, policies, product docs. The knowledge your AI should have before it starts working.
-              </p>
-              <p className="mt-2 text-xs font-medium text-(--color-primary) group-hover:underline">Explore context →</p>
-            </Link>
-          </div>
-        </div>
-        <div className="mt-5 flex flex-col gap-3">
-          <div className="w-full rounded-xl border border-(--color-border) bg-(--color-surface) px-4 py-5 transition-all duration-300 motion-reduce:transition-none sm:px-6 sm:py-6">
-            <p className="text-xs uppercase tracking-wide text-(--color-text-muted)">See what's happening now</p>
-            <div
-              className="mt-5 grid w-full grid-cols-1 gap-8 sm:grid-cols-3"
-              role="list"
-              aria-label="Platform statistics"
-            >
-              {heroStats.map((stat, index) => (
-                <div
-                  key={stat.label}
-                  role="listitem"
-                  className="flex flex-col items-center gap-2 text-center"
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                <Link
+                  to="/"
+                  className="group rounded-xl border border-(--color-border) bg-(--color-surface) p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-(--color-primary)/50 hover:shadow-md motion-reduce:transform-none"
                 >
-                  <HeroStatIcon variant={stat.icon} />
-                  <StatCounter end={stat.value} active={stat.counterActive} delayMs={index * 90} />
-                  <p className="text-sm text-(--color-text-muted)">{stat.label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xl font-semibold">Top Performers This Week</h3>
-          <span className="text-sm font-medium text-(--color-text-muted)">The AI assets people can't stop using</span>
-        </div>
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {featuredPrompts.map((prompt) => (
-            <PromptListCard key={prompt.id} prompt={prompt} variant="featured" />
-          ))}
-        </div>
-      </section>
-
-      <section className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-sm transition-all duration-300 hover:shadow motion-reduce:transition-none">
-        <h3 className="text-xl font-semibold">How SF AI Library Works</h3>
-        <ol className="mt-6 flex list-none flex-col gap-0 p-0 md:mt-8 md:flex-row md:items-stretch">
-          {howItWorksSteps.map((item, index) => {
-            const isFirst = index === 0;
-            const isLast = index === howItWorksSteps.length - 1;
-            return (
-              <li key={item.step} className="flex flex-1 flex-col md:min-w-0">
-                <div className="mb-3 hidden items-center md:flex" aria-hidden>
-                  <div className={`h-0.5 min-w-2 flex-1 rounded-full ${isFirst ? "bg-transparent" : "bg-(--color-primary)/40"}`} />
-                  <div className="mx-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-(--color-primary) bg-(--color-surface) text-sm font-bold text-(--color-primary) shadow-sm ring-4 ring-(--color-surface)">
-                    {item.step}
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-(--color-primary)/10 text-lg">📝</span>
+                    <h3 className="font-semibold">Prompts</h3>
                   </div>
-                  <div className={`h-0.5 min-w-2 flex-1 rounded-full ${isLast ? "bg-transparent" : "bg-(--color-primary)/40"}`} />
-                </div>
-                <div className="flex min-h-0 flex-1 gap-3 md:block md:gap-0">
-                  <div className="flex flex-col items-center self-stretch md:hidden" aria-hidden>
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-(--color-primary) bg-(--color-surface) text-sm font-bold text-(--color-primary) shadow-sm">
-                      {item.step}
+                  <p className="text-sm text-(--color-text-muted)">
+                    Ready-to-use instructions you give to AI tools. Fill in a few details, hit launch, and get results—no prompt engineering required.
+                  </p>
+                  <p className="mt-2 text-xs font-medium text-(--color-primary) group-hover:underline">Explore prompts →</p>
+                </Link>
+                <Link
+                  to="/skills"
+                  className="group rounded-xl border border-(--color-border) bg-(--color-surface) p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-(--color-primary)/50 hover:shadow-md motion-reduce:transform-none"
+                >
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-(--color-primary)/10 text-lg">⚡</span>
+                    <h3 className="font-semibold">Skills</h3>
+                  </div>
+                  <p className="text-sm text-(--color-text-muted)">
+                    Reusable behavior guides that teach AI how to act. Load them once, and your AI becomes a specialist—code reviewer, meeting summarizer, brand voice expert.
+                  </p>
+                  <p className="mt-2 text-xs font-medium text-(--color-primary) group-hover:underline">Explore skills →</p>
+                </Link>
+                <Link
+                  to="/context"
+                  className="group rounded-xl border border-(--color-border) bg-(--color-surface) p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-(--color-primary)/50 hover:shadow-md motion-reduce:transform-none"
+                >
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-(--color-primary)/10 text-lg">📚</span>
+                    <h3 className="font-semibold">Context</h3>
+                  </div>
+                  <p className="text-sm text-(--color-text-muted)">
+                    Reference documents that give AI the background it needs—style guides, policies, product docs. The knowledge your AI should have before it starts working.
+                  </p>
+                  <p className="mt-2 text-xs font-medium text-(--color-primary) group-hover:underline">Explore context →</p>
+                </Link>
+              </div>
+            </div>
+            <div className="mt-5 flex flex-col gap-3">
+              <div className="w-full rounded-xl border border-(--color-border) bg-(--color-surface) px-4 py-5 transition-all duration-300 motion-reduce:transition-none sm:px-6 sm:py-6">
+                <p className="text-xs uppercase tracking-wide text-(--color-text-muted)">See what's happening now</p>
+                <div
+                  className="mt-5 grid w-full grid-cols-1 gap-8 sm:grid-cols-3"
+                  role="list"
+                  aria-label="Platform statistics"
+                >
+                  {heroStats.map((stat, index) => (
+                    <div
+                      key={stat.label}
+                      role="listitem"
+                      className="flex flex-col items-center gap-2 text-center"
+                    >
+                      <HeroStatIcon variant={stat.icon} />
+                      <StatCounter end={stat.value} active={stat.counterActive} delayMs={index * 90} />
+                      <p className="text-sm text-(--color-text-muted)">{stat.label}</p>
                     </div>
-                    {!isLast ? <div className="mt-2 w-px flex-1 bg-(--color-primary)/35" /> : null}
-                  </div>
-                  <div className="min-w-0 flex-1 pb-6 md:pb-0">
-                    <article className="h-full rounded-xl border border-(--color-border) bg-(--color-surface-muted) p-3 transition-transform duration-300 hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none md:flex md:flex-col">
-                      <p className="sr-only">
-                        Step {item.step}: {item.title}
-                      </p>
-                      <p className="font-semibold">{item.title}</p>
-                      <p className="mt-1 text-sm text-(--color-text-muted) md:flex-1">{item.description}</p>
-                    </article>
-                  </div>
+                  ))}
                 </div>
-              </li>
-            );
-          })}
-        </ol>
-      </section>
-
-      <section className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-sm transition-all duration-300 hover:shadow motion-reduce:transition-none">
-        <h3 className="text-xl font-semibold">Works Where You Work</h3>
-        <div className="mt-3 grid gap-3 md:grid-cols-2">
-          <div className="rounded-xl border border-(--color-border) bg-(--color-surface-muted) p-4 transition-all duration-300 hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none">
-            <p className="font-semibold">Your tools, ready to go</p>
-            <p className="mt-1 text-sm text-(--color-text-muted)">
-              SF AI Library connects seamlessly with Slackbot, Cursor, Claude, Gemini, NotebookLM, and more. Pick your tool and get to work.
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2 text-xs">
-              {getToolsSortedAlphabetically()
-                .filter((t) => t !== "other")
-                .map((toolOption) => (
-                  <span
-                    key={toolOption}
-                    className="rounded-full border border-(--color-border) bg-(--color-surface) px-2 py-1 font-medium"
-                  >
-                    {getToolLabel(toolOption)}
-                  </span>
-                ))}
+              </div>
             </div>
-          </div>
-          <div className="rounded-xl border border-(--color-border) bg-(--color-surface-muted) p-4 transition-all duration-300 hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none">
-            <p className="font-semibold">Built for people like you</p>
-            <ul className="mt-2 space-y-1 text-sm text-(--color-text-muted)">
-              {aiToolAudience.map((item) => (
-                <li key={item}>- {item}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </section>
+          </section>
 
-      {canViewAnalytics ? (
-      <section className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-sm transition-all duration-300 hover:shadow motion-reduce:transition-none">
-          <h3 className="text-xl font-semibold">Top Contributors</h3>
-          <p className="mt-1 text-sm text-(--color-text-muted)">The people driving AI adoption forward</p>
-          <div className="mt-3 space-y-2">
-            {contributorLeaderboard.map((contributor, index) => (
-              <div
-                key={contributor.id}
-                className="flex items-center justify-between rounded-xl border border-(--color-border) bg-(--color-surface-muted) px-3 py-2 transition-all duration-300 hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none"
-              >
-                <p className="font-medium">
-                  <span className="mr-2 inline-flex min-w-6 justify-center rounded-md bg-(--color-surface) px-1.5 py-0.5 text-xs">
-                    #{index + 1}
-                  </span>
-                  {contributor.name ?? contributor.email}
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-semibold">Top Performers This Week</h3>
+              <span className="text-sm font-medium text-(--color-text-muted)">The AI assets people can't stop using</span>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {featuredPrompts.map((prompt) => (
+                <PromptListCard key={prompt.id} prompt={prompt} variant="featured" />
+              ))}
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-sm transition-all duration-300 hover:shadow motion-reduce:transition-none">
+            <h3 className="text-xl font-semibold">How SF AI Library Works</h3>
+            <ol className="mt-6 flex list-none flex-col gap-0 p-0 md:mt-8 md:flex-row md:items-stretch">
+              {howItWorksSteps.map((item, index) => {
+                const isFirst = index === 0;
+                const isLast = index === howItWorksSteps.length - 1;
+                return (
+                  <li key={item.step} className="flex flex-1 flex-col md:min-w-0">
+                    <div className="mb-3 hidden items-center md:flex" aria-hidden>
+                      <div className={`h-0.5 min-w-2 flex-1 rounded-full ${isFirst ? "bg-transparent" : "bg-(--color-primary)/40"}`} />
+                      <div className="mx-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-(--color-primary) bg-(--color-surface) text-sm font-bold text-(--color-primary) shadow-sm ring-4 ring-(--color-surface)">
+                        {item.step}
+                      </div>
+                      <div className={`h-0.5 min-w-2 flex-1 rounded-full ${isLast ? "bg-transparent" : "bg-(--color-primary)/40"}`} />
+                    </div>
+                    <div className="flex min-h-0 flex-1 gap-3 md:block md:gap-0">
+                      <div className="flex flex-col items-center self-stretch md:hidden" aria-hidden>
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-(--color-primary) bg-(--color-surface) text-sm font-bold text-(--color-primary) shadow-sm">
+                          {item.step}
+                        </div>
+                        {!isLast ? <div className="mt-2 w-px flex-1 bg-(--color-primary)/35" /> : null}
+                      </div>
+                      <div className="min-w-0 flex-1 pb-6 md:pb-0">
+                        <article className="h-full rounded-xl border border-(--color-border) bg-(--color-surface-muted) p-3 transition-transform duration-300 hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none md:flex md:flex-col">
+                          <p className="sr-only">
+                            Step {item.step}: {item.title}
+                          </p>
+                          <p className="font-semibold">{item.title}</p>
+                          <p className="mt-1 text-sm text-(--color-text-muted) md:flex-1">{item.description}</p>
+                        </article>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+
+          <section className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-sm transition-all duration-300 hover:shadow motion-reduce:transition-none">
+            <h3 className="text-xl font-semibold">Works Where You Work</h3>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <div className="rounded-xl border border-(--color-border) bg-(--color-surface-muted) p-4 transition-all duration-300 hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none">
+                <p className="font-semibold">Your tools, ready to go</p>
+                <p className="mt-1 text-sm text-(--color-text-muted)">
+                  SF AI Library connects seamlessly with Slackbot, Cursor, Claude, Gemini, NotebookLM, and more. Pick your tool and get to work.
                 </p>
-                <p className="text-sm text-(--color-text-muted)">{pluralize(contributor.promptCount, "AI asset")}</p>
+                <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                  {getToolsSortedAlphabetically()
+                    .filter((t) => t !== "other")
+                    .map((toolOption) => (
+                      <span
+                        key={toolOption}
+                        className="rounded-full border border-(--color-border) bg-(--color-surface) px-2 py-1 font-medium"
+                      >
+                        {getToolLabel(toolOption)}
+                      </span>
+                    ))}
+                </div>
               </div>
-            ))}
-            {contributorLeaderboard.length === 0 ? (
-              <p className="text-sm text-(--color-text-muted)">Be the first to contribute and claim your spot.</p>
-            ) : null}
-          </div>
-        </div>
-        <div className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-sm transition-all duration-300 hover:shadow motion-reduce:transition-none">
-          <h3 className="text-xl font-semibold">Most Active</h3>
-          <p className="mt-1 text-sm text-(--color-text-muted)">The most engaged users</p>
-          <div className="mt-3 space-y-2">
-            {usersLeaderboard.map((user, index) => (
-              <div
-                key={user.id}
-                className="flex items-center justify-between rounded-xl border border-(--color-border) bg-(--color-surface-muted) px-3 py-2 transition-all duration-300 hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none"
-              >
-                <p className="font-medium">
-                  <span className="mr-2 inline-flex min-w-6 justify-center rounded-md bg-(--color-surface) px-1.5 py-0.5 text-xs">
-                    #{index + 1}
-                  </span>
-                  {user.name ?? user.email}
-                </p>
-                <p className="text-sm text-(--color-text-muted)">
-                  Score {user.score} ({pluralize(user.usedCount, "use")}, {pluralize(user.favoritedCount, "favorite")},{" "}
-                  {pluralize(user.feedbackCount, "feedback", "feedback")})
-                </p>
+              <div className="rounded-xl border border-(--color-border) bg-(--color-surface-muted) p-4 transition-all duration-300 hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none">
+                <p className="font-semibold">Built for people like you</p>
+                <ul className="mt-2 space-y-1 text-sm text-(--color-text-muted)">
+                  {aiToolAudience.map((item) => (
+                    <li key={item}>- {item}</li>
+                  ))}
+                </ul>
               </div>
-            ))}
-            {usersLeaderboard.length === 0 ? (
-              <p className="text-sm text-(--color-text-muted)">Start engaging to see active users here.</p>
-            ) : null}
-          </div>
-        </div>
-      </section>
+            </div>
+          </section>
+
+          {canViewAnalytics ? (
+          <section className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-sm transition-all duration-300 hover:shadow motion-reduce:transition-none">
+              <h3 className="text-xl font-semibold">Top Contributors</h3>
+              <p className="mt-1 text-sm text-(--color-text-muted)">The people driving AI adoption forward</p>
+              <div className="mt-3 space-y-2">
+                {contributorLeaderboard.map((contributor, index) => (
+                  <div
+                    key={contributor.id}
+                    className="flex items-center justify-between rounded-xl border border-(--color-border) bg-(--color-surface-muted) px-3 py-2 transition-all duration-300 hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none"
+                  >
+                    <p className="font-medium">
+                      <span className="mr-2 inline-flex min-w-6 justify-center rounded-md bg-(--color-surface) px-1.5 py-0.5 text-xs">
+                        #{index + 1}
+                      </span>
+                      {contributor.name ?? contributor.email}
+                    </p>
+                    <p className="text-sm text-(--color-text-muted)">{pluralize(contributor.promptCount, "AI asset")}</p>
+                  </div>
+                ))}
+                {contributorLeaderboard.length === 0 ? (
+                  <p className="text-sm text-(--color-text-muted)">Be the first to contribute and claim your spot.</p>
+                ) : null}
+              </div>
+            </div>
+            <div className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-sm transition-all duration-300 hover:shadow motion-reduce:transition-none">
+              <h3 className="text-xl font-semibold">Most Active</h3>
+              <p className="mt-1 text-sm text-(--color-text-muted)">The most engaged users</p>
+              <div className="mt-3 space-y-2">
+                {usersLeaderboard.map((user, index) => (
+                  <div
+                    key={user.id}
+                    className="flex items-center justify-between rounded-xl border border-(--color-border) bg-(--color-surface-muted) px-3 py-2 transition-all duration-300 hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none"
+                  >
+                    <p className="font-medium">
+                      <span className="mr-2 inline-flex min-w-6 justify-center rounded-md bg-(--color-surface) px-1.5 py-0.5 text-xs">
+                        #{index + 1}
+                      </span>
+                      {user.name ?? user.email}
+                    </p>
+                    <p className="text-sm text-(--color-text-muted)">
+                      Score {user.score} ({pluralize(user.usedCount, "use")}, {pluralize(user.favoritedCount, "favorite")},{" "}
+                      {pluralize(user.feedbackCount, "feedback", "feedback")})
+                    </p>
+                  </div>
+                ))}
+                {usersLeaderboard.length === 0 ? (
+                  <p className="text-sm text-(--color-text-muted)">Start engaging to see active users here.</p>
+                ) : null}
+              </div>
+            </div>
+          </section>
+          ) : null}
+        </>
       ) : null}
 
       {mineFilter ? (

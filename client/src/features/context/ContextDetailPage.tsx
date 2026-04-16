@@ -102,7 +102,7 @@ export function ContextDetailPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-(--color-text-muted)">Context</p>
-          <h1 className="text-2xl font-semibold">{doc.title}</h1>
+          <h1 className="text-2xl font-semibold">{doc.title} <span className="text-(--color-text-muted)">[Context]</span></h1>
           {doc.summary ? <p className="mt-1 text-(--color-text-muted)">{doc.summary}</p> : null}
         </div>
         <div className="flex flex-wrap gap-2">

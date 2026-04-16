@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { sanitizeTitle } from "../../lib/sanitizeTitle";
 import { createContextDocument } from "./api";
 
 export function ContextEditorPage() {
@@ -20,7 +21,7 @@ export function ContextEditorPage() {
         event.preventDefault();
         setValidationError(null);
         const formData = new FormData(event.currentTarget);
-        const title = String(formData.get("title") ?? "").trim();
+        const title = sanitizeTitle(String(formData.get("title") ?? ""));
         const summary = String(formData.get("summary") ?? "").trim();
         const body = String(formData.get("body") ?? "");
         const status = String(formData.get("status") ?? "DRAFT") as "DRAFT" | "PUBLISHED" | "ARCHIVED";

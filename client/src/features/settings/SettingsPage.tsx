@@ -259,10 +259,6 @@ export function SettingsPage() {
               <dt className="text-(--color-text-muted)">Role</dt>
               <dd className="mt-1 font-medium">{meQuery.data.role}</dd>
             </div>
-            <div className="sm:col-span-2">
-              <dt className="text-(--color-text-muted)">Team ID</dt>
-              <dd className="mt-1 font-medium">{meQuery.data.teamId}</dd>
-            </div>
           </dl>
         </section>
 

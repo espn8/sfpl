@@ -1,19 +1,24 @@
 # AI Library - Technical Summary
 
-Last Updated: Thursday, April 16, 2026 — 14:25 CDT
-Build Version: a8acbe0
+Last Updated: Thursday, April 16, 2026 — 17:45 CDT
+Build Version: 0baa8f4
 
 ## Recent Changes
+
+- **Title sanitization utility**: Added `sanitizeTitle()` helper in `client/src/lib/sanitizeTitle.ts` that strips common asset type words (prompt, skill, context, rule, document, doc, file) from user-entered titles. Applied to all editor pages (PromptEditorPage, PromptEditPage, SkillEditorPage, SkillEditPage, ContextEditorPage, ContextEditPage) to prevent redundant naming like "My Prompt Prompt".
+- **Asset type badges on detail pages**: Added `[Prompt]`, `[Skill]`, and `[Context]` suffix badges to detail page titles for clearer asset type identification when sharing or bookmarking.
+- **Edit button visibility fix**: PromptDetailPage now only shows the Edit button when the current user has edit permissions (owner, admin, or content author). Previously the edit link was always visible.
+- **Hero section conditional display**: PromptListPage hero section (greeting, navigation cards, stats) now hides when viewing "My Content" (`mine=true` filter) to reduce visual noise.
+- **AppShell cleanup**: Removed unused profile modal code and related icon components (DocumentIcon, ChartIcon, SettingsIcon) from AppShell. Removed logout handler as it was unused. Cleaned up unused `isProfileModalOpen` state.
+- **Settings page simplification**: Removed Team ID display from SettingsPage account info section.
+- **Tool sort order fix**: Updated `getToolsSortedAlphabetically()` to use filter/push approach ensuring "Other" is always last.
+
+### Previous Session Changes (carried forward from April 16)
 
 - **TEAM visibility level**: Added new `TEAM` visibility option to Prompts, Skills, and Context Documents. Content set to `TEAM` visibility is visible to users within the same organizational unit (OU). Updated Prisma schema enum, added `userOu` to auth context and session, implemented OU-based access control in all routes.
 - **OU-based access control**: Extended visibility checking across prompts, skills, and context routes with new `canAccessByVisibility()` helper functions. Users can now see TEAM-scoped content from others in their same OU.
 - **Skills/Context analytics in list views**: Added `mine` and `includeAnalytics` query parameters to Skills and Context list endpoints. When enabled, returns `viewCount`, `copyCount`, and `favoriteCount` aggregates. Frontend list pages updated to display analytics cards for "My Content" views.
 - **Visibility selector UX update**: Changed visibility dropdowns across all editor pages (Prompts, Skills, Context) to show clearer labels: "Public (All Users)", "Team (My OU Only)", "Private (Only Me)".
-- **Tool sort order fix**: Updated `getToolsSortedAlphabetically()` to always place "Other" at the end of the sorted list rather than alphabetically.
-- **Form validation improvements**: Added explicit validation error messages in SkillEditorPage and ContextEditorPage for missing title/body fields.
-
-### Previous Session Changes (carried forward from April 16)
-
 - **Profile photo upload feature**: Added ability for users to upload custom profile photos (headshots). Server-side file handling via `multer` with `POST /api/auth/me/profile-photo` endpoint. Supports JPEG, PNG, GIF, and WebP formats up to 5MB. Uploaded files stored in `server/public/uploads/`. Frontend UI updated in both SettingsPage and AppShell profile modal with "Change Photo" button and upload mutation.
 - **Terminology update**: Changed all user-facing references from "avatar" to "profile photo" throughout the application. Updated help content to explain the new upload feature. Database field remains `avatarUrl` for backwards compatibility.
 - **Profile modal Quick Links fix**: Restructured profile modal to move Account info and Quick Links (`<nav>`) outside the `<form>` element. Links (`My Content`, `My Analytics`, `Settings`) were inside a form which caused navigation issues in React Router v7. Now Quick Links navigate correctly and close the modal as expected.

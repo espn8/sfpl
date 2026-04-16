@@ -189,9 +189,10 @@ export function PromptDetailPage() {
       : null;
 
   const me = meQuery.data;
-  const canRestoreVersions =
+  const canEdit =
     me !== undefined &&
     (me.role === "OWNER" || me.role === "ADMIN" || (typeof promptData.ownerId === "number" && me.id === promptData.ownerId));
+  const canRestoreVersions = canEdit;
 
   const latestVersionNumber =
     versionsQuery.data && versionsQuery.data.length > 0 ? versionsQuery.data[0].version : null;
@@ -227,7 +228,7 @@ export function PromptDetailPage() {
         <div className="p-4">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
             <h2 id="prompt-detail-title" className="text-2xl font-semibold">
-              {promptData.title}
+              {promptData.title} <span className="text-(--color-text-muted)">[Prompt]</span>
             </h2>
           <PromptUpdatedBadge createdAt={promptData.createdAt} updatedAt={promptData.updatedAt} />
           </div>
@@ -493,11 +494,16 @@ export function PromptDetailPage() {
         </div>
       </div>
 
-      <div>
-        <Link to={`/prompts/${promptId}/edit`} className="text-sm">
-          Edit prompt
-        </Link>
-      </div>
+      {canEdit ? (
+        <div>
+          <Link
+            to={`/prompts/${promptId}/edit`}
+            className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-1.5 text-sm hover:bg-(--color-surface)"
+          >
+            Edit
+          </Link>
+        </div>
+      ) : null}
 
       <details className="rounded border border-(--color-border) bg-(--color-surface) p-4">
         <summary className="cursor-pointer text-sm font-semibold uppercase tracking-wide text-(--color-text-muted)">

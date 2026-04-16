@@ -102,7 +102,7 @@ export function SkillDetailPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-(--color-text-muted)">Skill</p>
-          <h1 className="text-2xl font-semibold">{skill.title}</h1>
+          <h1 className="text-2xl font-semibold">{skill.title} <span className="text-(--color-text-muted)">[Skill]</span></h1>
           {skill.summary ? <p className="mt-1 text-(--color-text-muted)">{skill.summary}</p> : null}
         </div>
         <div className="flex flex-wrap gap-2">

@@ -19,11 +19,11 @@ export function getToolLabel(tool: PromptTool): string {
 }
 
 export function getToolsSortedAlphabetically(): PromptTool[] {
-  return [...PROMPT_TOOL_OPTIONS].sort((a, b) => {
-    if (a === "other") return 1;
-    if (b === "other") return -1;
-    return PROMPT_TOOL_LABELS[a].localeCompare(PROMPT_TOOL_LABELS[b]);
-  });
+  const sorted = [...PROMPT_TOOL_OPTIONS]
+    .filter((t) => t !== "other")
+    .sort((a, b) => PROMPT_TOOL_LABELS[a].localeCompare(PROMPT_TOOL_LABELS[b]));
+  sorted.push("other");
+  return sorted;
 }
 
 export const TOOL_REQUEST_URL = "https://forms.gle/your-tool-request-form";

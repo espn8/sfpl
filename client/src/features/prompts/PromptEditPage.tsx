@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { sanitizeTitle } from "../../lib/sanitizeTitle";
 import { listTags } from "../tags/api";
 import {
   getPrompt,
@@ -124,7 +125,7 @@ export function PromptEditPage() {
       onSubmit={(event) => {
         event.preventDefault();
         const formData = new FormData(event.currentTarget);
-        const title = String(formData.get("title") ?? "").trim();
+        const title = sanitizeTitle(String(formData.get("title") ?? ""));
         const summary = String(formData.get("summary") ?? "").trim();
         const body = String(formData.get("body") ?? "").trim();
         const status = String(formData.get("status") ?? "DRAFT") as "DRAFT" | "PUBLISHED" | "ARCHIVED";
