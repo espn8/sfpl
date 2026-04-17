@@ -12,18 +12,12 @@ type VariableEditorProps = {
   onInsert?: (key: string) => void;
 };
 
-const VALID_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9_]*$/;
-
 function sanitizeVariableKey(input: string): string {
   let result = input.replace(/[^A-Za-z0-9_]/g, "_");
   if (result.length > 0 && /^[0-9]/.test(result)) {
     result = "_" + result;
   }
   return result.toUpperCase();
-}
-
-function isValidVariableKey(key: string): boolean {
-  return key === "" || VALID_KEY_PATTERN.test(key);
 }
 
 export function VariableEditor({ variables, onChange, onInsert }: VariableEditorProps) {
