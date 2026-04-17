@@ -290,7 +290,7 @@ export function HomePage() {
             <SearchBar
               inputValue={homeSearchValue}
               onInputChange={setHomeSearchValue}
-              filters={{ q: "", assetType: "all", tool: "", modality: "", sort: "recent", collectionId: "", mine: false }}
+              filters={{ q: "", assetType: "all", tool: "", modality: "", sort: "recent", collectionId: "", mine: false, status: "" }}
               activeFilters={[]}
               onFilterChange={() => {}}
               onFilterRemove={() => {}}
