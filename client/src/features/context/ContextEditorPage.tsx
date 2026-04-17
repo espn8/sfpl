@@ -195,17 +195,29 @@ export function ContextEditorPage() {
         </p>
       ) : null}
       {createMutation.isError ? (
-        <p className="text-sm text-red-600" role="alert">
+        <div className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-600" role="alert">
           {(() => {
             const err = createMutation.error;
             if (err && typeof err === "object" && "response" in err) {
-              const axiosError = err as { response?: { data?: { error?: { message?: string } } } };
-              const serverMessage = axiosError.response?.data?.error?.message;
-              if (serverMessage) return serverMessage;
+              const axiosError = err as { response?: { data?: { error?: { message?: string; details?: Array<{ message: string; path?: (string | number)[] }> } } } };
+              const serverError = axiosError.response?.data?.error;
+              if (serverError?.details && serverError.details.length > 0) {
+                return (
+                  <div>
+                    <p className="font-medium">{serverError.message}</p>
+                    <ul className="mt-1 list-disc pl-5">
+                      {serverError.details.map((detail, i) => (
+                        <li key={i}>{detail.path?.join(".") ? `${detail.path.join(".")}: ` : ""}{detail.message}</li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              }
+              if (serverError?.message) return serverError.message;
             }
             return "Could not create document. Please try again.";
           })()}
-        </p>
+        </div>
       ) : null}
       <button
         type="submit"

@@ -348,17 +348,29 @@ export function PromptEditorPage() {
         </p>
       ) : null}
       {createMutation.isError ? (
-        <p className="rounded border border-(--color-danger) bg-(--color-danger)/10 px-3 py-2 text-sm text-(--color-danger)" role="alert">
+        <div className="rounded border border-(--color-danger) bg-(--color-danger)/10 px-3 py-2 text-sm text-(--color-danger)" role="alert">
           {(() => {
             const err = createMutation.error;
             if (err && typeof err === "object" && "response" in err) {
-              const axiosError = err as { response?: { data?: { error?: { message?: string } } } };
-              const serverMessage = axiosError.response?.data?.error?.message;
-              if (serverMessage) return serverMessage;
+              const axiosError = err as { response?: { data?: { error?: { message?: string; details?: Array<{ message: string; path?: (string | number)[] }> } } } };
+              const serverError = axiosError.response?.data?.error;
+              if (serverError?.details && serverError.details.length > 0) {
+                return (
+                  <div>
+                    <p className="font-medium">{serverError.message}</p>
+                    <ul className="mt-1 list-disc pl-5">
+                      {serverError.details.map((detail, i) => (
+                        <li key={i}>{detail.path?.join(".") ? `${detail.path.join(".")}: ` : ""}{detail.message}</li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              }
+              if (serverError?.message) return serverError.message;
             }
             return "Could not create prompt. Please try again.";
           })()}
-        </p>
+        </div>
       ) : null}
       <button
         type="submit"
