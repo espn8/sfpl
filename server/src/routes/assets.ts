@@ -81,7 +81,8 @@ const listAssetsQuerySchema = z.object({
   q: z.string().trim().optional(),
   assetType: z.enum(["all", "prompt", "skill", "context"]).optional(),
   tool: assetToolSchema.optional(),
-  sort: z.enum(["recent", "mostUsed"]).optional(),
+  status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).optional(),
+  sort: z.enum(["recent", "mostUsed", "name", "updatedAt"]).optional(),
   mine: z.coerce.boolean().optional(),
   includeAnalytics: z.coerce.boolean().optional(),
   page: z.coerce.number().int().positive().optional(),
@@ -130,6 +131,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
   const q = parsedQuery.data.q ?? "";
   const assetType = parsedQuery.data.assetType ?? "all";
   const tool = parsedQuery.data.tool;
+  const status = parsedQuery.data.status;
   const sort = parsedQuery.data.sort ?? "recent";
   const mine = parsedQuery.data.mine ?? false;
   const includeAnalytics = parsedQuery.data.includeAnalytics ?? false;
@@ -187,10 +189,17 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
     if (tool) {
       promptWhere.tools = { has: tool };
     }
+    if (status) {
+      promptWhere.status = status;
+    }
 
     const promptOrderBy: Prisma.PromptOrderByWithRelationInput =
       sort === "mostUsed"
         ? { usageEvents: { _count: "desc" as const } }
+        : sort === "name"
+        ? { title: "asc" as const }
+        : sort === "updatedAt"
+        ? { updatedAt: "desc" as const }
         : { createdAt: "desc" as const };
 
     const prompts = await prisma.prompt.findMany({
@@ -314,6 +323,16 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
     if (tool) {
       skillWhere.tools = { has: tool };
     }
+    if (status) {
+      skillWhere.status = status;
+    }
+
+    const skillOrderBy: Prisma.SkillOrderByWithRelationInput =
+      sort === "name"
+        ? { title: "asc" as const }
+        : sort === "updatedAt"
+        ? { updatedAt: "desc" as const }
+        : { createdAt: "desc" as const };
 
     const skills = await prisma.skill.findMany({
       where: skillWhere,
@@ -330,7 +349,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         owner: { select: { id: true, name: true, avatarUrl: true } },
         variables: { select: { key: true, label: true, defaultValue: true, required: true } },
       },
-      orderBy: { updatedAt: "desc" },
+      orderBy: skillOrderBy,
       take: pageSize * 3,
     });
 
@@ -415,6 +434,16 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
     if (tool) {
       contextWhere.tools = { has: tool };
     }
+    if (status) {
+      contextWhere.status = status;
+    }
+
+    const contextOrderBy: Prisma.ContextDocumentOrderByWithRelationInput =
+      sort === "name"
+        ? { title: "asc" as const }
+        : sort === "updatedAt"
+        ? { updatedAt: "desc" as const }
+        : { createdAt: "desc" as const };
 
     const contextDocs = await prisma.contextDocument.findMany({
       where: contextWhere,
@@ -431,7 +460,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         owner: { select: { id: true, name: true, avatarUrl: true } },
         variables: { select: { key: true, label: true, defaultValue: true, required: true } },
       },
-      orderBy: { updatedAt: "desc" },
+      orderBy: contextOrderBy,
       take: pageSize * 3,
     });
 
@@ -485,6 +514,10 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
 
   if (sort === "mostUsed") {
     allAssets.sort((a, b) => b.usageCount - a.usageCount);
+  } else if (sort === "name") {
+    allAssets.sort((a, b) => a.title.localeCompare(b.title));
+  } else if (sort === "updatedAt") {
+    allAssets.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
   } else {
     allAssets.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }

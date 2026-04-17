@@ -134,8 +134,14 @@ export function HomePage() {
   const {
     filters,
     debouncedFilters,
+    inputValue,
+    setInputValue,
     setFilter,
+    clearFilter,
+    clearAllFilters,
+    activeFilters,
     page,
+    setPage,
   } = useSearchState();
 
   const handleSearchSubmit = async () => {
@@ -171,10 +177,16 @@ export function HomePage() {
   const pageSize = 20;
 
   const apiFilters = useMemo<ListAssetsFilters>(() => {
+    const sortMap: Record<string, ListAssetsFilters["sort"]> = {
+      mostUsed: "mostUsed",
+      name: "name",
+      updatedAt: "updatedAt",
+      recent: "recent",
+    };
     const nextFilters: ListAssetsFilters = {
       page,
       pageSize,
-      sort: debouncedFilters.sort === "mostUsed" ? "mostUsed" : "recent",
+      sort: sortMap[debouncedFilters.sort] ?? "recent",
       assetType: debouncedFilters.assetType as AssetTypeFilter,
     };
     if (debouncedFilters.q.trim()) {
@@ -182,6 +194,9 @@ export function HomePage() {
     }
     if (debouncedFilters.tool) {
       nextFilters.tool = debouncedFilters.tool as PromptTool;
+    }
+    if (debouncedFilters.status) {
+      nextFilters.status = debouncedFilters.status;
     }
     if (mineFilter) {
       nextFilters.mine = true;
@@ -530,24 +545,116 @@ export function HomePage() {
       ) : null}
 
       {mineFilter ? (
-        <div className="flex items-center justify-between rounded-lg border border-(--color-primary)/30 bg-(--color-primary)/5 p-4">
-          <div>
-            <h3 className="text-xl font-semibold">
-              {showAnalytics ? "My Asset Analytics" : "My Assets"}
-            </h3>
-            <p className="mt-1 text-sm text-(--color-text-muted)">
-              {showAnalytics
-                ? "View performance metrics for all assets you've created"
-                : "View and manage prompts, skills, and context you've created"}
-            </p>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between rounded-lg border border-(--color-primary)/30 bg-(--color-primary)/5 p-4">
+            <div>
+              <h3 className="text-xl font-semibold">
+                {showAnalytics ? "My Asset Analytics" : "My Content"}
+              </h3>
+              <p className="mt-1 text-sm text-(--color-text-muted)">
+                {showAnalytics
+                  ? "View performance metrics for all assets you've created"
+                  : "View and manage prompts, skills, and context you've created"}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSearchParams({})}
+              className="rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-1.5 text-sm hover:bg-(--color-surface-muted)"
+            >
+              Browse All Assets
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => setSearchParams({})}
-            className="rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-1.5 text-sm hover:bg-(--color-surface-muted)"
-          >
-            Show All Assets
-          </button>
+
+          <section className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-4 shadow-sm">
+            <SearchBar
+              inputValue={inputValue}
+              onInputChange={setInputValue}
+              filters={filters}
+              activeFilters={activeFilters}
+              onFilterChange={setFilter}
+              onFilterRemove={clearFilter}
+              onClearAll={clearAllFilters}
+              placeholder="Search your content by name..."
+              showAssetType
+              showStatus
+              showSort
+              showSuggestions={false}
+            />
+          </section>
+
+          {assetsQuery.data?.data && assetsQuery.data.data.length > 0 ? (
+            <section className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-(--color-text-muted)">
+                  {assetsQuery.data.meta.total} {assetsQuery.data.meta.total === 1 ? "asset" : "assets"} found
+                </p>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {assetsQuery.data.data.map((asset) => (
+                  <AssetCard
+                    key={`${asset.assetType}-${asset.id}`}
+                    asset={asset}
+                    variant="default"
+                    highlightQuery={debouncedFilters.q}
+                  />
+                ))}
+              </div>
+              {assetsQuery.data.meta.totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 pt-4">
+                  <button
+                    type="button"
+                    disabled={page === 1}
+                    onClick={() => setPage(page - 1)}
+                    className="rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-1.5 text-sm hover:bg-(--color-surface-muted) disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-sm text-(--color-text-muted)">
+                    Page {page} of {assetsQuery.data.meta.totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={page === assetsQuery.data.meta.totalPages}
+                    onClick={() => setPage(page + 1)}
+                    className="rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-1.5 text-sm hover:bg-(--color-surface-muted) disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </section>
+          ) : (
+            <section className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-8 text-center">
+              <p className="text-(--color-text-muted)">
+                {debouncedFilters.q || debouncedFilters.assetType !== "all" || debouncedFilters.status
+                  ? "No assets match your filters. Try adjusting your search."
+                  : "You haven't created any assets yet. Start by creating a prompt, skill, or context document!"}
+              </p>
+              {!debouncedFilters.q && debouncedFilters.assetType === "all" && !debouncedFilters.status && (
+                <div className="mt-4 flex justify-center gap-3">
+                  <Link
+                    to="/prompts/new"
+                    className="rounded-lg bg-(--color-primary) px-4 py-2 text-sm font-medium text-(--color-text-inverse) hover:bg-(--color-primary-active)"
+                  >
+                    Create Prompt
+                  </Link>
+                  <Link
+                    to="/skills/new"
+                    className="rounded-lg border border-(--color-border) bg-(--color-surface) px-4 py-2 text-sm font-medium hover:bg-(--color-surface-muted)"
+                  >
+                    Create Skill
+                  </Link>
+                  <Link
+                    to="/context/new"
+                    className="rounded-lg border border-(--color-border) bg-(--color-surface) px-4 py-2 text-sm font-medium hover:bg-(--color-surface-muted)"
+                  >
+                    Create Context
+                  </Link>
+                </div>
+              )}
+            </section>
+          )}
         </div>
       ) : null}
     </div>

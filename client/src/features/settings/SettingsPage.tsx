@@ -155,47 +155,19 @@ export function SettingsPage() {
           <p className="mb-4 text-sm text-(--color-text-muted)">
             View and manage the prompts, skills, and context documents you've created.
           </p>
-          <div className="space-y-2">
-            <Link
-              to="/?mine=true"
-              className="flex items-center justify-between rounded-lg border border-(--color-border) bg-(--color-surface-muted) px-4 py-3 transition-colors hover:bg-(--color-surface)"
-            >
-              <div className="flex items-center gap-3">
-                <DocumentIcon className="h-5 w-5 text-(--color-text-muted)" />
-                <div>
-                  <p className="font-medium">My Prompts</p>
-                  <p className="text-sm text-(--color-text-muted)">View and edit prompts you've created</p>
-                </div>
+          <Link
+            to="/?mine=true"
+            className="flex items-center justify-between rounded-lg border border-(--color-border) bg-(--color-surface-muted) px-4 py-3 transition-colors hover:bg-(--color-surface)"
+          >
+            <div className="flex items-center gap-3">
+              <DocumentIcon className="h-5 w-5 text-(--color-text-muted)" />
+              <div>
+                <p className="font-medium">My Content</p>
+                <p className="text-sm text-(--color-text-muted)">View and edit prompts, skills, and context you've created</p>
               </div>
-              <ChevronRightIcon className="h-5 w-5 text-(--color-text-muted)" />
-            </Link>
-            <Link
-              to="/skills?mine=true"
-              className="flex items-center justify-between rounded-lg border border-(--color-border) bg-(--color-surface-muted) px-4 py-3 transition-colors hover:bg-(--color-surface)"
-            >
-              <div className="flex items-center gap-3">
-                <DocumentIcon className="h-5 w-5 text-(--color-text-muted)" />
-                <div>
-                  <p className="font-medium">My Skills</p>
-                  <p className="text-sm text-(--color-text-muted)">View and edit skills you've created</p>
-                </div>
-              </div>
-              <ChevronRightIcon className="h-5 w-5 text-(--color-text-muted)" />
-            </Link>
-            <Link
-              to="/context?mine=true"
-              className="flex items-center justify-between rounded-lg border border-(--color-border) bg-(--color-surface-muted) px-4 py-3 transition-colors hover:bg-(--color-surface)"
-            >
-              <div className="flex items-center gap-3">
-                <DocumentIcon className="h-5 w-5 text-(--color-text-muted)" />
-                <div>
-                  <p className="font-medium">My Context</p>
-                  <p className="text-sm text-(--color-text-muted)">View and edit context documents you've created</p>
-                </div>
-              </div>
-              <ChevronRightIcon className="h-5 w-5 text-(--color-text-muted)" />
-            </Link>
-          </div>
+            </div>
+            <ChevronRightIcon className="h-5 w-5 text-(--color-text-muted)" />
+          </Link>
         </section>
 
         <section className="rounded-lg border border-(--color-border) bg-(--color-surface) p-6">

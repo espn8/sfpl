@@ -44,7 +44,8 @@ export type ListAssetsFilters = {
   q?: string;
   assetType?: "all" | AssetType;
   tool?: PromptTool;
-  sort?: "recent" | "mostUsed";
+  status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  sort?: "recent" | "mostUsed" | "name" | "updatedAt";
   mine?: boolean;
   includeAnalytics?: boolean;
   page?: number;

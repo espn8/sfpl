@@ -1,7 +1,8 @@
 import type { PromptModality, PromptTool } from "../prompts/api";
 
 export type AssetTypeFilter = "all" | "prompt" | "skill" | "context";
-export type SortOption = "recent" | "mostUsed" | "topRated";
+export type AssetStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
+export type SortOption = "recent" | "mostUsed" | "topRated" | "name" | "updatedAt";
 
 export type SearchFilters = {
   q: string;
@@ -11,6 +12,7 @@ export type SearchFilters = {
   sort: SortOption;
   collectionId: string;
   mine: boolean;
+  status: AssetStatus | "";
 };
 
 export type ActiveFilter = {
@@ -27,6 +29,7 @@ export const DEFAULT_FILTERS: SearchFilters = {
   sort: "recent",
   collectionId: "",
   mine: false,
+  status: "",
 };
 
 export type SearchSuggestion = {

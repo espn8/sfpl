@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import type { PromptModality, PromptTool } from "../../prompts/api";
 import { PROMPT_MODALITY_OPTIONS, PROMPT_TOOL_OPTIONS } from "../../prompts/api";
 import { parseNaturalLanguageQuery } from "../api";
-import type { ActiveFilter, AssetTypeFilter, ParsedSearchQuery, SearchFilters, SortOption } from "../types";
+import type { ActiveFilter, AssetStatus, AssetTypeFilter, ParsedSearchQuery, SearchFilters, SortOption } from "../types";
 import { DEFAULT_FILTERS } from "../types";
 
 const DEBOUNCE_MS = 300;
@@ -21,7 +21,11 @@ function isValidAssetType(value: string): value is AssetTypeFilter {
 }
 
 function isValidSort(value: string): value is SortOption {
-  return ["recent", "mostUsed", "topRated"].includes(value);
+  return ["recent", "mostUsed", "topRated", "name", "updatedAt"].includes(value);
+}
+
+function isValidStatus(value: string): value is AssetStatus {
+  return ["DRAFT", "PUBLISHED", "ARCHIVED"].includes(value);
 }
 
 function parseFiltersFromParams(params: URLSearchParams): SearchFilters {
@@ -32,6 +36,7 @@ function parseFiltersFromParams(params: URLSearchParams): SearchFilters {
   const sortParam = params.get("sort") ?? "recent";
   const collectionId = params.get("collectionId") ?? "";
   const mine = params.get("mine") === "true";
+  const statusParam = params.get("status") ?? "";
 
   return {
     q,
@@ -41,6 +46,7 @@ function parseFiltersFromParams(params: URLSearchParams): SearchFilters {
     sort: isValidSort(sortParam) ? sortParam : "recent",
     collectionId,
     mine,
+    status: isValidStatus(statusParam) ? statusParam : "",
   };
 }
 
@@ -54,6 +60,7 @@ function filtersToParams(filters: SearchFilters): URLSearchParams {
   if (filters.sort !== "recent") params.set("sort", filters.sort);
   if (filters.collectionId) params.set("collectionId", filters.collectionId);
   if (filters.mine) params.set("mine", "true");
+  if (filters.status) params.set("status", filters.status);
 
   return params;
 }
@@ -250,6 +257,19 @@ export function useSearchState(options: UseSearchStateOptions = {}): UseSearchSt
         key: "mine",
         value: "true",
         label: "My Assets",
+      });
+    }
+
+    if (filters.status) {
+      const statusLabels: Record<string, string> = {
+        DRAFT: "Draft",
+        PUBLISHED: "Published",
+        ARCHIVED: "Archived",
+      };
+      result.push({
+        key: "status",
+        value: filters.status,
+        label: statusLabels[filters.status] ?? filters.status,
       });
     }
 

@@ -55,8 +55,38 @@ export function SearchEmptyState({
   }
 
   if (variant === "no-assets") {
-    const createLink = assetType === "skill" ? "/skills/new" : assetType === "context" ? "/context/new" : "/prompts/new";
-    const assetLabel = assetType === "skill" ? "skill" : assetType === "context" ? "context document" : "prompt";
+    const config = {
+      skill: {
+        createLink: "/skills/new",
+        label: "skill",
+        title: "No skills yet",
+        description: "Skills are reusable AI instructions that teach your tools how to perform specific tasks. Create the first one and help the team work smarter.",
+        buttonText: "Create the first skill",
+      },
+      context: {
+        createLink: "/context/new",
+        label: "context document",
+        title: "No context documents yet",
+        description: "Context documents give your AI tools the background knowledge they need—style guides, coding standards, project specs, and more.",
+        buttonText: "Add the first context",
+      },
+      prompt: {
+        createLink: "/prompts/new",
+        label: "prompt",
+        title: "No prompts yet",
+        description: "Prompts are ready-to-use templates that help you get consistent, high-quality results from AI tools. Share yours with the team.",
+        buttonText: "Create the first prompt",
+      },
+      all: {
+        createLink: "/prompts/new",
+        label: "asset",
+        title: "Nothing here yet",
+        description: "This library is waiting for its first contribution. Add a prompt, skill, or context document to get started.",
+        buttonText: "Create something",
+      },
+    };
+
+    const { createLink, title, description, buttonText } = config[assetType];
 
     return (
       <div className="flex flex-col items-center justify-center rounded-xl border border-(--color-border) bg-(--color-surface) px-6 py-12 text-center">
@@ -71,18 +101,18 @@ export function SearchEmptyState({
             <path d="M12 5v14M5 12h14" strokeLinecap="round" />
           </svg>
         </div>
-        <h3 className="text-lg font-semibold">No {assetLabel}s yet</h3>
-        <p className="mt-1 max-w-md text-sm text-(--color-text-muted)">
-          Be the first to create a {assetLabel} and share it with the team.
+        <h3 className="text-lg font-semibold">{title}</h3>
+        <p className="mt-2 max-w-md text-sm text-(--color-text-muted)">
+          {description}
         </p>
         <Link
           to={createLink}
-          className="mt-4 inline-flex items-center gap-2 rounded-lg bg-(--color-primary) px-4 py-2 text-sm font-medium text-white hover:bg-(--color-primary)/90"
+          className="mt-5 inline-flex items-center gap-2 rounded-lg bg-(--color-primary) px-4 py-2 text-sm font-medium text-white hover:bg-(--color-primary)/90"
         >
           <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M12 5v14M5 12h14" strokeLinecap="round" />
           </svg>
-          Create {assetLabel}
+          {buttonText}
         </Link>
       </div>
     );

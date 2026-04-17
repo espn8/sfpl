@@ -27,6 +27,7 @@ type SearchBarProps = {
   showModality?: boolean;
   showCollections?: boolean;
   showSuggestions?: boolean;
+  showStatus?: boolean;
   isParsing?: boolean;
   collections?: Array<{ id: number; name: string }>;
   className?: string;
@@ -48,6 +49,7 @@ export function SearchBar({
   showModality = false,
   showCollections = false,
   showSuggestions = true,
+  showStatus = false,
   isParsing = false,
   collections = [],
   className = "",
@@ -220,9 +222,24 @@ export function SearchBar({
                 onChange={(e) => onFilterChange("sort", e.target.value as SortOption)}
                 className="rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
               >
-                <option value="recent">Most recent</option>
+                <option value="recent">Date added</option>
+                <option value="updatedAt">Last updated</option>
+                <option value="name">Name (A-Z)</option>
                 <option value="mostUsed">Most used</option>
                 <option value="topRated">Top rated</option>
+              </select>
+            )}
+
+            {showStatus && (
+              <select
+                value={filters.status}
+                onChange={(e) => onFilterChange("status", e.target.value as SearchFilters["status"])}
+                className="rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
+              >
+                <option value="">All statuses</option>
+                <option value="DRAFT">Draft</option>
+                <option value="PUBLISHED">Published</option>
+                <option value="ARCHIVED">Archived</option>
               </select>
             )}
 

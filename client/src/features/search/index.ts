@@ -11,6 +11,7 @@ export { useSearchState } from "./hooks/useSearchState";
 export { useSearchSuggestions } from "./hooks/useSearchSuggestions";
 export type {
   ActiveFilter,
+  AssetStatus,
   AssetTypeFilter,
   ParsedSearchQuery,
   SearchFilters,
