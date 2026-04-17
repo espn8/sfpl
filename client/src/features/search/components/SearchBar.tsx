@@ -226,7 +226,6 @@ export function SearchBar({
                 <option value="updatedAt">Last updated</option>
                 <option value="name">Name (A-Z)</option>
                 <option value="mostUsed">Most used</option>
-                <option value="topRated">Top rated</option>
               </select>
             )}
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { fetchMe, updateMyProfile, uploadProfilePhoto } from "../features/auth/api";
 import { canAccessAdminUi } from "../features/auth/roles";
 import { ThemeModeToggle } from "./ui/ThemeModeToggle";
@@ -28,6 +28,7 @@ type AppShellProps = {
 };
 
 export function AppShell({ children }: AppShellProps) {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const meQuery = useQuery({
@@ -127,10 +128,18 @@ export function AppShell({ children }: AppShellProps) {
         <header className="mb-6 flex items-center justify-between rounded-lg border border-(--color-border) bg-(--color-surface) px-4 py-3">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-3">
-              <Link to="/" className="inline-flex items-center gap-2 focus-visible:outline-none" aria-label="SF AI Library home">
+              <a
+                href="/"
+                className="inline-flex items-center gap-2 focus-visible:outline-none"
+                aria-label="SF AI Library home"
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate("/", { replace: false });
+                }}
+              >
                 <img src={SALESFORCE_LOGO} alt="" className="h-10 w-auto object-contain" />
                 <span className="hidden font-semibold text-(--color-text) sm:inline">AI Library</span>
-              </Link>
+              </a>
             </div>
             <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
               <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/prompts">
