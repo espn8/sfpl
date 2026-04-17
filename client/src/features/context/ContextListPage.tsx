@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { SearchBar, SearchEmptyState, useSearchState } from "../search";
 import { listContext, type ListContextFilters } from "./api";
 import { ContextListCard } from "./ContextListCard";
@@ -47,25 +47,17 @@ export function ContextListPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">
-            {showAnalytics ? "My Context Analytics" : mineFilter ? "Your Context" : "Context"}
-          </h1>
-          <p className="mt-1 text-sm text-(--color-text-muted)">
-            {showAnalytics
-              ? "See how your context documents are performing with views, copies, and favorites."
-              : mineFilter
-                ? "Context documents you've created. Edit or manage your contributions."
-                : "Reference documents, rules, and guidelines you can load into your AI tools. Add anything that helps your AI understand your world."}
-          </p>
-        </div>
-        <Link
-          to="/context/new"
-          className="inline-flex items-center justify-center rounded-full bg-linear-to-r from-indigo-500 via-fuchsia-500 to-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-md hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400"
-        >
-          Add Context
-        </Link>
+      <div>
+        <h1 className="text-2xl font-semibold">
+          {showAnalytics ? "My Context Analytics" : mineFilter ? "Your Context" : "Context"}
+        </h1>
+        <p className="mt-1 text-sm text-(--color-text-muted)">
+          {showAnalytics
+            ? "See how your context documents are performing with views, copies, and favorites."
+            : mineFilter
+              ? "Context documents you've created. Edit or manage your contributions."
+              : "Reference documents, rules, and guidelines you can load into your AI tools. Add anything that helps your AI understand your world."}
+        </p>
       </div>
 
       <SearchBar

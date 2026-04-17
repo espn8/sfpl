@@ -134,15 +134,8 @@ export function HomePage() {
   const {
     filters,
     debouncedFilters,
-    inputValue,
-    setInputValue,
     setFilter,
-    clearFilter,
-    clearAllFilters,
-    activeFilters,
     page,
-    parseAndApplyNaturalLanguage,
-    isParsing,
   } = useSearchState();
 
   const handleSearchSubmit = async () => {

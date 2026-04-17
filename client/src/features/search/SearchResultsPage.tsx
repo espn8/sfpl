@@ -28,7 +28,7 @@ export function SearchResultsPage() {
     const nextFilters: ListAssetsFilters = {
       page,
       pageSize,
-      sort: debouncedFilters.sort === "mostUsed" ? "mostUsed" : debouncedFilters.sort === "topRated" ? "topRated" : "recent",
+      sort: debouncedFilters.sort === "mostUsed" ? "mostUsed" : "recent",
       assetType: debouncedFilters.assetType as AssetTypeFilter,
     };
     if (debouncedFilters.q.trim()) {
@@ -107,8 +107,8 @@ export function SearchResultsPage() {
       ) : assets.length === 0 ? (
         <SearchEmptyState
           variant={hasActiveSearch ? "no-results" : "no-assets"}
-          searchQuery={debouncedFilters.q}
-          hasFilters={Boolean(debouncedFilters.tool || debouncedFilters.assetType !== "all")}
+          query={debouncedFilters.q}
+          activeFilters={activeFilters}
           onClearFilters={clearAllFilters}
         />
       ) : (
