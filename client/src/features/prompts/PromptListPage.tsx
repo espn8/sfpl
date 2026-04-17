@@ -206,7 +206,7 @@ export function PromptListPage() {
   const heroStats = [
     {
       icon: "published" as const,
-      label: "AI Assets Published",
+      label: "Assets Live",
       value: promptsPublished,
       counterActive: snapshotReady,
     },
@@ -218,7 +218,7 @@ export function PromptListPage() {
     },
     {
       icon: "usage" as const,
-      label: "AI Assets Used",
+      label: "Assets Used",
       value: promptsUsed,
       counterActive: snapshotReady,
     },

@@ -5,7 +5,6 @@ import { trackEvent } from "../../app/analytics";
 import { useToast } from "../../app/providers/ToastProvider";
 import { logUsage, ratePrompt, toggleFavorite, type PromptSummary } from "./api";
 import { interpolatePromptBody } from "./interpolatePrompt";
-import { defaultLaunchProviderForTools, getLaunchUrl } from "./launchProviders";
 import { PromptCollectionMenu } from "./PromptCollectionMenu";
 import {
   CalendarIcon,
@@ -13,7 +12,6 @@ import {
   EyeIcon,
   HeartIcon,
   ShareIcon,
-  SparkleIcon,
 } from "./promptActionIcons";
 import { formatPromptActivityLabel } from "./promptActivityLabel";
 import { PromptAverageStars, PromptRateStars } from "./PromptStars";
@@ -49,8 +47,6 @@ export function PromptListCard({ prompt, variant = "default", showAnalytics = fa
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const { text, canCopyOrLaunch } = composedTextForList(prompt);
-  const provider = defaultLaunchProviderForTools(prompt.tools);
-  const launchUrl = canCopyOrLaunch ? getLaunchUrl(provider, text) : "";
 
   const [myRating, setMyRating] = useState(prompt.myRating ?? null);
   const [favorited, setFavorited] = useState(prompt.favorited ?? false);
@@ -88,9 +84,6 @@ export function PromptListCard({ prompt, variant = "default", showAnalytics = fa
     modelHint: prompt.modelHint,
     tagNames: prompt.tags ?? [],
   }).slice(0, 6);
-
-  const varCount = prompt.variables?.length ?? 0;
-  const useLabel = varCount > 0 ? `Use prompt (${varCount})` : "Use prompt";
 
   const shareUrl =
     typeof window !== "undefined" ? `${window.location.origin}/prompts/${prompt.id}` : `/prompts/${prompt.id}`;
@@ -223,28 +216,13 @@ export function PromptListCard({ prompt, variant = "default", showAnalytics = fa
             </button>
           </div>
           <div className="flex items-center gap-2">
-            <a
-              href={canCopyOrLaunch ? launchUrl : undefined}
-              target="_blank"
-              rel="noreferrer"
-              className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors ${
-                canCopyOrLaunch
-                  ? "bg-(--color-launch) text-(--color-text-inverse) hover:bg-(--color-launch-hover)"
-                  : "pointer-events-none bg-(--color-surface-muted) text-(--color-text-muted) opacity-50"
-              }`}
-              aria-disabled={!canCopyOrLaunch}
-              onClick={(event) => {
-                if (!canCopyOrLaunch) {
-                  event.preventDefault();
-                  return;
-                }
-                void logUsage(prompt.id, "LAUNCH");
-                trackEvent("prompt_launch", { prompt_id: prompt.id, provider });
-              }}
+            <Link
+              to={`/prompts/${prompt.id}`}
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors bg-(--color-launch) text-(--color-text-inverse) hover:bg-(--color-launch-hover)"
             >
-              <SparkleIcon className="h-4 w-4" />
-              {useLabel}
-            </a>
+              <EyeIcon className="h-4 w-4" />
+              View details
+            </Link>
             <button
               type="button"
               disabled={!canCopyOrLaunch}
@@ -267,14 +245,6 @@ export function PromptListCard({ prompt, variant = "default", showAnalytics = fa
           </div>
         </div>
 
-        <div className="mt-2 text-center">
-          <Link
-            to={`/prompts/${prompt.id}`}
-            className="text-xs font-medium text-(--color-primary) hover:text-(--color-primary-hover)"
-          >
-            View details
-          </Link>
-        </div>
       </div>
     </div>
   );

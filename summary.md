@@ -1,9 +1,14 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 17, 2026 — 10:25 CDT
-Build Version: 01c38be
+Last Updated: Friday, April 17, 2026 — 11:45 CDT
+Build Version: 90cd174
 
 ## Recent Changes
+
+- **Prompt card "View details" button**: Replaced the "Use prompt" external launch button on prompt list cards with a "View details" navigation button. Changed icon from SparkleIcon to EyeIcon. Removed redundant "View details" text link at bottom of cards. Users now navigate to prompt detail page to access "Use prompt" functionality.
+- **Hero stats label updates**: Changed "AI Assets Published" to "Assets Live" and "AI Assets Used" to "Assets Used" for cleaner, shorter labels in the hero stats section.
+
+### Previous Session Changes (April 17, 2026)
 
 - **Explore results hidden by default**: The prompt list cards below the "Explore AI Assets" filter section now only appear after the user applies at least one filter (search text, tag, tool, modality, or collection). This reduces visual clutter on the homepage and encourages users to actively search/filter for content.
 - **Hero card icon color consistency**: Updated Prompts, Skills, and Context navigation card icons to use `text-(--color-text)` instead of `text-(--color-primary)`, matching the style of the HeroStatIcon components in the stats section below.
