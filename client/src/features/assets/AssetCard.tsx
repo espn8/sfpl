@@ -1,10 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
 import { useToast } from "../../app/providers/ToastProvider";
 import { type UnifiedAsset } from "./api";
 import { getToolLabel } from "../prompts/api";
+import { highlightMatches, truncateWithHighlight } from "../search";
 import { logUsage, ratePrompt, toggleFavorite } from "../prompts/api";
 import { toggleSkillFavorite, logSkillUsage } from "../skills/api";
 import { toggleContextFavorite, logContextUsage } from "../context/api";
@@ -26,9 +27,10 @@ type AssetCardProps = {
   asset: UnifiedAsset;
   variant?: "featured" | "default";
   showAnalytics?: boolean;
+  highlightQuery?: string;
 };
 
-export function AssetCard({ asset, variant = "default", showAnalytics = false }: AssetCardProps) {
+export function AssetCard({ asset, variant = "default", showAnalytics = false, highlightQuery = "" }: AssetCardProps) {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
 
@@ -135,7 +137,8 @@ export function AssetCard({ asset, variant = "default", showAnalytics = false }:
                 variant === "featured" ? "min-w-0 flex-1 truncate font-semibold" : "min-w-0 flex-1 font-semibold"
               }
             >
-              {asset.title} <span className="text-(--color-text-muted)">[{assetTypeLabel}]</span>
+              {highlightQuery ? highlightMatches(asset.title, highlightQuery) : asset.title}{" "}
+              <span className="text-(--color-text-muted)">[{assetTypeLabel}]</span>
             </p>
             {asset.assetType === "prompt" ? (
               <PromptUpdatedBadge createdAt={asset.createdAt} updatedAt={asset.updatedAt} />
@@ -181,7 +184,13 @@ export function AssetCard({ asset, variant = "default", showAnalytics = false }:
                 : "mt-2 text-sm text-(--color-text-muted)"
             }
           >
-            {asset.summary ?? (variant === "featured" ? "No summary yet" : "No summary")}
+            {asset.summary
+              ? highlightQuery
+                ? truncateWithHighlight(asset.summary, highlightQuery, 120)
+                : asset.summary
+              : variant === "featured"
+                ? "No summary yet"
+                : "No summary"}
           </p>
         </Link>
 

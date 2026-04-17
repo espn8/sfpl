@@ -494,6 +494,21 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
   const paginatedAssets = allAssets.slice(skip, skip + pageSize);
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
+  const facets = {
+    assetType: {
+      prompt: allAssets.filter((a) => a.assetType === "prompt").length,
+      skill: allAssets.filter((a) => a.assetType === "skill").length,
+      context: allAssets.filter((a) => a.assetType === "context").length,
+    },
+    tool: {} as Record<string, number>,
+  };
+
+  for (const asset of allAssets) {
+    for (const t of asset.tools) {
+      facets.tool[t] = (facets.tool[t] ?? 0) + 1;
+    }
+  }
+
   const publishedSnapshotWhere: Prisma.PromptWhereInput = {
     teamId: auth.teamId,
     status: "PUBLISHED",
@@ -532,6 +547,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
       pageSize,
       total,
       totalPages,
+      facets,
       snapshot: {
         assetsPublished: promptsPublished + skillsPublished + contextPublished,
         promptsPublished,

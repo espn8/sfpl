@@ -1,59 +1,79 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { SearchBar, SearchEmptyState, useSearchState } from "../search";
 import { listCollections } from "../collections/api";
-import { getToolLabel, getToolsSortedAlphabetically, listPrompts, type ListPromptsFilters, PROMPT_MODALITY_OPTIONS, PROMPT_TOOL_OPTIONS } from "./api";
+import { listPrompts, type ListPromptsFilters, type PromptModality, type PromptTool } from "./api";
 import { PromptListCard } from "./PromptListCard";
 
 export function PromptsListPage() {
   const [searchParams] = useSearchParams();
-  const [search, setSearch] = useState("");
-  const [collectionId, setCollectionId] = useState("");
-  const [tool, setTool] = useState(() => searchParams.get("tool") ?? "");
-  const [modality, setModality] = useState("");
-  const [sort, setSort] = useState<"recent" | "topRated" | "mostUsed">("recent");
-  const [page, setPage] = useState(1);
-  const pageSize = 20;
-
   const mineFilter = searchParams.get("mine") === "true";
   const showAnalytics = searchParams.get("showAnalytics") === "true";
 
-  const filters = useMemo<ListPromptsFilters>(() => {
+  const {
+    filters,
+    debouncedFilters,
+    inputValue,
+    setInputValue,
+    setFilter,
+    clearFilter,
+    clearAllFilters,
+    activeFilters,
+    page,
+    setPage,
+    parseAndApplyNaturalLanguage,
+    isParsing,
+  } = useSearchState();
+
+  const pageSize = 20;
+
+  const apiFilters = useMemo<ListPromptsFilters>(() => {
     const nextFilters: ListPromptsFilters = {
       page,
       pageSize,
-      sort,
+      sort: debouncedFilters.sort === "topRated" ? "topRated" : debouncedFilters.sort === "mostUsed" ? "mostUsed" : "recent",
     };
-    if (search.trim()) {
-      nextFilters.q = search.trim();
+    if (debouncedFilters.q.trim()) {
+      nextFilters.q = debouncedFilters.q.trim();
     }
-    if (collectionId) {
-      nextFilters.collectionId = Number(collectionId);
+    if (debouncedFilters.collectionId) {
+      nextFilters.collectionId = Number(debouncedFilters.collectionId);
     }
-    if (tool) {
-      nextFilters.tool = tool as (typeof PROMPT_TOOL_OPTIONS)[number];
+    if (debouncedFilters.tool) {
+      nextFilters.tool = debouncedFilters.tool as PromptTool;
     }
-    if (modality) {
-      nextFilters.modality = modality as (typeof PROMPT_MODALITY_OPTIONS)[number];
+    if (debouncedFilters.modality) {
+      nextFilters.modality = debouncedFilters.modality as PromptModality;
     }
     if (mineFilter) {
       nextFilters.mine = true;
     }
     return nextFilters;
-  }, [collectionId, mineFilter, modality, page, search, sort, tool]);
+  }, [debouncedFilters, mineFilter, page, pageSize]);
 
   const promptsQuery = useQuery({
-    queryKey: ["prompts", filters],
-    queryFn: () => listPrompts(filters),
+    queryKey: ["prompts", apiFilters],
+    queryFn: () => listPrompts(apiFilters),
   });
-  const collectionsQuery = useQuery({ queryKey: ["collections"], queryFn: listCollections });
+
+  const collectionsQuery = useQuery({
+    queryKey: ["collections"],
+    queryFn: listCollections,
+  });
 
   if (promptsQuery.isLoading) {
     return <p>Loading prompts...</p>;
   }
 
   if (promptsQuery.error) {
-    return <p className="text-red-700">We couldn't load prompts right now. Try refreshing.</p>;
+    return (
+      <SearchEmptyState
+        variant="error"
+        error={promptsQuery.error as Error}
+        onRetry={() => promptsQuery.refetch()}
+      />
+    );
   }
 
   return (
@@ -79,82 +99,41 @@ export function PromptsListPage() {
         </Link>
       </div>
 
-      <div className="grid gap-2 rounded border border-(--color-border) bg-(--color-surface) p-3 md:grid-cols-2 lg:grid-cols-3">
-        <input
-          value={search}
-          onChange={(event) => {
-            setSearch(event.target.value);
-            setPage(1);
-          }}
-          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
-          placeholder="Search prompts by keyword, use case, or author..."
-        />
-        <select
-          value={sort}
-          onChange={(event) => {
-            setSort(event.target.value as "recent" | "topRated" | "mostUsed");
-            setPage(1);
-          }}
-          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
-        >
-          <option value="recent">Sort: Most recent</option>
-          <option value="topRated">Sort: Top rated</option>
-          <option value="mostUsed">Sort: Most used</option>
-        </select>
-        <select
-          value={tool}
-          onChange={(event) => {
-            setTool(event.target.value);
-            setPage(1);
-          }}
-          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
-        >
-          <option value="">All tools</option>
-          {getToolsSortedAlphabetically().map((option) => (
-            <option key={option} value={option}>
-              {getToolLabel(option)}
-            </option>
-          ))}
-        </select>
-        <select
-          value={modality}
-          onChange={(event) => {
-            setModality(event.target.value);
-            setPage(1);
-          }}
-          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
-        >
-          <option value="">All generated output</option>
-          {PROMPT_MODALITY_OPTIONS.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-        <select
-          value={collectionId}
-          onChange={(event) => {
-            setCollectionId(event.target.value);
-            setPage(1);
-          }}
-          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
-        >
-          <option value="">All collections</option>
-          {collectionsQuery.data?.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name}
-            </option>
-          ))}
-        </select>
-      </div>
+      <SearchBar
+        inputValue={inputValue}
+        onInputChange={setInputValue}
+        filters={filters}
+        activeFilters={activeFilters}
+        onFilterChange={setFilter}
+        onFilterRemove={clearFilter}
+        onClearAll={clearAllFilters}
+        onSubmit={parseAndApplyNaturalLanguage}
+        isParsing={isParsing}
+        placeholder="Search prompts... (try 'cursor prompts for code review')"
+        showModality
+        showCollections
+        collections={collectionsQuery.data ?? []}
+      />
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {promptsQuery.data?.data.map((prompt) => (
-          <PromptListCard key={prompt.id} prompt={prompt} variant="default" showAnalytics={showAnalytics} />
+          <PromptListCard
+            key={prompt.id}
+            prompt={prompt}
+            variant="default"
+            showAnalytics={showAnalytics}
+            highlightQuery={debouncedFilters.q}
+          />
         ))}
       </div>
       {promptsQuery.data?.data.length === 0 ? (
-        <p className="text-sm text-(--color-text-muted)">No prompts found. Try adjusting your filters or create the first one.</p>
+        <SearchEmptyState
+          variant={debouncedFilters.q || activeFilters.length > 0 ? "no-results" : "no-assets"}
+          query={debouncedFilters.q}
+          activeFilters={activeFilters}
+          assetType="prompt"
+          onClearFilters={clearAllFilters}
+        />
       ) : null}
       {promptsQuery.data && promptsQuery.data.meta.totalPages > 1 ? (
         <div className="flex items-center justify-between pt-2">
@@ -162,9 +141,7 @@ export function PromptsListPage() {
             type="button"
             disabled={promptsQuery.data.meta.page <= 1}
             className="rounded border border-(--color-border) bg-(--color-surface) px-3 py-1.5 disabled:opacity-50"
-            onClick={() => {
-              setPage((current) => Math.max(1, current - 1));
-            }}
+            onClick={() => setPage(Math.max(1, page - 1))}
           >
             Previous
           </button>
@@ -175,9 +152,7 @@ export function PromptsListPage() {
             type="button"
             disabled={promptsQuery.data.meta.page >= promptsQuery.data.meta.totalPages}
             className="rounded border border-(--color-border) bg-(--color-surface) px-3 py-1.5 disabled:opacity-50"
-            onClick={() => {
-              setPage((current) => Math.min(promptsQuery.data!.meta.totalPages, current + 1));
-            }}
+            onClick={() => setPage(Math.min(promptsQuery.data!.meta.totalPages, page + 1))}
           >
             Next
           </button>

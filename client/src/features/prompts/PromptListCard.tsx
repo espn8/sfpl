@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
 import { useToast } from "../../app/providers/ToastProvider";
+import { highlightMatches, truncateWithHighlight } from "../search";
 import { logUsage, ratePrompt, toggleFavorite, type PromptSummary } from "./api";
 import { interpolatePromptBody } from "./interpolatePrompt";
 import { PromptCollectionMenu } from "./PromptCollectionMenu";
@@ -41,9 +42,10 @@ type PromptListCardProps = {
   prompt: PromptSummary;
   variant?: "featured" | "default";
   showAnalytics?: boolean;
+  highlightQuery?: string;
 };
 
-export function PromptListCard({ prompt, variant = "default", showAnalytics = false }: PromptListCardProps) {
+export function PromptListCard({ prompt, variant = "default", showAnalytics = false, highlightQuery = "" }: PromptListCardProps) {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const { text, canCopyOrLaunch } = composedTextForList(prompt);
@@ -97,7 +99,8 @@ export function PromptListCard({ prompt, variant = "default", showAnalytics = fa
                 variant === "featured" ? "min-w-0 flex-1 truncate font-semibold" : "min-w-0 flex-1 font-semibold"
               }
             >
-              {prompt.title} <span className="text-(--color-text-muted)">[Prompt]</span>
+              {highlightQuery ? highlightMatches(prompt.title, highlightQuery) : prompt.title}{" "}
+              <span className="text-(--color-text-muted)">[Prompt]</span>
             </p>
             <PromptUpdatedBadge createdAt={prompt.createdAt} updatedAt={prompt.updatedAt} />
           </div>
@@ -135,7 +138,13 @@ export function PromptListCard({ prompt, variant = "default", showAnalytics = fa
                 : "mt-2 text-sm text-(--color-text-muted)"
             }
           >
-            {prompt.summary ?? (variant === "featured" ? "No summary yet" : "No summary")}
+            {prompt.summary
+              ? highlightQuery
+                ? truncateWithHighlight(prompt.summary, highlightQuery, 120)
+                : prompt.summary
+              : variant === "featured"
+                ? "No summary yet"
+                : "No summary"}
           </p>
         </Link>
 

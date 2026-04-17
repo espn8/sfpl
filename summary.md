@@ -1,9 +1,21 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 17, 2026 — 17:52 CDT
-Build Version: fe1cb2c
+Last Updated: Friday, April 17, 2026 — 18:30 CDT
+Build Version: cdcd02d
 
 ## Recent Changes
+
+- **Smart AI Search System**: Comprehensive search overhaul with unified search bar, natural language parsing, auto-suggestions, and relevance highlighting.
+  - **Unified SearchBar component**: Single search input with removable filter chips, keyboard shortcut (⌘K), debounced input (300ms), and URL state sync.
+  - **Auto-suggestions dropdown**: Categorized suggestions showing matching assets and filter shortcuts with full keyboard navigation (arrow keys, Enter, Escape).
+  - **Natural language query parsing**: Gemini-powered parser that converts queries like "cursor prompts for code review" into structured filters (tool: cursor, assetType: prompt, searchTerms: "code review"). Local parsing with fallback to AI for complex queries.
+  - **Relevance highlighting**: Search terms highlighted in titles and summaries using `highlightMatches()` and `truncateWithHighlight()` utilities.
+  - **Faceted filters**: Clickable result counts per asset type and tool displayed below search bar. Counts update dynamically with search results.
+  - **SearchEmptyState component**: Helpful empty states for no results, no assets, and error conditions with clear CTAs.
+  - **New API endpoints**: `GET /api/search/suggestions` (asset/filter suggestions), `GET /api/search/parse` (NL query parsing).
+  - **Backend facet counts**: Assets API now returns `meta.facets` with counts by `assetType` and `tool`.
+
+### Previous Session Changes (April 17, 2026)
 
 - **Unified HomePage with Asset Cards**: Refactored the homepage to display all asset types (Prompts, Skills, Context) in a unified view. New `HomePage.tsx` component with hero section, "Top Performers This Week" featured assets, "How AI Library Works" steps, tool integration cards, and optional admin leaderboards.
 - **New Assets API**: Added `/api/assets` endpoint that returns unified paginated list of all asset types with filtering by type, tool, search, and sort options. Includes snapshot stats (assetsPublished, activeUsers, promptsUsed).
@@ -192,6 +204,7 @@ The application has achieved **substantial completion** of the core implementati
 │   │   │   ├── prompts/                        # Discovery/detail/create/edit, cards, filters, interpolation, external launch, share, ToolRequestModal
 │   │   │   ├── skills/                         # Skill list/detail/create/edit (markdown body, copy, share, usage tracking)
 │   │   │   ├── context/                        # Context (markdown) list/detail/create/edit (copy, share, usage tracking)
+│   │   │   ├── search/                         # Smart AI search (SearchBar, FilterChip, SearchSuggestions, FacetedFilters, SearchEmptyState, useSearchState hook, highlight utils)
 │   │   │   ├── analytics/                      # Admin analytics dashboard (top used/rated, contributors, user engagement)
 │   │   │   ├── collections/                    # Collection CRUD + membership surfaces + share
 │   │   │   ├── admin/                          # Admin pages: ToolRequestsPage for tool submission review
@@ -215,6 +228,7 @@ The application has achieved **substantial completion** of the core implementati
 │   │   │   ├── prompts.ts                      # Prompt CRUD/search/rating/usage/favorites/thumbnail orchestration
 │   │   │   ├── skills.ts                       # Skill CRUD + list search + usage tracking (team-scoped)
 │   │   │   ├── context.ts                      # Context document CRUD + list search + usage tracking (team-scoped)
+│   │   │   ├── search.ts                       # Smart search: suggestions endpoint and NL query parsing
 │   │   │   ├── analytics.ts                    # Top-used/stale/contributors/user-engagement scoreboard
 │   │   │   ├── collections.ts                  # Collection operations
 │   │   │   ├── tags.ts                         # Tag management
@@ -224,6 +238,7 @@ The application has achieved **substantial completion** of the core implementati
 │   │   ├── services/
 │   │   │   ├── nanoBanana.ts                   # Image generation adapter (Gemini API)
 │   │   │   ├── helpSearch.ts                   # Help content search service
+│   │   │   ├── searchParser.ts                 # Natural language query parsing (Gemini + local heuristics)
 │   │   │   └── email.ts                        # Tool request email notifications
 │   │   ├── lib/
 │   │   │   ├── prisma.ts                       # Prisma singleton client
@@ -278,7 +293,8 @@ The application has achieved **substantial completion** of the core implementati
 | Route File | Endpoints |
 |------------|-----------|
 | `auth.ts` | `GET /google`, `GET /google/callback`, `POST /logout`, `GET /me`, `PATCH /me`, `POST /me/profile-photo` |
-| `assets.ts` | `GET /` (unified asset listing with type/tool/search filters and pagination) |
+| `assets.ts` | `GET /` (unified asset listing with type/tool/search filters, pagination, and facet counts) |
+| `search.ts` | `GET /suggestions` (asset/filter suggestions), `GET /parse` (natural language query parsing via Gemini) |
 | `prompts.ts` | Full CRUD, `DELETE /:id/permanent`, `/versions`, `/restore/:version`, `/favorite`, `/rating`, `/usage`, `/regenerate-thumbnail` |
 | `skills.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `DELETE /:id/permanent`, `POST /:id/usage`, `POST /:id/favorite`, `PUT /:id/variables` |
 | `context.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `DELETE /:id/permanent`, `POST /:id/usage`, `POST /:id/favorite`, `PUT /:id/variables` |
@@ -321,17 +337,28 @@ The application has achieved **substantial completion** of the core implementati
 - `server/src/routes/prompts.ts`: primary prompt API with filtering, sorting, pagination, CRUD, versions, and engagement.
 - `server/src/routes/skills.ts`: skill CRUD with team scoping, search, archive (soft delete), and usage tracking.
 - `server/src/routes/context.ts`: context document CRUD with team scoping, search, archive, and usage tracking.
+- `server/src/routes/search.ts`: smart search API with asset/filter suggestions and natural language query parsing.
 - `server/src/routes/analytics.ts`: consolidated overview payload consumed by homepage dashboards and leaderboards.
 - `server/src/routes/help.ts`: help content search endpoint for the searchable help page.
 - `server/src/services/nanoBanana.ts`: external image-generation bridge for prompt thumbnails via Gemini API.
 - `server/src/services/helpSearch.ts`: help content search service with AI-powered question answering.
+- `server/src/services/searchParser.ts`: natural language search query parser using Gemini with local heuristic fallback.
 - `server/src/services/systemCollections.ts`: automatic tool-based and "Best of AI Library" collection management. Includes ChatGPT and Claude Cowork collections.
 - `client/src/app/providers/ToastProvider.tsx`: toast notification context and UI for success/error/info feedback.
 - `server/prisma/schema.prisma`: source of truth for users/teams/prompts/skills/context/engagement relations and enums.
 - `client/src/features/home/HomePage.tsx`: unified homepage with hero section, featured assets, tool integration cards, and admin leaderboards.
-- `client/src/features/assets/AssetCard.tsx`: unified card component for rendering prompts, skills, and context with consistent actions.
-- `client/src/features/assets/api.ts`: unified assets API client for fetching all asset types with filtering and pagination.
-- `server/src/routes/assets.ts`: unified assets API endpoint returning paginated list of all asset types.
+- `client/src/features/assets/AssetCard.tsx`: unified card component for rendering prompts, skills, and context with consistent actions and relevance highlighting.
+- `client/src/features/assets/api.ts`: unified assets API client for fetching all asset types with filtering, pagination, and facet counts.
+- `server/src/routes/assets.ts`: unified assets API endpoint returning paginated list of all asset types with facet counts.
+- `client/src/features/search/components/SearchBar.tsx`: unified search input with filter chips, keyboard shortcuts, and NL query submission.
+- `client/src/features/search/components/FilterChip.tsx`: removable filter chip UI component.
+- `client/src/features/search/components/SearchSuggestions.tsx`: auto-suggestions dropdown with keyboard navigation.
+- `client/src/features/search/components/FacetedFilters.tsx`: clickable filter buttons showing result counts by type/tool.
+- `client/src/features/search/components/SearchEmptyState.tsx`: helpful empty states for no results, no assets, and errors.
+- `client/src/features/search/hooks/useSearchState.ts`: search state management hook with URL sync, debouncing, and NL parsing.
+- `client/src/features/search/hooks/useSearchSuggestions.ts`: React Query hook for fetching search suggestions.
+- `client/src/features/search/utils/highlight.tsx`: `highlightMatches()` and `truncateWithHighlight()` for relevance highlighting.
+- `client/src/features/search/api.ts`: search API client for suggestions and NL query parsing.
 - `client/src/features/prompts/PromptsListPage.tsx`: prompts-only list page with filters and PromptListCard components.
 - `client/src/features/prompts/PromptDetailPage.tsx`: full prompt view with engagement chrome, variables/preview, versions, and external launch.
 - `client/src/features/prompts/sharePrompt.ts`: Web Share API integration for prompt sharing.
@@ -456,6 +483,7 @@ git push heroku main
 
 **Completed in Recent Sessions:**
 
+- ✅ Smart AI Search — Unified search bar with NL parsing (Gemini), auto-suggestions, filter chips, relevance highlighting, faceted counts, and empty states. New `/api/search/suggestions` and `/api/search/parse` endpoints.
 - ✅ Template Variables for Skills/Context — Extended variable system with SkillVariable/ContextVariable models, editor UI, and interpolation.
 - ✅ Skills/Context Favorites — Added SkillFavorite/ContextFavorite models with toggle endpoints and UI.
 - ✅ Changelog System — Version history display with automatic version bump during deploys.

@@ -60,6 +60,15 @@ export type ListAssetsSnapshot = {
   promptsUsed: number;
 };
 
+export type ListAssetsFacets = {
+  assetType: {
+    prompt: number;
+    skill: number;
+    context: number;
+  };
+  tool: Record<string, number>;
+};
+
 export type ListAssetsResponse = {
   data: UnifiedAsset[];
   meta: {
@@ -67,6 +76,7 @@ export type ListAssetsResponse = {
     pageSize: number;
     total: number;
     totalPages: number;
+    facets?: ListAssetsFacets;
     snapshot: ListAssetsSnapshot;
   };
 };

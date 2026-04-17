@@ -1,12 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { fetchMe } from "../auth/api";
 import { canAccessAdminUi } from "../auth/roles";
 import { getAnalyticsOverview } from "../analytics/api";
 import { listAssets, type ListAssetsFilters } from "../assets/api";
 import { AssetCard } from "../assets/AssetCard";
-import { getToolLabel, getToolsSortedAlphabetically, PROMPT_TOOL_OPTIONS } from "../prompts/api";
+import { getToolLabel, getToolsSortedAlphabetically, type PromptTool } from "../prompts/api";
+import { FacetedFilters, SearchBar, useSearchState, type AssetTypeFilter, type SortOption } from "../search";
 
 const FIRST_VISIT_KEY = "sf-ai-library-first-visit-completed";
 
@@ -122,36 +123,38 @@ function StatCounter({ end, active, delayMs = 0 }: StatCounterProps) {
 
 export function HomePage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [search, setSearch] = useState("");
-  const [tool, setTool] = useState(() => searchParams.get("tool") ?? "");
-  const [assetType, setAssetType] = useState<"all" | "prompt" | "skill" | "context">("all");
-  const [sort, setSort] = useState<"recent" | "mostUsed">("recent");
-  const [page, setPage] = useState(1);
-  const pageSize = 20;
-
   const mineFilter = searchParams.get("mine") === "true";
   const showAnalytics = searchParams.get("showAnalytics") === "true";
 
-  useEffect(() => {
-    const urlTool = searchParams.get("tool") ?? "";
-    if (urlTool !== tool) {
-      setTool(urlTool);
-      setPage(1);
-    }
-  }, [searchParams, tool]);
+  const {
+    filters,
+    debouncedFilters,
+    inputValue,
+    setInputValue,
+    setFilter,
+    clearFilter,
+    clearAllFilters,
+    activeFilters,
+    page,
+    setPage,
+    parseAndApplyNaturalLanguage,
+    isParsing,
+  } = useSearchState();
 
-  const filters = useMemo<ListAssetsFilters>(() => {
+  const pageSize = 20;
+
+  const apiFilters = useMemo<ListAssetsFilters>(() => {
     const nextFilters: ListAssetsFilters = {
       page,
       pageSize,
-      sort,
-      assetType,
+      sort: debouncedFilters.sort === "mostUsed" ? "mostUsed" : "recent",
+      assetType: debouncedFilters.assetType as AssetTypeFilter,
     };
-    if (search.trim()) {
-      nextFilters.q = search.trim();
+    if (debouncedFilters.q.trim()) {
+      nextFilters.q = debouncedFilters.q.trim();
     }
-    if (tool) {
-      nextFilters.tool = tool as (typeof PROMPT_TOOL_OPTIONS)[number];
+    if (debouncedFilters.tool) {
+      nextFilters.tool = debouncedFilters.tool as PromptTool;
     }
     if (mineFilter) {
       nextFilters.mine = true;
@@ -160,7 +163,7 @@ export function HomePage() {
       nextFilters.includeAnalytics = true;
     }
     return nextFilters;
-  }, [assetType, mineFilter, page, search, showAnalytics, sort, tool]);
+  }, [debouncedFilters, mineFilter, page, pageSize, showAnalytics]);
 
   const meQuery = useQuery({
     queryKey: ["auth", "me"],
@@ -171,8 +174,8 @@ export function HomePage() {
   const personalizedGreeting = usePersonalizedGreeting(meQuery.data?.name);
 
   const assetsQuery = useQuery({
-    queryKey: ["assets", filters],
-    queryFn: () => listAssets(filters),
+    queryKey: ["assets", apiFilters],
+    queryFn: () => listAssets(apiFilters),
   });
 
   const analyticsQuery = useQuery({
@@ -219,7 +222,7 @@ export function HomePage() {
     .filter((a) => a.assetType !== "prompt" || a.thumbnailStatus !== "FAILED")
     .slice(0, 6);
 
-  const hasExploreSelection = Boolean(search.trim() || tool || assetType !== "all");
+  const hasExploreSelection = Boolean(debouncedFilters.q.trim() || debouncedFilters.tool || debouncedFilters.assetType !== "all");
 
   const contributorLeaderboard = (analyticsQuery.data?.contributors ?? []).slice(0, 5);
   const usersLeaderboard = (analyticsQuery.data?.userEngagementLeaderboard ?? []).slice(0, 5);
@@ -253,6 +256,23 @@ export function HomePage() {
               <p className="max-w-3xl text-(--color-text-muted)">
                 Browse battle-tested AI assets from fellow Salesforce employees, customize them for your work, and launch directly into your favorite AI tool. No more starting from scratch.
               </p>
+
+              <div className="mt-4">
+                <SearchBar
+                  inputValue={inputValue}
+                  onInputChange={setInputValue}
+                  filters={filters}
+                  activeFilters={activeFilters}
+                  onFilterChange={setFilter}
+                  onFilterRemove={clearFilter}
+                  onClearAll={clearAllFilters}
+                  onSubmit={parseAndApplyNaturalLanguage}
+                  isParsing={isParsing}
+                  placeholder="Search prompts, skills, and context... (try natural language!)"
+                  showAssetType
+                />
+              </div>
+
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 <Link
                   to="/prompts"
@@ -336,9 +356,21 @@ export function HomePage() {
               <h3 className="text-xl font-semibold">Top Performers This Week</h3>
               <span className="text-sm font-medium text-(--color-text-muted)">The AI assets people can't stop using</span>
             </div>
+            {assetsQuery.data?.meta.facets && (
+              <FacetedFilters
+                facets={assetsQuery.data.meta.facets}
+                currentFilters={filters}
+                onFilterChange={setFilter}
+              />
+            )}
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {featuredAssets.map((asset) => (
-                <AssetCard key={`${asset.assetType}-${asset.id}`} asset={asset} variant="featured" />
+                <AssetCard
+                  key={`${asset.assetType}-${asset.id}`}
+                  asset={asset}
+                  variant="featured"
+                  highlightQuery={debouncedFilters.q}
+                />
               ))}
             </div>
           </section>
@@ -393,13 +425,14 @@ export function HomePage() {
                   {getToolsSortedAlphabetically()
                     .filter((t) => t !== "other")
                     .map((toolOption) => (
-                      <Link
+                      <button
                         key={toolOption}
-                        to={`/?tool=${toolOption}`}
+                        type="button"
+                        onClick={() => setFilter("tool", toolOption)}
                         className="rounded-full border border-(--color-border) bg-(--color-surface) px-2 py-1 font-medium transition-colors hover:border-(--color-primary) hover:bg-(--color-primary)/10"
                       >
                         {getToolLabel(toolOption)}
-                      </Link>
+                      </button>
                     ))}
                 </div>
               </div>
@@ -490,94 +523,6 @@ export function HomePage() {
             Show All Assets
           </button>
         </div>
-      ) : null}
-
-      <h3 className="text-2xl font-semibold">{mineFilter ? "Your Assets" : "Explore AI Assets"}</h3>
-      <div className="grid gap-2 rounded border border-(--color-border) bg-(--color-surface) p-3 md:grid-cols-2 lg:grid-cols-3">
-        <input
-          value={search}
-          onChange={(event) => {
-            setSearch(event.target.value);
-            setPage(1);
-          }}
-          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
-          placeholder="Search AI assets by keyword, use case, or author..."
-        />
-        <select
-          value={sort}
-          onChange={(event) => {
-            setSort(event.target.value as "recent" | "mostUsed");
-            setPage(1);
-          }}
-          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
-        >
-          <option value="recent">Sort: Most recent</option>
-          <option value="mostUsed">Sort: Most used</option>
-        </select>
-        <select
-          value={assetType}
-          onChange={(event) => {
-            setAssetType(event.target.value as "all" | "prompt" | "skill" | "context");
-            setPage(1);
-          }}
-          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
-        >
-          <option value="all">All asset types</option>
-          <option value="prompt">Prompts only</option>
-          <option value="skill">Skills only</option>
-          <option value="context">Context only</option>
-        </select>
-        <select
-          value={tool}
-          onChange={(event) => {
-            setTool(event.target.value);
-            setPage(1);
-          }}
-          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
-        >
-          <option value="">All tools</option>
-          {getToolsSortedAlphabetically().map((option) => (
-            <option key={option} value={option}>
-              {getToolLabel(option)}
-            </option>
-          ))}
-        </select>
-      </div>
-      {hasExploreSelection || mineFilter ? (
-        <>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {assetsQuery.data?.data.map((asset) => (
-              <AssetCard key={`${asset.assetType}-${asset.id}`} asset={asset} variant="default" showAnalytics={showAnalytics} />
-            ))}
-          </div>
-          {assetsQuery.data && assetsQuery.data.meta.totalPages > 1 ? (
-            <div className="flex items-center justify-between pt-2">
-              <button
-                type="button"
-                disabled={assetsQuery.data.meta.page <= 1}
-                className="rounded border border-(--color-border) bg-(--color-surface) px-3 py-1.5 disabled:opacity-50"
-                onClick={() => {
-                  setPage((current) => Math.max(1, current - 1));
-                }}
-              >
-                Previous
-              </button>
-              <p className="text-sm text-(--color-text-muted)">
-                Page {assetsQuery.data.meta.page} of {assetsQuery.data.meta.totalPages}
-              </p>
-              <button
-                type="button"
-                disabled={assetsQuery.data.meta.page >= assetsQuery.data.meta.totalPages}
-                className="rounded border border-(--color-border) bg-(--color-surface) px-3 py-1.5 disabled:opacity-50"
-                onClick={() => {
-                  setPage((current) => Math.min(assetsQuery.data!.meta.totalPages, current + 1));
-                }}
-              >
-                Next
-              </button>
-            </div>
-          ) : null}
-        </>
       ) : null}
     </div>
   );

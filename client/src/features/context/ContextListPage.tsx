@@ -1,35 +1,48 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { listContext, getContextToolLabel, getContextToolsSortedAlphabetically, type ListContextFilters } from "./api";
+import { SearchBar, SearchEmptyState, useSearchState } from "../search";
+import { listContext, type ListContextFilters } from "./api";
 import { ContextListCard } from "./ContextListCard";
 
 export function ContextListPage() {
   const [searchParams] = useSearchParams();
   const mineFilter = searchParams.get("mine") === "true";
   const showAnalytics = searchParams.get("showAnalytics") === "true";
-  const [search, setSearch] = useState("");
-  const [tool, setTool] = useState(() => searchParams.get("tool") ?? "");
-  const [sort, setSort] = useState<"recent" | "mostUsed">("recent");
-  const [page, setPage] = useState(1);
+
+  const {
+    filters,
+    debouncedFilters,
+    inputValue,
+    setInputValue,
+    setFilter,
+    clearFilter,
+    clearAllFilters,
+    activeFilters,
+    page,
+    setPage,
+    parseAndApplyNaturalLanguage,
+    isParsing,
+  } = useSearchState();
+
   const pageSize = 20;
 
-  const filters = useMemo<ListContextFilters>(
+  const apiFilters = useMemo<ListContextFilters>(
     () => ({
-      q: search.trim() || undefined,
-      tool: tool || undefined,
-      sort,
+      q: debouncedFilters.q.trim() || undefined,
+      tool: debouncedFilters.tool || undefined,
+      sort: debouncedFilters.sort === "mostUsed" ? "mostUsed" : "recent",
       mine: mineFilter || undefined,
       includeAnalytics: showAnalytics || undefined,
       page,
       pageSize,
     }),
-    [search, tool, sort, mineFilter, showAnalytics, page, pageSize],
+    [debouncedFilters, mineFilter, showAnalytics, page, pageSize],
   );
 
   const query = useQuery({
-    queryKey: ["context", filters],
-    queryFn: () => listContext(filters),
+    queryKey: ["context", apiFilters],
+    queryFn: () => listContext(apiFilters),
   });
 
   return (
@@ -55,49 +68,26 @@ export function ContextListPage() {
         </Link>
       </div>
 
-      <div className="grid gap-2 rounded border border-(--color-border) bg-(--color-surface) p-3 md:grid-cols-2 lg:grid-cols-3">
-        <input
-          value={search}
-          onChange={(e) => {
-            setPage(1);
-            setSearch(e.target.value);
-          }}
-          placeholder="Search context by keyword, use case, or author..."
-          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
-        />
-        <select
-          value={sort}
-          onChange={(event) => {
-            setSort(event.target.value as "recent" | "mostUsed");
-            setPage(1);
-          }}
-          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
-        >
-          <option value="recent">Sort: Most recent</option>
-          <option value="mostUsed">Sort: Most used</option>
-        </select>
-        <select
-          value={tool}
-          onChange={(event) => {
-            setTool(event.target.value);
-            setPage(1);
-          }}
-          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
-        >
-          <option value="">All tools</option>
-          {getContextToolsSortedAlphabetically().map((option) => (
-            <option key={option} value={option}>
-              {getContextToolLabel(option)}
-            </option>
-          ))}
-        </select>
-      </div>
+      <SearchBar
+        inputValue={inputValue}
+        onInputChange={setInputValue}
+        filters={filters}
+        activeFilters={activeFilters}
+        onFilterChange={setFilter}
+        onFilterRemove={clearFilter}
+        onClearAll={clearAllFilters}
+        onSubmit={parseAndApplyNaturalLanguage}
+        isParsing={isParsing}
+        placeholder="Search context... (try 'style guides')"
+      />
 
       {query.isLoading ? <p className="text-sm text-(--color-text-muted)">Just a moment...</p> : null}
       {query.isError ? (
-        <p className="text-sm text-red-600" role="alert">
-          We couldn't load context documents right now. Try refreshing.
-        </p>
+        <SearchEmptyState
+          variant="error"
+          error={query.error as Error}
+          onRetry={() => query.refetch()}
+        />
       ) : null}
 
       {query.data ? (
@@ -107,14 +97,22 @@ export function ContextListPage() {
               <ContextListCard key={doc.id} context={doc} showAnalytics={showAnalytics} />
             ))}
           </div>
-          {query.data.data.length === 0 ? <p className="text-sm text-(--color-text-muted)">No context files yet. Add documentation, rules, or references to help your AI stay informed.</p> : null}
+          {query.data.data.length === 0 ? (
+            <SearchEmptyState
+              variant={debouncedFilters.q || activeFilters.length > 0 ? "no-results" : "no-assets"}
+              query={debouncedFilters.q}
+              activeFilters={activeFilters}
+              assetType="context"
+              onClearFilters={clearAllFilters}
+            />
+          ) : null}
           {query.data.meta.totalPages > 1 ? (
             <div className="flex items-center justify-between pt-2">
               <button
                 type="button"
                 className="rounded border border-(--color-border) bg-(--color-surface) px-3 py-1.5 disabled:opacity-50"
                 disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                onClick={() => setPage(Math.max(1, page - 1))}
               >
                 Previous
               </button>
@@ -125,7 +123,7 @@ export function ContextListPage() {
                 type="button"
                 className="rounded border border-(--color-border) bg-(--color-surface) px-3 py-1.5 disabled:opacity-50"
                 disabled={page >= query.data.meta.totalPages}
-                onClick={() => setPage((p) => p + 1)}
+                onClick={() => setPage(page + 1)}
               >
                 Next
               </button>
