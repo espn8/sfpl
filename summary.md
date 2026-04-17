@@ -1,10 +1,11 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 17, 2026 — 10:15 CDT
-Build Version: 7ca24ac
+Last Updated: Friday, April 17, 2026
+Build Version: pending
 
 ## Recent Changes
 
+- **Explore results hidden by default**: The prompt list cards below the "Explore AI Assets" filter section now only appear after the user applies at least one filter (search text, tag, tool, modality, or collection). This reduces visual clutter on the homepage and encourages users to actively search/filter for content.
 - **Hero card icon color consistency**: Updated Prompts, Skills, and Context navigation card icons to use `text-(--color-text)` instead of `text-(--color-primary)`, matching the style of the HeroStatIcon components in the stats section below.
 - **New tool options: ChatGPT and Claude Cowork**: Added `chatgpt` and `claude_cowork` to the tool options across all asset types (Prompts, Skills, Context Documents). Updated tool labels, launch provider logic, system collections, and legacy model hint mapping.
 - **Usage metrics refactored to COPY/LAUNCH only**: Changed "AI Assets Viewed" metric to "AI Assets Used" — now counts only COPY and LAUNCH events, not VIEW events. This provides a more accurate measure of actual asset usage. Updated hero stats, prompt list cards, analytics overview, and OU analytics endpoints.

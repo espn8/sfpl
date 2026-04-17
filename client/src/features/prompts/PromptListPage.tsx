@@ -227,6 +227,8 @@ export function PromptListPage() {
     .filter((p) => p.thumbnailStatus !== "FAILED")
     .slice(0, 6);
 
+  const hasExploreSelection = Boolean(search.trim() || tag || tool || modality || collectionId);
+
   const contributorLeaderboard = (analyticsQuery.data?.contributors ?? []).slice(0, 5);
   const usersLeaderboard = (analyticsQuery.data?.userEngagementLeaderboard ?? []).slice(0, 5);
 
@@ -582,10 +584,12 @@ export function PromptListPage() {
           ))}
         </select>
       </div>
-      {promptsQuery.data?.data.map((prompt) => (
-        <PromptListCard key={prompt.id} prompt={prompt} variant="default" showAnalytics={showAnalytics} />
-      ))}
-      {promptsQuery.data && promptsQuery.data.meta.totalPages > 1 ? (
+      {hasExploreSelection ? (
+        <>
+          {promptsQuery.data?.data.map((prompt) => (
+            <PromptListCard key={prompt.id} prompt={prompt} variant="default" showAnalytics={showAnalytics} />
+          ))}
+          {promptsQuery.data && promptsQuery.data.meta.totalPages > 1 ? (
         <div className="flex items-center justify-between pt-2">
           <button
             type="button"
@@ -611,6 +615,8 @@ export function PromptListPage() {
             Next
           </button>
         </div>
+          ) : null}
+        </>
       ) : null}
     </div>
   );
