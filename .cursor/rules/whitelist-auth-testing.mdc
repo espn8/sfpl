@@ -1,0 +1,54 @@
+# Whitelist Authentication for Production Testing
+
+When testing API changes in production, use the whitelist authentication mechanism to bypass Google OAuth.
+
+## Setup
+
+The whitelist system uses two environment variables on Heroku:
+- `DEV_WHITELIST_TOKEN` - A secret token for authentication bypass
+- `DEV_WHITELIST_USER_ID` - The user ID to impersonate (defaults to 1)
+
+## Before Testing Production APIs
+
+**Always verify whitelist access before making authenticated API calls:**
+
+```bash
+curl -s -H "X-Dev-Whitelist-Token: $DEV_WHITELIST_TOKEN" \
+  https://ail.mysalesforcedemo.com/api/auth/whitelist-status | jq
+```
+
+Expected successful response:
+```json
+{
+  "data": {
+    "enabled": true,
+    "authenticated": true,
+    "user": { "id": 1, "email": "...", "role": "..." },
+    "message": "Whitelist authentication is active and valid."
+  }
+}
+```
+
+## Making Authenticated API Calls
+
+Include the `X-Dev-Whitelist-Token` header in all production API requests:
+
+```bash
+curl -H "X-Dev-Whitelist-Token: $DEV_WHITELIST_TOKEN" \
+  https://ail.mysalesforcedemo.com/api/prompts
+```
+
+## Troubleshooting
+
+If whitelist-status returns `enabled: false`:
+- Run: `heroku config:set DEV_WHITELIST_TOKEN=<secure-random-token>`
+
+If whitelist-status returns `authenticated: false` with user not found:
+- Ensure `DEV_WHITELIST_USER_ID` points to a valid user in the database
+- Or create the user first via Google OAuth
+
+## Security Notes
+
+- Never commit the `DEV_WHITELIST_TOKEN` value to source control
+- Use a cryptographically secure random token (at least 32 characters)
+- Store the token in a local `.env` file or shell environment variable

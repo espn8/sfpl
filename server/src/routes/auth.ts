@@ -372,6 +372,68 @@ authRouter.post("/logout", authRateLimit, (req: Request, res: Response) => {
   });
 });
 
+authRouter.get("/whitelist-status", async (req: Request, res: Response) => {
+  const token = req.headers["x-dev-whitelist-token"];
+  if (!env.devWhitelistToken) {
+    return res.status(200).json({
+      data: {
+        enabled: false,
+        authenticated: false,
+        message: "DEV_WHITELIST_TOKEN is not configured on the server.",
+      },
+    });
+  }
+
+  if (!token) {
+    return res.status(200).json({
+      data: {
+        enabled: true,
+        authenticated: false,
+        message: "No X-Dev-Whitelist-Token header provided.",
+      },
+    });
+  }
+
+  if (token !== env.devWhitelistToken) {
+    return res.status(200).json({
+      data: {
+        enabled: true,
+        authenticated: false,
+        message: "Invalid whitelist token.",
+      },
+    });
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: env.devWhitelistUserId },
+    select: { id: true, email: true, name: true, role: true },
+  });
+
+  if (!user) {
+    return res.status(200).json({
+      data: {
+        enabled: true,
+        authenticated: false,
+        message: `Whitelist user ID ${env.devWhitelistUserId} not found in database.`,
+      },
+    });
+  }
+
+  return res.status(200).json({
+    data: {
+      enabled: true,
+      authenticated: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+      message: "Whitelist authentication is active and valid.",
+    },
+  });
+});
+
 authRouter.get("/me", async (req: Request, res: Response) => {
   const sessionAuth = getValidSessionAuth(req);
   if (!sessionAuth) {
