@@ -18,6 +18,7 @@ import { ContextEditPage } from "../features/context/ContextEditPage";
 import { ContextEditorPage } from "../features/context/ContextEditorPage";
 import { ContextListPage } from "../features/context/ContextListPage";
 import { HomePage } from "../features/home/HomePage";
+import { SearchResultsPage } from "../features/search/SearchResultsPage";
 import { SkillDetailPage } from "../features/skills/SkillDetailPage";
 import { SkillEditPage } from "../features/skills/SkillEditPage";
 import { SkillEditorPage } from "../features/skills/SkillEditorPage";
@@ -50,6 +51,16 @@ export function AppRouter() {
             <ProtectedRoute>
               <AppShell>
                 <HomePage />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/search"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <SearchResultsPage />
               </AppShell>
             </ProtectedRoute>
           }

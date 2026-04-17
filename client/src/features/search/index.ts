@@ -5,6 +5,7 @@ export { FilterChip } from "./components/FilterChip";
 export { SearchBar } from "./components/SearchBar";
 export { SearchEmptyState } from "./components/SearchEmptyState";
 export { SearchSuggestions } from "./components/SearchSuggestions";
+export { SearchResultsPage } from "./SearchResultsPage";
 export { SearchProvider, useSearchContext } from "./context/SearchContext";
 export { useSearchState } from "./hooks/useSearchState";
 export { useSearchSuggestions } from "./hooks/useSearchSuggestions";

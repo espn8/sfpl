@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { fetchMe } from "../auth/api";
 import { canAccessAdminUi } from "../auth/roles";
 import { getAnalyticsOverview } from "../analytics/api";
@@ -8,6 +8,7 @@ import { listAssets, type ListAssetsFilters } from "../assets/api";
 import { AssetCard } from "../assets/AssetCard";
 import { getToolLabel, getToolsSortedAlphabetically, type PromptTool } from "../prompts/api";
 import { FacetedFilters, SearchBar, useSearchState, type AssetTypeFilter } from "../search";
+import { parseNaturalLanguageQuery } from "../search/api";
 
 const FIRST_VISIT_KEY = "sf-ai-library-first-visit-completed";
 
@@ -122,9 +123,13 @@ function StatCounter({ end, active, delayMs = 0 }: StatCounterProps) {
 }
 
 export function HomePage() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const mineFilter = searchParams.get("mine") === "true";
   const showAnalytics = searchParams.get("showAnalytics") === "true";
+
+  const [homeSearchValue, setHomeSearchValue] = useState("");
+  const [isSearchParsing, setIsSearchParsing] = useState(false);
 
   const {
     filters,
@@ -139,6 +144,36 @@ export function HomePage() {
     parseAndApplyNaturalLanguage,
     isParsing,
   } = useSearchState();
+
+  const handleSearchSubmit = async () => {
+    if (!homeSearchValue.trim()) return;
+    
+    setIsSearchParsing(true);
+    try {
+      const parsed = await parseNaturalLanguageQuery(homeSearchValue);
+      const params = new URLSearchParams();
+      
+      if (parsed.searchTerms) {
+        params.set("q", parsed.searchTerms);
+      }
+      if (parsed.tool) {
+        params.set("tool", parsed.tool);
+      }
+      if (parsed.assetType) {
+        params.set("assetType", parsed.assetType);
+      }
+      if (parsed.modality) {
+        params.set("modality", parsed.modality);
+      }
+      
+      navigate(`/search?${params.toString()}`);
+    } catch {
+      const params = new URLSearchParams({ q: homeSearchValue });
+      navigate(`/search?${params.toString()}`);
+    } finally {
+      setIsSearchParsing(false);
+    }
+  };
 
   const pageSize = 20;
 
@@ -243,6 +278,22 @@ export function HomePage() {
     <div className="space-y-7">
       {!mineFilter ? (
         <>
+          <section className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-4 shadow-sm">
+            <SearchBar
+              inputValue={homeSearchValue}
+              onInputChange={setHomeSearchValue}
+              filters={{ q: "", assetType: "all", tool: "", modality: "", sort: "recent", collectionId: "", mine: false }}
+              activeFilters={[]}
+              onFilterChange={() => {}}
+              onFilterRemove={() => {}}
+              onClearAll={() => {}}
+              onSubmit={handleSearchSubmit}
+              isParsing={isSearchParsing}
+              placeholder="Search prompts, skills, and context... (try natural language!)"
+              showAssetType
+            />
+          </section>
+
           <section className="relative overflow-hidden rounded-2xl border border-(--color-border) bg-linear-to-br from-(--color-primary)/25 via-(--color-surface) to-(--color-surface-muted) p-6 shadow-sm transition-all duration-300 motion-reduce:transition-none">
             <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-(--color-primary)/20 blur-3xl" />
             <div className="pointer-events-none absolute -bottom-16 -left-10 h-48 w-48 rounded-full bg-(--color-primary)/10 blur-3xl" />
@@ -254,22 +305,6 @@ export function HomePage() {
               <p className="max-w-3xl text-(--color-text-muted)">
                 Browse battle-tested AI assets from fellow Salesforce employees, customize them for your work, and launch directly into your favorite AI tool. No more starting from scratch.
               </p>
-
-              <div className="mt-4">
-                <SearchBar
-                  inputValue={inputValue}
-                  onInputChange={setInputValue}
-                  filters={filters}
-                  activeFilters={activeFilters}
-                  onFilterChange={setFilter}
-                  onFilterRemove={clearFilter}
-                  onClearAll={clearAllFilters}
-                  onSubmit={parseAndApplyNaturalLanguage}
-                  isParsing={isParsing}
-                  placeholder="Search prompts, skills, and context... (try natural language!)"
-                  showAssetType
-                />
-              </div>
 
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 <Link

@@ -133,7 +133,7 @@ export function AppShell({ children }: AppShellProps) {
               </Link>
             </div>
             <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-              <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/">
+              <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/prompts">
                 Prompts
               </Link>
               <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/skills">
