@@ -4,10 +4,13 @@ export const LAUNCH_PROVIDER_IDS = ["chatgpt", "claude", "gemini"] as const;
 export type LaunchProviderId = (typeof LAUNCH_PROVIDER_IDS)[number];
 
 export function defaultLaunchProviderForTools(tools: readonly PromptTool[]): LaunchProviderId {
+  if (tools.includes("chatgpt")) {
+    return "chatgpt";
+  }
   if (tools.includes("gemini")) {
     return "gemini";
   }
-  if (tools.includes("claude_code")) {
+  if (tools.includes("claude_code") || tools.includes("claude_cowork")) {
     return "claude";
   }
   return "chatgpt";

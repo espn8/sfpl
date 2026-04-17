@@ -1,11 +1,11 @@
 import { getToolLabel, type PromptTool } from "./api";
 
-export function toolChipFromPrompt(tools: PromptTool[], modelHint: string | null | undefined): string | null {
-  if (tools[0]) {
-    return getToolLabel(tools[0]);
+export function toolChipsFromPrompt(tools: PromptTool[], modelHint: string | null | undefined): string[] {
+  if (tools.length > 0) {
+    return tools.map((tool) => getToolLabel(tool));
   }
   const hint = modelHint?.trim();
-  return hint && hint.length > 0 ? hint : null;
+  return hint && hint.length > 0 ? [hint] : [];
 }
 
 export function modalityLabel(modality: string): string {
@@ -18,9 +18,9 @@ export function buildPromptTagChips(input: {
   modelHint?: string | null;
   tagNames: string[];
 }): string[] {
-  const toolChip = toolChipFromPrompt(input.tools, input.modelHint);
+  const toolChips = toolChipsFromPrompt(input.tools, input.modelHint);
   return [
-    ...(toolChip ? [toolChip] : []),
+    ...toolChips,
     modalityLabel(input.modality),
     ...input.tagNames.filter((t) => t.trim().length > 0),
   ].slice(0, 8);

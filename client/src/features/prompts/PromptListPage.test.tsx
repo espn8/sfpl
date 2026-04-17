@@ -115,7 +115,7 @@ describe("PromptListPage", () => {
         pageSize: 20,
         total: 1,
         totalPages: 1,
-        snapshot: { promptsPublished: 1, activeUsers: 12, promptsViewed: 340 },
+        snapshot: { promptsPublished: 1, activeUsers: 12, promptsUsed: 340 },
       },
     });
     vi.mocked(listTags).mockResolvedValue([
@@ -147,7 +147,7 @@ describe("PromptListPage", () => {
         pageSize: 20,
         total: 30,
         totalPages: 2,
-        snapshot: { promptsPublished: 24, activeUsers: 12, promptsViewed: 900 },
+        snapshot: { promptsPublished: 24, activeUsers: 12, promptsUsed: 900 },
       },
     });
     vi.mocked(listTags).mockResolvedValue([
@@ -163,7 +163,7 @@ describe("PromptListPage", () => {
 
     renderPromptListPage();
 
-    expect(await screen.findByText("How SF AI Library Works")).toBeInTheDocument();
+    expect(await screen.findByText("How AI Library Works")).toBeInTheDocument();
     expect(await screen.findByText("Page 1 of 2")).toBeInTheDocument();
 
     fireEvent.change(screen.getByPlaceholderText("Search title, summary, or body"), { target: { value: "quota" } });

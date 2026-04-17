@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { Router } from "express";
-import { Role } from "@prisma/client";
+import { Role, UsageAction } from "@prisma/client";
 import { z } from "zod";
 import { getAuthContext, requireAuth, requireRole } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
@@ -32,15 +32,15 @@ analyticsRouter.get("/overview", async (req: Request, res: Response) => {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  const [topUsed, topRated, stalePrompts, contributors, usageByUser, favoritesByUser, feedbackByUser] = await Promise.all([
-    prisma.prompt.findMany({
-      where: { teamId: auth.teamId },
-      select: {
-        id: true,
-        title: true,
-        _count: { select: { usageEvents: true } },
+  const [topUsedGroups, topRated, stalePrompts, contributors, usageByUser, favoritesByUser, feedbackByUser] = await Promise.all([
+    prisma.usageEvent.groupBy({
+      by: ["promptId"],
+      where: {
+        prompt: { teamId: auth.teamId },
+        action: { in: [UsageAction.COPY, UsageAction.LAUNCH] },
       },
-      orderBy: { usageEvents: { _count: "desc" } },
+      _count: { _all: true },
+      orderBy: { _count: { promptId: "desc" } },
       take: 10,
     }),
     prisma.prompt.findMany({
@@ -110,6 +110,21 @@ analyticsRouter.get("/overview", async (req: Request, res: Response) => {
       },
     }),
   ]);
+
+  const topUsedPromptIds = topUsedGroups.map((g) => g.promptId);
+  const topUsedPromptDetails =
+    topUsedPromptIds.length > 0
+      ? await prisma.prompt.findMany({
+          where: { id: { in: topUsedPromptIds } },
+          select: { id: true, title: true },
+        })
+      : [];
+  const topUsedPromptMap = new Map(topUsedPromptDetails.map((p) => [p.id, p.title]));
+  const topUsed = topUsedGroups.map((g) => ({
+    id: g.promptId,
+    title: topUsedPromptMap.get(g.promptId) ?? "Unknown",
+    usageCount: g._count._all,
+  }));
 
   const topRatedWithAverage = (topRated as RatedPrompt[])
     .map((prompt: RatedPrompt) => ({
@@ -190,11 +205,7 @@ analyticsRouter.get("/overview", async (req: Request, res: Response) => {
 
   return res.status(200).json({
     data: {
-      topUsedPrompts: topUsed.map((prompt: { id: number; title: string; _count: { usageEvents: number } }) => ({
-        id: prompt.id,
-        title: prompt.title,
-        usageCount: prompt._count.usageEvents,
-      })),
+      topUsedPrompts: topUsed,
       topRatedPrompts: topRatedWithAverage,
       stalePrompts: stalePrompts.map((prompt: { id: number; title: string; updatedAt: Date }) => ({
         id: prompt.id,
@@ -232,7 +243,8 @@ analyticsRouter.get("/ou", async (req: Request, res: Response) => {
     usersByOu,
     promptsByOwnerOu,
     usageEventsByUserOu,
-    topPromptsPerOu,
+    promptsForTopByOu,
+    usageCountsByPrompt,
   ] = await Promise.all([
     prisma.user.groupBy({
       by: ["ou"],
@@ -270,10 +282,19 @@ analyticsRouter.get("/ou", async (req: Request, res: Response) => {
         id: true,
         title: true,
         owner: { select: { ou: true } },
-        _count: { select: { usageEvents: true } },
       },
-      orderBy: { usageEvents: { _count: "desc" } },
-      take: 50,
+    }),
+    prisma.usageEvent.groupBy({
+      by: ["promptId"],
+      where: {
+        prompt: {
+          teamId: auth.teamId,
+          owner: filterOu ? { ou: filterOu } : { ou: { not: null } },
+          status: "PUBLISHED",
+        },
+        action: { in: [UsageAction.COPY, UsageAction.LAUNCH] },
+      },
+      _count: { _all: true },
     }),
   ]);
 
@@ -301,13 +322,23 @@ analyticsRouter.get("/ou", async (req: Request, res: Response) => {
     }
   }
 
+  const usageCountMap = new Map(usageCountsByPrompt.map((g) => [g.promptId, g._count._all]));
+  const promptsWithUsage = promptsForTopByOu
+    .map((p) => ({
+      id: p.id,
+      title: p.title,
+      ou: p.owner.ou,
+      usageCount: usageCountMap.get(p.id) ?? 0,
+    }))
+    .sort((a, b) => b.usageCount - a.usageCount);
+
   const topPromptsByOu = new Map<string, Array<{ id: number; title: string; usageCount: number }>>();
-  for (const prompt of topPromptsPerOu) {
-    const ou = prompt.owner.ou;
+  for (const prompt of promptsWithUsage) {
+    const ou = prompt.ou;
     if (ou) {
       const list = topPromptsByOu.get(ou) ?? [];
       if (list.length < 5) {
-        list.push({ id: prompt.id, title: prompt.title, usageCount: prompt._count.usageEvents });
+        list.push({ id: prompt.id, title: prompt.title, usageCount: prompt.usageCount });
       }
       topPromptsByOu.set(ou, list);
     }

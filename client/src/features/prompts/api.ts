@@ -1,10 +1,12 @@
 import { apiClient } from "../../api/client";
 
-export const PROMPT_TOOL_OPTIONS = ["claude_code", "cursor", "gemini", "meshmesh", "notebooklm", "other", "saleo", "slackbot"] as const;
+export const PROMPT_TOOL_OPTIONS = ["chatgpt", "claude_code", "claude_cowork", "cursor", "gemini", "meshmesh", "notebooklm", "other", "saleo", "slackbot"] as const;
 export type PromptTool = (typeof PROMPT_TOOL_OPTIONS)[number];
 
 export const PROMPT_TOOL_LABELS: Record<PromptTool, string> = {
+  chatgpt: "ChatGPT",
   claude_code: "Claude Code",
+  claude_cowork: "Claude Cowork",
   cursor: "Cursor",
   gemini: "Gemini",
   meshmesh: "MeshMesh",
@@ -157,7 +159,7 @@ type ListMeta = {
   snapshot?: {
     promptsPublished: number;
     activeUsers: number;
-    promptsViewed: number;
+    promptsUsed: number;
   };
 };
 

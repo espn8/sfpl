@@ -10,7 +10,7 @@ const contextRouter = Router();
 const promptVisibilitySchema = z.enum(["PUBLIC", "TEAM", "PRIVATE"]);
 const promptStatusSchema = z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]);
 
-const CONTEXT_TOOLS = ["claude_code", "cursor", "gemini", "meshmesh", "notebooklm", "other", "saleo", "slackbot"] as const;
+const CONTEXT_TOOLS = ["chatgpt", "claude_code", "claude_cowork", "cursor", "gemini", "meshmesh", "notebooklm", "other", "saleo", "slackbot"] as const;
 const contextToolSchema = z.enum(CONTEXT_TOOLS);
 
 const MAX_BODY_LENGTH = 500_000;

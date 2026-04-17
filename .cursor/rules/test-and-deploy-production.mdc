@@ -1,0 +1,20 @@
+---
+description: Always test changes on production (Heroku) and push schema migrations
+alwaysApply: true
+---
+
+# Test and Deploy to Production
+
+When making changes that affect the database or backend:
+
+1. **Schema Changes**: After modifying `schema.prisma`, always apply migrations to both local AND Heroku databases
+   - Local: `npx prisma migrate dev` (in server directory)
+   - Heroku: `heroku pg:psql -c "<SQL>"` or `heroku run npx prisma migrate deploy`
+
+2. **Testing**: Test changes on the production Heroku app, not just locally
+
+3. **Deployment**: Push changes to Heroku after local verification
+   - `git push heroku main:master`
+
+4. **Verify**: Check Heroku logs for errors after deployment
+   - `heroku logs --tail`

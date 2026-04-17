@@ -47,7 +47,7 @@ function pluralize(count: number, singular: string, plural = `${singular}s`): st
   return `${count.toLocaleString()} ${count === 1 ? singular : plural}`;
 }
 
-type HeroStatIconVariant = "published" | "people" | "views";
+type HeroStatIconVariant = "published" | "people" | "usage";
 
 function HeroStatIcon({ variant }: { variant: HeroStatIconVariant }) {
   const className = "h-7 w-7 shrink-0 text-(--color-text)";
@@ -70,8 +70,8 @@ function HeroStatIcon({ variant }: { variant: HeroStatIconVariant }) {
   }
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
-      <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="12" cy="12" r="3" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -201,7 +201,7 @@ export function PromptListPage() {
   const snapshot = promptsQuery.data?.meta.snapshot;
   const promptsPublished = snapshot?.promptsPublished ?? 0;
   const activeUsers = snapshot?.activeUsers ?? 0;
-  const promptsViewed = snapshot?.promptsViewed ?? 0;
+  const promptsUsed = snapshot?.promptsUsed ?? 0;
   const snapshotReady = promptsQuery.isSuccess;
   const heroStats = [
     {
@@ -217,9 +217,9 @@ export function PromptListPage() {
       counterActive: snapshotReady,
     },
     {
-      icon: "views" as const,
-      label: "AI Assets Viewed",
-      value: promptsViewed,
+      icon: "usage" as const,
+      label: "AI Assets Used",
+      value: promptsUsed,
       counterActive: snapshotReady,
     },
   ] as const;
@@ -265,7 +265,11 @@ export function PromptListPage() {
                   className="group rounded-xl border border-(--color-border) bg-(--color-surface) p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-(--color-primary)/50 hover:shadow-md motion-reduce:transform-none"
                 >
                   <div className="mb-2 flex items-center gap-2">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-(--color-primary)/10 text-lg">📝</span>
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-(--color-primary)/10">
+                      <svg className="h-5 w-5 text-(--color-primary)" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+                        <path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </span>
                     <h3 className="font-semibold">Prompts</h3>
                   </div>
                   <p className="text-sm text-(--color-text-muted)">
@@ -278,7 +282,11 @@ export function PromptListPage() {
                   className="group rounded-xl border border-(--color-border) bg-(--color-surface) p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-(--color-primary)/50 hover:shadow-md motion-reduce:transform-none"
                 >
                   <div className="mb-2 flex items-center gap-2">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-(--color-primary)/10 text-lg">⚡</span>
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-(--color-primary)/10">
+                      <svg className="h-5 w-5 text-(--color-primary)" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+                        <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </span>
                     <h3 className="font-semibold">Skills</h3>
                   </div>
                   <p className="text-sm text-(--color-text-muted)">
@@ -291,7 +299,11 @@ export function PromptListPage() {
                   className="group rounded-xl border border-(--color-border) bg-(--color-surface) p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-(--color-primary)/50 hover:shadow-md motion-reduce:transform-none"
                 >
                   <div className="mb-2 flex items-center gap-2">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-(--color-primary)/10 text-lg">📚</span>
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-(--color-primary)/10">
+                      <svg className="h-5 w-5 text-(--color-primary)" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+                        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </span>
                     <h3 className="font-semibold">Context</h3>
                   </div>
                   <p className="text-sm text-(--color-text-muted)">
@@ -303,7 +315,7 @@ export function PromptListPage() {
             </div>
             <div className="mt-5 flex flex-col gap-3">
               <div className="w-full rounded-xl border border-(--color-border) bg-(--color-surface) px-4 py-5 transition-all duration-300 motion-reduce:transition-none sm:px-6 sm:py-6">
-                <p className="text-xs uppercase tracking-wide text-(--color-text-muted)">See what's happening now</p>
+                <p className="text-xs uppercase tracking-wide text-(--color-text-muted)">What's happening now</p>
                 <div
                   className="mt-5 grid w-full grid-cols-1 gap-8 sm:grid-cols-3"
                   role="list"
@@ -338,7 +350,7 @@ export function PromptListPage() {
           </section>
 
           <section className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-sm transition-all duration-300 hover:shadow motion-reduce:transition-none">
-            <h3 className="text-xl font-semibold">How SF AI Library Works</h3>
+            <h3 className="text-xl font-semibold">How AI Library Works</h3>
             <ol className="mt-6 flex list-none flex-col gap-0 p-0 md:mt-8 md:flex-row md:items-stretch">
               {howItWorksSteps.map((item, index) => {
                 const isFirst = index === 0;

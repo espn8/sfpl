@@ -10,7 +10,7 @@ const skillsRouter = Router();
 const promptVisibilitySchema = z.enum(["PUBLIC", "TEAM", "PRIVATE"]);
 const promptStatusSchema = z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]);
 
-const SKILL_TOOLS = ["claude_code", "cursor", "gemini", "meshmesh", "notebooklm", "other", "saleo", "slackbot"] as const;
+const SKILL_TOOLS = ["chatgpt", "claude_code", "claude_cowork", "cursor", "gemini", "meshmesh", "notebooklm", "other", "saleo", "slackbot"] as const;
 const skillToolSchema = z.enum(SKILL_TOOLS);
 
 const MAX_BODY_LENGTH = 500_000;

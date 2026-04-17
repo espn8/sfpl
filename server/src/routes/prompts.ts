@@ -17,7 +17,7 @@ const USAGE_ACTIONS: UsageActionValue[] = ["VIEW", "COPY", "LAUNCH"];
 const promptVisibilitySchema = z.enum(["PUBLIC", "TEAM", "PRIVATE"]);
 const promptStatusSchema = z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]);
 const usageActionSchema = z.enum(USAGE_ACTIONS);
-const PROMPT_TOOLS = ["claude_code", "cursor", "gemini", "meshmesh", "notebooklm", "other", "saleo", "slackbot"] as const;
+const PROMPT_TOOLS = ["chatgpt", "claude_code", "claude_cowork", "cursor", "gemini", "meshmesh", "notebooklm", "other", "saleo", "slackbot"] as const;
 const promptToolSchema = z.enum(PROMPT_TOOLS);
 const API_MODALITIES = ["text", "code", "image", "video", "audio", "multimodal"] as const;
 const apiModalitySchema = z.enum(API_MODALITIES);
@@ -37,11 +37,17 @@ function mapLegacyModelHintToTools(modelHint?: string | null): string[] {
   if (!value) {
     return [];
   }
+  if (value === "chatgpt" || value === "chat gpt" || value === "gpt" || value === "openai") {
+    return ["chatgpt"];
+  }
   if (value === "cursor") {
     return ["cursor"];
   }
   if (value === "claude code" || value === "claude_code" || value === "claudecode" || value === "claude") {
     return ["claude_code"];
+  }
+  if (value === "claude cowork" || value === "claude_cowork" || value === "claudecowork" || value === "cowork") {
+    return ["claude_cowork"];
   }
   if (value === "meshmesh") {
     return ["meshmesh"];
@@ -418,7 +424,7 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
     publishedSnapshotWhere.OR = snapshotVisibilityConditions;
   }
 
-  const [prompts, total, promptsPublished, activeUsers, promptsViewed] = await Promise.all([
+  const [prompts, total, promptsPublished, activeUsers, promptsUsed] = await Promise.all([
     prisma.prompt.findMany({
       where,
       select: {
@@ -450,7 +456,7 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
     prisma.user.count({ where: { teamId: auth.teamId } }),
     prisma.usageEvent.count({
       where: {
-        action: UsageAction.VIEW,
+        action: { in: [UsageAction.COPY, UsageAction.LAUNCH] },
         prompt: { teamId: auth.teamId },
       },
     }),
@@ -460,7 +466,7 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
       throw error;
     }
 
-    const [legacyPrompts, legacyTotal, legacyPublished, legacyUsers, legacyViews] = await Promise.all([
+    const [legacyPrompts, legacyTotal, legacyPublished, legacyUsers, legacyUsed] = await Promise.all([
       prisma.prompt.findMany({
         where,
         select: {
@@ -488,12 +494,12 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
       prisma.user.count({ where: { teamId: auth.teamId } }),
       prisma.usageEvent.count({
         where: {
-          action: UsageAction.VIEW,
+          action: { in: [UsageAction.COPY, UsageAction.LAUNCH] },
           prompt: { teamId: auth.teamId },
         },
       }),
     ]);
-    return [legacyPrompts, legacyTotal, legacyPublished, legacyUsers, legacyViews] as const;
+    return [legacyPrompts, legacyTotal, legacyPublished, legacyUsers, legacyUsed] as const;
   });
 
   type ListedPromptRow = {
@@ -520,13 +526,19 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
   const listed = prompts as ListedPromptRow[];
   const promptIds = listed.map((row) => row.id);
   let viewCountByPrompt = new Map<number, number>();
+  let usageCountByPrompt = new Map<number, number>();
   let favoritedPromptIds = new Set<number>();
   let myRatingByPrompt = new Map<number, number>();
   if (promptIds.length > 0) {
-    const [viewGroups, favoriteRows, ratingRows] = await Promise.all([
+    const [viewGroups, usageGroups, favoriteRows, ratingRows] = await Promise.all([
       prisma.usageEvent.groupBy({
         by: ["promptId"],
         where: { promptId: { in: promptIds }, action: UsageAction.VIEW },
+        _count: { _all: true },
+      }),
+      prisma.usageEvent.groupBy({
+        by: ["promptId"],
+        where: { promptId: { in: promptIds }, action: { in: [UsageAction.COPY, UsageAction.LAUNCH] } },
         _count: { _all: true },
       }),
       prisma.favorite.findMany({
@@ -539,6 +551,7 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
       }),
     ]);
     viewCountByPrompt = new Map(viewGroups.map((group) => [group.promptId, group._count._all]));
+    usageCountByPrompt = new Map(usageGroups.map((group) => [group.promptId, group._count._all]));
     favoritedPromptIds = new Set(favoriteRows.map((row) => row.promptId));
     myRatingByPrompt = new Map(ratingRows.map((row) => [row.promptId, row.value]));
   }
@@ -563,7 +576,7 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
     tags: prompt.promptTags.map((item: { tag: { name: string } }) => item.tag.name),
     favoriteCount: prompt._count.favorites,
     ratingCount: prompt._count.ratings,
-    usageCount: prompt._count.usageEvents,
+    usageCount: usageCountByPrompt.get(prompt.id) ?? 0,
     averageRating:
       prompt.ratings.length === 0
         ? null
@@ -598,7 +611,7 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
       snapshot: {
         promptsPublished,
         activeUsers,
-        promptsViewed,
+        promptsUsed,
       },
     },
   });

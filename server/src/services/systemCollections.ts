@@ -1,7 +1,9 @@
 import { prisma } from "../lib/prisma";
 
 const TOOL_COLLECTION_MAP: Record<string, { name: string; description: string }> = {
+  chatgpt: { name: "ChatGPT Collection", description: "AI assets optimized for ChatGPT" },
   claude_code: { name: "Claude Code Collection", description: "AI assets optimized for Claude Code" },
+  claude_cowork: { name: "Claude Cowork Collection", description: "AI assets optimized for Claude Cowork" },
   cursor: { name: "Cursor Collection", description: "AI assets optimized for Cursor" },
   gemini: { name: "Gemini Collection", description: "AI assets optimized for Gemini" },
   meshmesh: { name: "MeshMesh Collection", description: "AI assets optimized for MeshMesh" },

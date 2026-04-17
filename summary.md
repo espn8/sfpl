@@ -1,13 +1,22 @@
 # AI Library - Technical Summary
 
-Last Updated: Thursday, April 17, 2026 — 13:50 CDT
-Build Version: d50920a
+Last Updated: Friday, April 17, 2026 — 15:30 CDT
+Build Version: 3638b59
 
 ## Recent Changes
 
-- **Improved error messages for create operations**: Updated `PromptEditorPage`, `SkillEditorPage`, and `ContextEditorPage` to display actual server error messages instead of generic "Could not create..." messages. Added `onError` handlers that log errors to console for debugging. When creation fails, users now see the real error (e.g., "Authentication required." if not logged in, or validation details if fields are invalid).
+- **New tool options: ChatGPT and Claude Cowork**: Added `chatgpt` and `claude_cowork` to the tool options across all asset types (Prompts, Skills, Context Documents). Updated tool labels, launch provider logic, system collections, and legacy model hint mapping.
+- **Usage metrics refactored to COPY/LAUNCH only**: Changed "AI Assets Viewed" metric to "AI Assets Used" — now counts only COPY and LAUNCH events, not VIEW events. This provides a more accurate measure of actual asset usage. Updated hero stats, prompt list cards, analytics overview, and OU analytics endpoints.
+- **Toast notification system**: Added new `ToastProvider` context with `useToast` hook for showing success/error/info toast notifications. Integrated into app providers and used for copy confirmation feedback.
+- **Copy button redesign on prompt cards**: Moved copy button from left action toolbar to right side next to launch button. Restyled with Salesforce purple (#5A1BA9) background, rounded-xl styling, and "Copy" label. Now shows toast confirmation on copy.
+- **Multiple tool chips support**: Prompt cards now display chips for all selected tools instead of just the first one. Updated `toolChipsFromPrompt` to return array of labels.
+- **Hero navigation cards with SVG icons**: Replaced emoji icons (📝, ⚡, 📄) with proper SVG stroke icons for Prompts, Skills, and Context cards on the homepage.
+- **Context Document tools migration**: Added database migration to add `tools` column to ContextDocument table (existing rows default to empty array).
+- **Test and deploy rule**: Added workspace rule for production deployment workflow including schema migration reminders.
 
 ### Previous Session Changes (April 17, 2026)
+
+- **Improved error messages for create operations**: Updated `PromptEditorPage`, `SkillEditorPage`, and `ContextEditorPage` to display actual server error messages instead of generic "Could not create..." messages. Added `onError` handlers that log errors to console for debugging. When creation fails, users now see the real error (e.g., "Authentication required." if not logged in, or validation details if fields are invalid).
 
 - **Mutation handler cleanup**: Converted async `onSuccess` handlers in mutation hooks to properly await `invalidateQueries` calls before navigation. Removed unnecessary `void` prefixes from `navigate()` calls in `CollectionDetailPage`, `ContextDetailPage`, `PromptDetailPage`, and `SkillDetailPage`. Fixed PromptDetailPage to navigate to `/` after deletion instead of `/prompts`.
 - **Collections page loading states**: Added loading, error, and empty state handling to `CollectionsPage`. Displays "Loading collections..." during fetch, error message with refresh prompt on failure, and helpful empty state message when no collections exist.
@@ -302,7 +311,8 @@ The application has achieved **substantial completion** of the core implementati
 - `server/src/routes/help.ts`: help content search endpoint for the searchable help page.
 - `server/src/services/nanoBanana.ts`: external image-generation bridge for prompt thumbnails via Gemini API.
 - `server/src/services/helpSearch.ts`: help content search service with AI-powered question answering.
-- `server/src/services/systemCollections.ts`: automatic tool-based and "Best of AI Library" collection management.
+- `server/src/services/systemCollections.ts`: automatic tool-based and "Best of AI Library" collection management. Includes ChatGPT and Claude Cowork collections.
+- `client/src/app/providers/ToastProvider.tsx`: toast notification context and UI for success/error/info feedback.
 - `server/prisma/schema.prisma`: source of truth for users/teams/prompts/skills/context/engagement relations and enums.
 - `client/src/features/prompts/PromptListPage.tsx`: homepage/discovery UX, list cards, filters, hero stats, and leaderboards.
 - `client/src/features/prompts/PromptDetailPage.tsx`: full prompt view with engagement chrome, variables/preview, versions, and external launch.

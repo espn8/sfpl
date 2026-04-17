@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
+import { useToast } from "../../app/providers/ToastProvider";
 import { logUsage, ratePrompt, toggleFavorite, type PromptSummary } from "./api";
 import { interpolatePromptBody } from "./interpolatePrompt";
 import { defaultLaunchProviderForTools, getLaunchUrl } from "./launchProviders";
@@ -46,6 +47,7 @@ type PromptListCardProps = {
 
 export function PromptListCard({ prompt, variant = "default", showAnalytics = false }: PromptListCardProps) {
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
   const { text, canCopyOrLaunch } = composedTextForList(prompt);
   const provider = defaultLaunchProviderForTools(prompt.tools);
   const launchUrl = canCopyOrLaunch ? getLaunchUrl(provider, text) : "";
@@ -197,19 +199,6 @@ export function PromptListCard({ prompt, variant = "default", showAnalytics = fa
           <div className="flex items-center gap-0.5">
             <button
               type="button"
-              disabled={!canCopyOrLaunch}
-              className="rounded-md border border-transparent p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text) disabled:pointer-events-none disabled:opacity-40"
-              aria-label="Copy prompt"
-              onClick={() => {
-                void navigator.clipboard.writeText(text);
-                void logUsage(prompt.id, "COPY");
-                trackEvent("prompt_copy", { prompt_id: prompt.id, source: "list" });
-              }}
-            >
-              <CopyIcon className="h-5 w-5" />
-            </button>
-            <button
-              type="button"
               className="rounded-md border border-transparent p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text)"
               aria-label="Share prompt link"
               onClick={() => {
@@ -233,28 +222,49 @@ export function PromptListCard({ prompt, variant = "default", showAnalytics = fa
               <HeartIcon className="h-5 w-5" filled={favorited} />
             </button>
           </div>
-          <a
-            href={canCopyOrLaunch ? launchUrl : undefined}
-            target="_blank"
-            rel="noreferrer"
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors ${
-              canCopyOrLaunch
-                ? "bg-(--color-launch) text-(--color-text-inverse) hover:bg-(--color-launch-hover)"
-                : "pointer-events-none bg-(--color-surface-muted) text-(--color-text-muted) opacity-50"
-            }`}
-            aria-disabled={!canCopyOrLaunch}
-            onClick={(event) => {
-              if (!canCopyOrLaunch) {
-                event.preventDefault();
-                return;
-              }
-              void logUsage(prompt.id, "LAUNCH");
-              trackEvent("prompt_launch", { prompt_id: prompt.id, provider });
-            }}
-          >
-            <SparkleIcon className="h-4 w-4" />
-            {useLabel}
-          </a>
+          <div className="flex items-center gap-2">
+            <a
+              href={canCopyOrLaunch ? launchUrl : undefined}
+              target="_blank"
+              rel="noreferrer"
+              className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors ${
+                canCopyOrLaunch
+                  ? "bg-(--color-launch) text-(--color-text-inverse) hover:bg-(--color-launch-hover)"
+                  : "pointer-events-none bg-(--color-surface-muted) text-(--color-text-muted) opacity-50"
+              }`}
+              aria-disabled={!canCopyOrLaunch}
+              onClick={(event) => {
+                if (!canCopyOrLaunch) {
+                  event.preventDefault();
+                  return;
+                }
+                void logUsage(prompt.id, "LAUNCH");
+                trackEvent("prompt_launch", { prompt_id: prompt.id, provider });
+              }}
+            >
+              <SparkleIcon className="h-4 w-4" />
+              {useLabel}
+            </a>
+            <button
+              type="button"
+              disabled={!canCopyOrLaunch}
+              className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors ${
+                canCopyOrLaunch
+                  ? "bg-[#5A1BA9] text-white hover:bg-[#4A1589]"
+                  : "pointer-events-none bg-(--color-surface-muted) text-(--color-text-muted) opacity-50"
+              }`}
+              aria-label="Copy prompt"
+              onClick={() => {
+                void navigator.clipboard.writeText(text);
+                void logUsage(prompt.id, "COPY");
+                trackEvent("prompt_copy", { prompt_id: prompt.id, source: "list" });
+                showToast("Copied to clipboard");
+              }}
+            >
+              <CopyIcon className="h-4 w-4" />
+              Copy
+            </button>
+          </div>
         </div>
 
         <div className="mt-2 text-center">

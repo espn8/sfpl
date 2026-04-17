@@ -3,6 +3,7 @@ import { isAxiosError } from "axios";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
+import { useToast } from "../../app/providers/ToastProvider";
 import { ConfirmDeleteModal } from "../../components/ConfirmDeleteModal";
 import { fetchMe } from "../auth/api";
 import { listCollections } from "../collections/api";
@@ -71,6 +72,7 @@ export function PromptDetailPage() {
   const params = useParams();
   const promptId = Number(params.id);
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [myRating, setMyRating] = useState<number | null>(null);
   const [favorited, setFavorited] = useState(false);
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
@@ -517,6 +519,7 @@ export function PromptDetailPage() {
               void navigator.clipboard.writeText(composed.text);
               void logUsage(promptId, "COPY");
               trackEvent("prompt_copy", { prompt_id: promptId, source: "detail" });
+              showToast("Copied to clipboard");
             }}
           >
             <CopyIcon className="h-4 w-4" />
