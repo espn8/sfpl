@@ -1,9 +1,13 @@
 # AI Library - Technical Summary
 
-Last Updated: Wednesday, April 16, 2026 — 18:45 CDT
-Build Version: 5f3da82
+Last Updated: Thursday, April 17, 2026 — 13:47 CDT
+Build Version: c5cbc52
 
 ## Recent Changes
+
+- **Improved error messages for create operations**: Updated `PromptEditorPage`, `SkillEditorPage`, and `ContextEditorPage` to display actual server error messages instead of generic "Could not create..." messages. Added `onError` handlers that log errors to console for debugging. When creation fails, users now see the real error (e.g., "Authentication required." if not logged in, or validation details if fields are invalid).
+
+### Previous Session Changes (April 17, 2026)
 
 - **Mutation handler cleanup**: Converted async `onSuccess` handlers in mutation hooks to properly await `invalidateQueries` calls before navigation. Removed unnecessary `void` prefixes from `navigate()` calls in `CollectionDetailPage`, `ContextDetailPage`, `PromptDetailPage`, and `SkillDetailPage`. Fixed PromptDetailPage to navigate to `/` after deletion instead of `/prompts`.
 - **Collections page loading states**: Added loading, error, and empty state handling to `CollectionsPage`. Displays "Loading collections..." during fetch, error message with refresh prompt on failure, and helpful empty state message when no collections exist.

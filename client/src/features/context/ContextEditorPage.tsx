@@ -39,6 +39,9 @@ export function ContextEditorPage() {
     onSuccess: (doc) => {
       navigate(`/context/${doc.id}`);
     },
+    onError: (error) => {
+      console.error("Create context error:", error);
+    },
   });
 
   return (
@@ -193,7 +196,15 @@ export function ContextEditorPage() {
       ) : null}
       {createMutation.isError ? (
         <p className="text-sm text-red-600" role="alert">
-          Could not create document. Please try again.
+          {(() => {
+            const err = createMutation.error;
+            if (err && typeof err === "object" && "response" in err) {
+              const axiosError = err as { response?: { data?: { error?: { message?: string } } } };
+              const serverMessage = axiosError.response?.data?.error?.message;
+              if (serverMessage) return serverMessage;
+            }
+            return "Could not create document. Please try again.";
+          })()}
         </p>
       ) : null}
       <button

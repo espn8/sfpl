@@ -126,7 +126,7 @@ export function PromptListPage() {
   const [search, setSearch] = useState("");
   const [tag, setTag] = useState("");
   const [collectionId, setCollectionId] = useState("");
-  const [tool, setTool] = useState("");
+  const [tool, setTool] = useState(() => searchParams.get("tool") ?? "");
   const [modality, setModality] = useState("");
   const [sort, setSort] = useState<"recent" | "topRated" | "mostUsed">("recent");
   const [page, setPage] = useState(1);
@@ -134,6 +134,14 @@ export function PromptListPage() {
 
   const mineFilter = searchParams.get("mine") === "true";
   const showAnalytics = searchParams.get("showAnalytics") === "true";
+
+  useEffect(() => {
+    const urlTool = searchParams.get("tool") ?? "";
+    if (urlTool !== tool) {
+      setTool(urlTool);
+      setPage(1);
+    }
+  }, [searchParams, tool]);
 
   const filters = useMemo<ListPromptsFilters>(() => {
     const nextFilters: ListPromptsFilters = {
@@ -215,7 +223,9 @@ export function PromptListPage() {
       counterActive: snapshotReady,
     },
   ] as const;
-  const featuredPrompts = (promptsQuery.data?.data ?? []).slice(0, 6);
+  const featuredPrompts = (promptsQuery.data?.data ?? [])
+    .filter((p) => p.thumbnailStatus !== "FAILED")
+    .slice(0, 6);
 
   const contributorLeaderboard = (analyticsQuery.data?.contributors ?? []).slice(0, 5);
   const usersLeaderboard = (analyticsQuery.data?.userEngagementLeaderboard ?? []).slice(0, 5);
@@ -377,12 +387,13 @@ export function PromptListPage() {
                   {getToolsSortedAlphabetically()
                     .filter((t) => t !== "other")
                     .map((toolOption) => (
-                      <span
+                      <Link
                         key={toolOption}
-                        className="rounded-full border border-(--color-border) bg-(--color-surface) px-2 py-1 font-medium"
+                        to={`/?tool=${toolOption}`}
+                        className="rounded-full border border-(--color-border) bg-(--color-surface) px-2 py-1 font-medium transition-colors hover:border-(--color-primary) hover:bg-(--color-primary)/10"
                       >
                         {getToolLabel(toolOption)}
-                      </span>
+                      </Link>
                     ))}
                 </div>
               </div>

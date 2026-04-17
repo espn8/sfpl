@@ -54,6 +54,9 @@ export function PromptEditorPage() {
       trackEvent("prompt_create", { prompt_id: prompt.id });
       navigate(`/prompts/${prompt.id}`);
     },
+    onError: (error) => {
+      console.error("Create prompt error:", error);
+    },
   });
 
   return (
@@ -346,7 +349,15 @@ export function PromptEditorPage() {
       ) : null}
       {createMutation.isError ? (
         <p className="rounded border border-(--color-danger) bg-(--color-danger)/10 px-3 py-2 text-sm text-(--color-danger)" role="alert">
-          Could not create prompt. Please try again.
+          {(() => {
+            const err = createMutation.error;
+            if (err && typeof err === "object" && "response" in err) {
+              const axiosError = err as { response?: { data?: { error?: { message?: string } } } };
+              const serverMessage = axiosError.response?.data?.error?.message;
+              if (serverMessage) return serverMessage;
+            }
+            return "Could not create prompt. Please try again.";
+          })()}
         </p>
       ) : null}
       <button
