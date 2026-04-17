@@ -1,9 +1,22 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 17, 2026 — 18:45 CDT
-Build Version: 55a41fe
+Last Updated: Friday, April 17, 2026 — 19:15 CDT
+Build Version: 94d6fc3
 
 ## Recent Changes
+
+- **Unified My Content Page**: Complete redesign of the "My Content" experience with enhanced filtering and sorting capabilities.
+  - **Dedicated My Content section**: Accessing `/?mine=true` now shows a full-featured content management interface with search, filters, and pagination.
+  - **Status filtering**: Filter assets by status (Draft, Published, Archived) with new `showStatus` prop on SearchBar and backend support.
+  - **Extended sort options**: Added "Name" (alphabetical) and "Updated At" sort options in addition to existing "Recent" and "Most Used".
+  - **Unified settings link**: Settings page "Your Content" section now has a single "My Content" link instead of separate links per asset type.
+  - **SearchEmptyState improvements**: Better empty state messaging for filtered vs unfiltered results with CTAs to create new assets.
+  - **Pagination controls**: Full Previous/Next pagination in My Content view with page count display.
+  - **API enhancements**: Assets API now supports `status` filter parameter and `name`/`updatedAt` sort options.
+
+- **Collections API fix**: Fixed response parsing in `listCollections()` to correctly extract the data array from the API response structure.
+
+### Previous Session Changes (April 17, 2026)
 
 - **Smart AI Search System**: Comprehensive search overhaul with unified search bar, natural language parsing, auto-suggestions, and relevance highlighting.
   - **Unified SearchBar component**: Single search input with removable filter chips, keyboard shortcut (⌘K), debounced input (300ms), and URL state sync.
@@ -15,7 +28,7 @@ Build Version: 55a41fe
   - **New API endpoints**: `GET /api/search/suggestions` (asset/filter suggestions), `GET /api/search/parse` (NL query parsing).
   - **Backend facet counts**: Assets API now returns `meta.facets` with counts by `assetType` and `tool`.
 
-### Previous Session Changes (April 17, 2026)
+### Previous Session Changes (April 17, 2026 — earlier)
 
 - **Unified HomePage with Asset Cards**: Refactored the homepage to display all asset types (Prompts, Skills, Context) in a unified view. New `HomePage.tsx` component with hero section, "Top Performers This Week" featured assets, "How AI Library Works" steps, tool integration cards, and optional admin leaderboards.
 - **New Assets API**: Added `/api/assets` endpoint that returns unified paginated list of all asset types with filtering by type, tool, search, and sort options. Includes snapshot stats (assetsPublished, activeUsers, promptsUsed).
@@ -293,7 +306,7 @@ The application has achieved **substantial completion** of the core implementati
 | Route File | Endpoints |
 |------------|-----------|
 | `auth.ts` | `GET /google`, `GET /google/callback`, `POST /logout`, `GET /me`, `PATCH /me`, `POST /me/profile-photo` |
-| `assets.ts` | `GET /` (unified asset listing with type/tool/search filters, pagination, and facet counts) |
+| `assets.ts` | `GET /` (unified asset listing with type/tool/status/search filters, sort options, pagination, and facet counts) |
 | `search.ts` | `GET /suggestions` (asset/filter suggestions), `GET /parse` (natural language query parsing via Gemini) |
 | `prompts.ts` | Full CRUD, `DELETE /:id/permanent`, `/versions`, `/restore/:version`, `/favorite`, `/rating`, `/usage`, `/regenerate-thumbnail` |
 | `skills.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `DELETE /:id/permanent`, `POST /:id/usage`, `POST /:id/favorite`, `PUT /:id/variables` |
