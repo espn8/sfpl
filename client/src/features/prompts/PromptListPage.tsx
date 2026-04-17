@@ -266,7 +266,7 @@ export function PromptListPage() {
                 >
                   <div className="mb-2 flex items-center gap-2">
                     <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-(--color-primary)/10">
-                      <svg className="h-5 w-5 text-(--color-primary)" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+                      <svg className="h-5 w-5 text-(--color-text)" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
                         <path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </span>
@@ -283,7 +283,7 @@ export function PromptListPage() {
                 >
                   <div className="mb-2 flex items-center gap-2">
                     <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-(--color-primary)/10">
-                      <svg className="h-5 w-5 text-(--color-primary)" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+                      <svg className="h-5 w-5 text-(--color-text)" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
                         <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </span>
@@ -300,7 +300,7 @@ export function PromptListPage() {
                 >
                   <div className="mb-2 flex items-center gap-2">
                     <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-(--color-primary)/10">
-                      <svg className="h-5 w-5 text-(--color-primary)" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+                      <svg className="h-5 w-5 text-(--color-text)" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
                         <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </span>

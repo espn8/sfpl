@@ -1,10 +1,11 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 17, 2026 — 09:38 CDT
-Build Version: ac94ae3
+Last Updated: Friday, April 17, 2026 — 10:12 CDT
+Build Version: 3f456d6
 
 ## Recent Changes
 
+- **Hero card icon color consistency**: Updated Prompts, Skills, and Context navigation card icons to use `text-(--color-text)` instead of `text-(--color-primary)`, matching the style of the HeroStatIcon components in the stats section below.
 - **New tool options: ChatGPT and Claude Cowork**: Added `chatgpt` and `claude_cowork` to the tool options across all asset types (Prompts, Skills, Context Documents). Updated tool labels, launch provider logic, system collections, and legacy model hint mapping.
 - **Usage metrics refactored to COPY/LAUNCH only**: Changed "AI Assets Viewed" metric to "AI Assets Used" — now counts only COPY and LAUNCH events, not VIEW events. This provides a more accurate measure of actual asset usage. Updated hero stats, prompt list cards, analytics overview, and OU analytics endpoints.
 - **Toast notification system**: Added new `ToastProvider` context with `useToast` hook for showing success/error/info toast notifications. Integrated into app providers and used for copy confirmation feedback.
