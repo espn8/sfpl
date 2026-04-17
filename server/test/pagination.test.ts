@@ -59,7 +59,7 @@ describe("list endpoint pagination", () => {
       snapshot: {
         promptsPublished: 0,
         activeUsers: 0,
-        promptsViewed: 0,
+        promptsUsed: 0,
       },
     });
     expect(mockPromptFindMany).toHaveBeenCalledWith(
@@ -89,7 +89,7 @@ describe("list endpoint pagination", () => {
       snapshot: {
         promptsPublished: 31,
         activeUsers: 8,
-        promptsViewed: 120,
+        promptsUsed: 120,
       },
     });
     expect(mockPromptFindMany).toHaveBeenCalledWith(

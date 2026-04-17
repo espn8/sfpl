@@ -54,6 +54,8 @@ export type Skill = {
 export type ListSkillsFilters = {
   q?: string;
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  tool?: string;
+  sort?: "recent" | "mostUsed";
   mine?: boolean;
   includeAnalytics?: boolean;
   page?: number;

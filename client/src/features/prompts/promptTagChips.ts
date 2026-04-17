@@ -16,13 +16,11 @@ export function buildPromptTagChips(input: {
   tools: PromptTool[];
   modality: string;
   modelHint?: string | null;
-  tagNames: string[];
 }): string[] {
   const toolChips = toolChipsFromPrompt(input.tools, input.modelHint);
   return [
     ...toolChips,
     modalityLabel(input.modality),
-    ...input.tagNames.filter((t) => t.trim().length > 0),
   ].slice(0, 8);
 }
 

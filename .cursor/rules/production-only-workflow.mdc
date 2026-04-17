@@ -1,0 +1,27 @@
+---
+description: Production-only development workflow - no local or dev testing
+alwaysApply: true
+---
+
+# Production-Only Workflow
+
+This project does not use local or development testing. All changes are tested and verified directly in production.
+
+## Testing Approach
+
+- Do NOT start local dev servers for manual testing
+- Do NOT suggest running the app locally to verify changes
+- Run automated tests (unit/integration) to verify code correctness
+- Deploy directly to production (Heroku) for verification
+
+## Verification Steps
+
+1. **Code verification**: TypeScript compilation, linting, automated tests
+2. **Deploy to production**: `git push heroku main:master`
+3. **Verify in production**: Check Heroku logs and production app behavior
+
+## When Asked to Test
+
+- Run `pnpm test` in client and server directories
+- Check for TypeScript errors with `pnpm tsc --noEmit`
+- Do NOT spin up local servers or suggest manual browser testing

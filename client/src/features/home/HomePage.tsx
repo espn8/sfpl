@@ -3,6 +3,10 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { fetchMe } from "../auth/api";
 import { canAccessAdminUi } from "../auth/roles";
+import { getAnalyticsOverview } from "../analytics/api";
+import { listAssets, type ListAssetsFilters } from "../assets/api";
+import { AssetCard } from "../assets/AssetCard";
+import { getToolLabel, getToolsSortedAlphabetically, PROMPT_TOOL_OPTIONS } from "../prompts/api";
 
 const FIRST_VISIT_KEY = "sf-ai-library-first-visit-completed";
 
@@ -37,11 +41,6 @@ function usePersonalizedGreeting(userName: string | null | undefined) {
     ? `Your AI Awesomeness Starts Here, ${firstName}!`
     : `Welcome Back to AI Awesomeness, ${firstName}!`;
 }
-import { getAnalyticsOverview } from "../analytics/api";
-import { listCollections } from "../collections/api";
-import { listTags } from "../tags/api";
-import { getToolLabel, getToolsSortedAlphabetically, listPrompts, type ListPromptsFilters, PROMPT_MODALITY_OPTIONS, PROMPT_TOOL_OPTIONS } from "./api";
-import { PromptListCard } from "./PromptListCard";
 
 function pluralize(count: number, singular: string, plural = `${singular}s`): string {
   return `${count.toLocaleString()} ${count === 1 ? singular : plural}`;
@@ -121,14 +120,12 @@ function StatCounter({ end, active, delayMs = 0 }: StatCounterProps) {
   return <span className="text-3xl font-bold tabular-nums tracking-tight md:text-4xl">{display.toLocaleString()}</span>;
 }
 
-export function PromptListPage() {
+export function HomePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState("");
-  const [tag, setTag] = useState("");
-  const [collectionId, setCollectionId] = useState("");
   const [tool, setTool] = useState(() => searchParams.get("tool") ?? "");
-  const [modality, setModality] = useState("");
-  const [sort, setSort] = useState<"recent" | "topRated" | "mostUsed">("recent");
+  const [assetType, setAssetType] = useState<"all" | "prompt" | "skill" | "context">("all");
+  const [sort, setSort] = useState<"recent" | "mostUsed">("recent");
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
@@ -143,32 +140,27 @@ export function PromptListPage() {
     }
   }, [searchParams, tool]);
 
-  const filters = useMemo<ListPromptsFilters>(() => {
-    const nextFilters: ListPromptsFilters = {
+  const filters = useMemo<ListAssetsFilters>(() => {
+    const nextFilters: ListAssetsFilters = {
       page,
       pageSize,
       sort,
+      assetType,
     };
     if (search.trim()) {
       nextFilters.q = search.trim();
     }
-    if (tag) {
-      nextFilters.tag = tag;
-    }
-    if (collectionId) {
-      nextFilters.collectionId = Number(collectionId);
-    }
     if (tool) {
       nextFilters.tool = tool as (typeof PROMPT_TOOL_OPTIONS)[number];
-    }
-    if (modality) {
-      nextFilters.modality = modality as (typeof PROMPT_MODALITY_OPTIONS)[number];
     }
     if (mineFilter) {
       nextFilters.mine = true;
     }
+    if (showAnalytics) {
+      nextFilters.includeAnalytics = true;
+    }
     return nextFilters;
-  }, [collectionId, mineFilter, modality, page, search, sort, tag, tool]);
+  }, [assetType, mineFilter, page, search, showAnalytics, sort, tool]);
 
   const meQuery = useQuery({
     queryKey: ["auth", "me"],
@@ -178,36 +170,35 @@ export function PromptListPage() {
   const canViewAnalytics = Boolean(meQuery.data && canAccessAdminUi(meQuery.data.role));
   const personalizedGreeting = usePersonalizedGreeting(meQuery.data?.name);
 
-  const promptsQuery = useQuery({
-    queryKey: ["prompts", filters],
-    queryFn: () => listPrompts(filters),
+  const assetsQuery = useQuery({
+    queryKey: ["assets", filters],
+    queryFn: () => listAssets(filters),
   });
-  const tagsQuery = useQuery({ queryKey: ["tags"], queryFn: listTags });
-  const collectionsQuery = useQuery({ queryKey: ["collections"], queryFn: listCollections });
+
   const analyticsQuery = useQuery({
     queryKey: ["analytics", "overview"],
     queryFn: getAnalyticsOverview,
     enabled: canViewAnalytics,
   });
 
-  if (promptsQuery.isLoading) {
+  if (assetsQuery.isLoading) {
     return <p>Loading AI assets...</p>;
   }
 
-  if (promptsQuery.error) {
+  if (assetsQuery.error) {
     return <p className="text-red-700">We couldn't load AI assets right now. Try refreshing.</p>;
   }
 
-  const snapshot = promptsQuery.data?.meta.snapshot;
-  const promptsPublished = snapshot?.promptsPublished ?? 0;
+  const snapshot = assetsQuery.data?.meta.snapshot;
+  const assetsPublished = snapshot?.assetsPublished ?? 0;
   const activeUsers = snapshot?.activeUsers ?? 0;
   const promptsUsed = snapshot?.promptsUsed ?? 0;
-  const snapshotReady = promptsQuery.isSuccess;
+  const snapshotReady = assetsQuery.isSuccess;
   const heroStats = [
     {
       icon: "published" as const,
       label: "Assets Live",
-      value: promptsPublished,
+      value: assetsPublished,
       counterActive: snapshotReady,
     },
     {
@@ -223,11 +214,12 @@ export function PromptListPage() {
       counterActive: snapshotReady,
     },
   ] as const;
-  const featuredPrompts = (promptsQuery.data?.data ?? [])
-    .filter((p) => p.thumbnailStatus !== "FAILED")
+
+  const featuredAssets = (assetsQuery.data?.data ?? [])
+    .filter((a) => a.assetType !== "prompt" || a.thumbnailStatus !== "FAILED")
     .slice(0, 6);
 
-  const hasExploreSelection = Boolean(search.trim() || tag || tool || modality || collectionId);
+  const hasExploreSelection = Boolean(search.trim() || tool || assetType !== "all");
 
   const contributorLeaderboard = (analyticsQuery.data?.contributors ?? []).slice(0, 5);
   const usersLeaderboard = (analyticsQuery.data?.userEngagementLeaderboard ?? []).slice(0, 5);
@@ -263,7 +255,7 @@ export function PromptListPage() {
               </p>
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 <Link
-                  to="/"
+                  to="/prompts"
                   className="group rounded-xl border border-(--color-border) bg-(--color-surface) p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-(--color-primary)/50 hover:shadow-md motion-reduce:transform-none"
                 >
                   <div className="mb-2 flex items-center gap-2">
@@ -345,8 +337,8 @@ export function PromptListPage() {
               <span className="text-sm font-medium text-(--color-text-muted)">The AI assets people can't stop using</span>
             </div>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {featuredPrompts.map((prompt) => (
-                <PromptListCard key={prompt.id} prompt={prompt} variant="featured" />
+              {featuredAssets.map((asset) => (
+                <AssetCard key={`${asset.assetType}-${asset.id}`} asset={asset} variant="featured" />
               ))}
             </div>
           </section>
@@ -482,12 +474,12 @@ export function PromptListPage() {
         <div className="flex items-center justify-between rounded-lg border border-(--color-primary)/30 bg-(--color-primary)/5 p-4">
           <div>
             <h3 className="text-xl font-semibold">
-              {showAnalytics ? "My Prompt Analytics" : "My Prompts"}
+              {showAnalytics ? "My Asset Analytics" : "My Assets"}
             </h3>
             <p className="mt-1 text-sm text-(--color-text-muted)">
               {showAnalytics
-                ? "View performance metrics for prompts you've created"
-                : "View and manage prompts you've created"}
+                ? "View performance metrics for all assets you've created"
+                : "View and manage prompts, skills, and context you've created"}
             </p>
           </div>
           <button
@@ -495,13 +487,13 @@ export function PromptListPage() {
             onClick={() => setSearchParams({})}
             className="rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-1.5 text-sm hover:bg-(--color-surface-muted)"
           >
-            Show All Prompts
+            Show All Assets
           </button>
         </div>
       ) : null}
 
-      <h3 className="text-2xl font-semibold">{mineFilter ? "Your Prompts" : "Explore AI Assets"}</h3>
-      <div className="grid gap-2 rounded border border-(--color-border) bg-(--color-surface) p-3 md:grid-cols-2">
+      <h3 className="text-2xl font-semibold">{mineFilter ? "Your Assets" : "Explore AI Assets"}</h3>
+      <div className="grid gap-2 rounded border border-(--color-border) bg-(--color-surface) p-3 md:grid-cols-2 lg:grid-cols-3">
         <input
           value={search}
           onChange={(event) => {
@@ -514,29 +506,26 @@ export function PromptListPage() {
         <select
           value={sort}
           onChange={(event) => {
-            setSort(event.target.value as "recent" | "topRated" | "mostUsed");
+            setSort(event.target.value as "recent" | "mostUsed");
             setPage(1);
           }}
           className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
         >
           <option value="recent">Sort: Most recent</option>
-          <option value="topRated">Sort: Top rated</option>
           <option value="mostUsed">Sort: Most used</option>
         </select>
         <select
-          value={tag}
+          value={assetType}
           onChange={(event) => {
-            setTag(event.target.value);
+            setAssetType(event.target.value as "all" | "prompt" | "skill" | "context");
             setPage(1);
           }}
           className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
         >
-          <option value="">All tags</option>
-          {tagsQuery.data?.map((item) => (
-            <option key={item.id} value={item.name}>
-              {item.name}
-            </option>
-          ))}
+          <option value="all">All asset types</option>
+          <option value="prompt">Prompts only</option>
+          <option value="skill">Skills only</option>
+          <option value="context">Context only</option>
         </select>
         <select
           value={tool}
@@ -553,68 +542,40 @@ export function PromptListPage() {
             </option>
           ))}
         </select>
-        <select
-          value={modality}
-          onChange={(event) => {
-            setModality(event.target.value);
-            setPage(1);
-          }}
-          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
-        >
-          <option value="">All generated output</option>
-          {PROMPT_MODALITY_OPTIONS.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-        <select
-          value={collectionId}
-          onChange={(event) => {
-            setCollectionId(event.target.value);
-            setPage(1);
-          }}
-          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
-        >
-          <option value="">All collections</option>
-          {collectionsQuery.data?.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name}
-            </option>
-          ))}
-        </select>
       </div>
-      {hasExploreSelection ? (
+      {hasExploreSelection || mineFilter ? (
         <>
-          {promptsQuery.data?.data.map((prompt) => (
-            <PromptListCard key={prompt.id} prompt={prompt} variant="default" showAnalytics={showAnalytics} />
-          ))}
-          {promptsQuery.data && promptsQuery.data.meta.totalPages > 1 ? (
-        <div className="flex items-center justify-between pt-2">
-          <button
-            type="button"
-            disabled={promptsQuery.data.meta.page <= 1}
-            className="rounded border border-(--color-border) bg-(--color-surface) px-3 py-1.5 disabled:opacity-50"
-            onClick={() => {
-              setPage((current) => Math.max(1, current - 1));
-            }}
-          >
-            Previous
-          </button>
-          <p className="text-sm text-(--color-text-muted)">
-            Page {promptsQuery.data.meta.page} of {promptsQuery.data.meta.totalPages}
-          </p>
-          <button
-            type="button"
-            disabled={promptsQuery.data.meta.page >= promptsQuery.data.meta.totalPages}
-            className="rounded border border-(--color-border) bg-(--color-surface) px-3 py-1.5 disabled:opacity-50"
-            onClick={() => {
-              setPage((current) => Math.min(promptsQuery.data!.meta.totalPages, current + 1));
-            }}
-          >
-            Next
-          </button>
-        </div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {assetsQuery.data?.data.map((asset) => (
+              <AssetCard key={`${asset.assetType}-${asset.id}`} asset={asset} variant="default" showAnalytics={showAnalytics} />
+            ))}
+          </div>
+          {assetsQuery.data && assetsQuery.data.meta.totalPages > 1 ? (
+            <div className="flex items-center justify-between pt-2">
+              <button
+                type="button"
+                disabled={assetsQuery.data.meta.page <= 1}
+                className="rounded border border-(--color-border) bg-(--color-surface) px-3 py-1.5 disabled:opacity-50"
+                onClick={() => {
+                  setPage((current) => Math.max(1, current - 1));
+                }}
+              >
+                Previous
+              </button>
+              <p className="text-sm text-(--color-text-muted)">
+                Page {assetsQuery.data.meta.page} of {assetsQuery.data.meta.totalPages}
+              </p>
+              <button
+                type="button"
+                disabled={assetsQuery.data.meta.page >= assetsQuery.data.meta.totalPages}
+                className="rounded border border-(--color-border) bg-(--color-surface) px-3 py-1.5 disabled:opacity-50"
+                onClick={() => {
+                  setPage((current) => Math.min(assetsQuery.data!.meta.totalPages, current + 1));
+                }}
+              >
+                Next
+              </button>
+            </div>
           ) : null}
         </>
       ) : null}

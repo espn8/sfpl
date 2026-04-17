@@ -23,6 +23,10 @@ const API_MODALITIES = ["text", "code", "image", "video", "audio", "multimodal"]
 const apiModalitySchema = z.enum(API_MODALITIES);
 type ApiModality = (typeof API_MODALITIES)[number];
 
+const ASSET_TYPES = ["prompt", "skill", "context"] as const;
+const assetTypeSchema = z.enum(ASSET_TYPES);
+type AssetType = (typeof ASSET_TYPES)[number];
+
 const apiToDbModality: Record<ApiModality, PromptModality> = {
   text: PromptModality.TEXT,
   code: PromptModality.CODE,
@@ -116,6 +120,14 @@ const listPromptsQuerySchema = z.object({
   status: promptStatusSchema.optional(),
   tool: promptToolSchema.optional(),
   modality: apiModalitySchema.optional(),
+  types: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (!val) return undefined;
+      const parsed = val.split(",").map((t) => t.trim().toLowerCase());
+      return parsed.filter((t): t is AssetType => ASSET_TYPES.includes(t as AssetType));
+    }),
   sort: z.enum(["recent", "topRated", "mostUsed"]).optional(),
   page: z.coerce.number().int().positive().optional(),
   pageSize: z.coerce.number().int().positive().max(100).optional(),
@@ -348,11 +360,16 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
   const status = parsedQuery.data.status;
   const tool = parsedQuery.data.tool;
   const modality = parsedQuery.data.modality;
+  const types = parsedQuery.data.types;
   const sort = parseSort(parsedQuery.data.sort);
   const page = parsedQuery.data.page ?? 1;
   const pageSize = parsedQuery.data.pageSize ?? 20;
   const skip = (page - 1) * pageSize;
   const mine = parsedQuery.data.mine;
+
+  const includePrompts = !types || types.length === 0 || types.includes("prompt");
+  const includeSkills = types?.includes("skill") ?? false;
+  const includeContext = types?.includes("context") ?? false;
 
   const where: Prisma.PromptWhereInput = { teamId: auth.teamId };
   if (mine) {
@@ -422,6 +439,21 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
       });
     }
     publishedSnapshotWhere.OR = snapshotVisibilityConditions;
+  }
+
+  // If types filter excludes prompts and only requests skill/context (not yet supported in unified results),
+  // return empty results for now. Skills and Context will be integrated in a future update.
+  if (!includePrompts && (includeSkills || includeContext)) {
+    return res.status(200).json({
+      data: [],
+      meta: {
+        page,
+        pageSize,
+        total: 0,
+        totalPages: 1,
+        snapshot: { promptsPublished: 0, activeUsers: 0, promptsUsed: 0 },
+      },
+    });
   }
 
   const [prompts, total, promptsPublished, activeUsers, promptsUsed] = await Promise.all([
@@ -558,6 +590,7 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
 
   const data = listed.map((prompt) => ({
     id: prompt.id,
+    type: "prompt" as const,
     title: prompt.title,
     summary: prompt.summary,
     body: typeof prompt.body === "string" ? prompt.body : "",

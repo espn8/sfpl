@@ -1,6 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ThemeProvider } from "../app/providers/ThemeProvider";
@@ -11,6 +10,7 @@ vi.mock("../features/auth/api", () => ({
   fetchMe: vi.fn(),
   logout: vi.fn().mockResolvedValue(undefined),
   updateMyProfile: vi.fn(),
+  uploadProfilePhoto: vi.fn().mockResolvedValue(undefined),
 }));
 
 const defaultUser = {
@@ -53,24 +53,16 @@ describe("AppShell", () => {
     vi.clearAllMocks();
   });
 
-  it("opens account settings modal with profile, appearance, and account details", async () => {
+  it("renders settings link and displays page content", async () => {
     vi.mocked(fetchMe).mockResolvedValue(defaultUser);
 
-    const user = userEvent.setup();
     renderAppShell();
 
     await screen.findByText("Page content");
 
-    const accountButton = await screen.findByRole("button", { name: "Account settings" });
-    await user.click(accountButton);
-
-    expect(await screen.findByRole("heading", { name: "Account settings" })).toBeInTheDocument();
-    expect(screen.getByText("test@example.com")).toBeInTheDocument();
-    expect(screen.getByText("MEMBER")).toBeInTheDocument();
-    expect(screen.getByText("42")).toBeInTheDocument();
-    expect(screen.getByText("Appearance")).toBeInTheDocument();
-    expect(screen.getByLabelText("Theme")).toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: /display name/i })).toHaveValue("Test User");
+    const settingsLink = await screen.findByRole("link", { name: "Settings" });
+    expect(settingsLink).toBeInTheDocument();
+    expect(settingsLink).toHaveAttribute("href", "/settings");
   });
 
   it("shows welcome modal when onboarding is incomplete", async () => {
@@ -85,7 +77,7 @@ describe("AppShell", () => {
 
     renderAppShell();
 
-    expect(await screen.findByRole("heading", { name: "Welcome to SF AI Library" })).toBeInTheDocument();
-    expect(screen.getByText("Please finish your profile before continuing.")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Welcome to Your AI Toolkit" })).toBeInTheDocument();
+    expect(screen.getByText("Complete your profile to get started. It only takes a moment.")).toBeInTheDocument();
   });
 });

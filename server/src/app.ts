@@ -10,6 +10,7 @@ import { env } from "./config/env";
 import { prisma } from "./lib/prisma";
 import { errorHandler } from "./middleware/errorHandler";
 import { analyticsRouter } from "./routes/analytics";
+import { assetsRouter } from "./routes/assets";
 import { authRouter } from "./routes/auth";
 import { collectionsRouter } from "./routes/collections";
 import { contextRouter } from "./routes/context";
@@ -76,6 +77,7 @@ export function createApp(options?: CreateAppOptions): express.Express {
   });
 
   app.use("/api/auth", authRouter);
+  app.use("/api/assets", assetsRouter);
   app.use("/api/prompts", promptsRouter);
   app.use("/api/skills", skillsRouter);
   app.use("/api/context", contextRouter);

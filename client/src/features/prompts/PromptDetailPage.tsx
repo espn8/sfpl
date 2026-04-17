@@ -229,12 +229,10 @@ export function PromptDetailPage() {
       ? { id: promptData.ownerId, name: null, avatarUrl: null }
       : { id: 0, name: null, avatarUrl: null });
   const viewCount = promptData.viewCount ?? 0;
-  const tagNames = promptData.promptTags?.map((item) => item.tag.name) ?? [];
   const detailTagChips = buildPromptTagChips({
     tools: promptData.tools,
     modality: promptData.modality,
     modelHint: promptData.modelHint,
-    tagNames,
   });
   const activityLabel = formatPromptActivityLabel(promptData.createdAt, promptData.updatedAt);
   const shareUrl =

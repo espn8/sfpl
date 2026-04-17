@@ -12,11 +12,12 @@ import { CollectionsPage } from "../features/collections/CollectionsPage";
 import { PromptDetailPage } from "../features/prompts/PromptDetailPage";
 import { PromptEditPage } from "../features/prompts/PromptEditPage";
 import { PromptEditorPage } from "../features/prompts/PromptEditorPage";
+import { PromptsListPage } from "../features/prompts/PromptsListPage";
 import { ContextDetailPage } from "../features/context/ContextDetailPage";
 import { ContextEditPage } from "../features/context/ContextEditPage";
 import { ContextEditorPage } from "../features/context/ContextEditorPage";
 import { ContextListPage } from "../features/context/ContextListPage";
-import { PromptListPage } from "../features/prompts/PromptListPage";
+import { HomePage } from "../features/home/HomePage";
 import { SkillDetailPage } from "../features/skills/SkillDetailPage";
 import { SkillEditPage } from "../features/skills/SkillEditPage";
 import { SkillEditorPage } from "../features/skills/SkillEditorPage";
@@ -48,7 +49,17 @@ export function AppRouter() {
           element={
             <ProtectedRoute>
               <AppShell>
-                <PromptListPage />
+                <HomePage />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/prompts"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <PromptsListPage />
               </AppShell>
             </ProtectedRoute>
           }

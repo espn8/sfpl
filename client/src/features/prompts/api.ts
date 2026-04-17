@@ -49,6 +49,15 @@ export function getToolsSortedWithDynamic(dynamicTools: string[]): string[] {
 export const PROMPT_MODALITY_OPTIONS = ["text", "code", "image", "video", "audio", "multimodal"] as const;
 export type PromptModality = (typeof PROMPT_MODALITY_OPTIONS)[number];
 
+export const ASSET_TYPE_OPTIONS = ["prompt", "skill", "context"] as const;
+export type AssetType = (typeof ASSET_TYPE_OPTIONS)[number];
+
+export const ASSET_TYPE_LABELS: Record<AssetType, string> = {
+  prompt: "Prompt",
+  skill: "Skill",
+  context: "Context",
+};
+
 export type PromptSummaryVariable = {
   key: string;
   label: string | null;
@@ -64,6 +73,7 @@ export type PromptOwnerInfo = {
 
 export type PromptSummary = {
   id: number;
+  type?: AssetType;
   title: string;
   summary: string | null;
   body: string;
@@ -175,6 +185,7 @@ export type ListPromptsFilters = {
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   tool?: PromptTool;
   modality?: PromptModality;
+  types?: string;
   sort?: "recent" | "topRated" | "mostUsed";
   page?: number;
   pageSize?: number;

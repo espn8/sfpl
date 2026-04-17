@@ -1,12 +1,17 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 17, 2026 — 11:48 CDT
-Build Version: 082c400
+Last Updated: Friday, April 17, 2026 — 17:50 CDT
+Build Version: 602dba1
 
 ## Recent Changes
 
-- **Prompt card "View details" button**: Replaced the "Use prompt" external launch button on prompt list cards with a "View details" navigation button. Changed icon from SparkleIcon to EyeIcon. Removed redundant "View details" text link at bottom of cards. Users now navigate to prompt detail page to access "Use prompt" functionality.
-- **Hero stats label updates**: Changed "AI Assets Published" to "Assets Live" and "AI Assets Used" to "Assets Used" for cleaner, shorter labels in the hero stats section.
+- **Unified HomePage with Asset Cards**: Refactored the homepage to display all asset types (Prompts, Skills, Context) in a unified view. New `HomePage.tsx` component with hero section, "Top Performers This Week" featured assets, "How AI Library Works" steps, tool integration cards, and optional admin leaderboards.
+- **New Assets API**: Added `/api/assets` endpoint that returns unified paginated list of all asset types with filtering by type, tool, search, and sort options. Includes snapshot stats (assetsPublished, activeUsers, promptsUsed).
+- **AssetCard component**: New unified card component (`AssetCard.tsx`) that renders prompts, skills, and context documents with consistent styling, actions (share, favorite, copy), and analytics display.
+- **Refactored list pages**: Simplified `PromptsListPage`, `SkillListPage`, and `ContextListPage` to use dedicated card components (`PromptListCard`, `SkillListCard`, `ContextListCard`) with cleaner filter UIs.
+- **Skills/Context usage tracking**: Added `logSkillUsage` and `logContextUsage` API functions for COPY event tracking from list cards.
+- **Test fixes**: Updated pagination test to expect `promptsUsed` instead of `promptsViewed`, fixed collections test with `isSystem` field, updated AppShell test for new UI text, added missing mock exports to PromptEditPage test.
+- **Production-only workflow rule**: Added `.cursor/rules/production-only-workflow.mdc` to enforce testing directly in production rather than local dev servers.
 
 ### Previous Session Changes (April 17, 2026)
 
@@ -273,6 +278,7 @@ The application has achieved **substantial completion** of the core implementati
 | Route File | Endpoints |
 |------------|-----------|
 | `auth.ts` | `GET /google`, `GET /google/callback`, `POST /logout`, `GET /me`, `PATCH /me`, `POST /me/profile-photo` |
+| `assets.ts` | `GET /` (unified asset listing with type/tool/search filters and pagination) |
 | `prompts.ts` | Full CRUD, `DELETE /:id/permanent`, `/versions`, `/restore/:version`, `/favorite`, `/rating`, `/usage`, `/regenerate-thumbnail` |
 | `skills.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `DELETE /:id/permanent`, `POST /:id/usage`, `POST /:id/favorite`, `PUT /:id/variables` |
 | `context.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `DELETE /:id/permanent`, `POST /:id/usage`, `POST /:id/favorite`, `PUT /:id/variables` |
@@ -290,7 +296,8 @@ The application has achieved **substantial completion** of the core implementati
 | `/terms` | `TermsPage` | Public |
 | `/privacy` | `PrivacyPage` | Public |
 | `/help` | `HelpPage` | Public |
-| `/` | `PromptListPage` | Protected |
+| `/` | `HomePage` | Protected |
+| `/prompts` | `PromptsListPage` | Protected |
 | `/prompts/new` | `PromptEditorPage` | Protected |
 | `/prompts/:id` | `PromptDetailPage` | Protected |
 | `/prompts/:id/edit` | `PromptEditPage` | Protected |
@@ -321,7 +328,11 @@ The application has achieved **substantial completion** of the core implementati
 - `server/src/services/systemCollections.ts`: automatic tool-based and "Best of AI Library" collection management. Includes ChatGPT and Claude Cowork collections.
 - `client/src/app/providers/ToastProvider.tsx`: toast notification context and UI for success/error/info feedback.
 - `server/prisma/schema.prisma`: source of truth for users/teams/prompts/skills/context/engagement relations and enums.
-- `client/src/features/prompts/PromptListPage.tsx`: homepage/discovery UX, list cards, filters, hero stats, and leaderboards.
+- `client/src/features/home/HomePage.tsx`: unified homepage with hero section, featured assets, tool integration cards, and admin leaderboards.
+- `client/src/features/assets/AssetCard.tsx`: unified card component for rendering prompts, skills, and context with consistent actions.
+- `client/src/features/assets/api.ts`: unified assets API client for fetching all asset types with filtering and pagination.
+- `server/src/routes/assets.ts`: unified assets API endpoint returning paginated list of all asset types.
+- `client/src/features/prompts/PromptsListPage.tsx`: prompts-only list page with filters and PromptListCard components.
 - `client/src/features/prompts/PromptDetailPage.tsx`: full prompt view with engagement chrome, variables/preview, versions, and external launch.
 - `client/src/features/prompts/sharePrompt.ts`: Web Share API integration for prompt sharing.
 - `client/src/lib/shareOrCopyLink.ts`: generic share utility used by Skills, Context, and Collections.

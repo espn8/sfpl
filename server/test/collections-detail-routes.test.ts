@@ -78,7 +78,7 @@ describe("collections detail routes", () => {
 
   it("returns 403 when non-owner/admin deletes another creator collection", async () => {
     const app = await buildCollectionsApp();
-    mockCollectionFindFirst.mockResolvedValue({ id: 7, createdById: 2 });
+    mockCollectionFindFirst.mockResolvedValue({ id: 7, createdById: 2, isSystem: false });
 
     const response = await request(app).delete("/api/collections/7");
 
@@ -90,7 +90,7 @@ describe("collections detail routes", () => {
   it("deletes collection for owner role", async () => {
     const app = await buildCollectionsApp();
     mockGetAuthContext.mockReturnValue({ userId: 99, teamId: 1, role: "OWNER" });
-    mockCollectionFindFirst.mockResolvedValue({ id: 7, createdById: 2 });
+    mockCollectionFindFirst.mockResolvedValue({ id: 7, createdById: 2, isSystem: false });
     mockCollectionDelete.mockResolvedValue({ id: 7 });
 
     const response = await request(app).delete("/api/collections/7");

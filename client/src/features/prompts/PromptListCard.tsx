@@ -82,7 +82,6 @@ export function PromptListCard({ prompt, variant = "default", showAnalytics = fa
     tools: prompt.tools,
     modality: prompt.modality,
     modelHint: prompt.modelHint,
-    tagNames: prompt.tags ?? [],
   }).slice(0, 6);
 
   const shareUrl =

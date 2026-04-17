@@ -17,6 +17,8 @@ vi.mock("./api", () => ({
   regeneratePromptThumbnail: vi.fn(),
   PROMPT_TOOL_OPTIONS: ["cursor", "claude_code", "meshmesh", "slackbot", "gemini", "notebooklm"],
   PROMPT_MODALITY_OPTIONS: ["text", "code", "image", "video", "audio", "multimodal"],
+  getToolsSortedAlphabetically: vi.fn().mockReturnValue(["cursor", "claude_code", "meshmesh", "slackbot", "gemini", "notebooklm"]),
+  getToolLabel: vi.fn().mockImplementation((tool: string) => tool),
 }));
 
 const mockPromptTimestamps = {

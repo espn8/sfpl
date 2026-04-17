@@ -51,6 +51,8 @@ function canAccessByVisibility(
 const listContextQuerySchema = z.object({
   q: z.string().trim().optional(),
   status: promptStatusSchema.optional(),
+  tool: contextToolSchema.optional(),
+  sort: z.enum(["recent", "mostUsed"]).optional(),
   mine: z.coerce.boolean().optional(),
   includeAnalytics: z.coerce.boolean().optional(),
   page: z.coerce.number().int().positive().optional(),
@@ -169,6 +171,8 @@ contextRouter.get("/", async (req: Request, res: Response) => {
 
   const q = parsedQuery.data.q ?? "";
   const status = parsedQuery.data.status;
+  const tool = parsedQuery.data.tool;
+  const sort = parsedQuery.data.sort ?? "recent";
   const mine = parsedQuery.data.mine ?? false;
   const includeAnalytics = parsedQuery.data.includeAnalytics ?? false;
   const page = parsedQuery.data.page ?? 1;
@@ -194,6 +198,9 @@ contextRouter.get("/", async (req: Request, res: Response) => {
   if (status) {
     where.status = status;
   }
+  if (tool) {
+    where.tools = { has: tool };
+  }
   if (q) {
     const existingAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
     where.AND = [
@@ -207,6 +214,11 @@ contextRouter.get("/", async (req: Request, res: Response) => {
       },
     ];
   }
+
+  const orderBy: Prisma.ContextDocumentOrderByWithRelationInput =
+    sort === "mostUsed"
+      ? { usageEvents: { _count: "desc" as const } }
+      : { createdAt: "desc" as const };
 
   const [rows, total] = await Promise.all([
     prisma.contextDocument.findMany({
@@ -224,7 +236,7 @@ contextRouter.get("/", async (req: Request, res: Response) => {
         owner: { select: { id: true, name: true, avatarUrl: true } },
         variables: { select: { id: true, key: true, label: true, defaultValue: true, required: true } },
       },
-      orderBy: { updatedAt: "desc" },
+      orderBy,
       skip,
       take: pageSize,
     }),
