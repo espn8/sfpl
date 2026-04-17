@@ -16,7 +16,6 @@ import {
 } from "./promptActionIcons";
 import { formatPromptActivityLabel } from "./promptActivityLabel";
 import { PromptAverageStars, PromptRateStars } from "./PromptStars";
-import { PromptThumbnail } from "./PromptThumbnail";
 import { PromptUpdatedBadge } from "./PromptUpdatedBadge";
 import { buildPromptTagChips, promptOwnerAvatarUrl } from "./promptTagChips";
 import { shareOrCopyPromptLink } from "./sharePrompt";
@@ -96,14 +95,6 @@ export function PromptListCard({ prompt, variant = "default", showAnalytics = fa
 
   return (
     <div className={shellClass}>
-      <Link to={`/prompts/${prompt.id}`} className="block">
-        <PromptThumbnail
-          title={prompt.title}
-          thumbnailUrl={prompt.thumbnailUrl}
-          thumbnailStatus={prompt.thumbnailStatus}
-          className="h-40 w-full object-cover"
-        />
-      </Link>
       <div className="p-4">
         <Link to={`/prompts/${prompt.id}`} className="block">
           <div className="flex min-w-0 items-start gap-2">

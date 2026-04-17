@@ -26,6 +26,14 @@ type VariableRow = {
   required: boolean;
 };
 
+function sanitizeVariableKey(input: string): string {
+  let result = input.replace(/[^A-Za-z0-9_]/g, "_");
+  if (result.length > 0 && /^[0-9]/.test(result)) {
+    result = "_" + result;
+  }
+  return result.toUpperCase();
+}
+
 function rowsFromApi(variables: PromptVariable[]): VariableRow[] {
   return variables.map((variable, index) => ({
     clientId: `existing-${variable.id}-${index}`,
@@ -396,17 +404,21 @@ export function PromptEditPage() {
                 className="grid gap-2 rounded border border-(--color-border) bg-(--color-surface) p-3 md:grid-cols-2"
               >
                 <label className="grid gap-1 text-sm md:col-span-2">
-                  Key
+                  <span className="flex items-center gap-2">
+                    Key
+                    <span className="text-xs font-normal text-(--color-text-muted)">(letters, numbers, underscores only)</span>
+                  </span>
                   <input
-                    className="rounded border border-(--color-border) bg-(--color-surface-muted) px-2 py-1"
+                    className="rounded border border-(--color-border) bg-(--color-surface-muted) px-2 py-1 font-mono uppercase"
                     value={row.key}
                     onChange={(event) => {
-                      const value = event.target.value;
+                      const value = sanitizeVariableKey(event.target.value);
                       setVariableRows((current) =>
                         current.map((item, itemIndex) => (itemIndex === index ? { ...item, key: value } : item)),
                       );
                     }}
                     placeholder="e.g. TOPIC"
+                    maxLength={64}
                   />
                 </label>
                 <label className="grid gap-1 text-sm">

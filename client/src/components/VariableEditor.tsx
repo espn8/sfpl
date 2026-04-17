@@ -12,6 +12,20 @@ type VariableEditorProps = {
   onInsert?: (key: string) => void;
 };
 
+const VALID_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9_]*$/;
+
+function sanitizeVariableKey(input: string): string {
+  let result = input.replace(/[^A-Za-z0-9_]/g, "_");
+  if (result.length > 0 && /^[0-9]/.test(result)) {
+    result = "_" + result;
+  }
+  return result.toUpperCase();
+}
+
+function isValidVariableKey(key: string): boolean {
+  return key === "" || VALID_KEY_PATTERN.test(key);
+}
+
 export function VariableEditor({ variables, onChange, onInsert }: VariableEditorProps) {
   const handleAddVariable = () => {
     onChange([
@@ -28,6 +42,11 @@ export function VariableEditor({ variables, onChange, onInsert }: VariableEditor
 
   const handleUpdateVariable = (index: number, updates: Partial<VariableRow>) => {
     onChange(variables.map((item, itemIndex) => (itemIndex === index ? { ...item, ...updates } : item)));
+  };
+
+  const handleKeyChange = (index: number, rawValue: string) => {
+    const sanitized = sanitizeVariableKey(rawValue);
+    handleUpdateVariable(index, { key: sanitized });
   };
 
   const handleRemoveVariable = (index: number) => {
@@ -68,12 +87,16 @@ export function VariableEditor({ variables, onChange, onInsert }: VariableEditor
               className="grid gap-2 rounded border border-(--color-border) bg-(--color-surface) p-3 md:grid-cols-2"
             >
               <label className="grid gap-1 text-sm md:col-span-2">
-                Key
+                <span className="flex items-center gap-2">
+                  Key
+                  <span className="text-xs font-normal text-(--color-text-muted)">(letters, numbers, underscores only)</span>
+                </span>
                 <input
-                  className="rounded border border-(--color-border) bg-(--color-surface-muted) px-2 py-1"
+                  className="rounded border border-(--color-border) bg-(--color-surface-muted) px-2 py-1 font-mono uppercase"
                   value={row.key}
-                  onChange={(event) => handleUpdateVariable(index, { key: event.target.value })}
+                  onChange={(event) => handleKeyChange(index, event.target.value)}
                   placeholder="e.g. TOPIC"
+                  maxLength={64}
                 />
               </label>
               <label className="grid gap-1 text-sm">
