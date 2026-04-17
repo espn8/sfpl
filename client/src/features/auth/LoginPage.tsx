@@ -22,9 +22,6 @@ export function LoginPage() {
           <a href="/privacy" className="link hover:underline">
             Privacy Policy
           </a>
-          <a href="/help" className="link hover:underline">
-            Help
-          </a>
         </div>
       </div>
       <footer className="mx-auto mt-8 max-w-xl rounded-lg border border-(--color-border) bg-(--color-surface) px-4 py-3 text-sm text-(--color-text-muted)">
