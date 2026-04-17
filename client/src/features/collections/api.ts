@@ -29,8 +29,8 @@ type ApiResponse<T> = {
 };
 
 export async function listCollections(): Promise<Collection[]> {
-  const response = await apiClient.get<ApiResponse<CollectionListResponse>>("/api/collections");
-  return response.data.data.data;
+  const response = await apiClient.get<CollectionListResponse>("/api/collections");
+  return response.data.data;
 }
 
 export async function createCollection(payload: { name: string; description?: string }): Promise<Collection> {
