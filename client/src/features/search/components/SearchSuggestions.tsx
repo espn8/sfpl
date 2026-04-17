@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getToolLabel } from "../../prompts/api";
 import type { AssetSuggestion, FilterSuggestion } from "../api";

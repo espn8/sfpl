@@ -7,7 +7,7 @@ import { getAnalyticsOverview } from "../analytics/api";
 import { listAssets, type ListAssetsFilters } from "../assets/api";
 import { AssetCard } from "../assets/AssetCard";
 import { getToolLabel, getToolsSortedAlphabetically, type PromptTool } from "../prompts/api";
-import { FacetedFilters, SearchBar, useSearchState, type AssetTypeFilter, type SortOption } from "../search";
+import { FacetedFilters, SearchBar, useSearchState, type AssetTypeFilter } from "../search";
 
 const FIRST_VISIT_KEY = "sf-ai-library-first-visit-completed";
 
@@ -136,7 +136,6 @@ export function HomePage() {
     clearAllFilters,
     activeFilters,
     page,
-    setPage,
     parseAndApplyNaturalLanguage,
     isParsing,
   } = useSearchState();
@@ -222,7 +221,6 @@ export function HomePage() {
     .filter((a) => a.assetType !== "prompt" || a.thumbnailStatus !== "FAILED")
     .slice(0, 6);
 
-  const hasExploreSelection = Boolean(debouncedFilters.q.trim() || debouncedFilters.tool || debouncedFilters.assetType !== "all");
 
   const contributorLeaderboard = (analyticsQuery.data?.contributors ?? []).slice(0, 5);
   const usersLeaderboard = (analyticsQuery.data?.userEngagementLeaderboard ?? []).slice(0, 5);
