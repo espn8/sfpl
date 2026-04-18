@@ -1,11 +1,17 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 17, 2026 — 19:25 CDT
-Build Version: b0aa10d
+Last Updated: Friday, April 17, 2026 — 19:35 CDT
+Build Version: 1e7e026
 
 ## Recent Changes
 
-- **Sort option type alignment fix**: Removed `"topRated"` from `SortOption` type union and `isValidSort()` validator in `useSearchState.ts` to align with `ListAssetsFilters["sort"]` which only accepts `"recent" | "mostUsed" | "name" | "updatedAt"`. Previously, selecting "Top rated" would silently fall back to "recent" without user indication.
+- **Sort option type alignment fix**: Removed `"topRated"` from all sort-related types to align with the UI which no longer offers this option:
+  - `SortOption` type in `types.ts`
+  - `isValidSort()` validator in `useSearchState.ts`
+  - `ListPromptsFilters["sort"]` in `prompts/api.ts`
+  - Sort mapping logic in `PromptsListPage.tsx`
+  
+  Previously, selecting "Top rated" would silently fall back to "recent" without user indication.
 
 - **Home link navigation fix**: Clicking the "AI Library" logo in the header now properly resets the page to its default state by using `useNavigate("/")` instead of a simple Link, ensuring URL search params (like `?mine=true`) are cleared.
 

@@ -186,7 +186,7 @@ export type ListPromptsFilters = {
   tool?: PromptTool;
   modality?: PromptModality;
   types?: string;
-  sort?: "recent" | "topRated" | "mostUsed";
+  sort?: "recent" | "mostUsed";
   page?: number;
   pageSize?: number;
   mine?: boolean;

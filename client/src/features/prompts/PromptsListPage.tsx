@@ -32,7 +32,7 @@ export function PromptsListPage() {
     const nextFilters: ListPromptsFilters = {
       page,
       pageSize,
-      sort: debouncedFilters.sort === "topRated" ? "topRated" : debouncedFilters.sort === "mostUsed" ? "mostUsed" : "recent",
+      sort: debouncedFilters.sort === "mostUsed" ? "mostUsed" : "recent",
     };
     if (debouncedFilters.q.trim()) {
       nextFilters.q = debouncedFilters.q.trim();
