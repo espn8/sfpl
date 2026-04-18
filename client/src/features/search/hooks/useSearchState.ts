@@ -21,7 +21,7 @@ function isValidAssetType(value: string): value is AssetTypeFilter {
 }
 
 function isValidSort(value: string): value is SortOption {
-  return ["recent", "mostUsed", "topRated", "name", "updatedAt"].includes(value);
+  return ["recent", "mostUsed", "name", "updatedAt"].includes(value);
 }
 
 function isValidStatus(value: string): value is AssetStatus {

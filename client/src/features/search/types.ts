@@ -2,7 +2,7 @@ import type { PromptModality, PromptTool } from "../prompts/api";
 
 export type AssetTypeFilter = "all" | "prompt" | "skill" | "context";
 export type AssetStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
-export type SortOption = "recent" | "mostUsed" | "topRated" | "name" | "updatedAt";
+export type SortOption = "recent" | "mostUsed" | "name" | "updatedAt";
 
 export type SearchFilters = {
   q: string;
