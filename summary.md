@@ -1,9 +1,13 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 17, 2026 — 19:15 CDT
-Build Version: 94d6fc3
+Last Updated: Thursday, April 17, 2026 — 19:17 CDT
+Build Version: c890da4
 
 ## Recent Changes
+
+- **Home link navigation fix**: Clicking the "AI Library" logo in the header now properly resets the page to its default state by using `useNavigate("/")` instead of a simple Link, ensuring URL search params (like `?mine=true`) are cleared.
+
+- **Sort option cleanup**: Removed unsupported "Top rated" sort option from SearchBar dropdown since it wasn't implemented in the backend API.
 
 - **Unified My Content Page**: Complete redesign of the "My Content" experience with enhanced filtering and sorting capabilities.
   - **Dedicated My Content section**: Accessing `/?mine=true` now shows a full-featured content management interface with search, filters, and pagination.
