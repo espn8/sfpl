@@ -134,7 +134,7 @@ export function AppShell({ children }: AppShellProps) {
                 aria-label="SF AI Library home"
                 onClick={(e) => {
                   e.preventDefault();
-                  navigate("/", { replace: false });
+                  navigate({ pathname: "/", search: "" }, { replace: false });
                 }}
               >
                 <img src={SALESFORCE_LOGO} alt="" className="h-10 w-auto object-contain" />

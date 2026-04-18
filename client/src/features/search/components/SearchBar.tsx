@@ -223,8 +223,6 @@ export function SearchBar({
                 className="rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
               >
                 <option value="recent">Date added</option>
-                <option value="updatedAt">Last updated</option>
-                <option value="name">Name (A-Z)</option>
                 <option value="mostUsed">Most used</option>
               </select>
             )}

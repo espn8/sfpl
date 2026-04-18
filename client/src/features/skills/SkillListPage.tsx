@@ -31,7 +31,7 @@ export function SkillListPage() {
     () => ({
       q: debouncedFilters.q.trim() || undefined,
       tool: debouncedFilters.tool || undefined,
-      sort: debouncedFilters.sort === "mostUsed" ? "mostUsed" : "recent",
+      sort: debouncedFilters.sort,
       mine: mineFilter || undefined,
       includeAnalytics: showAnalytics || undefined,
       page,
