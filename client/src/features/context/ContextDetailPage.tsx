@@ -84,25 +84,7 @@ export function ContextDetailPage() {
     }
   }, [docId]);
 
-  if (!Number.isInteger(docId) || docId <= 0) {
-    return <p className="text-sm text-(--color-text-muted)">Invalid document.</p>;
-  }
-
-  if (docQuery.isLoading) {
-    return <p className="text-sm text-(--color-text-muted)">Loading…</p>;
-  }
-
-  if (docQuery.isError || !docQuery.data) {
-    return <p className="text-sm text-red-600">Document not found or inaccessible.</p>;
-  }
-
   const doc = docQuery.data;
-  const canEdit =
-    meQuery.data &&
-    (meQuery.data.id === doc.owner.id || meQuery.data.role === "ADMIN" || meQuery.data.role === "OWNER");
-  const canDelete = meQuery.data && meQuery.data.id === doc.owner.id;
-  const viewCount = doc.viewCount ?? 0;
-  const hasVariables = (doc.variables?.length ?? 0) > 0;
 
   const composed = useMemo(() => {
     if (!doc) {
@@ -114,6 +96,25 @@ export function ContextDetailPage() {
     }
     return interpolateBody(doc.body, variables, variableValues);
   }, [doc, variableValues]);
+
+  if (!Number.isInteger(docId) || docId <= 0) {
+    return <p className="text-sm text-(--color-text-muted)">Invalid document.</p>;
+  }
+
+  if (docQuery.isLoading) {
+    return <p className="text-sm text-(--color-text-muted)">Loading…</p>;
+  }
+
+  if (docQuery.isError || !doc) {
+    return <p className="text-sm text-red-600">Document not found or inaccessible.</p>;
+  }
+
+  const canEdit =
+    meQuery.data &&
+    (meQuery.data.id === doc.owner.id || meQuery.data.role === "ADMIN" || meQuery.data.role === "OWNER");
+  const canDelete = meQuery.data && meQuery.data.id === doc.owner.id;
+  const viewCount = doc.viewCount ?? 0;
+  const hasVariables = (doc.variables?.length ?? 0) > 0;
 
   const shareUrl = buildShareUrl(`/context/${docId}`);
 

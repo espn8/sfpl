@@ -1,9 +1,11 @@
 # AI Library - Technical Summary
 
-Last Updated: Monday, April 20, 2026 — 10:45 CDT
-Build Version: c45f2f7
+Last Updated: Monday, April 20, 2026 — 11:15 CDT
+Build Version: fc441ea
 
 ## Recent Changes
+
+- **Context detail page React hooks fix**: Fixed React Error #310 ("Rendered more hooks than during the previous render") that caused a blank page after creating a new context asset. The `useMemo` hook was being called after conditional early returns, violating React's Rules of Hooks. Moved `useMemo` before all conditional returns to ensure hooks are called in the same order on every render.
 
 - **Profile save validation fix**: Fixed "Unable to save your profile" error that occurred when users attempted to save their profile without filling in all optional fields (region, OU, title). The server-side validation schema was requiring all fields to be non-empty, but existing users often had null values for these fields added later. Changed server validation to make `region`, `ou`, and `title` fields optional with empty string defaults. Updated client-side validation to only require name and profile photo.
 
