@@ -80,43 +80,49 @@ model Prompt {
 }
 
 model Skill {
-  id          Int              @id @default(autoincrement())
-  teamId      Int
-  ownerId     Int
-  title       String
-  summary     String?
-  body        String
-  visibility  PromptVisibility @default(PUBLIC)
-  status      PromptStatus     @default(DRAFT)
-  tools       String[]         @default([])
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  team        Team             @relation(fields: [teamId], references: [id], onDelete: Restrict)
-  owner       User             @relation(fields: [ownerId], references: [id], onDelete: Restrict)
-  favorites   SkillFavorite[]
-  usageEvents SkillUsageEvent[]
-  variables   SkillVariable[]
+  id              Int              @id @default(autoincrement())
+  teamId          Int
+  ownerId         Int
+  title           String
+  summary         String?
+  body            String
+  visibility      PromptVisibility @default(PUBLIC)
+  status          PromptStatus     @default(DRAFT)
+  tools           String[]         @default([])
+  thumbnailUrl    String?
+  thumbnailStatus ThumbnailStatus  @default(PENDING)
+  thumbnailError  String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  team            Team             @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  owner           User             @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  favorites       SkillFavorite[]
+  usageEvents     SkillUsageEvent[]
+  variables       SkillVariable[]
 
   @@index([teamId, updatedAt])
 }
 
 model ContextDocument {
-  id          Int              @id @default(autoincrement())
-  teamId      Int
-  ownerId     Int
-  title       String
-  summary     String?
-  body        String
-  visibility  PromptVisibility @default(PUBLIC)
-  status      PromptStatus     @default(DRAFT)
-  tools       String[]         @default([])
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  team        Team             @relation(fields: [teamId], references: [id], onDelete: Restrict)
-  owner       User             @relation(fields: [ownerId], references: [id], onDelete: Restrict)
-  favorites   ContextFavorite[]
-  usageEvents ContextUsageEvent[]
-  variables   ContextVariable[]
+  id              Int              @id @default(autoincrement())
+  teamId          Int
+  ownerId         Int
+  title           String
+  summary         String?
+  body            String
+  visibility      PromptVisibility @default(PUBLIC)
+  status          PromptStatus     @default(DRAFT)
+  tools           String[]         @default([])
+  thumbnailUrl    String?
+  thumbnailStatus ThumbnailStatus  @default(PENDING)
+  thumbnailError  String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  team            Team             @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  owner           User             @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  favorites       ContextFavorite[]
+  usageEvents     ContextUsageEvent[]
+  variables       ContextVariable[]
 
   @@index([teamId, updatedAt])
 }

@@ -41,6 +41,9 @@ export type Skill = {
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   visibility: "PUBLIC" | "TEAM" | "PRIVATE";
   tools: string[];
+  thumbnailUrl?: string | null;
+  thumbnailStatus?: "PENDING" | "READY" | "FAILED";
+  thumbnailError?: string | null;
   createdAt: string;
   updatedAt: string;
   owner: SkillOwner;
@@ -136,4 +139,9 @@ export async function replaceSkillVariables(
 
 export async function deleteSkillPermanently(skillId: number): Promise<void> {
   await apiClient.delete(`/api/skills/${skillId}/permanent`);
+}
+
+export async function regenerateSkillThumbnail(id: number): Promise<Skill> {
+  const { data } = await apiClient.post<{ data: Skill }>(`/api/skills/${id}/regenerate-thumbnail`);
+  return data.data;
 }

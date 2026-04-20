@@ -4,6 +4,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { getAuthContext, requireAuth } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
+import { generatePromptThumbnail } from "../services/nanoBanana";
 
 const contextRouter = Router();
 
@@ -143,6 +144,8 @@ const updateContextBodySchema = z
     "At least one field must be provided.",
   );
 
+type ThumbnailStatusValue = "PENDING" | "READY" | "FAILED";
+
 function serializeContextDoc<T extends { owner: { id: number; name: string | null; avatarUrl: string | null } }>(
   row: T,
 ): Omit<T, "owner"> & { owner: { id: number; name: string | null; avatarUrl: string | null } } {
@@ -154,6 +157,46 @@ function serializeContextDoc<T extends { owner: { id: number; name: string | nul
       avatarUrl: row.owner.avatarUrl,
     },
   };
+}
+
+async function queueContextThumbnailGeneration(contextId: number) {
+  const doc = await prisma.contextDocument.findUnique({
+    where: { id: contextId },
+    select: { id: true, title: true, summary: true, body: true },
+  });
+  if (!doc) {
+    console.warn(`[Thumbnail] Context ${contextId} not found, skipping thumbnail generation.`);
+    return;
+  }
+
+  console.log(`[Thumbnail] Starting generation for context ${contextId}: "${doc.title}"`);
+
+  try {
+    const thumbnailUrl = await generatePromptThumbnail({
+      title: doc.title,
+      summary: doc.summary,
+      body: doc.body,
+    });
+    await prisma.contextDocument.update({
+      where: { id: contextId },
+      data: {
+        thumbnailUrl,
+        thumbnailStatus: "READY",
+        thumbnailError: null,
+      },
+    });
+    console.log(`[Thumbnail] Successfully generated thumbnail for context ${contextId}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message.slice(0, 400) : "Unknown thumbnail generation error.";
+    console.error(`[Thumbnail] Failed to generate thumbnail for context ${contextId}:`, message);
+    await prisma.contextDocument.update({
+      where: { id: contextId },
+      data: {
+        thumbnailStatus: "FAILED",
+        thumbnailError: message,
+      },
+    });
+  }
 }
 
 contextRouter.use(requireAuth);
@@ -231,6 +274,9 @@ contextRouter.get("/", async (req: Request, res: Response) => {
         status: true,
         visibility: true,
         tools: true,
+        thumbnailUrl: true,
+        thumbnailStatus: true,
+        thumbnailError: true,
         createdAt: true,
         updatedAt: true,
         owner: { select: { id: true, name: true, avatarUrl: true } },
@@ -311,6 +357,8 @@ contextRouter.post("/", async (req: Request, res: Response) => {
       visibility: visibility ?? "PUBLIC",
       status: status ?? "DRAFT",
       tools: tools ?? [],
+      thumbnailStatus: "PENDING",
+      thumbnailError: null,
       variables:
         variables && variables.length > 0
           ? {
@@ -329,7 +377,14 @@ contextRouter.post("/", async (req: Request, res: Response) => {
     },
   });
 
-  return res.status(201).json({ data: serializeContextDoc(doc) });
+  void queueContextThumbnailGeneration(doc.id);
+
+  return res.status(201).json({
+    data: {
+      ...serializeContextDoc(doc),
+      thumbnailStatus: doc.thumbnailStatus as ThumbnailStatusValue,
+    },
+  });
 });
 
 contextRouter.get("/:id", async (req: Request, res: Response) => {
@@ -346,7 +401,21 @@ contextRouter.get("/:id", async (req: Request, res: Response) => {
   const contextId = parsedParams.data.id;
   const doc = await prisma.contextDocument.findFirst({
     where: { id: contextId, teamId: auth.teamId },
-    include: {
+    select: {
+      id: true,
+      teamId: true,
+      ownerId: true,
+      title: true,
+      summary: true,
+      body: true,
+      visibility: true,
+      status: true,
+      tools: true,
+      thumbnailUrl: true,
+      thumbnailStatus: true,
+      thumbnailError: true,
+      createdAt: true,
+      updatedAt: true,
       owner: { select: { id: true, name: true, avatarUrl: true, ou: true } },
       variables: { select: { id: true, key: true, label: true, defaultValue: true, required: true } },
     },
@@ -367,6 +436,7 @@ contextRouter.get("/:id", async (req: Request, res: Response) => {
   return res.status(200).json({
     data: {
       ...serializeContextDoc(doc),
+      thumbnailStatus: doc.thumbnailStatus as ThumbnailStatusValue,
       viewCount,
       favorited: Boolean(favoriteRow),
     },
@@ -591,6 +661,45 @@ contextRouter.post("/:id/usage", async (req: Request, res: Response) => {
 
   await prisma.contextUsageEvent.create({ data: { contextId, userId: auth.userId, eventType } });
   return res.status(200).json({ data: { ok: true } });
+});
+
+contextRouter.post("/:id/regenerate-thumbnail", async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+
+  const parsedParams = contextIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+
+  const contextId = parsedParams.data.id;
+  const existing = await prisma.contextDocument.findFirst({ where: { id: contextId, teamId: auth.teamId } });
+  if (!existing) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Context document not found." } });
+  }
+
+  if (existing.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can modify this document." } });
+  }
+
+  const queued = await prisma.contextDocument.update({
+    where: { id: contextId },
+    data: {
+      thumbnailStatus: "PENDING",
+      thumbnailError: null,
+    },
+  });
+
+  void queueContextThumbnailGeneration(contextId);
+
+  return res.status(202).json({
+    data: {
+      id: queued.id,
+      thumbnailStatus: queued.thumbnailStatus as ThumbnailStatusValue,
+    },
+  });
 });
 
 export { contextRouter };

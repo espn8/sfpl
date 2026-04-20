@@ -41,6 +41,9 @@ export type ContextDocument = {
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   visibility: "PUBLIC" | "TEAM" | "PRIVATE";
   tools: string[];
+  thumbnailUrl?: string | null;
+  thumbnailStatus?: "PENDING" | "READY" | "FAILED";
+  thumbnailError?: string | null;
   createdAt: string;
   updatedAt: string;
   owner: ContextOwner;
@@ -136,4 +139,9 @@ export async function replaceContextVariables(
 
 export async function deleteContextDocumentPermanently(contextId: number): Promise<void> {
   await apiClient.delete(`/api/context/${contextId}/permanent`);
+}
+
+export async function regenerateContextThumbnail(id: number): Promise<ContextDocument> {
+  const { data } = await apiClient.post<{ data: ContextDocument }>(`/api/context/${id}/regenerate-thumbnail`);
+  return data.data;
 }

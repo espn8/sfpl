@@ -4,6 +4,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { getAuthContext, requireAuth } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
+import { generatePromptThumbnail } from "../services/nanoBanana";
 
 const skillsRouter = Router();
 
@@ -143,6 +144,8 @@ const updateSkillBodySchema = z
     "At least one field must be provided.",
   );
 
+type ThumbnailStatusValue = "PENDING" | "READY" | "FAILED";
+
 function serializeSkill<T extends { owner: { id: number; name: string | null; avatarUrl: string | null } }>(
   row: T,
 ): Omit<T, "owner"> & { owner: { id: number; name: string | null; avatarUrl: string | null } } {
@@ -154,6 +157,46 @@ function serializeSkill<T extends { owner: { id: number; name: string | null; av
       avatarUrl: row.owner.avatarUrl,
     },
   };
+}
+
+async function queueSkillThumbnailGeneration(skillId: number) {
+  const skill = await prisma.skill.findUnique({
+    where: { id: skillId },
+    select: { id: true, title: true, summary: true, body: true },
+  });
+  if (!skill) {
+    console.warn(`[Thumbnail] Skill ${skillId} not found, skipping thumbnail generation.`);
+    return;
+  }
+
+  console.log(`[Thumbnail] Starting generation for skill ${skillId}: "${skill.title}"`);
+
+  try {
+    const thumbnailUrl = await generatePromptThumbnail({
+      title: skill.title,
+      summary: skill.summary,
+      body: skill.body,
+    });
+    await prisma.skill.update({
+      where: { id: skillId },
+      data: {
+        thumbnailUrl,
+        thumbnailStatus: "READY",
+        thumbnailError: null,
+      },
+    });
+    console.log(`[Thumbnail] Successfully generated thumbnail for skill ${skillId}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message.slice(0, 400) : "Unknown thumbnail generation error.";
+    console.error(`[Thumbnail] Failed to generate thumbnail for skill ${skillId}:`, message);
+    await prisma.skill.update({
+      where: { id: skillId },
+      data: {
+        thumbnailStatus: "FAILED",
+        thumbnailError: message,
+      },
+    });
+  }
 }
 
 skillsRouter.use(requireAuth);
@@ -231,6 +274,9 @@ skillsRouter.get("/", async (req: Request, res: Response) => {
         status: true,
         visibility: true,
         tools: true,
+        thumbnailUrl: true,
+        thumbnailStatus: true,
+        thumbnailError: true,
         createdAt: true,
         updatedAt: true,
         owner: { select: { id: true, name: true, avatarUrl: true } },
@@ -311,6 +357,8 @@ skillsRouter.post("/", async (req: Request, res: Response) => {
       visibility: visibility ?? "PUBLIC",
       status: status ?? "DRAFT",
       tools: tools ?? [],
+      thumbnailStatus: "PENDING",
+      thumbnailError: null,
       variables:
         variables && variables.length > 0
           ? {
@@ -329,7 +377,14 @@ skillsRouter.post("/", async (req: Request, res: Response) => {
     },
   });
 
-  return res.status(201).json({ data: serializeSkill(skill) });
+  void queueSkillThumbnailGeneration(skill.id);
+
+  return res.status(201).json({
+    data: {
+      ...serializeSkill(skill),
+      thumbnailStatus: skill.thumbnailStatus as ThumbnailStatusValue,
+    },
+  });
 });
 
 skillsRouter.get("/:id", async (req: Request, res: Response) => {
@@ -346,7 +401,21 @@ skillsRouter.get("/:id", async (req: Request, res: Response) => {
   const skillId = parsedParams.data.id;
   const skill = await prisma.skill.findFirst({
     where: { id: skillId, teamId: auth.teamId },
-    include: {
+    select: {
+      id: true,
+      teamId: true,
+      ownerId: true,
+      title: true,
+      summary: true,
+      body: true,
+      visibility: true,
+      status: true,
+      tools: true,
+      thumbnailUrl: true,
+      thumbnailStatus: true,
+      thumbnailError: true,
+      createdAt: true,
+      updatedAt: true,
       owner: { select: { id: true, name: true, avatarUrl: true, ou: true } },
       variables: { select: { id: true, key: true, label: true, defaultValue: true, required: true } },
     },
@@ -367,6 +436,7 @@ skillsRouter.get("/:id", async (req: Request, res: Response) => {
   return res.status(200).json({
     data: {
       ...serializeSkill(skill),
+      thumbnailStatus: skill.thumbnailStatus as ThumbnailStatusValue,
       viewCount,
       favorited: Boolean(favoriteRow),
     },
@@ -591,6 +661,45 @@ skillsRouter.post("/:id/usage", async (req: Request, res: Response) => {
 
   await prisma.skillUsageEvent.create({ data: { skillId, userId: auth.userId, eventType } });
   return res.status(200).json({ data: { ok: true } });
+});
+
+skillsRouter.post("/:id/regenerate-thumbnail", async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+
+  const parsedParams = skillIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+
+  const skillId = parsedParams.data.id;
+  const existing = await prisma.skill.findFirst({ where: { id: skillId, teamId: auth.teamId } });
+  if (!existing) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not found." } });
+  }
+
+  if (existing.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can modify this skill." } });
+  }
+
+  const queued = await prisma.skill.update({
+    where: { id: skillId },
+    data: {
+      thumbnailStatus: "PENDING",
+      thumbnailError: null,
+    },
+  });
+
+  void queueSkillThumbnailGeneration(skillId);
+
+  return res.status(202).json({
+    data: {
+      id: queued.id,
+      thumbnailStatus: queued.thumbnailStatus as ThumbnailStatusValue,
+    },
+  });
 });
 
 export { skillsRouter };

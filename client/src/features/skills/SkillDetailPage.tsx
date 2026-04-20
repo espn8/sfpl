@@ -8,8 +8,9 @@ import { VariableInputs } from "../../components/VariableInputs";
 import { interpolateBody } from "../../lib/interpolate";
 import { buildShareUrl, copyToClipboard, downloadAsMarkdown, shareOrCopyLink } from "../../lib/shareOrCopyLink";
 import { fetchMe } from "../auth/api";
-import { archiveSkill, deleteSkillPermanently, getSkill, logSkillUsage, toggleSkillFavorite } from "./api";
+import { archiveSkill, deleteSkillPermanently, getSkill, logSkillUsage, regenerateSkillThumbnail, toggleSkillFavorite } from "./api";
 import { CopyIcon, DownloadIcon, EyeIcon, HeartIcon, ShareIcon } from "../prompts/promptActionIcons";
+import { PromptThumbnail } from "../prompts/PromptThumbnail";
 
 type ViewMode = "preview" | "raw";
 
@@ -55,6 +56,14 @@ export function SkillDetailPage() {
     mutationFn: () => toggleSkillFavorite(skillId),
     onSuccess: async (data) => {
       setFavorited(data.favorited);
+      await queryClient.invalidateQueries({ queryKey: ["skill", skillId] });
+      await queryClient.invalidateQueries({ queryKey: ["skills"] });
+    },
+  });
+
+  const regenerateThumbnailMutation = useMutation({
+    mutationFn: () => regenerateSkillThumbnail(skillId),
+    onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["skill", skillId] });
       await queryClient.invalidateQueries({ queryKey: ["skills"] });
     },
@@ -131,12 +140,23 @@ export function SkillDetailPage() {
 
   return (
     <article className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+      <div className="flex gap-4">
+        <PromptThumbnail
+          title={skill.title}
+          thumbnailUrl={skill.thumbnailUrl}
+          thumbnailStatus={skill.thumbnailStatus}
+          className="h-28 w-28 shrink-0 rounded object-cover"
+          onRegenerate={canEdit ? () => regenerateThumbnailMutation.mutate() : undefined}
+          isRegenerating={regenerateThumbnailMutation.isPending}
+        />
+        <div className="min-w-0 flex-1">
           <p className="text-xs font-medium uppercase tracking-wide text-(--color-text-muted)">Skill</p>
           <h1 className="text-2xl font-semibold">{skill.title} <span className="text-(--color-text-muted)">[Skill]</span></h1>
           {skill.summary ? <p className="mt-1 text-(--color-text-muted)">{skill.summary}</p> : null}
         </div>
+      </div>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div></div>
         <div className="flex flex-wrap gap-2">
           {canEdit ? (
             <Link

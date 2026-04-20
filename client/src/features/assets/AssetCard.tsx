@@ -121,14 +121,12 @@ export function AssetCard({ asset, variant = "default", showAnalytics = false, h
 
   return (
     <div className={shellClass}>
-      {asset.assetType === "prompt" && (
-        <PromptThumbnail
-          title={asset.title}
-          thumbnailUrl={asset.thumbnailUrl}
-          thumbnailStatus={asset.thumbnailStatus}
-          className="h-40 w-full object-cover"
-        />
-      )}
+      <PromptThumbnail
+        title={asset.title}
+        thumbnailUrl={asset.thumbnailUrl}
+        thumbnailStatus={asset.thumbnailStatus}
+        className="h-40 w-full object-cover"
+      />
       <div className="p-4">
         <Link to={detailPath} className="block">
           <div className="flex min-w-0 items-start gap-2">
