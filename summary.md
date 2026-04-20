@@ -1,9 +1,20 @@
 # AI Library - Technical Summary
 
-Last Updated: Monday, April 20, 2026 — 16:15 CDT
-Build Version: 2cc69d5
+Last Updated: Monday, April 20, 2026 — 16:03 CDT
+Build Version: 9602809
 
 ## Recent Changes
+
+- **Thumbnail retry background service**: Added automatic retry mechanism for stuck thumbnail generation jobs. Items stuck in PENDING status for more than 2 minutes are automatically retried. If retry fails, status is set to FAILED so users can manually regenerate. Service runs on server startup and every 5 minutes thereafter.
+  - Created `server/src/services/thumbnailRetry.ts` with `startThumbnailRetryService()` function
+  - Service processes up to 10 stuck items per pass for prompts, skills, and context documents
+  - Prevents thumbnails from staying stuck forever after server restarts or API timeouts
+
+- **Regenerate button for PENDING thumbnails**: Updated `PromptThumbnail` component to show the "Regenerate" button for items stuck in PENDING status, not just FAILED. Previously, users with stuck PENDING items had no way to manually retry.
+
+- **Admin bootstrap configuration**: Set `BOOTSTRAP_ADMIN_EMAILS` environment variable to automatically grant ADMIN role to designated users on sign-in.
+
+### Previous Session Changes (April 20, 2026)
 
 - **Publish/Draft status modal for new assets**: Added a modal dialog that prompts users to choose between "Draft" and "Published" status when creating a new asset (Prompt, Skill, or Context Document). Previously, the status dropdown was pre-filled with "DRAFT" and users could change it, but there was no explicit prompt asking them to make a deliberate choice. Now when users click Create/Save on a new asset:
   - The form validates as before
@@ -13,7 +24,7 @@ Build Version: 2cc69d5
   - Created new reusable `PublishStatusModal` component in `client/src/components/PublishStatusModal.tsx`
   - Removed status dropdown from all three editor pages (PromptEditorPage, SkillEditorPage, ContextEditorPage) and integrated the modal
 
-### Previous Session Changes (April 20, 2026)
+### Previous Session Changes (April 20, 2026 — earlier)
 
 - **Skill detail page React hooks fix**: Fixed React Error #310 ("Rendered fewer hooks than expected") that caused a blank page when viewing skill detail pages. The `useMemo` hook was being called after conditional early returns, violating React's Rules of Hooks. Moved `useMemo` before all conditional returns to ensure hooks are called in the same order on every render. This is the same fix pattern previously applied to ContextDetailPage.
 
@@ -289,6 +300,7 @@ The application has achieved **substantial completion** of the core implementati
 │   │   │   └── auth.ts                         # Google OAuth + session lifecycle
 │   │   ├── services/
 │   │   │   ├── nanoBanana.ts                   # Image generation adapter (Gemini API)
+│   │   │   ├── thumbnailRetry.ts               # Background service for retrying stuck thumbnail generation
 │   │   │   ├── helpSearch.ts                   # Help content search service
 │   │   │   ├── searchParser.ts                 # Natural language query parsing (Gemini + local heuristics)
 │   │   │   └── email.ts                        # Tool request email notifications
@@ -393,6 +405,7 @@ The application has achieved **substantial completion** of the core implementati
 - `server/src/routes/analytics.ts`: consolidated overview payload consumed by homepage dashboards and leaderboards.
 - `server/src/routes/help.ts`: help content search endpoint for the searchable help page.
 - `server/src/services/nanoBanana.ts`: external image-generation bridge for prompt thumbnails via Gemini API.
+- `server/src/services/thumbnailRetry.ts`: background service that retries stuck thumbnail generation every 5 minutes. Items in PENDING for >2 minutes are retried or marked FAILED.
 - `server/src/services/helpSearch.ts`: help content search service with AI-powered question answering.
 - `server/src/services/searchParser.ts`: natural language search query parser using Gemini with local heuristic fallback.
 - `server/src/services/systemCollections.ts`: automatic tool-based and "Best of AI Library" collection management. Includes ChatGPT and Claude Cowork collections.
@@ -552,7 +565,7 @@ git push heroku main
 
 **Technical Debt:**
 
-- Add retry guardrails for thumbnail backfill jobs to avoid repeated processing on persistent provider errors.
+- ~~Add retry guardrails for thumbnail backfill jobs to avoid repeated processing on persistent provider errors.~~ ✅ Completed — Added `thumbnailRetry.ts` background service.
 - Add provider capability check/health endpoint for image model compatibility before runtime generation attempts.
 - Expand end-to-end tests for homepage leaderboards to validate user-engagement score ranking behavior.
 - Add API contract tests for analytics response shape changes (`userEngagementLeaderboard`) to prevent frontend drift.
