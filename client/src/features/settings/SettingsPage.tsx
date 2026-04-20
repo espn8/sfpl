@@ -116,8 +116,8 @@ export function SettingsPage() {
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!name || !profilePhotoUrl || !region || !ou || !title) {
-      setFormError("All fields are required.");
+    if (!name || !profilePhotoUrl) {
+      setFormError("Name and profile photo are required.");
       return;
     }
     updateProfileMutation.mutate({

@@ -1,9 +1,15 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 17, 2026 — 19:35 CDT
-Build Version: 1e7e026
+Last Updated: Monday, April 20, 2026 — 10:45 CDT
+Build Version: c45f2f7
 
 ## Recent Changes
+
+- **Profile save validation fix**: Fixed "Unable to save your profile" error that occurred when users attempted to save their profile without filling in all optional fields (region, OU, title). The server-side validation schema was requiring all fields to be non-empty, but existing users often had null values for these fields added later. Changed server validation to make `region`, `ou`, and `title` fields optional with empty string defaults. Updated client-side validation to only require name and profile photo.
+
+- **Test fix**: Updated `useSearchState.test.tsx` to include the `status` field in expected default filters object.
+
+### Previous Session Changes (April 17, 2026)
 
 - **Sort option type alignment fix**: Removed `"topRated"` from all sort-related types to align with the UI which no longer offers this option:
   - `SortOption` type in `types.ts`

@@ -51,9 +51,9 @@ const googleCallbackQuerySchema = z.object({
 const updateProfileBodySchema = z.object({
   name: z.string().trim().min(1, "name is required."),
   avatarUrl: z.string().trim().url("avatarUrl must be a valid URL."),
-  region: z.string().trim().min(1, "region is required."),
-  ou: z.string().trim().min(1, "ou is required."),
-  title: z.string().trim().min(1, "title is required."),
+  region: z.string().trim().optional().default(""),
+  ou: z.string().trim().optional().default(""),
+  title: z.string().trim().optional().default(""),
 });
 const googleJwks = createRemoteJWKSet(
   new URL("https://www.googleapis.com/oauth2/v3/certs"),

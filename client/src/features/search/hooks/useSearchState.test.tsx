@@ -29,6 +29,7 @@ describe("useSearchState", () => {
       sort: "recent",
       collectionId: "",
       mine: false,
+      status: "",
     });
     expect(result.current.inputValue).toBe("");
     expect(result.current.activeFilters).toEqual([]);
