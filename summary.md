@@ -1,9 +1,11 @@
 # AI Library - Technical Summary
 
-Last Updated: Monday, April 20, 2026 — 14:30 CDT
-Build Version: a05433f
+Last Updated: Monday, April 20, 2026 — 15:45 CDT
+Build Version: 1eed5eb
 
 ## Recent Changes
+
+- **Skill detail page React hooks fix**: Fixed React Error #310 ("Rendered fewer hooks than expected") that caused a blank page when viewing skill detail pages. The `useMemo` hook was being called after conditional early returns, violating React's Rules of Hooks. Moved `useMemo` before all conditional returns to ensure hooks are called in the same order on every render. This is the same fix pattern previously applied to ContextDetailPage.
 
 - **Thumbnail generation for Skills and Context**: Extended thumbnail generation (previously only for Prompts) to Skills and Context documents:
   - Added `thumbnailUrl`, `thumbnailStatus`, `thumbnailError` fields to Skill and ContextDocument database models

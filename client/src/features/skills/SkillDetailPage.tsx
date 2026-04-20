@@ -87,25 +87,7 @@ export function SkillDetailPage() {
     }
   }, [skillId]);
 
-  if (!Number.isInteger(skillId) || skillId <= 0) {
-    return <p className="text-sm text-(--color-text-muted)">Invalid skill.</p>;
-  }
-
-  if (skillQuery.isLoading) {
-    return <p className="text-sm text-(--color-text-muted)">Loading…</p>;
-  }
-
-  if (skillQuery.isError || !skillQuery.data) {
-    return <p className="text-sm text-red-600">Skill not found or inaccessible.</p>;
-  }
-
   const skill = skillQuery.data;
-  const canEdit =
-    meQuery.data &&
-    (meQuery.data.id === skill.owner.id || meQuery.data.role === "ADMIN" || meQuery.data.role === "OWNER");
-  const canDelete = meQuery.data && meQuery.data.id === skill.owner.id;
-  const viewCount = skill.viewCount ?? 0;
-  const hasVariables = (skill.variables?.length ?? 0) > 0;
 
   const composed = useMemo(() => {
     if (!skill) {
@@ -117,6 +99,25 @@ export function SkillDetailPage() {
     }
     return interpolateBody(skill.body, variables, variableValues);
   }, [skill, variableValues]);
+
+  if (!Number.isInteger(skillId) || skillId <= 0) {
+    return <p className="text-sm text-(--color-text-muted)">Invalid skill.</p>;
+  }
+
+  if (skillQuery.isLoading) {
+    return <p className="text-sm text-(--color-text-muted)">Loading…</p>;
+  }
+
+  if (skillQuery.isError || !skill) {
+    return <p className="text-sm text-red-600">Skill not found or inaccessible.</p>;
+  }
+
+  const canEdit =
+    meQuery.data &&
+    (meQuery.data.id === skill.owner.id || meQuery.data.role === "ADMIN" || meQuery.data.role === "OWNER");
+  const canDelete = meQuery.data && meQuery.data.id === skill.owner.id;
+  const viewCount = skill.viewCount ?? 0;
+  const hasVariables = (skill.variables?.length ?? 0) > 0;
 
   const shareUrl = buildShareUrl(`/skills/${skillId}`);
 
