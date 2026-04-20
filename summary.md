@@ -1,9 +1,16 @@
 # AI Library - Technical Summary
 
-Last Updated: Monday, April 20, 2026 — 11:15 CDT
-Build Version: 9217b3c
+Last Updated: Monday, April 20, 2026 — 14:30 CDT
+Build Version: a05433f
 
 ## Recent Changes
+
+- **Thumbnail generation for Skills and Context**: Extended thumbnail generation (previously only for Prompts) to Skills and Context documents:
+  - Added `thumbnailUrl`, `thumbnailStatus`, `thumbnailError` fields to Skill and ContextDocument database models
+  - Thumbnails are automatically generated when creating new Skills/Context using the Gemini image API
+  - Added regenerate-thumbnail API endpoints for both asset types
+  - AssetCard now displays thumbnails for all asset types
+  - Skill and Context detail pages show thumbnails with regenerate button for owners/admins
 
 - **Context detail page React hooks fix**: Fixed React Error #310 ("Rendered more hooks than during the previous render") that caused a blank page after creating a new context asset. The `useMemo` hook was being called after conditional early returns, violating React's Rules of Hooks. Moved `useMemo` before all conditional returns to ensure hooks are called in the same order on every render.
 
