@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
+import { PublishStatusModal } from "../../components/PublishStatusModal";
 import { sanitizeTitle } from "../../lib/sanitizeTitle";
 import {
   createPrompt,
@@ -21,6 +22,17 @@ type VariableRow = {
   required: boolean;
 };
 
+type PendingPromptData = {
+  title: string;
+  summary: string;
+  body: string;
+  visibility: "PUBLIC" | "TEAM" | "PRIVATE";
+  tools: PromptTool[];
+  modality: PromptModality;
+  modelHint?: string;
+  variables?: Array<{ key: string; label: string | null; defaultValue: string; required: boolean }>;
+};
+
 function sanitizeVariableKey(input: string): string {
   let result = input.replace(/[^A-Za-z0-9_]/g, "_");
   if (result.length > 0 && /^[0-9]/.test(result)) {
@@ -36,6 +48,8 @@ export function PromptEditorPage() {
   const [otherToolName, setOtherToolName] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
   const [showToolRequestModal, setShowToolRequestModal] = useState(false);
+  const [showPublishModal, setShowPublishModal] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState<PendingPromptData | null>(null);
   const [bodyText, setBodyText] = useState("");
   const bodyRef = useRef<HTMLTextAreaElement>(null);
 
@@ -67,6 +81,16 @@ export function PromptEditorPage() {
     },
   });
 
+  const handlePublishChoice = (status: "DRAFT" | "PUBLISHED") => {
+    if (!pendingFormData) return;
+    setShowPublishModal(false);
+    createMutation.mutate({
+      ...pendingFormData,
+      status,
+    });
+    setPendingFormData(null);
+  };
+
   return (
     <form
       className="space-y-3 rounded border border-(--color-border) bg-(--color-surface) p-4"
@@ -77,7 +101,6 @@ export function PromptEditorPage() {
         const title = sanitizeTitle(String(formData.get("title") ?? ""));
         const summary = String(formData.get("summary") ?? "").trim();
         const body = bodyText.trim();
-        const status = String(formData.get("status") ?? "DRAFT") as "DRAFT" | "PUBLISHED" | "ARCHIVED";
         const visibility = String(formData.get("visibility") ?? "PUBLIC") as "PUBLIC" | "TEAM" | "PRIVATE";
         const toolsArray = Array.from(selectedTools);
         const modality = String(formData.get("modality") ?? "").trim();
@@ -109,17 +132,18 @@ export function PromptEditorPage() {
             required: row.required,
           }))
           .filter((row) => row.key.length > 0);
-        createMutation.mutate({
+        
+        setPendingFormData({
           title,
           summary,
           body,
-          status,
           visibility,
           tools: toolsArray,
           modality: modality as PromptModality,
           modelHint: selectedTools.has("other") && otherToolName.trim() ? otherToolName.trim() : undefined,
           variables: variables.length > 0 ? variables : undefined,
         });
+        setShowPublishModal(true);
       }}
     >
       <h2 className="text-2xl font-semibold">Create a New Prompt</h2>
@@ -139,16 +163,7 @@ export function PromptEditorPage() {
         />
         <p className="mt-1 text-xs text-(--color-text-muted)">Why would someone use this prompt?</p>
       </div>
-      <div className="grid gap-2 md:grid-cols-3">
-        <select
-          name="status"
-          defaultValue="DRAFT"
-          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
-        >
-          <option value="DRAFT">Draft</option>
-          <option value="PUBLISHED">Published</option>
-          <option value="ARCHIVED">Archived</option>
-        </select>
+      <div className="grid gap-2 md:grid-cols-2">
         <select
           name="visibility"
           defaultValue="PUBLIC"
@@ -391,6 +406,15 @@ export function PromptEditorPage() {
       >
         {createMutation.isPending ? "Saving..." : "Save Prompt"}
       </button>
+      <PublishStatusModal
+        isOpen={showPublishModal}
+        assetType="prompt"
+        onConfirm={handlePublishChoice}
+        onClose={() => {
+          setShowPublishModal(false);
+          setPendingFormData(null);
+        }}
+      />
     </form>
   );
 }

@@ -1,9 +1,19 @@
 # AI Library - Technical Summary
 
-Last Updated: Monday, April 20, 2026 — 15:50 CDT
-Build Version: 492bc7c
+Last Updated: Monday, April 20, 2026 — 16:15 CDT
+Build Version: 2cc69d5
 
 ## Recent Changes
+
+- **Publish/Draft status modal for new assets**: Added a modal dialog that prompts users to choose between "Draft" and "Published" status when creating a new asset (Prompt, Skill, or Context Document). Previously, the status dropdown was pre-filled with "DRAFT" and users could change it, but there was no explicit prompt asking them to make a deliberate choice. Now when users click Create/Save on a new asset:
+  - The form validates as before
+  - A modal appears with two card-style options: "Save as Draft" (amber icon) or "Publish Now" (green icon)
+  - User makes their choice, and the asset is created with that status
+  - Cancel or Escape closes the modal without creating the asset
+  - Created new reusable `PublishStatusModal` component in `client/src/components/PublishStatusModal.tsx`
+  - Removed status dropdown from all three editor pages (PromptEditorPage, SkillEditorPage, ContextEditorPage) and integrated the modal
+
+### Previous Session Changes (April 20, 2026)
 
 - **Skill detail page React hooks fix**: Fixed React Error #310 ("Rendered fewer hooks than expected") that caused a blank page when viewing skill detail pages. The `useMemo` hook was being called after conditional early returns, violating React's Rules of Hooks. Moved `useMemo` before all conditional returns to ensure hooks are called in the same order on every render. This is the same fix pattern previously applied to ContextDetailPage.
 
@@ -417,6 +427,7 @@ The application has achieved **substantial completion** of the core implementati
 - `client/src/features/prompts/interpolatePrompt.ts` / `launchProviders.ts`: client-side prompt variable fill-in and deep links to external chat products.
 - `client/src/features/prompts/PromptThumbnail.tsx`: thumbnail rendering with graceful placeholder states and clickable regenerate button for failed thumbnails.
 - `client/src/components/ConfirmDeleteModal.tsx`: reusable confirmation dialog for permanent asset deletion with warning messaging.
+- `client/src/components/PublishStatusModal.tsx`: modal dialog for new asset creation prompting user to choose Draft or Published status with card-style options.
 - `client/src/features/analytics/AnalyticsPage.tsx`: admin dashboard with top used, top rated, stale prompts, contributors, and user engagement leaderboards.
 - `client/src/features/analytics/api.ts`: strict typed contract for analytics payload shape.
 - `client/src/features/help/HelpPage.tsx`: searchable help documentation with topic index sidebar and AI search beta feature.

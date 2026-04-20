@@ -1,10 +1,20 @@
 import { useMutation } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { PublishStatusModal } from "../../components/PublishStatusModal";
 import { VariableEditor, type VariableRow } from "../../components/VariableEditor";
 import { sanitizeTitle } from "../../lib/sanitizeTitle";
 import { ToolRequestModal } from "../prompts/ToolRequestModal";
 import { createContextDocument, getContextToolsSortedAlphabetically, getContextToolLabel, type ContextTool } from "./api";
+
+type PendingContextData = {
+  title: string;
+  summary?: string;
+  body: string;
+  visibility: "PUBLIC" | "TEAM" | "PRIVATE";
+  tools: ContextTool[];
+  variables?: Array<{ key: string; label: string | null; defaultValue: string; required: boolean }>;
+};
 
 export function ContextEditorPage() {
   const navigate = useNavigate();
@@ -12,6 +22,8 @@ export function ContextEditorPage() {
   const [selectedTools, setSelectedTools] = useState<Set<ContextTool>>(new Set());
   const [otherToolName, setOtherToolName] = useState("");
   const [showToolRequestModal, setShowToolRequestModal] = useState(false);
+  const [showPublishModal, setShowPublishModal] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState<PendingContextData | null>(null);
   const [variableRows, setVariableRows] = useState<VariableRow[]>([]);
   const [bodyText, setBodyText] = useState("");
   const bodyRef = useRef<HTMLTextAreaElement>(null);
@@ -44,6 +56,16 @@ export function ContextEditorPage() {
     },
   });
 
+  const handlePublishChoice = (status: "DRAFT" | "PUBLISHED") => {
+    if (!pendingFormData) return;
+    setShowPublishModal(false);
+    createMutation.mutate({
+      ...pendingFormData,
+      status,
+    });
+    setPendingFormData(null);
+  };
+
   return (
     <form
       className="space-y-3 rounded border border-(--color-border) bg-(--color-surface) p-4"
@@ -54,7 +76,6 @@ export function ContextEditorPage() {
         const title = sanitizeTitle(String(formData.get("title") ?? ""));
         const summary = String(formData.get("summary") ?? "").trim();
         const body = bodyText.trim();
-        const status = String(formData.get("status") ?? "DRAFT") as "DRAFT" | "PUBLISHED" | "ARCHIVED";
         const visibility = String(formData.get("visibility") ?? "PUBLIC") as "PUBLIC" | "TEAM" | "PRIVATE";
         const toolsArray = Array.from(selectedTools);
         if (!title) {
@@ -81,15 +102,16 @@ export function ContextEditorPage() {
             required: row.required,
           }))
           .filter((row) => row.key.length > 0);
-        createMutation.mutate({
+        
+        setPendingFormData({
           title,
           summary: summary || undefined,
           body,
-          status,
           visibility,
           tools: toolsArray,
           variables: variables.length > 0 ? variables : undefined,
         });
+        setShowPublishModal(true);
       }}
     >
       <h2 className="text-2xl font-semibold">Create context file</h2>
@@ -105,26 +127,15 @@ export function ContextEditorPage() {
         placeholder="Summary (optional)"
         className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
       />
-      <div className="grid gap-2 md:grid-cols-2">
-        <select
-          name="status"
-          defaultValue="DRAFT"
-          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
-        >
-          <option value="DRAFT">Draft</option>
-          <option value="PUBLISHED">Published</option>
-          <option value="ARCHIVED">Archived</option>
-        </select>
-        <select
-          name="visibility"
-          defaultValue="PUBLIC"
-          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
-        >
-          <option value="PUBLIC">Public (All Users)</option>
-          <option value="TEAM">Team (My OU Only)</option>
-          <option value="PRIVATE">Private (Only Me)</option>
-        </select>
-      </div>
+      <select
+        name="visibility"
+        defaultValue="PUBLIC"
+        className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
+      >
+        <option value="PUBLIC">Public (All Users)</option>
+        <option value="TEAM">Team (My OU Only)</option>
+        <option value="PRIVATE">Private (Only Me)</option>
+      </select>
       <div className="space-y-2 rounded border border-(--color-border) bg-(--color-surface-muted) p-3">
         <p className="text-sm font-medium">Tools (select one or many)</p>
         <div className="grid gap-2 sm:grid-cols-4">
@@ -226,6 +237,15 @@ export function ContextEditorPage() {
       >
         {createMutation.isPending ? "Saving…" : "Create"}
       </button>
+      <PublishStatusModal
+        isOpen={showPublishModal}
+        assetType="context"
+        onConfirm={handlePublishChoice}
+        onClose={() => {
+          setShowPublishModal(false);
+          setPendingFormData(null);
+        }}
+      />
     </form>
   );
 }

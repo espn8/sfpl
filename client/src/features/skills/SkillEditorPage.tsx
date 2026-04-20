@@ -1,10 +1,20 @@
 import { useMutation } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { PublishStatusModal } from "../../components/PublishStatusModal";
 import { VariableEditor, type VariableRow } from "../../components/VariableEditor";
 import { sanitizeTitle } from "../../lib/sanitizeTitle";
 import { ToolRequestModal } from "../prompts/ToolRequestModal";
 import { createSkill, getSkillToolsSortedAlphabetically, getSkillToolLabel, type SkillTool } from "./api";
+
+type PendingSkillData = {
+  title: string;
+  summary?: string;
+  body: string;
+  visibility: "PUBLIC" | "TEAM" | "PRIVATE";
+  tools: SkillTool[];
+  variables?: Array<{ key: string; label: string | null; defaultValue: string; required: boolean }>;
+};
 
 export function SkillEditorPage() {
   const navigate = useNavigate();
@@ -12,6 +22,8 @@ export function SkillEditorPage() {
   const [selectedTools, setSelectedTools] = useState<Set<SkillTool>>(new Set());
   const [otherToolName, setOtherToolName] = useState("");
   const [showToolRequestModal, setShowToolRequestModal] = useState(false);
+  const [showPublishModal, setShowPublishModal] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState<PendingSkillData | null>(null);
   const [variableRows, setVariableRows] = useState<VariableRow[]>([]);
   const [bodyText, setBodyText] = useState("");
   const bodyRef = useRef<HTMLTextAreaElement>(null);
@@ -44,6 +56,16 @@ export function SkillEditorPage() {
     },
   });
 
+  const handlePublishChoice = (status: "DRAFT" | "PUBLISHED") => {
+    if (!pendingFormData) return;
+    setShowPublishModal(false);
+    createMutation.mutate({
+      ...pendingFormData,
+      status,
+    });
+    setPendingFormData(null);
+  };
+
   return (
     <form
       className="space-y-3 rounded border border-(--color-border) bg-(--color-surface) p-4"
@@ -54,7 +76,6 @@ export function SkillEditorPage() {
         const title = sanitizeTitle(String(formData.get("title") ?? ""));
         const summary = String(formData.get("summary") ?? "").trim();
         const body = bodyText.trim();
-        const status = String(formData.get("status") ?? "DRAFT") as "DRAFT" | "PUBLISHED" | "ARCHIVED";
         const visibility = String(formData.get("visibility") ?? "PUBLIC") as "PUBLIC" | "TEAM" | "PRIVATE";
         const toolsArray = Array.from(selectedTools);
         if (!title) {
@@ -81,15 +102,16 @@ export function SkillEditorPage() {
             required: row.required,
           }))
           .filter((row) => row.key.length > 0);
-        createMutation.mutate({
+        
+        setPendingFormData({
           title,
           summary: summary || undefined,
           body,
-          status,
           visibility,
           tools: toolsArray,
           variables: variables.length > 0 ? variables : undefined,
         });
+        setShowPublishModal(true);
       }}
     >
       <h2 className="text-2xl font-semibold">Create skill</h2>
@@ -105,26 +127,15 @@ export function SkillEditorPage() {
         placeholder="Summary (optional)"
         className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
       />
-      <div className="grid gap-2 md:grid-cols-2">
-        <select
-          name="status"
-          defaultValue="DRAFT"
-          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
-        >
-          <option value="DRAFT">Draft</option>
-          <option value="PUBLISHED">Published</option>
-          <option value="ARCHIVED">Archived</option>
-        </select>
-        <select
-          name="visibility"
-          defaultValue="PUBLIC"
-          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
-        >
-          <option value="PUBLIC">Public (All Users)</option>
-          <option value="TEAM">Team (My OU Only)</option>
-          <option value="PRIVATE">Private (Only Me)</option>
-        </select>
-      </div>
+      <select
+        name="visibility"
+        defaultValue="PUBLIC"
+        className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
+      >
+        <option value="PUBLIC">Public (All Users)</option>
+        <option value="TEAM">Team (My OU Only)</option>
+        <option value="PRIVATE">Private (Only Me)</option>
+      </select>
       <div className="space-y-2 rounded border border-(--color-border) bg-(--color-surface-muted) p-3">
         <p className="text-sm font-medium">Tools (select one or many)</p>
         <div className="grid gap-2 sm:grid-cols-4">
@@ -226,6 +237,15 @@ export function SkillEditorPage() {
       >
         {createMutation.isPending ? "Saving…" : "Create"}
       </button>
+      <PublishStatusModal
+        isOpen={showPublishModal}
+        assetType="skill"
+        onConfirm={handlePublishChoice}
+        onClose={() => {
+          setShowPublishModal(false);
+          setPendingFormData(null);
+        }}
+      />
     </form>
   );
 }
