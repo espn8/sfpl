@@ -175,47 +175,19 @@ export function SettingsPage() {
           <p className="mb-4 text-sm text-(--color-text-muted)">
             See how your created content is performing with views, uses, ratings, and favorites.
           </p>
-          <div className="space-y-2">
-            <Link
-              to="/?mine=true&showAnalytics=true"
-              className="flex items-center justify-between rounded-lg border border-(--color-border) bg-(--color-surface-muted) px-4 py-3 transition-colors hover:bg-(--color-surface)"
-            >
-              <div className="flex items-center gap-3">
-                <ChartIcon className="h-5 w-5 text-(--color-text-muted)" />
-                <div>
-                  <p className="font-medium">My Prompt Analytics</p>
-                  <p className="text-sm text-(--color-text-muted)">Views, uses, ratings, and favorites for your prompts</p>
-                </div>
+          <Link
+            to="/?mine=true&showAnalytics=true"
+            className="flex items-center justify-between rounded-lg border border-(--color-border) bg-(--color-surface-muted) px-4 py-3 transition-colors hover:bg-(--color-surface)"
+          >
+            <div className="flex items-center gap-3">
+              <ChartIcon className="h-5 w-5 text-(--color-text-muted)" />
+              <div>
+                <p className="font-medium">My Analytics</p>
+                <p className="text-sm text-(--color-text-muted)">Views, uses, ratings, and favorites for your content</p>
               </div>
-              <ChevronRightIcon className="h-5 w-5 text-(--color-text-muted)" />
-            </Link>
-            <Link
-              to="/skills?mine=true&showAnalytics=true"
-              className="flex items-center justify-between rounded-lg border border-(--color-border) bg-(--color-surface-muted) px-4 py-3 transition-colors hover:bg-(--color-surface)"
-            >
-              <div className="flex items-center gap-3">
-                <ChartIcon className="h-5 w-5 text-(--color-text-muted)" />
-                <div>
-                  <p className="font-medium">My Skill Analytics</p>
-                  <p className="text-sm text-(--color-text-muted)">Views and engagement for your skills</p>
-                </div>
-              </div>
-              <ChevronRightIcon className="h-5 w-5 text-(--color-text-muted)" />
-            </Link>
-            <Link
-              to="/context?mine=true&showAnalytics=true"
-              className="flex items-center justify-between rounded-lg border border-(--color-border) bg-(--color-surface-muted) px-4 py-3 transition-colors hover:bg-(--color-surface)"
-            >
-              <div className="flex items-center gap-3">
-                <ChartIcon className="h-5 w-5 text-(--color-text-muted)" />
-                <div>
-                  <p className="font-medium">My Context Analytics</p>
-                  <p className="text-sm text-(--color-text-muted)">Views and engagement for your context documents</p>
-                </div>
-              </div>
-              <ChevronRightIcon className="h-5 w-5 text-(--color-text-muted)" />
-            </Link>
-          </div>
+            </div>
+            <ChevronRightIcon className="h-5 w-5 text-(--color-text-muted)" />
+          </Link>
         </section>
       </div>
 

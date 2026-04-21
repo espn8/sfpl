@@ -1,9 +1,17 @@
 # AI Library - Technical Summary
 
-Last Updated: Tuesday, April 21, 2026 — 09:30 CDT
-Build Version: 245ad7d
+Last Updated: Tuesday, April 21, 2026 — 10:15 CDT
+Build Version: 636d682
 
 ## Recent Changes
+
+- **Fixed user analytics display**: Fixed the "My Analytics" view so the analytics panel (Views, Uses, Avg Rating, Favorited) now properly displays on each asset card when viewing `/?mine=true&showAnalytics=true`. The `showAnalytics` prop was being read from URL params but not passed to the `AssetCard` component.
+  - Updated `client/src/features/home/HomePage.tsx` to pass `showAnalytics={showAnalytics}` to `AssetCard`
+
+- **Consolidated Settings analytics links**: Replaced the three separate analytics links in Settings (My Prompt Analytics, My Skill Analytics, My Context Analytics) with a single "My Analytics" button that shows all asset types together in one unified view.
+  - Updated `client/src/features/settings/SettingsPage.tsx` to use single link to `/?mine=true&showAnalytics=true`
+
+### Previous Session Changes (April 21, 2026)
 
 - **AssetCard button redesign**: Updated the action buttons on asset cards for better visual hierarchy and Salesforce branding:
   - Renamed "Copy" button to "Use" with Salesforce green background (`#04844B`, hover `#036B3E`)

@@ -590,6 +590,7 @@ export function HomePage() {
                     asset={asset}
                     variant="default"
                     highlightQuery={debouncedFilters.q}
+                    showAnalytics={showAnalytics}
                   />
                 ))}
               </div>
