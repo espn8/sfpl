@@ -106,6 +106,8 @@ type UnifiedAsset = {
   viewCount: number;
   usageCount: number;
   favorited: boolean;
+  favoriteCount: number;
+  ratingCount?: number;
   modality?: ApiModality;
   modelHint?: string | null;
   thumbnailUrl?: string | null;
@@ -230,10 +232,11 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
     let viewCountByPrompt = new Map<number, number>();
     let usageCountByPrompt = new Map<number, number>();
     let favoritedPromptIds = new Set<number>();
+    let favoriteCountByPrompt = new Map<number, number>();
     let myRatingByPrompt = new Map<number, number>();
 
     if (promptIds.length > 0) {
-      const [viewGroups, usageGroups, favoriteRows, ratingRows] = await Promise.all([
+      const [viewGroups, usageGroups, favoriteRows, favoriteCountGroups, ratingRows] = await Promise.all([
         prisma.usageEvent.groupBy({
           by: ["promptId"],
           where: { promptId: { in: promptIds }, action: UsageAction.VIEW },
@@ -248,6 +251,11 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
           where: { userId: auth.userId, promptId: { in: promptIds } },
           select: { promptId: true },
         }),
+        prisma.favorite.groupBy({
+          by: ["promptId"],
+          where: { promptId: { in: promptIds } },
+          _count: { _all: true },
+        }),
         prisma.rating.findMany({
           where: { userId: auth.userId, promptId: { in: promptIds } },
           select: { promptId: true, value: true },
@@ -256,6 +264,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
       viewCountByPrompt = new Map(viewGroups.map((g) => [g.promptId, g._count._all]));
       usageCountByPrompt = new Map(usageGroups.map((g) => [g.promptId, g._count._all]));
       favoritedPromptIds = new Set(favoriteRows.map((r) => r.promptId));
+      favoriteCountByPrompt = new Map(favoriteCountGroups.map((g) => [g.promptId, g._count._all]));
       myRatingByPrompt = new Map(ratingRows.map((r) => [r.promptId, r.value]));
     }
 
@@ -276,6 +285,8 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         viewCount: viewCountByPrompt.get(prompt.id) ?? 0,
         usageCount: usageCountByPrompt.get(prompt.id) ?? 0,
         favorited: favoritedPromptIds.has(prompt.id),
+        favoriteCount: favoriteCountByPrompt.get(prompt.id) ?? 0,
+        ratingCount: prompt.ratings.length,
         modality: mapDbModalityToApi(prompt.modality),
         modelHint: prompt.modelHint,
         thumbnailUrl: prompt.thumbnailUrl,
@@ -359,9 +370,10 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
     let viewCountBySkill = new Map<number, number>();
     let copyCountBySkill = new Map<number, number>();
     let favoritedSkillIds = new Set<number>();
+    let favoriteCountBySkill = new Map<number, number>();
 
     if (skillIds.length > 0) {
-      const [viewGroups, copyGroups, favoriteRows] = await Promise.all([
+      const [viewGroups, copyGroups, favoriteRows, favoriteCountGroups] = await Promise.all([
         prisma.skillUsageEvent.groupBy({
           by: ["skillId"],
           where: { skillId: { in: skillIds }, eventType: "VIEW" },
@@ -376,10 +388,16 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
           where: { userId: auth.userId, skillId: { in: skillIds } },
           select: { skillId: true },
         }),
+        prisma.skillFavorite.groupBy({
+          by: ["skillId"],
+          where: { skillId: { in: skillIds } },
+          _count: { _all: true },
+        }),
       ]);
       viewCountBySkill = new Map(viewGroups.map((g) => [g.skillId, g._count.skillId]));
       copyCountBySkill = new Map(copyGroups.map((g) => [g.skillId, g._count.skillId]));
       favoritedSkillIds = new Set(favoriteRows.map((r) => r.skillId));
+      favoriteCountBySkill = new Map(favoriteCountGroups.map((g) => [g.skillId, g._count._all]));
     }
 
     for (const skill of skills) {
@@ -400,6 +418,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         viewCount: viewCountBySkill.get(skill.id) ?? 0,
         usageCount: copyCountBySkill.get(skill.id) ?? 0,
         favorited: favoritedSkillIds.has(skill.id),
+        favoriteCount: favoriteCountBySkill.get(skill.id) ?? 0,
         variables: skill.variables,
       });
     }
@@ -474,9 +493,10 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
     let viewCountByContext = new Map<number, number>();
     let copyCountByContext = new Map<number, number>();
     let favoritedContextIds = new Set<number>();
+    let favoriteCountByContext = new Map<number, number>();
 
     if (contextIds.length > 0) {
-      const [viewGroups, copyGroups, favoriteRows] = await Promise.all([
+      const [viewGroups, copyGroups, favoriteRows, favoriteCountGroups] = await Promise.all([
         prisma.contextUsageEvent.groupBy({
           by: ["contextId"],
           where: { contextId: { in: contextIds }, eventType: "VIEW" },
@@ -491,10 +511,16 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
           where: { userId: auth.userId, contextId: { in: contextIds } },
           select: { contextId: true },
         }),
+        prisma.contextFavorite.groupBy({
+          by: ["contextId"],
+          where: { contextId: { in: contextIds } },
+          _count: { _all: true },
+        }),
       ]);
       viewCountByContext = new Map(viewGroups.map((g) => [g.contextId, g._count.contextId]));
       copyCountByContext = new Map(copyGroups.map((g) => [g.contextId, g._count.contextId]));
       favoritedContextIds = new Set(favoriteRows.map((r) => r.contextId));
+      favoriteCountByContext = new Map(favoriteCountGroups.map((g) => [g.contextId, g._count._all]));
     }
 
     for (const doc of contextDocs) {
@@ -515,6 +541,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         viewCount: viewCountByContext.get(doc.id) ?? 0,
         usageCount: copyCountByContext.get(doc.id) ?? 0,
         favorited: favoritedContextIds.has(doc.id),
+        favoriteCount: favoriteCountByContext.get(doc.id) ?? 0,
         variables: doc.variables,
       });
     }

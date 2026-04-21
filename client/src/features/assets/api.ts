@@ -31,6 +31,8 @@ export type UnifiedAsset = {
   viewCount: number;
   usageCount: number;
   favorited: boolean;
+  favoriteCount: number;
+  ratingCount?: number;
   modality?: string;
   modelHint?: string | null;
   thumbnailUrl?: string | null;

@@ -1,9 +1,26 @@
 # AI Library - Technical Summary
 
-Last Updated: Tuesday, April 21, 2026 — 10:20 CDT
-Build Version: e3d5083
+Last Updated: Tuesday, April 21, 2026 — 10:45 CDT
+Build Version: 9022696
 
 ## Recent Changes
+
+- **Compact analytics table view**: Replaced the card grid in "My Analytics" (`/?mine=true&showAnalytics=true`) with a compact sortable table showing:
+  - Columns: Name, Status, Views, Uses, # Ratings, Avg Rating, # Favorites, Published, Updated, Edit
+  - All columns (except Edit) are sortable by clicking column headers (asc/desc/none)
+  - "Columns" dropdown to show/hide columns; preferences saved to localStorage
+  - Name column links to asset detail page; Edit button links to edit page
+  - Status badges color-coded: green (PUBLISHED), amber (DRAFT), gray (ARCHIVED)
+  - Asset type badge shown next to name (Prompt/Skill/Context)
+  - Created new `client/src/features/assets/AssetAnalyticsTable.tsx` component
+
+- **Added ratingCount and favoriteCount to assets API**: Extended the `/api/assets` endpoint to return total counts:
+  - `ratingCount` - total number of ratings (prompts only)
+  - `favoriteCount` - total number of users who favorited the asset
+  - Updated `server/src/routes/assets.ts` to query and aggregate these counts
+  - Updated `client/src/features/assets/api.ts` UnifiedAsset type
+
+### Previous Session Changes (April 21, 2026)
 
 - **Fixed user analytics display**: Fixed the "My Analytics" view so the analytics panel (Views, Uses, Avg Rating, Favorited) now properly displays on each asset card when viewing `/?mine=true&showAnalytics=true`. The `showAnalytics` prop was being read from URL params but not passed to the `AssetCard` component.
   - Updated `client/src/features/home/HomePage.tsx` to pass `showAnalytics={showAnalytics}` to `AssetCard`
@@ -11,7 +28,7 @@ Build Version: e3d5083
 - **Consolidated Settings analytics links**: Replaced the three separate analytics links in Settings (My Prompt Analytics, My Skill Analytics, My Context Analytics) with a single "My Analytics" button that shows all asset types together in one unified view.
   - Updated `client/src/features/settings/SettingsPage.tsx` to use single link to `/?mine=true&showAnalytics=true`
 
-### Previous Session Changes (April 21, 2026)
+### Previous Session Changes (April 21, 2026 — earlier)
 
 - **AssetCard button redesign**: Updated the action buttons on asset cards for better visual hierarchy and Salesforce branding:
   - Renamed "Copy" button to "Use" with Salesforce green background (`#04844B`, hover `#036B3E`)

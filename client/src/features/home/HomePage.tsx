@@ -6,6 +6,7 @@ import { canAccessAdminUi } from "../auth/roles";
 import { getAnalyticsOverview } from "../analytics/api";
 import { listAssets, type ListAssetsFilters } from "../assets/api";
 import { AssetCard } from "../assets/AssetCard";
+import { AssetAnalyticsTable } from "../assets/AssetAnalyticsTable";
 import { getToolLabel, getToolsSortedAlphabetically, type PromptTool } from "../prompts/api";
 import { SearchBar, useSearchState, type AssetTypeFilter } from "../search";
 import { parseNaturalLanguageQuery } from "../search/api";
@@ -583,17 +584,20 @@ export function HomePage() {
                   {assetsQuery.data.meta.total} {assetsQuery.data.meta.total === 1 ? "asset" : "assets"} found
                 </p>
               </div>
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {assetsQuery.data.data.map((asset) => (
-                  <AssetCard
-                    key={`${asset.assetType}-${asset.id}`}
-                    asset={asset}
-                    variant="default"
-                    highlightQuery={debouncedFilters.q}
-                    showAnalytics={showAnalytics}
-                  />
-                ))}
-              </div>
+              {showAnalytics ? (
+                <AssetAnalyticsTable assets={assetsQuery.data.data} />
+              ) : (
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {assetsQuery.data.data.map((asset) => (
+                    <AssetCard
+                      key={`${asset.assetType}-${asset.id}`}
+                      asset={asset}
+                      variant="default"
+                      highlightQuery={debouncedFilters.q}
+                    />
+                  ))}
+                </div>
+              )}
               {assetsQuery.data.meta.totalPages > 1 && (
                 <div className="flex items-center justify-center gap-2 pt-4">
                   <button
