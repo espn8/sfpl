@@ -1,9 +1,15 @@
 # AI Library - Technical Summary
 
-Last Updated: Tuesday, April 21, 2026 — 09:15 CDT
-Build Version: d1516df
+Last Updated: Tuesday, April 21, 2026 — 09:30 CDT
+Build Version: 245ad7d
 
 ## Recent Changes
+
+- **AssetCard button redesign**: Updated the action buttons on asset cards for better visual hierarchy and Salesforce branding:
+  - Renamed "Copy" button to "Use" with Salesforce green background (`#04844B`, hover `#036B3E`)
+  - Changed "View details" link to Salesforce purple background (`#5A1BA9`, hover `#4A1589`)
+
+- **Removed faceted filters from Top Performers section**: Removed the Type/Tool filter row from the "Top Performers This Week" section on the homepage for a cleaner presentation. Filters are still available in the main search bar.
 
 - **Tool pills on asset detail pages**: Added target tool indicator pills to Skill and Context detail pages. Previously, the tool (e.g., Slackbot, Gemini, Cursor) was only visible on the homepage/index cards and could be filtered, but once navigating to an individual skill or context document, the tool information was not displayed. Now all three asset types (Prompts, Skills, Context) consistently show tool pills below the title/summary on their detail pages.
   - Updated `client/src/features/skills/SkillDetailPage.tsx` to import `getSkillToolLabel` and render tool chips

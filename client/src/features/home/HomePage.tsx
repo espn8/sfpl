@@ -7,7 +7,7 @@ import { getAnalyticsOverview } from "../analytics/api";
 import { listAssets, type ListAssetsFilters } from "../assets/api";
 import { AssetCard } from "../assets/AssetCard";
 import { getToolLabel, getToolsSortedAlphabetically, type PromptTool } from "../prompts/api";
-import { FacetedFilters, SearchBar, useSearchState, type AssetTypeFilter } from "../search";
+import { SearchBar, useSearchState, type AssetTypeFilter } from "../search";
 import { parseNaturalLanguageQuery } from "../search/api";
 
 const FIRST_VISIT_KEY = "sf-ai-library-first-visit-completed";
@@ -397,13 +397,6 @@ export function HomePage() {
               <h3 className="text-xl font-semibold">Top Performers This Week</h3>
               <span className="text-sm font-medium text-(--color-text-muted)">The AI assets people can't stop using</span>
             </div>
-            {assetsQuery.data?.meta.facets && (
-              <FacetedFilters
-                facets={assetsQuery.data.meta.facets}
-                currentFilters={filters}
-                onFilterChange={setFilter}
-              />
-            )}
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {featuredAssets.map((asset) => (
                 <AssetCard

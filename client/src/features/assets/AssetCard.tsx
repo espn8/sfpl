@@ -280,19 +280,19 @@ export function AssetCard({ asset, variant = "default", showAnalytics = false, h
           <div className="flex items-center gap-2">
             <Link
               to={detailPath}
-              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors bg-(--color-launch) text-(--color-text-inverse) hover:bg-(--color-launch-hover)"
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors bg-[#5A1BA9] text-white hover:bg-[#4A1589]"
             >
               <EyeIcon className="h-4 w-4" />
               View details
             </Link>
             <button
               type="button"
-              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors bg-[#5A1BA9] text-white hover:bg-[#4A1589]"
-              aria-label={`Copy ${asset.assetType}`}
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors bg-[#04844B] text-white hover:bg-[#036B3E]"
+              aria-label={`Use ${asset.assetType}`}
               onClick={handleCopy}
             >
               <CopyIcon className="h-4 w-4" />
-              Copy
+              Use
             </button>
           </div>
         </div>
