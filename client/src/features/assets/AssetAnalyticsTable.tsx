@@ -338,7 +338,7 @@ export function AssetAnalyticsTable({ assets }: AssetAnalyticsTableProps) {
                   <td className="whitespace-nowrap px-3 py-2">
                     <Link
                       to={getDetailPath(asset)}
-                      className="font-medium text-(--color-text) hover:text-(--color-primary) hover:underline"
+                      className="text-sm font-medium text-(--color-text) hover:text-(--color-primary) hover:underline"
                     >
                       {asset.title}
                     </Link>
