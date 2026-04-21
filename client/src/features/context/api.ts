@@ -33,6 +33,10 @@ export type ContextVariable = {
   required: boolean;
 };
 
+export type ContextRating = {
+  value: number;
+};
+
 export type ContextDocument = {
   id: number;
   title: string;
@@ -52,6 +56,10 @@ export type ContextDocument = {
   copyCount?: number;
   favoriteCount?: number;
   favorited?: boolean;
+  myRating?: number | null;
+  ratings?: ContextRating[];
+  averageRating?: number | null;
+  ratingCount?: number;
 };
 
 export type ListContextFilters = {
@@ -144,4 +152,17 @@ export async function deleteContextDocumentPermanently(contextId: number): Promi
 export async function regenerateContextThumbnail(id: number): Promise<ContextDocument> {
   const { data } = await apiClient.post<{ data: ContextDocument }>(`/api/context/${id}/regenerate-thumbnail`);
   return data.data;
+}
+
+export async function rateContext(contextId: number, value: number): Promise<{ ok: boolean; value: number }> {
+  const { data } = await apiClient.post<{ data: { ok: boolean; value: number } }>(`/api/context/${contextId}/rating`, { value });
+  return data.data;
+}
+
+export async function addContextToCollection(contextId: number, collectionId: number): Promise<void> {
+  await apiClient.post(`/api/context/${contextId}/collections/${collectionId}`);
+}
+
+export async function removeContextFromCollection(contextId: number, collectionId: number): Promise<void> {
+  await apiClient.delete(`/api/context/${contextId}/collections/${collectionId}`);
 }

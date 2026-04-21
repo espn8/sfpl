@@ -32,8 +32,10 @@ model User {
   collections Collection[] @relation("CollectionCreator")
   skillFavorites    SkillFavorite[]
   skillUsageEvents  SkillUsageEvent[]
+  skillRatings      SkillRating[]
   contextFavorites  ContextFavorite[]
   contextUsageEvents ContextUsageEvent[]
+  contextRatings    ContextRating[]
   toolRequestsReviewed ToolRequest[]
 }
 
@@ -99,6 +101,8 @@ model Skill {
   favorites       SkillFavorite[]
   usageEvents     SkillUsageEvent[]
   variables       SkillVariable[]
+  ratings         SkillRating[]
+  collections     CollectionSkill[]
 
   @@index([teamId, updatedAt])
 }
@@ -123,6 +127,8 @@ model ContextDocument {
   favorites       ContextFavorite[]
   usageEvents     ContextUsageEvent[]
   variables       ContextVariable[]
+  ratings         ContextRating[]
+  collections     CollectionContext[]
 
   @@index([teamId, updatedAt])
 }
@@ -175,6 +181,8 @@ model Collection {
   team        Team               @relation(fields: [teamId], references: [id], onDelete: Restrict)
   createdBy   User               @relation("CollectionCreator", fields: [createdById], references: [id], onDelete: Restrict)
   prompts     CollectionPrompt[]
+  skills      CollectionSkill[]
+  contexts    CollectionContext[]
 
   @@unique([teamId, name])
 }
@@ -188,6 +196,28 @@ model CollectionPrompt {
   prompt       Prompt     @relation(fields: [promptId], references: [id], onDelete: Cascade)
 
   @@unique([collectionId, promptId])
+}
+
+model CollectionSkill {
+  id           Int        @id @default(autoincrement())
+  collectionId Int
+  skillId      Int
+  sortOrder    Int        @default(0)
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  skill        Skill      @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, skillId])
+}
+
+model CollectionContext {
+  id           Int             @id @default(autoincrement())
+  collectionId Int
+  contextId    Int
+  sortOrder    Int             @default(0)
+  collection   Collection      @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  context      ContextDocument @relation(fields: [contextId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, contextId])
 }
 
 model Favorite {
@@ -308,6 +338,32 @@ model ContextUsageEvent {
 
   @@index([contextId])
   @@index([userId])
+}
+
+model SkillRating {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  skillId   Int
+  value     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill     Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillId])
+}
+
+model ContextRating {
+  id        Int             @id @default(autoincrement())
+  userId    Int
+  contextId Int
+  value     Int
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  context   ContextDocument @relation(fields: [contextId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, contextId])
 }
 
 enum Role {

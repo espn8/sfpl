@@ -33,6 +33,10 @@ export type SkillVariable = {
   required: boolean;
 };
 
+export type SkillRating = {
+  value: number;
+};
+
 export type Skill = {
   id: number;
   title: string;
@@ -52,6 +56,10 @@ export type Skill = {
   copyCount?: number;
   favoriteCount?: number;
   favorited?: boolean;
+  myRating?: number | null;
+  ratings?: SkillRating[];
+  averageRating?: number | null;
+  ratingCount?: number;
 };
 
 export type ListSkillsFilters = {
@@ -144,4 +152,17 @@ export async function deleteSkillPermanently(skillId: number): Promise<void> {
 export async function regenerateSkillThumbnail(id: number): Promise<Skill> {
   const { data } = await apiClient.post<{ data: Skill }>(`/api/skills/${id}/regenerate-thumbnail`);
   return data.data;
+}
+
+export async function rateSkill(skillId: number, value: number): Promise<{ ok: boolean; value: number }> {
+  const { data } = await apiClient.post<{ data: { ok: boolean; value: number } }>(`/api/skills/${skillId}/rating`, { value });
+  return data.data;
+}
+
+export async function addSkillToCollection(skillId: number, collectionId: number): Promise<void> {
+  await apiClient.post(`/api/skills/${skillId}/collections/${collectionId}`);
+}
+
+export async function removeSkillFromCollection(skillId: number, collectionId: number): Promise<void> {
+  await apiClient.delete(`/api/skills/${skillId}/collections/${collectionId}`);
 }

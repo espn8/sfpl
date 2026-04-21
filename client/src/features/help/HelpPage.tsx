@@ -127,6 +127,16 @@ const helpContent: HelpSection[] = [
         answer:
           'Click "Edit skill" on any skill you own. You can update the title, description, and content at any time.',
       },
+      {
+        question: "How do I rate a skill?",
+        answer:
+          "On any skill detail page or in the skill list, you'll see a star rating control. Click the stars (1-5) to rate how helpful the skill was. Your rating helps others discover the most useful skills.",
+      },
+      {
+        question: "How do I add a skill to a collection?",
+        answer:
+          "On the skill detail page, click the bookmark icon in the action toolbar. A menu will appear showing your collections—click any collection to add the skill to it, or click again to remove it.",
+      },
     ],
   },
   {
@@ -153,6 +163,16 @@ const helpContent: HelpSection[] = [
         answer:
           'Click "Edit context" on any context document you own. You can update the title, description, and content at any time.',
       },
+      {
+        question: "How do I rate a context document?",
+        answer:
+          "On any context detail page or in the context list, you'll see a star rating control. Click the stars (1-5) to rate how helpful the context was. Your rating helps others discover the most useful context documents.",
+      },
+      {
+        question: "How do I add context to a collection?",
+        answer:
+          "On the context detail page, click the bookmark icon in the action toolbar. A menu will appear showing your collections—click any collection to add the context document to it, or click again to remove it.",
+      },
     ],
   },
   {
@@ -172,7 +192,12 @@ const helpContent: HelpSection[] = [
       {
         question: "How do I add AI assets to a collection?",
         answer:
-          "On any prompt, skill, or context detail page, click the folder icon and select the collection you want to add it to.",
+          "On any prompt, skill, or context detail page, click the bookmark icon in the action toolbar. A dropdown menu will show your collections—click any collection to add the asset to it. Click again to remove it from that collection.",
+      },
+      {
+        question: "What types of assets can I add to collections?",
+        answer:
+          "You can add all three asset types to collections: Prompts, Skills, and Context Documents. This lets you organize related assets together regardless of type—for example, grouping a code review prompt with a code review skill and relevant coding standards context.",
       },
     ],
   },
@@ -235,12 +260,17 @@ const helpContent: HelpSection[] = [
       {
         question: "Where can I see analytics for my created content?",
         answer:
-          'Go to Settings and click "My Analytics" to see performance metrics for all your created assets. You\'ll see view counts, usage statistics, ratings, and favorites for each prompt, skill, or context document you\'ve published.',
+          'Go to Settings and click "My Analytics" to see performance metrics for all your created assets. You\'ll see a sortable table with view counts, usage statistics, ratings, and favorites for each prompt, skill, or context document you\'ve published.',
       },
       {
         question: "What metrics are tracked for my content?",
         answer:
-          "For each asset you create, we track:\n• Views: How many people have viewed your content\n• Uses: How many times someone has copied or launched your prompt\n• Ratings: The average star rating from users\n• Favorites: How many people have saved your content to their favorites",
+          "For each asset you create, we track:\n• Views: How many people have viewed your content\n• Uses: How many times someone has copied or launched your asset\n• Ratings: The number of ratings and average star rating from users\n• Favorites: How many people have saved your content to their favorites",
+      },
+      {
+        question: "Can I export my analytics data?",
+        answer:
+          'Yes! In the My Analytics view, click the "Export CSV" button to download a spreadsheet with all your analytics data. You can customize which columns to include using the "Columns" dropdown before exporting.',
       },
       {
         question: "Can I see who is using my content?",

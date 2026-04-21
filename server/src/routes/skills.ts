@@ -293,7 +293,7 @@ skillsRouter.get("/", async (req: Request, res: Response) => {
 
   if (includeAnalytics && rows.length > 0) {
     const skillIds = rows.map((r) => r.id);
-    const [viewCounts, copyCounts, favoriteCounts] = await Promise.all([
+    const [viewCounts, copyCounts, favoriteCounts, ratingData] = await Promise.all([
       prisma.skillUsageEvent.groupBy({
         by: ["skillId"],
         where: { skillId: { in: skillIds }, eventType: "VIEW" },
@@ -309,18 +309,30 @@ skillsRouter.get("/", async (req: Request, res: Response) => {
         where: { skillId: { in: skillIds } },
         _count: { skillId: true },
       }),
+      prisma.skillRating.groupBy({
+        by: ["skillId"],
+        where: { skillId: { in: skillIds } },
+        _count: { skillId: true },
+        _avg: { value: true },
+      }),
     ]);
 
     const viewMap = new Map(viewCounts.map((v) => [v.skillId, v._count.skillId]));
     const copyMap = new Map(copyCounts.map((c) => [c.skillId, c._count.skillId]));
     const favoriteMap = new Map(favoriteCounts.map((f) => [f.skillId, f._count.skillId]));
+    const ratingMap = new Map(ratingData.map((r) => [r.skillId, { count: r._count.skillId, avg: r._avg.value }]));
 
-    const dataWithAnalytics = rows.map((row) => ({
-      ...serializeSkill(row),
-      viewCount: viewMap.get(row.id) ?? 0,
-      copyCount: copyMap.get(row.id) ?? 0,
-      favoriteCount: favoriteMap.get(row.id) ?? 0,
-    }));
+    const dataWithAnalytics = rows.map((row) => {
+      const ratingInfo = ratingMap.get(row.id);
+      return {
+        ...serializeSkill(row),
+        viewCount: viewMap.get(row.id) ?? 0,
+        copyCount: copyMap.get(row.id) ?? 0,
+        favoriteCount: favoriteMap.get(row.id) ?? 0,
+        ratingCount: ratingInfo?.count ?? 0,
+        averageRating: ratingInfo?.avg ?? null,
+      };
+    });
 
     return res.status(200).json({
       data: dataWithAnalytics,
@@ -428,17 +440,31 @@ skillsRouter.get("/:id", async (req: Request, res: Response) => {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this skill." } });
   }
 
-  const [viewCount, favoriteRow] = await Promise.all([
+  const [viewCount, copyCount, favoriteCount, favoriteRow, myRatingRow, ratings] = await Promise.all([
     prisma.skillUsageEvent.count({ where: { skillId, eventType: "VIEW" } }),
+    prisma.skillUsageEvent.count({ where: { skillId, eventType: "COPY" } }),
+    prisma.skillFavorite.count({ where: { skillId } }),
     prisma.skillFavorite.findUnique({ where: { skillId_userId: { skillId, userId: auth.userId } } }),
+    prisma.skillRating.findUnique({ where: { userId_skillId: { userId: auth.userId, skillId } } }),
+    prisma.skillRating.findMany({ where: { skillId }, select: { value: true } }),
   ]);
+
+  const averageRating = ratings.length > 0
+    ? ratings.reduce((sum, r) => sum + r.value, 0) / ratings.length
+    : null;
 
   return res.status(200).json({
     data: {
       ...serializeSkill(skill),
       thumbnailStatus: skill.thumbnailStatus as ThumbnailStatusValue,
       viewCount,
+      copyCount,
+      favoriteCount,
       favorited: Boolean(favoriteRow),
+      myRating: myRatingRow?.value ?? null,
+      ratings,
+      averageRating,
+      ratingCount: ratings.length,
     },
   });
 });
@@ -600,6 +626,7 @@ skillsRouter.delete("/:id/permanent", async (req: Request, res: Response) => {
   await prisma.$transaction([
     prisma.skillUsageEvent.deleteMany({ where: { skillId } }),
     prisma.skillFavorite.deleteMany({ where: { skillId } }),
+    prisma.skillRating.deleteMany({ where: { skillId } }),
     prisma.skillVariable.deleteMany({ where: { skillId } }),
     prisma.skill.delete({ where: { id: skillId } }),
   ]);
@@ -663,6 +690,43 @@ skillsRouter.post("/:id/usage", async (req: Request, res: Response) => {
   return res.status(200).json({ data: { ok: true } });
 });
 
+const ratingBodySchema = z.object({
+  value: z.number().int().min(1).max(5),
+});
+
+skillsRouter.post("/:id/rating", async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+
+  const parsedParams = skillIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+
+  const parsedBody = ratingBodySchema.safeParse(req.body);
+  if (!parsedBody.success) {
+    return res.status(400).json(badRequestFromZodError(parsedBody.error));
+  }
+
+  const skillId = parsedParams.data.id;
+  const { value } = parsedBody.data;
+
+  const skill = await prisma.skill.findFirst({ where: { id: skillId, teamId: auth.teamId } });
+  if (!skill) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not found." } });
+  }
+
+  await prisma.skillRating.upsert({
+    where: { userId_skillId: { userId: auth.userId, skillId } },
+    update: { value },
+    create: { userId: auth.userId, skillId, value },
+  });
+
+  return res.status(200).json({ data: { ok: true, value } });
+});
+
 skillsRouter.post("/:id/regenerate-thumbnail", async (req: Request, res: Response) => {
   const auth = getAuthContext(req);
   if (!auth) {
@@ -700,6 +764,82 @@ skillsRouter.post("/:id/regenerate-thumbnail", async (req: Request, res: Respons
       thumbnailStatus: queued.thumbnailStatus as ThumbnailStatusValue,
     },
   });
+});
+
+const collectionSkillParamsSchema = z.object({
+  id: z.coerce.number().int().positive(),
+  collectionId: z.coerce.number().int().positive(),
+});
+
+skillsRouter.post("/:id/collections/:collectionId", async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+
+  const parsedParams = collectionSkillParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+
+  const skillId = parsedParams.data.id;
+  const collectionId = parsedParams.data.collectionId;
+
+  const [skill, collection] = await Promise.all([
+    prisma.skill.findFirst({ where: { id: skillId, teamId: auth.teamId }, select: { id: true } }),
+    prisma.collection.findFirst({ where: { id: collectionId, teamId: auth.teamId }, select: { id: true } }),
+  ]);
+
+  if (!skill || !collection) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill or collection not found." } });
+  }
+
+  const maxSort = await prisma.collectionSkill.aggregate({
+    where: { collectionId },
+    _max: { sortOrder: true },
+  });
+
+  const linked = await prisma.collectionSkill.upsert({
+    where: { collectionId_skillId: { collectionId, skillId } },
+    create: {
+      collectionId,
+      skillId,
+      sortOrder: (maxSort._max.sortOrder ?? -1) + 1,
+    },
+    update: {},
+  });
+
+  return res.status(200).json({ data: linked });
+});
+
+skillsRouter.delete("/:id/collections/:collectionId", async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+
+  const parsedParams = collectionSkillParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+
+  const skillId = parsedParams.data.id;
+  const collectionId = parsedParams.data.collectionId;
+
+  const existing = await prisma.collectionSkill.findFirst({
+    where: {
+      collectionId,
+      skillId,
+      collection: { teamId: auth.teamId },
+    },
+  });
+
+  if (!existing) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not in this collection." } });
+  }
+
+  await prisma.collectionSkill.delete({ where: { collectionId_skillId: { collectionId, skillId } } });
+  return res.status(200).json({ data: { ok: true } });
 });
 
 export { skillsRouter };

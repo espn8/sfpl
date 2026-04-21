@@ -14,17 +14,21 @@ import {
   getContextDocument,
   getContextToolLabel,
   logContextUsage,
+  rateContext,
   regenerateContextThumbnail,
   toggleContextFavorite,
 } from "./api";
-import { CopyIcon, DownloadIcon, EyeIcon, HeartIcon, ShareIcon } from "../prompts/promptActionIcons";
+import { CopyIcon, DownloadIcon, HeartIcon, ShareIcon } from "../prompts/promptActionIcons";
 import { PromptThumbnail } from "../prompts/PromptThumbnail";
+import { PromptAverageStars, PromptRateStars } from "../prompts/PromptStars";
+import { AssetCollectionMenu } from "../../components/AssetCollectionMenu";
 
 type ViewMode = "preview" | "raw";
 
 export function ContextDetailPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("preview");
   const [favorited, setFavorited] = useState(false);
+  const [myRating, setMyRating] = useState<number | null>(null);
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const params = useParams();
@@ -77,16 +81,26 @@ export function ContextDetailPage() {
     },
   });
 
+  const rateMutation = useMutation({
+    mutationFn: (value: number) => rateContext(docId, value),
+    onSuccess: async (_, value) => {
+      setMyRating(value);
+      await queryClient.invalidateQueries({ queryKey: ["context", docId] });
+      await queryClient.invalidateQueries({ queryKey: ["context"] });
+    },
+  });
+
   useEffect(() => {
     if (docQuery.data) {
       setFavorited(docQuery.data.favorited ?? false);
+      setMyRating(docQuery.data.myRating ?? null);
       const next: Record<string, string> = {};
       for (const variable of docQuery.data.variables ?? []) {
         next[variable.key] = variable.defaultValue ?? "";
       }
       setVariableValues(next);
     }
-  }, [docQuery.data?.id, docQuery.data?.favorited]);
+  }, [docQuery.data?.id, docQuery.data?.favorited, docQuery.data?.myRating]);
 
   useEffect(() => {
     if (Number.isInteger(docId) && docId > 0) {
@@ -125,6 +139,10 @@ export function ContextDetailPage() {
     (meQuery.data.id === doc.owner.id || meQuery.data.role === "ADMIN" || meQuery.data.role === "OWNER");
   const canDelete = meQuery.data && meQuery.data.id === doc.owner.id;
   const viewCount = doc.viewCount ?? 0;
+  const copyCount = doc.copyCount ?? 0;
+  const favoriteCount = doc.favoriteCount ?? 0;
+  const ratingCount = doc.ratingCount ?? 0;
+  const averageRating = doc.averageRating ?? null;
   const hasVariables = (doc.variables?.length ?? 0) > 0;
 
   const shareUrl = buildShareUrl(`/context/${docId}`);
@@ -220,9 +238,34 @@ export function ContextDetailPage() {
         {doc.status} · {doc.visibility} · Owner {doc.owner.name ?? `#${doc.owner.id}`} · Updated{" "}
         {new Date(doc.updatedAt).toLocaleString()}
       </p>
-      <div className="flex items-center gap-1 text-sm text-(--color-text-muted)">
-        <EyeIcon className="h-4 w-4" />
-        <span>{viewCount.toLocaleString()} views</span>
+      <div className="mt-2">
+        <PromptAverageStars value={averageRating} size="md" />
+      </div>
+      <div className="grid gap-2 text-sm md:grid-cols-4">
+        <p className="rounded border border-(--color-border) px-3 py-2">
+          <span className="font-semibold">Views:</span> {viewCount.toLocaleString()}
+        </p>
+        <p className="rounded border border-(--color-border) px-3 py-2">
+          <span className="font-semibold">Copies:</span> {copyCount.toLocaleString()}
+        </p>
+        <p className="rounded border border-(--color-border) px-3 py-2">
+          <span className="font-semibold">Favorites:</span> {favoriteCount.toLocaleString()}
+        </p>
+        <p className="rounded border border-(--color-border) px-3 py-2">
+          <span className="font-semibold">Ratings:</span> {ratingCount.toLocaleString()}
+        </p>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded border border-(--color-border) bg-(--color-surface) px-3 py-2">
+        <span className="text-sm text-(--color-text-muted)">How helpful was this context?</span>
+        <PromptRateStars
+          value={myRating}
+          disabled={rateMutation.isPending}
+          size="md"
+          onChange={(value) => {
+            rateMutation.mutate(value);
+            trackEvent("context_rate", { context_id: docId, value });
+          }}
+        />
       </div>
 
       <div className="flex flex-wrap items-center gap-1 rounded-lg border border-(--color-border) bg-(--color-surface) p-2">
@@ -250,6 +293,7 @@ export function ContextDetailPage() {
         >
           <ShareIcon className="h-5 w-5" />
         </button>
+        <AssetCollectionMenu assetId={docId} assetTitle={doc.title} assetType="context" />
         <button
           type="button"
           disabled={favoriteMutation.isPending}

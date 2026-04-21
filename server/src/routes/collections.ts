@@ -76,7 +76,11 @@ collectionsRouter.get("/", async (req: Request, res: Response) => {
   const [collections, total] = await Promise.all([
     prisma.collection.findMany({
       where: { teamId: auth.teamId },
-      include: { prompts: { include: { prompt: true }, orderBy: { sortOrder: "asc" } } },
+      include: {
+        prompts: { include: { prompt: true }, orderBy: { sortOrder: "asc" } },
+        skills: { include: { skill: true }, orderBy: { sortOrder: "asc" } },
+        contexts: { include: { context: true }, orderBy: { sortOrder: "asc" } },
+      },
       orderBy: { createdAt: "desc" },
       skip,
       take: pageSize,
@@ -142,7 +146,11 @@ collectionsRouter.get("/:id", async (req: Request, res: Response) => {
   const collectionId = parsedParams.data.id;
   const collection = await prisma.collection.findFirst({
     where: { id: collectionId, teamId: auth.teamId },
-    include: { prompts: { include: { prompt: true }, orderBy: { sortOrder: "asc" } } },
+    include: {
+      prompts: { include: { prompt: true }, orderBy: { sortOrder: "asc" } },
+      skills: { include: { skill: true }, orderBy: { sortOrder: "asc" } },
+      contexts: { include: { context: true }, orderBy: { sortOrder: "asc" } },
+    },
   });
   if (!collection) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Collection not found." } });

@@ -371,9 +371,11 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
     let copyCountBySkill = new Map<number, number>();
     let favoritedSkillIds = new Set<number>();
     let favoriteCountBySkill = new Map<number, number>();
+    let myRatingBySkill = new Map<number, number>();
+    let ratingDataBySkill = new Map<number, { count: number; avg: number | null }>();
 
     if (skillIds.length > 0) {
-      const [viewGroups, copyGroups, favoriteRows, favoriteCountGroups] = await Promise.all([
+      const [viewGroups, copyGroups, favoriteRows, favoriteCountGroups, ratingRows, ratingGroups] = await Promise.all([
         prisma.skillUsageEvent.groupBy({
           by: ["skillId"],
           where: { skillId: { in: skillIds }, eventType: "VIEW" },
@@ -393,14 +395,27 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
           where: { skillId: { in: skillIds } },
           _count: { _all: true },
         }),
+        prisma.skillRating.findMany({
+          where: { userId: auth.userId, skillId: { in: skillIds } },
+          select: { skillId: true, value: true },
+        }),
+        prisma.skillRating.groupBy({
+          by: ["skillId"],
+          where: { skillId: { in: skillIds } },
+          _count: { skillId: true },
+          _avg: { value: true },
+        }),
       ]);
       viewCountBySkill = new Map(viewGroups.map((g) => [g.skillId, g._count.skillId]));
       copyCountBySkill = new Map(copyGroups.map((g) => [g.skillId, g._count.skillId]));
       favoritedSkillIds = new Set(favoriteRows.map((r) => r.skillId));
       favoriteCountBySkill = new Map(favoriteCountGroups.map((g) => [g.skillId, g._count._all]));
+      myRatingBySkill = new Map(ratingRows.map((r) => [r.skillId, r.value]));
+      ratingDataBySkill = new Map(ratingGroups.map((g) => [g.skillId, { count: g._count.skillId, avg: g._avg.value }]));
     }
 
     for (const skill of skills) {
+      const ratingInfo = ratingDataBySkill.get(skill.id);
       allAssets.push({
         id: skill.id,
         assetType: "skill",
@@ -419,6 +434,9 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         usageCount: copyCountBySkill.get(skill.id) ?? 0,
         favorited: favoritedSkillIds.has(skill.id),
         favoriteCount: favoriteCountBySkill.get(skill.id) ?? 0,
+        ratingCount: ratingInfo?.count ?? 0,
+        averageRating: ratingInfo?.avg ?? null,
+        myRating: myRatingBySkill.get(skill.id) ?? null,
         variables: skill.variables,
       });
     }
@@ -494,9 +512,11 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
     let copyCountByContext = new Map<number, number>();
     let favoritedContextIds = new Set<number>();
     let favoriteCountByContext = new Map<number, number>();
+    let myRatingByContext = new Map<number, number>();
+    let ratingDataByContext = new Map<number, { count: number; avg: number | null }>();
 
     if (contextIds.length > 0) {
-      const [viewGroups, copyGroups, favoriteRows, favoriteCountGroups] = await Promise.all([
+      const [viewGroups, copyGroups, favoriteRows, favoriteCountGroups, ratingRows, ratingGroups] = await Promise.all([
         prisma.contextUsageEvent.groupBy({
           by: ["contextId"],
           where: { contextId: { in: contextIds }, eventType: "VIEW" },
@@ -516,14 +536,27 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
           where: { contextId: { in: contextIds } },
           _count: { _all: true },
         }),
+        prisma.contextRating.findMany({
+          where: { userId: auth.userId, contextId: { in: contextIds } },
+          select: { contextId: true, value: true },
+        }),
+        prisma.contextRating.groupBy({
+          by: ["contextId"],
+          where: { contextId: { in: contextIds } },
+          _count: { contextId: true },
+          _avg: { value: true },
+        }),
       ]);
       viewCountByContext = new Map(viewGroups.map((g) => [g.contextId, g._count.contextId]));
       copyCountByContext = new Map(copyGroups.map((g) => [g.contextId, g._count.contextId]));
       favoritedContextIds = new Set(favoriteRows.map((r) => r.contextId));
       favoriteCountByContext = new Map(favoriteCountGroups.map((g) => [g.contextId, g._count._all]));
+      myRatingByContext = new Map(ratingRows.map((r) => [r.contextId, r.value]));
+      ratingDataByContext = new Map(ratingGroups.map((g) => [g.contextId, { count: g._count.contextId, avg: g._avg.value }]));
     }
 
     for (const doc of contextDocs) {
+      const ratingInfo = ratingDataByContext.get(doc.id);
       allAssets.push({
         id: doc.id,
         assetType: "context",
@@ -542,6 +575,9 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         usageCount: copyCountByContext.get(doc.id) ?? 0,
         favorited: favoritedContextIds.has(doc.id),
         favoriteCount: favoriteCountByContext.get(doc.id) ?? 0,
+        ratingCount: ratingInfo?.count ?? 0,
+        averageRating: ratingInfo?.avg ?? null,
+        myRating: myRatingByContext.get(doc.id) ?? null,
         variables: doc.variables,
       });
     }

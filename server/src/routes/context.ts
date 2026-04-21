@@ -293,7 +293,7 @@ contextRouter.get("/", async (req: Request, res: Response) => {
 
   if (includeAnalytics && rows.length > 0) {
     const contextIds = rows.map((r) => r.id);
-    const [viewCounts, copyCounts, favoriteCounts] = await Promise.all([
+    const [viewCounts, copyCounts, favoriteCounts, ratingData] = await Promise.all([
       prisma.contextUsageEvent.groupBy({
         by: ["contextId"],
         where: { contextId: { in: contextIds }, eventType: "VIEW" },
@@ -309,18 +309,30 @@ contextRouter.get("/", async (req: Request, res: Response) => {
         where: { contextId: { in: contextIds } },
         _count: { contextId: true },
       }),
+      prisma.contextRating.groupBy({
+        by: ["contextId"],
+        where: { contextId: { in: contextIds } },
+        _count: { contextId: true },
+        _avg: { value: true },
+      }),
     ]);
 
     const viewMap = new Map(viewCounts.map((v) => [v.contextId, v._count.contextId]));
     const copyMap = new Map(copyCounts.map((c) => [c.contextId, c._count.contextId]));
     const favoriteMap = new Map(favoriteCounts.map((f) => [f.contextId, f._count.contextId]));
+    const ratingMap = new Map(ratingData.map((r) => [r.contextId, { count: r._count.contextId, avg: r._avg.value }]));
 
-    const dataWithAnalytics = rows.map((row) => ({
-      ...serializeContextDoc(row),
-      viewCount: viewMap.get(row.id) ?? 0,
-      copyCount: copyMap.get(row.id) ?? 0,
-      favoriteCount: favoriteMap.get(row.id) ?? 0,
-    }));
+    const dataWithAnalytics = rows.map((row) => {
+      const ratingInfo = ratingMap.get(row.id);
+      return {
+        ...serializeContextDoc(row),
+        viewCount: viewMap.get(row.id) ?? 0,
+        copyCount: copyMap.get(row.id) ?? 0,
+        favoriteCount: favoriteMap.get(row.id) ?? 0,
+        ratingCount: ratingInfo?.count ?? 0,
+        averageRating: ratingInfo?.avg ?? null,
+      };
+    });
 
     return res.status(200).json({
       data: dataWithAnalytics,
@@ -428,17 +440,31 @@ contextRouter.get("/:id", async (req: Request, res: Response) => {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this document." } });
   }
 
-  const [viewCount, favoriteRow] = await Promise.all([
+  const [viewCount, copyCount, favoriteCount, favoriteRow, myRatingRow, ratings] = await Promise.all([
     prisma.contextUsageEvent.count({ where: { contextId, eventType: "VIEW" } }),
+    prisma.contextUsageEvent.count({ where: { contextId, eventType: "COPY" } }),
+    prisma.contextFavorite.count({ where: { contextId } }),
     prisma.contextFavorite.findUnique({ where: { contextId_userId: { contextId, userId: auth.userId } } }),
+    prisma.contextRating.findUnique({ where: { userId_contextId: { userId: auth.userId, contextId } } }),
+    prisma.contextRating.findMany({ where: { contextId }, select: { value: true } }),
   ]);
+
+  const averageRating = ratings.length > 0
+    ? ratings.reduce((sum, r) => sum + r.value, 0) / ratings.length
+    : null;
 
   return res.status(200).json({
     data: {
       ...serializeContextDoc(doc),
       thumbnailStatus: doc.thumbnailStatus as ThumbnailStatusValue,
       viewCount,
+      copyCount,
+      favoriteCount,
       favorited: Boolean(favoriteRow),
+      myRating: myRatingRow?.value ?? null,
+      ratings,
+      averageRating,
+      ratingCount: ratings.length,
     },
   });
 });
@@ -600,6 +626,7 @@ contextRouter.delete("/:id/permanent", async (req: Request, res: Response) => {
   await prisma.$transaction([
     prisma.contextUsageEvent.deleteMany({ where: { contextId } }),
     prisma.contextFavorite.deleteMany({ where: { contextId } }),
+    prisma.contextRating.deleteMany({ where: { contextId } }),
     prisma.contextVariable.deleteMany({ where: { contextId } }),
     prisma.contextDocument.delete({ where: { id: contextId } }),
   ]);
@@ -663,6 +690,43 @@ contextRouter.post("/:id/usage", async (req: Request, res: Response) => {
   return res.status(200).json({ data: { ok: true } });
 });
 
+const ratingBodySchema = z.object({
+  value: z.number().int().min(1).max(5),
+});
+
+contextRouter.post("/:id/rating", async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+
+  const parsedParams = contextIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+
+  const parsedBody = ratingBodySchema.safeParse(req.body);
+  if (!parsedBody.success) {
+    return res.status(400).json(badRequestFromZodError(parsedBody.error));
+  }
+
+  const contextId = parsedParams.data.id;
+  const { value } = parsedBody.data;
+
+  const doc = await prisma.contextDocument.findFirst({ where: { id: contextId, teamId: auth.teamId } });
+  if (!doc) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Context document not found." } });
+  }
+
+  await prisma.contextRating.upsert({
+    where: { userId_contextId: { userId: auth.userId, contextId } },
+    update: { value },
+    create: { userId: auth.userId, contextId, value },
+  });
+
+  return res.status(200).json({ data: { ok: true, value } });
+});
+
 contextRouter.post("/:id/regenerate-thumbnail", async (req: Request, res: Response) => {
   const auth = getAuthContext(req);
   if (!auth) {
@@ -700,6 +764,82 @@ contextRouter.post("/:id/regenerate-thumbnail", async (req: Request, res: Respon
       thumbnailStatus: queued.thumbnailStatus as ThumbnailStatusValue,
     },
   });
+});
+
+const collectionContextParamsSchema = z.object({
+  id: z.coerce.number().int().positive(),
+  collectionId: z.coerce.number().int().positive(),
+});
+
+contextRouter.post("/:id/collections/:collectionId", async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+
+  const parsedParams = collectionContextParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+
+  const contextId = parsedParams.data.id;
+  const collectionId = parsedParams.data.collectionId;
+
+  const [doc, collection] = await Promise.all([
+    prisma.contextDocument.findFirst({ where: { id: contextId, teamId: auth.teamId }, select: { id: true } }),
+    prisma.collection.findFirst({ where: { id: collectionId, teamId: auth.teamId }, select: { id: true } }),
+  ]);
+
+  if (!doc || !collection) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Context document or collection not found." } });
+  }
+
+  const maxSort = await prisma.collectionContext.aggregate({
+    where: { collectionId },
+    _max: { sortOrder: true },
+  });
+
+  const linked = await prisma.collectionContext.upsert({
+    where: { collectionId_contextId: { collectionId, contextId } },
+    create: {
+      collectionId,
+      contextId,
+      sortOrder: (maxSort._max.sortOrder ?? -1) + 1,
+    },
+    update: {},
+  });
+
+  return res.status(200).json({ data: linked });
+});
+
+contextRouter.delete("/:id/collections/:collectionId", async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+
+  const parsedParams = collectionContextParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+
+  const contextId = parsedParams.data.id;
+  const collectionId = parsedParams.data.collectionId;
+
+  const existing = await prisma.collectionContext.findFirst({
+    where: {
+      collectionId,
+      contextId,
+      collection: { teamId: auth.teamId },
+    },
+  });
+
+  if (!existing) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Context document not in this collection." } });
+  }
+
+  await prisma.collectionContext.delete({ where: { collectionId_contextId: { collectionId, contextId } } });
+  return res.status(200).json({ data: { ok: true } });
 });
 
 export { contextRouter };

@@ -7,6 +7,7 @@ import { getAnalyticsOverview } from "../analytics/api";
 import { listAssets, type ListAssetsFilters } from "../assets/api";
 import { AssetCard } from "../assets/AssetCard";
 import { AssetAnalyticsTable } from "../assets/AssetAnalyticsTable";
+import { AssetListView } from "../assets/AssetListView";
 import { getToolLabel, getToolsSortedAlphabetically, type PromptTool } from "../prompts/api";
 import { SearchBar, useSearchState, type AssetTypeFilter } from "../search";
 import { parseNaturalLanguageQuery } from "../search/api";
@@ -587,16 +588,7 @@ export function HomePage() {
               {showAnalytics ? (
                 <AssetAnalyticsTable assets={assetsQuery.data.data} />
               ) : (
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                  {assetsQuery.data.data.map((asset) => (
-                    <AssetCard
-                      key={`${asset.assetType}-${asset.id}`}
-                      asset={asset}
-                      variant="default"
-                      highlightQuery={debouncedFilters.q}
-                    />
-                  ))}
-                </div>
+                <AssetListView assets={assetsQuery.data.data} />
               )}
               {assetsQuery.data.meta.totalPages > 1 && (
                 <div className="flex items-center justify-center gap-2 pt-4">

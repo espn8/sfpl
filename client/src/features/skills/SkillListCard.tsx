@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
 import { useToast } from "../../app/providers/ToastProvider";
-import { logSkillUsage, toggleSkillFavorite, type Skill } from "./api";
+import { logSkillUsage, rateSkill, toggleSkillFavorite, type Skill } from "./api";
 import { getToolLabel } from "../prompts/api";
 import {
   CalendarIcon,
@@ -14,6 +14,7 @@ import {
 } from "../prompts/promptActionIcons";
 import { formatPromptActivityLabel } from "../prompts/promptActivityLabel";
 import { promptOwnerAvatarUrl } from "../prompts/promptTagChips";
+import { PromptAverageStars, PromptRateStars } from "../prompts/PromptStars";
 
 type SkillListCardProps = {
   skill: Skill;
@@ -26,15 +27,26 @@ export function SkillListCard({ skill, variant = "default", showAnalytics = fals
   const { showToast } = useToast();
 
   const [favorited, setFavorited] = useState(skill.favorited ?? false);
+  const [myRating, setMyRating] = useState<number | null>(skill.myRating ?? null);
 
   useEffect(() => {
     setFavorited(skill.favorited ?? false);
-  }, [skill.id, skill.favorited]);
+    setMyRating(skill.myRating ?? null);
+  }, [skill.id, skill.favorited, skill.myRating]);
 
   const favoriteMutation = useMutation({
     mutationFn: () => toggleSkillFavorite(skill.id),
     onSuccess: async (data) => {
       setFavorited(data.favorited);
+      await queryClient.invalidateQueries({ queryKey: ["skills"] });
+      await queryClient.invalidateQueries({ queryKey: ["assets"] });
+    },
+  });
+
+  const rateMutation = useMutation({
+    mutationFn: (value: number) => rateSkill(skill.id, value),
+    onSuccess: async (_, value) => {
+      setMyRating(value);
       await queryClient.invalidateQueries({ queryKey: ["skills"] });
       await queryClient.invalidateQueries({ queryKey: ["assets"] });
     },
@@ -123,6 +135,9 @@ export function SkillListCard({ skill, variant = "default", showAnalytics = fals
           >
             {skill.summary ?? (variant === "featured" ? "No summary yet" : "No summary")}
           </p>
+          <div className="mt-2">
+            <PromptAverageStars value={skill.averageRating ?? null} size="sm" />
+          </div>
         </Link>
 
         {toolChips.length > 0 ? (
@@ -139,7 +154,7 @@ export function SkillListCard({ skill, variant = "default", showAnalytics = fals
         ) : null}
 
         {showAnalytics ? (
-          <div className="mt-3 grid grid-cols-3 gap-2 rounded-lg border border-(--color-primary)/20 bg-(--color-primary)/5 p-3">
+          <div className="mt-3 grid grid-cols-4 gap-2 rounded-lg border border-(--color-primary)/20 bg-(--color-primary)/5 p-3">
             <div className="text-center">
               <p className="text-lg font-bold text-(--color-text)">{(skill.viewCount ?? 0).toLocaleString()}</p>
               <p className="text-xs text-(--color-text-muted)">Views</p>
@@ -152,8 +167,25 @@ export function SkillListCard({ skill, variant = "default", showAnalytics = fals
               <p className="text-lg font-bold text-(--color-text)">{(skill.favoriteCount ?? 0).toLocaleString()}</p>
               <p className="text-xs text-(--color-text-muted)">Favorites</p>
             </div>
+            <div className="text-center">
+              <p className="text-lg font-bold text-(--color-text)">{(skill.ratingCount ?? 0).toLocaleString()}</p>
+              <p className="text-xs text-(--color-text-muted)">Ratings</p>
+            </div>
           </div>
         ) : null}
+
+        <div className="mt-3 flex items-center justify-between gap-2 border-t border-(--color-border) pt-3">
+          <span className="text-xs text-(--color-text-muted)">Rate:</span>
+          <PromptRateStars
+            value={myRating}
+            disabled={rateMutation.isPending}
+            size="sm"
+            onChange={(value) => {
+              rateMutation.mutate(value);
+              trackEvent("skill_rate", { skill_id: skill.id, value, source: "list" });
+            }}
+          />
+        </div>
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-(--color-border) pt-3">
           <div className="flex items-center gap-0.5">

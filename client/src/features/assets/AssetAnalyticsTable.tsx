@@ -93,6 +93,14 @@ function ChevronDownIcon({ className }: { className?: string }) {
   );
 }
 
+function DownloadIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function PencilIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -130,8 +138,8 @@ type AssetAnalyticsTableProps = {
 };
 
 export function AssetAnalyticsTable({ assets }: AssetAnalyticsTableProps) {
-  const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
-  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+  const [sortColumn, setSortColumn] = useState<SortColumn | null>("name");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [visibleColumns, setVisibleColumns] = useState<Set<ColumnKey>>(() => loadVisibleColumns());
   const [showColumnMenu, setShowColumnMenu] = useState(false);
 
@@ -258,6 +266,63 @@ export function AssetAnalyticsTable({ assets }: AssetAnalyticsTableProps) {
 
   const isVisible = (key: ColumnKey) => visibleColumns.has(key);
 
+  const downloadCsv = () => {
+    const visibleCols = COLUMNS.filter((c) => isVisible(c.key) && c.key !== "edit");
+    
+    const escapeCell = (value: string | number | null | undefined): string => {
+      if (value === null || value === undefined) return "";
+      const str = String(value);
+      if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const getCellValue = (asset: UnifiedAsset, key: ColumnKey): string => {
+      switch (key) {
+        case "name":
+          return asset.title;
+        case "status":
+          return asset.status;
+        case "views":
+          return String(asset.viewCount);
+        case "uses":
+          return String(asset.usageCount);
+        case "ratingCount":
+          return asset.assetType === "prompt" ? String(asset.ratingCount ?? 0) : "";
+        case "avgRating":
+          return asset.assetType === "prompt" && asset.averageRating != null
+            ? asset.averageRating.toFixed(1)
+            : "";
+        case "favoriteCount":
+          return String(asset.favoriteCount);
+        case "published":
+          return formatDate(asset.createdAt);
+        case "updated":
+          return formatDate(asset.updatedAt);
+        default:
+          return "";
+      }
+    };
+
+    const headerRow = visibleCols.map((c) => escapeCell(c.label)).join(",");
+    const dataRows = sortedAssets.map((asset) =>
+      visibleCols.map((c) => escapeCell(getCellValue(asset, c.key))).join(",")
+    );
+    
+    const csvContent = [headerRow, ...dataRows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `analytics-export-${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const renderHeaderCell = (col: ColumnConfig) => {
     if (!isVisible(col.key)) return null;
     
@@ -287,7 +352,15 @@ export function AssetAnalyticsTable({ assets }: AssetAnalyticsTableProps) {
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={downloadCsv}
+          className="flex items-center gap-1 rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-1.5 text-sm hover:bg-(--color-surface-muted)"
+        >
+          <DownloadIcon className="h-4 w-4" />
+          Export CSV
+        </button>
         <div className="relative">
           <button
             type="button"
@@ -362,14 +435,12 @@ export function AssetAnalyticsTable({ assets }: AssetAnalyticsTableProps) {
                 )}
                 {isVisible("ratingCount") && (
                   <td className="whitespace-nowrap px-3 py-2 text-sm text-(--color-text)">
-                    {asset.assetType === "prompt" ? (asset.ratingCount ?? 0).toLocaleString() : "—"}
+                    {(asset.ratingCount ?? 0).toLocaleString()}
                   </td>
                 )}
                 {isVisible("avgRating") && (
                   <td className="whitespace-nowrap px-3 py-2 text-sm text-(--color-text)">
-                    {asset.assetType === "prompt" && asset.averageRating != null
-                      ? asset.averageRating.toFixed(1)
-                      : "—"}
+                    {asset.averageRating != null ? asset.averageRating.toFixed(1) : "—"}
                   </td>
                 )}
                 {isVisible("favoriteCount") && (

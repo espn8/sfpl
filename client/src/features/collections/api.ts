@@ -12,6 +12,22 @@ export type Collection = {
       thumbnailStatus?: "PENDING" | "READY" | "FAILED";
     };
   }>;
+  skills: Array<{
+    skill: {
+      id: number;
+      title: string;
+      thumbnailUrl?: string | null;
+      thumbnailStatus?: "PENDING" | "READY" | "FAILED";
+    };
+  }>;
+  contexts: Array<{
+    context: {
+      id: number;
+      title: string;
+      thumbnailUrl?: string | null;
+      thumbnailStatus?: "PENDING" | "READY" | "FAILED";
+    };
+  }>;
 };
 
 export type CollectionListResponse = {

@@ -1,24 +1,40 @@
 # AI Library - Technical Summary
 
-Last Updated: Tuesday, April 21, 2026 — 10:50 CDT
-Build Version: 137ed39
+Last Updated: Tuesday, April 21, 2026 — 13:48 CDT
+Build Version: a1af5ff
 
 ## Recent Changes
 
-- **Compact analytics table view**: Replaced the card grid in "My Analytics" (`/?mine=true&showAnalytics=true`) with a compact sortable table showing:
-  - Columns: Name, Status, Views, Uses, # Ratings, Avg Rating, # Favorites, Published, Updated, Edit
-  - All columns (except Edit) are sortable by clicking column headers (asc/desc/none)
-  - "Columns" dropdown to show/hide columns; preferences saved to localStorage
-  - Name column links to asset detail page; Edit button links to edit page
-  - Status badges color-coded: green (PUBLISHED), amber (DRAFT), gray (ARCHIVED)
-  - Asset type badge shown next to name (Prompt/Skill/Context)
-  - Created new `client/src/features/assets/AssetAnalyticsTable.tsx` component
+- **Ratings for Skills and Context**: Extended the rating system (previously prompts only) to Skills and Context Documents:
+  - Added `SkillRating` and `ContextRating` Prisma models with userId/assetId unique constraint
+  - New API endpoints: `POST /api/skills/:id/rating` and `POST /api/context/:id/rating` (1-5 star values)
+  - Skill and Context detail pages now show average rating display and interactive rate stars
+  - Skill and Context list cards now show average ratings and inline rate controls
+  - Assets API returns `ratingCount`, `averageRating`, and `myRating` for all asset types
+  - Analytics table displays rating counts and averages for all asset types (not just prompts)
 
-- **Added ratingCount and favoriteCount to assets API**: Extended the `/api/assets` endpoint to return total counts:
-  - `ratingCount` - total number of ratings (prompts only)
-  - `favoriteCount` - total number of users who favorited the asset
-  - Updated `server/src/routes/assets.ts` to query and aggregate these counts
-  - Updated `client/src/features/assets/api.ts` UnifiedAsset type
+- **Collections support for Skills and Context**: Extended the collections system to support all asset types:
+  - Added `CollectionSkill` and `CollectionContext` Prisma junction models
+  - New API endpoints: `POST/DELETE /api/skills/:id/collections/:collectionId` and `POST/DELETE /api/context/:id/collections/:collectionId`
+  - Created reusable `AssetCollectionMenu` component with bookmark icon for adding/removing assets from collections
+  - Collections API now returns `skills` and `contexts` arrays alongside `prompts`
+  - Skill and Context detail pages include collection menu in action toolbar
+
+- **CSV export for analytics**: Added export functionality to the analytics table:
+  - "Export CSV" button downloads visible columns as a CSV file
+  - Respects column visibility settings (hidden columns excluded from export)
+  - Filename includes current date (e.g., `analytics-export-2026-04-21.csv`)
+
+- **Compact list view for My Content**: Added simplified table view for browsing owned assets:
+  - Created `AssetListView` component with Name, Status, and Edit columns
+  - Used in homepage when not showing analytics mode
+  - Links to detail and edit pages for each asset
+
+- **Help documentation updates**: Updated help content to reflect new features:
+  - Added questions about rating skills and context
+  - Added questions about adding skills and context to collections
+  - Updated collections section to mention all asset types
+  - Added question about CSV export in analytics
 
 ### Previous Session Changes (April 21, 2026)
 
@@ -219,29 +235,29 @@ The application has achieved **substantial completion** of the core implementati
 | Authentication (Google SSO, sessions, team scoping) | ✅ Complete |
 | Prisma Data Model (all spec models + Skill/ContextDocument + usage events) | ✅ Complete |
 | Prompt APIs (CRUD, versions, engagement, thumbnails) | ✅ Complete |
-| Skills APIs (CRUD, list, search, usage tracking, permanent delete) | ✅ Complete |
-| Context Documents APIs (CRUD, list, search, usage tracking, permanent delete) | ✅ Complete |
+| Skills APIs (CRUD, list, search, usage tracking, ratings, collections, permanent delete) | ✅ Complete |
+| Context Documents APIs (CRUD, list, search, usage tracking, ratings, collections, permanent delete) | ✅ Complete |
 | Tags, Collections, Analytics APIs | ✅ Complete |
 | System Collections (tool-based, best-of) | ✅ Complete |
 | Frontend Routes (all spec routes + Skills/Context + Help + Settings) | ✅ Complete |
 | Theme System (dark/light/system, persistence) | ✅ Complete |
 | Share Functionality | ✅ Complete (Prompts, Skills, Context, Collections) |
-| Analytics Dashboard UI | ✅ Complete (Top Used, Top Rated, Stale, Contributors, User Engagement) |
+| Analytics Dashboard UI | ✅ Complete (Top Used, Top Rated, Stale, Contributors, User Engagement, CSV Export) |
 | Dedicated Settings Page | ✅ Complete (profile editing, my content, my analytics) |
 | Quick-Create Actions | ✅ Complete (New Prompt/Skill/Context dropdown) |
-| Skills/Context Feature Parity | ⚠️ Partial (no versioning, tags, favorites, ratings) |
+| Skills/Context Feature Parity | ✅ Complete (ratings, collections, favorites, variables) |
 | Help Documentation | ✅ Complete (searchable, indexed by topic, AI search beta) |
 | Salesforce Brand Voice | ✅ Complete (individual-focused, action-oriented) |
 
 ### Identified Gaps (Prioritized)
 
-1. **Feature Parity**: Skills/Context missing versioning, tags, collections, favorites, ratings.
+1. **Feature Parity**: Skills/Context missing versioning and tags (lower priority).
 
 ### Remediation Roadmap (Updated)
 
 | Phase | Description | Scope |
 |-------|-------------|-------|
-| 1 | Feature Parity for Skills/Context | Tags, Ratings, Versioning (lower priority) |
+| 1 | Feature Parity for Skills/Context | Tags, Versioning (lower priority) |
 
 ## Technical Architecture
 
@@ -355,7 +371,7 @@ The application has achieved **substantial completion** of the core implementati
 
 ### Prisma Data Model Summary
 
-**Models (24):**
+**Models (28):**
 - `User` - with `avatarUrl`, `region`, `ou`, `title`, `onboardingCompleted`, `googleSub`
 - `Team` - multi-tenant team container
 - `Prompt` - with `tools[]`, `modality`, `thumbnailUrl`, `thumbnailStatus`, `thumbnailError`
@@ -364,14 +380,16 @@ The application has achieved **substantial completion** of the core implementati
 - `Skill` - markdown body skill documents (team-scoped)
 - `SkillVariable` - dynamic variable definitions for skills
 - `SkillFavorite` - user favorites for skills
+- `SkillRating` - user ratings for skills (1-5 stars)
 - `SkillUsageEvent` - VIEW/COPY/SHARE tracking (skills)
 - `ContextDocument` - markdown context files (team-scoped)
 - `ContextVariable` - dynamic variable definitions for context documents
 - `ContextFavorite` - user favorites for context documents
+- `ContextRating` - user ratings for context documents (1-5 stars)
 - `ContextUsageEvent` - VIEW/COPY/SHARE tracking (context documents)
 - `Tag`, `PromptTag` - tagging system (prompts only currently)
-- `Collection`, `CollectionPrompt` - curated prompt collections with `isSystem` flag for protected system collections
-- `Favorite`, `Rating` - user engagement (prompts only currently)
+- `Collection`, `CollectionPrompt`, `CollectionSkill`, `CollectionContext` - curated collections for all asset types with `isSystem` flag for protected system collections
+- `Favorite`, `Rating` - user engagement (prompts)
 - `UsageEvent` - VIEW/COPY/LAUNCH tracking (prompts)
 - `ToolRequest` - tool submission requests with review workflow
 
@@ -398,8 +416,8 @@ The application has achieved **substantial completion** of the core implementati
 | `assets.ts` | `GET /` (unified asset listing with type/tool/status/search filters, sort options, pagination, and facet counts) |
 | `search.ts` | `GET /suggestions` (asset/filter suggestions), `GET /parse` (natural language query parsing via Gemini) |
 | `prompts.ts` | Full CRUD, `DELETE /:id/permanent`, `/versions`, `/restore/:version`, `/favorite`, `/rating`, `/usage`, `/regenerate-thumbnail` |
-| `skills.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `DELETE /:id/permanent`, `POST /:id/usage`, `POST /:id/favorite`, `PUT /:id/variables` |
-| `context.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `DELETE /:id/permanent`, `POST /:id/usage`, `POST /:id/favorite`, `PUT /:id/variables` |
+| `skills.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `DELETE /:id/permanent`, `POST /:id/usage`, `POST /:id/favorite`, `POST /:id/rating`, `PUT /:id/variables`, `POST /:id/collections/:collectionId`, `DELETE /:id/collections/:collectionId` |
+| `context.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `DELETE /:id/permanent`, `POST /:id/usage`, `POST /:id/favorite`, `POST /:id/rating`, `PUT /:id/variables`, `POST /:id/collections/:collectionId`, `DELETE /:id/collections/:collectionId` |
 | `collections.ts` | CRUD + `/prompts/:promptId` membership + `POST /system/refresh` (admin-only system collection refresh) |
 | `tags.ts` | `GET /`, `POST /` |
 | `analytics.ts` | `GET /overview` (team-scoped aggregates) |
@@ -452,6 +470,8 @@ The application has achieved **substantial completion** of the core implementati
 - `client/src/features/home/HomePage.tsx`: unified homepage with hero section, featured assets, tool integration cards, and admin leaderboards.
 - `client/src/features/assets/AssetCard.tsx`: unified card component for rendering prompts, skills, and context with consistent actions and relevance highlighting.
 - `client/src/features/assets/api.ts`: unified assets API client for fetching all asset types with filtering, pagination, and facet counts.
+- `client/src/features/assets/AssetListView.tsx`: compact table view for browsing owned assets with name, status, and edit links.
+- `client/src/components/AssetCollectionMenu.tsx`: reusable dropdown menu for adding/removing any asset type to/from collections.
 - `server/src/routes/assets.ts`: unified assets API endpoint returning paginated list of all asset types with facet counts.
 - `client/src/features/search/components/SearchBar.tsx`: unified search input with filter chips, keyboard shortcuts, and NL query submission.
 - `client/src/features/search/components/FilterChip.tsx`: removable filter chip UI component.
@@ -581,7 +601,7 @@ git push heroku main
 
 **Remaining Feature Work:**
 
-1. **Feature Parity for Skills/Context** — Tags (SkillTag/ContextTag models, endpoints, picker UI, filter chips); Ratings; Versioning (lower priority). Favorites and Variables are now complete.
+1. **Feature Parity for Skills/Context** — Tags (SkillTag/ContextTag models, endpoints, picker UI, filter chips); Versioning (lower priority). Ratings, Favorites, Variables, and Collections are now complete.
 
 2. **Analytics Enhancements** — Add time-range selector; add skill/context usage stats to overview.
 

@@ -56,6 +56,8 @@ describe("CollectionDetailPage", () => {
       name: "Alpha",
       description: "Initial",
       prompts: [{ prompt: { id: 10, title: "Prompt One" } }],
+      skills: [],
+      contexts: [],
     });
   });
 
@@ -65,6 +67,8 @@ describe("CollectionDetailPage", () => {
       name: "Alpha Updated",
       description: "Refined",
       prompts: [{ prompt: { id: 10, title: "Prompt One" } }],
+      skills: [],
+      contexts: [],
     });
 
     renderCollectionDetailPage();
