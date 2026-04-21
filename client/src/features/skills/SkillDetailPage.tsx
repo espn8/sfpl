@@ -8,7 +8,7 @@ import { VariableInputs } from "../../components/VariableInputs";
 import { interpolateBody } from "../../lib/interpolate";
 import { buildShareUrl, copyToClipboard, downloadAsMarkdown, shareOrCopyLink } from "../../lib/shareOrCopyLink";
 import { fetchMe } from "../auth/api";
-import { archiveSkill, deleteSkillPermanently, getSkill, logSkillUsage, regenerateSkillThumbnail, toggleSkillFavorite } from "./api";
+import { archiveSkill, deleteSkillPermanently, getSkill, logSkillUsage, regenerateSkillThumbnail, toggleSkillFavorite, getSkillToolLabel } from "./api";
 import { CopyIcon, DownloadIcon, EyeIcon, HeartIcon, ShareIcon } from "../prompts/promptActionIcons";
 import { PromptThumbnail } from "../prompts/PromptThumbnail";
 
@@ -154,6 +154,18 @@ export function SkillDetailPage() {
           <p className="text-xs font-medium uppercase tracking-wide text-(--color-text-muted)">Skill</p>
           <h1 className="text-2xl font-semibold">{skill.title} <span className="text-(--color-text-muted)">[Skill]</span></h1>
           {skill.summary ? <p className="mt-1 text-(--color-text-muted)">{skill.summary}</p> : null}
+          {skill.tools.length > 0 ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {skill.tools.map((tool) => (
+                <span
+                  key={tool}
+                  className="rounded-full bg-(--color-text-inverse) px-2.5 py-0.5 text-xs font-medium text-(--color-bg)"
+                >
+                  {getSkillToolLabel(tool)}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
       </div>
       <div className="flex flex-wrap items-start justify-between gap-3">

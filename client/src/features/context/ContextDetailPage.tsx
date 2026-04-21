@@ -12,6 +12,7 @@ import {
   archiveContextDocument,
   deleteContextDocumentPermanently,
   getContextDocument,
+  getContextToolLabel,
   logContextUsage,
   regenerateContextThumbnail,
   toggleContextFavorite,
@@ -161,6 +162,18 @@ export function ContextDetailPage() {
           <p className="text-xs font-medium uppercase tracking-wide text-(--color-text-muted)">Context</p>
           <h1 className="text-2xl font-semibold">{doc.title} <span className="text-(--color-text-muted)">[Context]</span></h1>
           {doc.summary ? <p className="mt-1 text-(--color-text-muted)">{doc.summary}</p> : null}
+          {doc.tools.length > 0 ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {doc.tools.map((tool) => (
+                <span
+                  key={tool}
+                  className="rounded-full bg-(--color-text-inverse) px-2.5 py-0.5 text-xs font-medium text-(--color-bg)"
+                >
+                  {getContextToolLabel(tool)}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
       </div>
       <div className="flex flex-wrap items-start justify-between gap-3">

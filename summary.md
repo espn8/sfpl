@@ -1,9 +1,16 @@
 # AI Library - Technical Summary
 
-Last Updated: Monday, April 20, 2026 — 16:03 CDT
-Build Version: 9602809
+Last Updated: Tuesday, April 21, 2026 — 09:15 CDT
+Build Version: d1516df
 
 ## Recent Changes
+
+- **Tool pills on asset detail pages**: Added target tool indicator pills to Skill and Context detail pages. Previously, the tool (e.g., Slackbot, Gemini, Cursor) was only visible on the homepage/index cards and could be filtered, but once navigating to an individual skill or context document, the tool information was not displayed. Now all three asset types (Prompts, Skills, Context) consistently show tool pills below the title/summary on their detail pages.
+  - Updated `client/src/features/skills/SkillDetailPage.tsx` to import `getSkillToolLabel` and render tool chips
+  - Updated `client/src/features/context/ContextDetailPage.tsx` to import `getContextToolLabel` and render tool chips
+  - Styling matches the existing tool chips on AssetCard (`rounded-full bg-(--color-text-inverse) px-2.5 py-0.5 text-xs font-medium text-(--color-bg)`)
+
+### Previous Session Changes (April 20, 2026)
 
 - **Thumbnail retry background service**: Added automatic retry mechanism for stuck thumbnail generation jobs. Items stuck in PENDING status for more than 2 minutes are automatically retried. If retry fails, status is set to FAILED so users can manually regenerate. Service runs on server startup and every 5 minutes thereafter.
   - Created `server/src/services/thumbnailRetry.ts` with `startThumbnailRetryService()` function
