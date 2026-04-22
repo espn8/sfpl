@@ -1,6 +1,26 @@
-import { getGoogleLoginUrl } from "./api";
+import { useQuery } from "@tanstack/react-query";
+import { Navigate } from "react-router-dom";
+import { fetchMe, getGoogleLoginUrl } from "./api";
 
 export function LoginPage() {
+  const meQuery = useQuery({
+    queryKey: ["auth", "me"],
+    queryFn: fetchMe,
+    retry: false,
+  });
+
+  if (meQuery.isLoading) {
+    return (
+      <main className="min-h-screen bg-(--color-bg) text-(--color-text)">
+        <p className="p-8">Loading...</p>
+      </main>
+    );
+  }
+
+  if (meQuery.data) {
+    return <Navigate to="/" replace />;
+  }
+
   return (
     <main className="min-h-screen bg-(--color-bg) text-(--color-text)">
       <div className="mx-auto flex max-w-xl flex-col gap-4 px-6 py-20">

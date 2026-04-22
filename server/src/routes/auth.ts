@@ -50,7 +50,13 @@ const googleCallbackQuerySchema = z.object({
 });
 const updateProfileBodySchema = z.object({
   name: z.string().trim().min(1, "name is required."),
-  avatarUrl: z.string().trim().url("avatarUrl must be a valid URL."),
+  avatarUrl: z
+    .string()
+    .trim()
+    .refine(
+      (val) => val.startsWith("/uploads/") || val.startsWith("http://") || val.startsWith("https://"),
+      { message: "avatarUrl must be a valid URL or server upload path." },
+    ),
   region: z.string().trim().optional().default(""),
   ou: z.string().trim().optional().default(""),
   title: z.string().trim().optional().default(""),

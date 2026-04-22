@@ -1,9 +1,17 @@
 # AI Library - Technical Summary
 
-Last Updated: Tuesday, April 21, 2026 — 13:52 CDT
-Build Version: 07e7a0a
+Last Updated: Wednesday, April 22, 2026 — 16:13 CDT
+Build Version: f819825
 
 ## Recent Changes
+
+- **Login page redirect for authenticated users**: Updated `LoginPage` to check authentication status and automatically redirect logged-in users to the homepage. Previously, authenticated users could navigate to `/login` and see the login form unnecessarily. Now uses `useQuery` to check `/api/auth/me` and renders `<Navigate to="/" replace />` if already authenticated.
+
+- **Avatar URL validation relaxed**: Updated the profile update validation schema in `auth.ts` to accept server upload paths (starting with `/uploads/`) in addition to HTTP/HTTPS URLs. This fixes profile save errors when users have uploaded custom profile photos stored on the server.
+
+- **Slack Skills seed script**: Added `seed-slack-skills.ts` script for bulk importing Slack-related skills with predefined authors (Jesse Chase, Stewart Anderson, Jessica Finkbeiner, Rachel Cowgill). Added `seed:slack-skills` npm script to `server/package.json`.
+
+### Previous Session Changes (April 21, 2026)
 
 - **Ratings for Skills and Context**: Extended the rating system (previously prompts only) to Skills and Context Documents:
   - Added `SkillRating` and `ContextRating` Prisma models with userId/assetId unique constraint
