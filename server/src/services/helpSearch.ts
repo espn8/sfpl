@@ -4,156 +4,284 @@ const GEMINI_MODEL = "gemini-2.0-flash";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 const HELP_CONTENT = `
-# SF AI Library Help Documentation
+# AI Library Help Documentation
 
 ## Getting Started
 
-### What is SF AI Library?
-SF AI Library is your personal toolkit for AI. It's a place where you can discover, save, and share prompts, skills, and context documents that make working with AI tools faster and more effective. Think of it as a recipe book for AI—except the recipes are AI assets, and you get to use (and contribute) the best ones.
+### What is AI Library?
+AI Library is your Salesforce toolkit for AI. It's a place where you can discover, save, and share four asset types that make working with AI tools faster and more effective:
+- Prompts — ready-to-use instructions you send to AI tools
+- Skills — URL-based capability packs (zip archives, repos, or docs) that teach AI tools how to behave
+- Context — reference documents (style guides, policies, docs) the AI should know about
+- Builds — pre-built solutions (apps, agents, workflows) you can deploy or adapt
 
 ### Who is this for?
-You, if you use AI tools like Slackbot, Claude, Gemini, Cursor, or NotebookLM. Whether you're writing emails, generating code, analyzing data, or brainstorming ideas—if you use AI, this library is for you.
+Anyone at Salesforce who uses AI tools like Slackbot, Agentforce Vibes, Claude, Claude Cowork, ChatGPT, Gemini, Cursor, NotebookLM, or Saleo.
 
 ### How do I sign in?
-Click "Continue with Google" on the login page using your Salesforce Google account. That's it—no separate password needed.
+Click "Continue with Google" on the login page using your Salesforce Google account. Auth is Google SSO — no separate password.
 
 ### What should I do first?
-1. Complete your profile (you'll be prompted when you first sign in)
-2. Browse the homepage to see featured AI assets
-3. Try using a prompt by clicking "Use prompt" on any card
-4. Save AI assets you like by clicking the heart icon
+1. Accept the compliance acknowledgment that appears on first load (required every 96 hours)
+2. Complete your profile (name, region, OU, title, profile photo)
+3. Browse Top Performers on the homepage
+4. Try an asset by clicking "Use" — copies to your clipboard and/or launches the target tool
+5. Favorite assets you like (heart icon)
+6. If you have write permissions, click "Create" to add your first asset
+
+### What are Smart Pick, New, Updated, and Popular badges?
+- Smart Pick (pink star) — admin-curated featured assets
+- New (green) — created within the last 7 days
+- Updated (blue) — modified within the last 7 days (created earlier)
+- Popular (orange flame) — 10+ favorites
+
+### Where is the changelog?
+The app footer shows the current version and links to /changelog with grouped release notes.
 
 ## Prompts
 
 ### What is a prompt?
-A prompt is a set of instructions you give to an AI tool. A good prompt tells the AI exactly what you need, in what format, and with what context. SF AI Library stores prompts that have been tested and proven to work well.
+A prompt is a set of instructions you give to an AI tool — tells it exactly what you need, in what format, and with what context.
 
 ### How do I find prompts?
-Use the search bar to find prompts by keyword, topic, or author. Filter by tool (Slackbot, Claude, Gemini, etc.), generated output type (text, code, image), or tag. Sort by most recent, top rated, or most used. Browse featured prompts on the homepage for popular options.
+Use Smart Search at the top of the homepage. It supports plain keywords, natural-language queries ("cursor prompts for code review"), auto-suggestions, removable filter chips, a ⌘K shortcut, and faceted filters with live counts per asset type and tool. Sort by Recent, Most Used, Name, or Updated At.
 
 ### How do I use a prompt?
-1. Click on any prompt card to view its details
-2. If the prompt has variables (shown as [VARIABLE] or {{VARIABLE}}), fill in the fields provided
-3. Click "Use prompt" to open it directly in your chosen AI tool, or click the copy icon to copy it to your clipboard
+1. Click a prompt card to open the detail page
+2. Fill in any [VARIABLE] or {{VARIABLE}} fields — body preview updates live
+3. Click "Use" (green) to copy the filled-in prompt, or the launch button to open it in the target tool
+4. A toast confirms the action
 
 ### What are variables?
-Variables are customizable placeholders in a prompt. For example, a prompt might include [COMPANY_NAME] or {{TOPIC}}. When you use the prompt, you fill in these fields with your specific information, and the prompt automatically updates.
+Placeholders like [KEY] or {{KEY}} defined in the editor with a label, optional default, and optional required flag. They're filled in at use time before copy/launch.
 
 ### How do I create a prompt?
-1. Click "New Prompt" in the top navigation
-2. Give your prompt a title and summary
-3. Write your prompt in the body field
-4. Add variables if needed—click "Insert" to add [KEY] placeholders to your prompt, or type them manually
-5. Select the tools and generated output type it works with
-6. Choose visibility (Public for everyone, Private for just you)
-7. Save as Draft or Publish immediately
+1. Click "Create" → "New Prompt" (writers only)
+2. Title (auto-sanitized) and summary
+3. Body
+4. Insert variables as needed
+5. Target tool(s) + generated-output type
+6. Visibility: Public / Team (your OU) / Private
+7. Click Save — modal prompts you to pick Draft or Publish Now
+If a potential duplicate is detected (exact body hash, 85%+ similar title, or same normalized URL for Skills/Builds), a Duplicate Warning modal shows the existing matches with links.
 
-### How do I edit or update a prompt?
-Click "Edit prompt" on any prompt you own. Changes are saved as new versions, so you can always restore a previous version if needed.
+### How do I edit, archive, or permanently delete my prompt?
+Detail page (owners only):
+- Edit — saves a new version, optional changelog note
+- Archive (amber) — soft-delete, preserves history
+- Delete (red) — permanent delete with confirmation; cascades usage events, ratings, favorites, tags, variables, versions, and collection memberships
 
-### What do the ratings mean?
-Users can rate prompts from 1-5 stars based on how helpful they found them. Higher-rated prompts appear more prominently in search results and featured sections.
+### How does versioning work?
+Every edit to a Prompt, Skill, Context doc, or Build creates a new version (with optional changelog note). Versions are visible on detail pages and can be restored.
 
-### How do I favorite an AI asset?
-Click the heart icon on any prompt, skill, or context detail page. Favorited AI assets are easier to find later and help us understand what content is most valuable.
+### Rating & favoriting
+Users rate 1-5 stars. You can't rate your own assets, and the star widget is hidden on cards you own. Click the heart icon to favorite; favorite counts drive the Popular badge.
 
-## Skills
+### How do I request a new tool?
+In any prompt editor, click "Request a new tool" and fill the modal (name, Salesforce-approved status, details URL, description). Admins review at /admin/tool-requests.
+
+## Skills (URL-based)
 
 ### What is a skill?
-A skill is a reusable set of instructions that tells an AI tool how to behave for a specific task. Unlike prompts (which are one-time instructions), skills are meant to be loaded into AI tools as ongoing context or capabilities. Think of a skill as giving your AI a specialty.
+A reusable capability pack — a Slackbot skill bundle, a Cursor .mdc rule, a Claude project skill, a Gemini custom Gem, etc. Skills in AI Library are URL-based (v1.2 migration): each skill points to where the skill lives (zip, repo, Quip, SharePoint).
 
-### Examples of skills:
-- "Code Reviewer" — Instructs the AI to review code for best practices, security issues, and performance
-- "Meeting Summarizer" — Tells the AI how to format and structure meeting notes
-- "Salesforce Tone" — Guides the AI to write in Salesforce brand voice
+### Fields on a skill
+- Skill URL (required) — the canonical skill archive / document
+- Support URL (optional) — docs, video, or thread explaining how to install and use it
+- Target tool(s) (e.g. Slackbot, Agentforce Vibes, Cursor, Claude)
 
 ### How do I use a skill?
-Copy the skill's markdown content and paste it into your AI tool's system prompt, custom instructions, or context window. Many AI tools (like Slackbot, Cursor, and Claude) have dedicated places for this.
+Open the detail page, click the Skill URL to download/install into the target tool. Follow the Support URL for install steps if provided.
 
 ### How do I create a skill?
-1. Go to Skills in the navigation
-2. Click "Create Skill"
-3. Write your skill instructions in markdown format
-4. Save it—and share it if you'd like others to benefit
+1. Host your skill somewhere and get a URL
+2. Click "Create" → "New Skill"
+3. Title, summary, Skill URL, optional Support URL, tool(s), visibility
+4. Save as Draft or Publish
+
+### Skills also support
+Star ratings (self-rating blocked), favorites, collection membership, versioning, archive, permanent delete, thumbnails, and share. Same feature set as prompts.
 
 ## Context
 
 ### What is context?
-Context documents are reference materials that help AI tools understand your specific situation, rules, or domain knowledge. These are typically longer documents like style guides, product documentation, company policies, or technical references.
+Reference materials the AI should know — style guides, documentation, policies, data dictionaries.
 
-### When should I use context vs. a skill?
-Use Context for reference information the AI should know about (facts, rules, documentation). Use Skills for behavioral instructions on how the AI should act.
+### Context vs. Skill vs. Prompt
+- Context — information the AI should know (facts, rules)
+- Skill — behavioral capability pack delivered as an installable bundle
+- Prompt — a specific one-shot instruction
 
 ### How do I add context?
-1. Go to Context in the navigation
-2. Click "Add Context"
-3. Paste or write your reference document in markdown
-4. Save it—and share it if it might help others
+1. Create → New Context
+2. Paste or write markdown
+3. Optional Support URL (detail page shows a documentation icon that links out)
+4. Add variables if helpful, tool(s), visibility
+5. Save as Draft or Publish
+
+### Variables in context
+Context documents support [KEY] and {{KEY}} placeholders like prompts. Interpolated markdown is what gets copied.
+
+## Builds
+
+### What is a Build?
+A finished AI solution — apps, agents, workflows, demos, or tools you can run or fork.
+
+### How do I use a Build?
+Click a Build card, then click the Build URL to open the live solution. Optional Support URL for docs.
+
+### How do I create a Build?
+1. Create → New Build
+2. Title, summary, Build URL, optional Support URL, tool(s), visibility
+3. Save as Draft or Publish
+Builds support versioning (with changelog), favorites, ratings, collections, share, archive, and permanent delete.
 
 ## Collections
 
 ### What are collections?
-Collections are personal folders for organizing AI assets. Use them to group related prompts, skills, and context by project, use case, or workflow.
+Folders for organizing any mix of Prompts, Skills, Context, and Builds by project, campaign, or workflow.
 
-### How do I create a collection?
-1. Go to Collections in the navigation
-2. Enter a name and optional description
-3. Click "Create Collection"
+### How do I create one and add assets?
+Collections tab → name + description → Create. On any asset detail page, click the bookmark icon to add/remove from your collections. You can also add users to a collection as members.
 
-### How do I add AI assets to a collection?
-On any prompt, skill, or context detail page, click the folder icon and select the collection you want to add it to.
+### System collections
+Auto-curated collections (one per supported tool, plus "Best of AI Library"). They show a lock-style badge and can't be edited by users. Admins can force a refresh.
 
 ## Using AI Tools
 
-### Which AI tools does SF AI Library support?
-We support direct launch into:
-- Slackbot (Salesforce's AI assistant in Slack)
-- Claude (Anthropic)
-- Gemini (Google)
-- Cursor (for code-focused work)
-- NotebookLM (Google)
+### Supported tools
+Slackbot, Agentforce Vibes, Claude, Claude Cowork, ChatGPT, Gemini, Cursor, NotebookLM, Saleo, and Other (for tools not yet in the list — submit a Tool Request).
 
-### How does "Use prompt" work?
-When you click "Use prompt," we open a new tab with your chosen AI tool and pre-fill your prompt. For some tools, you may need to paste the prompt manually.
+### Use vs. Launch
+- "Use" (green) copies the interpolated prompt to your clipboard and shows a toast
+- Launch button opens the target tool in a new tab with the prompt pre-filled where supported
+- For tools without a deep-link, paste it manually
 
-### Can I use prompts with other tools?
-Yes. Click the copy icon to copy the prompt to your clipboard, then paste it into any AI tool you prefer.
+## Visibility & Roles
+
+### Visibility levels (per asset)
+- Public — anyone signed into AI Library (global, not OU-scoped)
+- Team — only your Operating Unit sees it
+- Private — only you see it
+Admins see all assets regardless of visibility.
+
+### Roles
+- ADMIN — full access including /analytics, tool requests, system collection refresh, all assets
+- OWNER — team owner, full write
+- MEMBER — default writer; create/edit/favorite/rate/use
+- VIEWER — read-only. @meshmesh.io accounts auto-become VIEWER. Contact an admin to be promoted to MEMBER.
+
+## Search & Discovery
+
+### Smart Search
+Unified bar with natural-language parsing (Gemini-powered), auto-suggestions, relevance highlighting, removable filter chips, URL sync, debounce, and ⌘K focus.
+
+### Faceted Filters
+Below the search bar: clickable chips with live counts by asset type and tool.
+
+### Ask AI (beta) on Help
+The Ask AI box on this help page answers questions using help docs. Use it when you don't know where to look.
 
 ## Your Profile
 
-### How do I update my profile?
-Click your profile photo in the top-right corner to open profile settings. You can update your display name, region, OU, title, and profile photo.
+### Updating your profile
+Click the avatar top-right for the profile modal, or go to /settings for the full-page version. Update name, region, OU, title, and photo. Region/OU/title are optional.
 
-### How do I change my profile photo?
-Click your profile photo in the top-right corner, then click 'Change Photo' to upload a new headshot. Supported formats are JPEG, PNG, GIF, and WebP (max 5MB).
+### Profile photo
+Upload JPEG/PNG/GIF/WebP, max 5MB. Stored on server under /uploads/.
 
-### What are Region and OU?
-These help us understand how different parts of the organization use the library. Select the region and operating unit that matches your role.
+## Your Content & Analytics
+
+### Where is My Content?
+/?mine=true — also reachable from Settings → My Content. Shows all your Prompts, Skills, Context, and Builds.
+
+### What can I do there?
+- Search within your own assets
+- Filter by Status (Draft/Published/Archived)
+- Sort Recent / Most Used / Name / Updated At
+- Toggle List view (Name/Status/Edit) vs cards
+- "Show Analytics" adds inline metrics to cards
+- Paginate
+
+### My Analytics
+Settings → My Analytics (or /?mine=true&showAnalytics=true). Sortable table with views, uses (COPY+LAUNCH only, not views), ratings count+average, and favorites per asset.
+
+### Export
+"Export CSV" in My Analytics downloads a spreadsheet. Use the "Columns" dropdown to hide columns before exporting.
+
+### Privacy
+Only aggregate metrics — you cannot see which specific users viewed, used, rated, or favorited your assets.
+
+## API Keys & MCP Integration
+
+### What is MCP?
+Model Context Protocol lets Cursor, Claude, and other MCP-compatible tools talk to AI Library directly. You can say "add this prompt to the AI Library" in Cursor and it creates it tagged to your account.
+
+### Generating a key
+Settings → API Keys → Generate. Full key (alib_xxx…) is shown once — copy it. Optional expiration; revoke any time.
+
+### API endpoints
+Bearer-auth /api/v1/prompts, /api/v1/skills, /api/v1/context, /api/v1/builds, /api/v1/me.
+
+### MCP tools exposed
+add_prompt, add_skill, add_context, add_build, whoami — via the @ailibrary/mcp-server package.
+
+### Duplicate handling
+409 Conflict with matched assets when your create/update would duplicate an existing one.
+
+## Duplicate Detection
+
+### What's flagged
+- Exact body match (SHA-256 of normalized body) — Prompts, Context
+- Exact title match (normalized)
+- Similar title (Levenshtein 85%+)
+- Exact URL match (normalized Skill URL or Build URL)
+
+### Can I proceed anyway?
+Yes — the Duplicate Warning modal is informational and you can continue if the new asset is meaningfully different. Hard unique-constraint duplicates (identical body hash) must be resolved first.
+
+## Compliance & Policies
+
+### Compliance modal
+Shown on first load and every 96 hours. Reminds you of Salesforce SAM Team policies and the Data Classification Policy. Choose "I Understand" (stores acknowledgment) or "Nope, get me out of here" (redirects to salesforce.com).
+
+### Policies
+Links to the SAM Policy and Data Classification Policy on Basecamp live in the modal.
+
+### What never to upload
+Confidential customer data, regulated data (PII, PHI, payment), restricted content. Keep sensitive assets Private or ask in #help-ailibrary before publishing.
+
+## For Admins
+
+### Analytics dashboard
+/analytics — Top Used, Top Rated, Stale, Contributors, User Engagement.
+
+### Tool request review
+/admin/tool-requests — approve, decline, or hold tool submissions. Approved tools appear in the picker.
+
+### System collection refresh
+POST /api/collections/system/refresh (admin only) forces a rebuild of tool and Best-of collections.
 
 ## Tips & Best Practices
 
-### Writing effective prompts:
-- Be specific about what you want
-- Include context the AI needs to know
-- Specify the format you want (bullet points, paragraph, code, etc.)
-- Use variables for anything that changes between uses
-- Test your prompt before publishing
+### Effective prompts
+- Be specific, include context, specify format, use variables, test before publishing
 
-### Getting more from AI tools:
-- Load relevant skills into your AI's system instructions
-- Provide context documents for domain-specific work
-- Iterate on prompts—small changes can make big differences
-- Share what works so others can benefit too
+### Getting more from AI tools
+- Load skills into system instructions or custom-skill slots
+- Provide context docs for domain work
+- Iterate on prompts
+- Share what works
 
-### Contributing to the library:
-- Publish prompts that have worked well for you
-- Rate prompts you use so others know what's valuable
-- Create skills for tasks you do frequently
-- Add context documents that help AI understand your domain
+### Contributing
+- Publish what's worked for you, rate assets you use, create skills for frequent tasks, add context for domain knowledge, publish Builds for end-to-end solutions
+
+### Still stuck?
+Use the "Get help in #help-ailibrary" button on the Help page or try Ask AI.
 `;
 
 function buildHelpSearchPrompt(question: string): string {
-  return `You are a helpful assistant for SF AI Library, an internal Salesforce tool for sharing AI prompts, skills, and context documents.
+  return `You are a helpful assistant for AI Library, an internal Salesforce tool for sharing AI prompts, skills, context documents, and builds.
 
 Answer the user's question based ONLY on the help documentation provided below. Be concise, friendly, and direct. If the question cannot be answered from the documentation, say so and suggest they contact support.
 

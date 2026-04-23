@@ -6,6 +6,21 @@ export type ChangelogEntry = {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.3.0",
+    date: "2026-04-23",
+    changes: [
+      "Comprehensive Help page rewrite covering Builds, URL-based Skills, Visibility & Roles, API Keys & MCP, Smart Search, Duplicate Detection, Compliance, and Admin workflows",
+      "Help AI (Ask AI beta) knowledge base updated with the full v1.3 feature set so answers reflect current behavior",
+      "Teams / OU sharing fix: PUBLIC visibility is now truly global and TEAM is locked to the creator's OU; admins can still see all",
+      "Hide rate-stars on list cards for assets you own and block self-rating across all asset types",
+      "Agentforce Vibes added as a supported target tool",
+      "Builds homepage card copy refined (\"demos\" → \"solutions\")",
+      "Production URL pinned to https://ail.mysalesforcedemo.com in summary and rules",
+      "Additional Slackbot prompt seed script added for bulk SE/AE content imports",
+      "Prompts list page: removed the duplicate Create Prompt button in favor of the unified header Create menu",
+    ],
+  },
+  {
     version: "1.25.0",
     date: "2026-04-23",
     changes: [

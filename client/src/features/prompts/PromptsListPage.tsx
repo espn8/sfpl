@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { fetchMe } from "../auth/api";
 import { canCreateContent } from "../auth/roles";
 import { SearchBar, SearchEmptyState, useSearchState } from "../search";
@@ -94,14 +94,6 @@ export function PromptsListPage() {
                 : "Ready-to-use AI prompts you can customize and launch in your favorite tools."}
           </p>
         </div>
-        {canCreateContent(meQuery.data?.role) && (
-          <Link
-            to="/prompts/new"
-            className="inline-flex items-center justify-center rounded-full bg-linear-to-r from-indigo-500 via-fuchsia-500 to-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-md hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400"
-          >
-            Create Prompt
-          </Link>
-        )}
       </div>
 
       <SearchBar

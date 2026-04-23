@@ -1,13 +1,32 @@
 # AI Library - Technical Summary
 
-Last Updated: Thursday, April 23, 2026 — 15:50 CDT
-Build Version: 1117c67 (Heroku release v157)
-App Version: 1.25.1 (package.json 1.25.0 auto-bumped on deploy)
+Last Updated: Thursday, April 23, 2026 — 16:45 CDT
+Build Version: pending (post-commit; Heroku release to be assigned on deploy)
+App Version: 1.3.0 (package.json 1.3.0 — auto-bumped to 1.3.1 by `scripts/version-bump.js` on Heroku postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
 
-### Release: v1.25.0 (April 23, 2026 — 15:45 CDT)
+### Release: v1.3.0 (April 23, 2026 — 16:45 CDT)
+
+- **Comprehensive Help page rewrite** (`client/src/features/help/HelpPage.tsx`): The in-app help documentation now covers every feature delivered since the previous help update. New sections:
+  - **Builds** — complete asset-type section explaining what a Build is, how to use one (Build URL / Support URL), how to create one, and Build versioning.
+  - **Skills (URL-based)** — rewritten to reflect the v1.2 migration from text-body skills to URL-based skill archives (Skill URL + Support URL fields), with guidance on where to host skill archives and how to install into each target tool.
+  - **Visibility & Roles** — explains PUBLIC (global), TEAM (OU-scoped), PRIVATE visibility plus ADMIN / OWNER / MEMBER / VIEWER roles including the `@meshmesh.io` auto-VIEWER rule.
+  - **Search & Discovery** — documents Smart Search, natural-language query parsing (Gemini), ⌘K shortcut, faceted filters with live counts, and the Ask-AI beta.
+  - **API Keys & MCP Integration** — how to generate `alib_xxx…` keys in Settings, the `/api/v1/*` endpoints, the `@ailibrary/mcp-server` tools (`add_prompt`, `add_skill`, `add_context`, `add_build`, `whoami`), and 409-Conflict duplicate behavior over the API.
+  - **Duplicate Detection** — body-hash, normalized-title, Levenshtein 85% fuzzy match, and URL-normalization duplicate checks with Duplicate Warning modal semantics.
+  - **Compliance & Policies** — explains the 96-hour SAM/Data Classification acknowledgment modal (`promptlibrary.compliance.acknowledged` localStorage), the "Nope, get me out of here" exit path, and what content not to upload.
+  - **For Admins** — `/analytics` dashboard, `/admin/tool-requests` review, and `POST /api/collections/system/refresh`.
+  - Existing sections (Getting Started, Prompts, Context, Collections, AI Tools, Your Profile, Your Content & Analytics, Tips) updated with: Agentforce Vibes and Claude Cowork / ChatGPT tool support, asset badges (Smart Pick / New / Updated / Popular), changelog link in footer, versioning with optional changelog notes, permanent-delete cascade, tool request flow, My Content filters (Status, Sort variants, List view toggle, inline Show Analytics), CSV export column controls, and rename from "SF AI Library" to "AI Library".
+
+- **Help AI knowledge base refresh** (`server/src/services/helpSearch.ts`): The `HELP_CONTENT` string fed to Gemini for the Ask-AI beta was rewritten to match the new Help page content so AI answers reference Builds, URL-based Skills, MCP, visibility/roles, duplicate detection, compliance, and all current tool options. System prompt updated to reference "AI Library" (not "SF AI Library") and to include Builds as a first-class asset type.
+
+- **Prompts list page cleanup** (`client/src/features/prompts/PromptsListPage.tsx`): Removed the duplicate inline "Create Prompt" pill/button from the prompts list header. The unified header "Create" menu is now the single entry point for creating prompts, skills, context, and builds — avoids confusion when a writer sees two Create affordances on the same page.
+
+- **Version bump to 1.3.0**: Root, `client`, `server`, and `mcp-server` `package.json` files all set to `1.3.0`. Changelog entry added to `client/src/data/changelog.ts`. Note: `heroku-postbuild` runs `scripts/version-bump.js` which auto-increments the patch on deploy, so the production footer will display `v1.3.1` after this release.
+
+### Previous Release: v1.25.0 (April 23, 2026 — 15:45 CDT)
 
 - **Asset Deduplication System**: Implemented comprehensive duplicate detection to prevent creation of duplicate assets across all four asset types (Prompts, Skills, ContextDocuments, Builds):
   - **New deduplication service** (`server/src/services/dedup.ts`): Core logic for duplicate detection including:
