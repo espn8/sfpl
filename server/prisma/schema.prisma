@@ -42,6 +42,7 @@ model User {
   buildUsageEvents  BuildUsageEvent[]
   buildRatings      BuildRating[]
   toolRequestsReviewed ToolRequest[]
+  apiKeys           ApiKey[]
 }
 
 model Team {
@@ -516,4 +517,22 @@ enum ToolRequestStatus {
   APPROVED
   DECLINED
   ON_HOLD
+}
+
+model ApiKey {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  teamId      Int
+  name        String
+  keyHash     String    @unique
+  keyPrefix   String
+  scopes      String[]  @default(["write"])
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  revokedAt   DateTime?
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([keyHash])
+  @@index([userId])
 }

@@ -21,6 +21,9 @@ import { skillsRouter } from "./routes/skills";
 import { buildsRouter } from "./routes/builds";
 import { tagsRouter } from "./routes/tags";
 import { toolRequestsRouter } from "./routes/toolRequests";
+import { apiKeysRouter } from "./routes/apiKeys";
+import { authenticateApiKey } from "./middleware/apiKeyAuth";
+import { v1Router } from "./routes/v1";
 
 type CreateAppOptions = {
   sessionStore?: Store;
@@ -68,6 +71,7 @@ export function createApp(options?: CreateAppOptions): express.Express {
     }),
   );
   app.use(express.json());
+  app.use(authenticateApiKey);
 
   app.get("/api/health", async (_req, res) => {
     try {
@@ -90,6 +94,8 @@ export function createApp(options?: CreateAppOptions): express.Express {
   app.use("/api/help", helpRouter);
   app.use("/api/search", searchRouter);
   app.use("/api/tool-requests", toolRequestsRouter);
+  app.use("/api/api-keys", apiKeysRouter);
+  app.use("/api/v1", v1Router);
 
   const publicPath = path.resolve(__dirname, "../public");
   app.use(express.static(publicPath));

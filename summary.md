@@ -1,9 +1,19 @@
 # AI Library - Technical Summary
 
-Last Updated: Thursday, April 23, 2026 — 19:15 CDT
-Build Version: 0ff5664
+Last Updated: Thursday, April 23, 2026 — 21:30 CDT
+Build Version: (pending deploy)
 
 ## Recent Changes
+
+- **API Keys and MCP Integration**: Added programmatic API access for external tools to create content in the AI Library:
+  - New `ApiKey` database model with secure SHA-256 hash storage, expiration dates, and revocation support
+  - API key management UI in Settings page: generate keys (shown once with click-to-reveal and copy), view existing keys (prefix only), revoke keys with confirmation
+  - API key authentication middleware that validates `Authorization: Bearer alib_xxx` headers
+  - New public API v1 endpoints (`/api/v1/prompts`, `/api/v1/skills`, `/api/v1/context`, `/api/v1/builds`, `/api/v1/me`) for programmatic content creation
+  - MCP server package (`mcp-server/`) with tools: `add_prompt`, `add_skill`, `add_context`, `add_build`, `whoami`
+  - Users can now say "MeshMesh, add this [prompt/skill/context/build] to the AI Library" from Cursor or other MCP clients
+
+### Previous Session Changes (April 23, 2026 — 19:15 CDT)
 
 - **Skills URL migration**: Converted Skills from text body-based assets to URL-based assets (matching Builds pattern):
   - Removed `body` field and `SkillVariable` model from Skill
@@ -464,8 +474,9 @@ The application has achieved **substantial completion** of the core implementati
 
 ### Prisma Data Model Summary
 
-**Models (33):**
-- `User` - with `avatarUrl`, `region`, `ou`, `title`, `onboardingCompleted`, `googleSub`
+**Models (34):**
+- `User` - with `avatarUrl`, `region`, `ou`, `title`, `onboardingCompleted`, `googleSub`, `apiKeys[]`
+- `ApiKey` - secure API key storage with SHA-256 hash, expiration, scopes, and revocation tracking
 - `Team` - multi-tenant team container
 - `Prompt` - with `tools[]`, `modality`, `thumbnailUrl`, `thumbnailStatus`, `thumbnailError`, `isSmartPick`
 - `Build` - pre-built solutions with `buildUrl`, `supportUrl`, thumbnails, and engagement tracking
@@ -507,6 +518,8 @@ The application has achieved **substantial completion** of the core implementati
 | Route File | Endpoints |
 |------------|-----------|
 | `auth.ts` | `GET /google`, `GET /google/callback`, `POST /logout`, `GET /me`, `PATCH /me`, `POST /me/profile-photo` |
+| `apiKeys.ts` | `GET /api-keys`, `POST /api-keys`, `DELETE /api-keys/:id` |
+| `v1/index.ts` | `POST /v1/prompts`, `POST /v1/skills`, `POST /v1/context`, `POST /v1/builds`, `GET /v1/me` (API key auth only) |
 | `assets.ts` | `GET /` (unified asset listing with type/tool/status/search filters, sort options, pagination, and facet counts) |
 | `search.ts` | `GET /suggestions` (asset/filter suggestions), `GET /parse` (natural language query parsing via Gemini) |
 | `prompts.ts` | Full CRUD, `DELETE /:id/permanent`, `/versions`, `/restore/:version`, `/favorite`, `/rating`, `/usage`, `/regenerate-thumbnail` |

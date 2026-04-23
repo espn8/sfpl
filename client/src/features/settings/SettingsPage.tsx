@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { fetchMe, logout, updateMyProfile, uploadProfilePhoto } from "../auth/api";
 import { ThemeModeToggle } from "../../components/ui/ThemeModeToggle";
+import { ApiKeysSection } from "./ApiKeysSection";
 
 function ChevronRightIcon({ className }: { className?: string }) {
   return (
@@ -210,6 +211,8 @@ export function SettingsPage() {
           <h2 className="mb-4 text-lg font-medium">Appearance</h2>
           <ThemeModeToggle />
         </section>
+
+        <ApiKeysSection />
 
         <section className="rounded-lg border border-(--color-border) bg-(--color-surface) p-6">
           <h2 className="mb-4 text-lg font-medium">Profile</h2>
