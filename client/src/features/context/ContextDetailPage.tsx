@@ -23,6 +23,7 @@ import { CopyIcon, DownloadIcon, HeartIcon, ShareIcon } from "../prompts/promptA
 import { PromptThumbnail } from "../prompts/PromptThumbnail";
 import { PromptAverageStars, PromptRateStars } from "../prompts/PromptStars";
 import { AssetCollectionMenu } from "../../components/AssetCollectionMenu";
+import { AssetBadges } from "../assets/badges";
 
 type ViewMode = "preview" | "raw";
 
@@ -180,7 +181,15 @@ export function ContextDetailPage() {
         />
         <div className="min-w-0 flex-1">
           <p className="text-xs font-medium uppercase tracking-wide text-(--color-text-muted)">Context</p>
-          <h1 className="text-2xl font-semibold">{doc.title} <span className="text-(--color-text-muted)">[Context]</span></h1>
+          <div className="flex items-start gap-2">
+            <h1 className="text-2xl font-semibold">{doc.title} <span className="text-(--color-text-muted)">[Context]</span></h1>
+            <AssetBadges
+              createdAt={doc.createdAt}
+              updatedAt={doc.updatedAt}
+              isSmartPick={doc.isSmartPick}
+              favoriteCount={doc.favoriteCount}
+            />
+          </div>
           {doc.summary ? <p className="mt-1 text-(--color-text-muted)">{doc.summary}</p> : null}
           {doc.tools.length > 0 ? (
             <div className="mt-3 flex flex-wrap gap-2">

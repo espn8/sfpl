@@ -13,6 +13,7 @@ import {
 import { formatPromptActivityLabel } from "../prompts/promptActivityLabel";
 import { promptOwnerAvatarUrl } from "../prompts/promptTagChips";
 import { PromptAverageStars, PromptRateStars } from "../prompts/PromptStars";
+import { AssetBadges } from "../assets/badges";
 
 function ExternalLinkIcon({ className }: { className?: string }) {
   return (
@@ -102,9 +103,12 @@ export function BuildListCard({ build, variant = "default", showAnalytics = fals
             >
               {build.title} <span className="text-(--color-text-muted)">[Build]</span>
             </p>
-            <span className="shrink-0 rounded-full border border-(--color-border) px-2 py-0.5 text-xs font-medium uppercase">
-              {build.status}
-            </span>
+            <AssetBadges
+              createdAt={build.createdAt}
+              updatedAt={build.updatedAt}
+              isSmartPick={build.isSmartPick}
+              favoriteCount={build.favoriteCount}
+            />
           </div>
           <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-(--color-text-muted)">
             <span className="flex min-w-0 items-center gap-2">

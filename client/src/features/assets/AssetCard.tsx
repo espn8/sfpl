@@ -20,8 +20,8 @@ import { formatPromptActivityLabel } from "../prompts/promptActivityLabel";
 import { promptOwnerAvatarUrl, buildPromptTagChips } from "../prompts/promptTagChips";
 import { PromptAverageStars, PromptRateStars } from "../prompts/PromptStars";
 import { PromptThumbnail } from "../prompts/PromptThumbnail";
-import { PromptUpdatedBadge } from "../prompts/PromptUpdatedBadge";
 import { PromptCollectionMenu } from "../prompts/PromptCollectionMenu";
+import { AssetBadges } from "./badges";
 
 type AssetCardProps = {
   asset: UnifiedAsset;
@@ -138,13 +138,12 @@ export function AssetCard({ asset, variant = "default", showAnalytics = false, h
               {highlightQuery ? highlightMatches(asset.title, highlightQuery) : asset.title}{" "}
               <span className="text-(--color-text-muted)">[{assetTypeLabel}]</span>
             </p>
-            {asset.assetType === "prompt" ? (
-              <PromptUpdatedBadge createdAt={asset.createdAt} updatedAt={asset.updatedAt} />
-            ) : (
-              <span className="shrink-0 rounded-full border border-(--color-border) px-2 py-0.5 text-xs font-medium uppercase">
-                {asset.status}
-              </span>
-            )}
+            <AssetBadges
+              createdAt={asset.createdAt}
+              updatedAt={asset.updatedAt}
+              isSmartPick={asset.isSmartPick}
+              favoriteCount={asset.favoriteCount}
+            />
           </div>
           {asset.assetType === "prompt" && asset.averageRating !== undefined ? (
             <div className="mt-1">
