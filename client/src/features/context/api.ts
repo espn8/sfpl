@@ -42,6 +42,7 @@ export type ContextDocument = {
   title: string;
   summary: string | null;
   body: string;
+  supportUrl?: string | null;
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   visibility: "PUBLIC" | "TEAM" | "PRIVATE";
   tools: string[];
