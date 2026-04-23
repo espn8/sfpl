@@ -6,6 +6,18 @@ export type ChangelogEntry = {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.25.0",
+    date: "2026-04-23",
+    changes: [
+      "Asset Deduplication: prevents duplicate asset creation with fuzzy title matching and content hashing",
+      "Duplicate detection for all asset types (Prompts, Skills, Context, Builds)",
+      "User-friendly duplicate warning modal with match type badges and links to existing assets",
+      "85% similarity threshold for fuzzy title matching using Levenshtein distance",
+      "SHA-256 content hashing for exact body duplicate detection",
+      "URL normalization for Skills and Builds to prevent duplicate URLs",
+    ],
+  },
+  {
     version: "1.2.0",
     date: "2026-04-23",
     changes: [

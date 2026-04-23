@@ -1,12 +1,35 @@
 # AI Library - Technical Summary
 
-Last Updated: Thursday, April 23, 2026 — 14:10 CDT
-Build Version: b9fbc5b (Heroku release v155)
-App Version: 1.2.1 (package.json 1.2.0 auto-bumped on deploy)
+Last Updated: Thursday, April 23, 2026 — 15:45 CDT
+Build Version: d492457 (Heroku release v156)
+App Version: 1.25.1 (package.json 1.25.0 auto-bumped on deploy)
 
 ## Recent Changes
 
-### Release: v1.2.0 (April 23, 2026 — 14:03 CDT)
+### Release: v1.25.0 (April 23, 2026 — 15:45 CDT)
+
+- **Asset Deduplication System**: Implemented comprehensive duplicate detection to prevent creation of duplicate assets across all four asset types (Prompts, Skills, ContextDocuments, Builds):
+  - **New deduplication service** (`server/src/services/dedup.ts`): Core logic for duplicate detection including:
+    - `normalizeTitle()` / `normalizeBody()` — Text normalization (lowercase, trim, collapse whitespace)
+    - `computeBodyHash()` — SHA-256 hash of normalized body content for exact content matching
+    - `normalizeUrl()` — URL normalization for Skills and Builds
+    - `levenshteinDistance()` / `titleSimilarity()` — Fuzzy matching with configurable 85% threshold
+    - Per-asset-type duplicate checkers: `checkPromptDuplicates()`, `checkSkillDuplicates()`, `checkContextDuplicates()`, `checkBuildDuplicates()`
+  - **Schema additions** (migration `20260423200000_add_dedup_fields`):
+    - `Prompt`: `titleNormalized`, `bodyHash` fields with unique constraint on `bodyHash`
+    - `Skill`: `skillUrlNormalized` field with unique constraint
+    - `ContextDocument`: `titleNormalized`, `bodyHash` fields with unique constraint on `bodyHash`
+    - `Build`: `buildUrlNormalized` field with unique constraint
+  - **Route integration**: All create (POST) and update (PATCH) endpoints now check for duplicates and return HTTP 409 Conflict with detailed match information when duplicates are detected
+  - **Frontend modal** (`client/src/components/DuplicateWarningModal.tsx`): User-friendly modal that shows detected duplicates with:
+    - Match type badges (exact_body, exact_title, similar_title, exact_url)
+    - Similarity percentage for fuzzy matches
+    - Direct links to view existing duplicate assets
+    - Owner attribution
+  - **Form integrations**: All editor pages (PromptEditorPage, PromptEditPage, SkillEditorPage, ContextEditorPage, BuildEditorPage) now handle 409 responses and display the duplicate warning modal
+  - **Backfill script** (`server/prisma/backfill-dedup-fields.ts`): Utility script to populate dedup fields for existing records after migration
+
+### Previous Release: v1.2.0 (April 23, 2026 — 14:03 CDT)
 
 - **Version bump to 1.2.0**: Promoted the AI Library to the 1.2 release line, marking the milestone that includes Builds, API Keys/MCP integration, and cross-asset versioning. Root, `client`, `server`, and `mcp-server` `package.json` files all updated to `1.2.0`. Changelog entry added to `client/src/data/changelog.ts` summarizing the 1.2 feature set. Note: `heroku-postbuild` runs `scripts/version-bump.js` which auto-increments the patch on deploy, so the production footer will display `v1.2.1` after this release.
 
@@ -516,16 +539,16 @@ The application has achieved **substantial completion** of the core implementati
 - `User` - with `avatarUrl`, `region`, `ou`, `title`, `onboardingCompleted`, `googleSub`, `apiKeys[]`
 - `ApiKey` - secure API key storage with SHA-256 hash, expiration, scopes, and revocation tracking
 - `Team` - multi-tenant team container
-- `Prompt` - with `tools[]`, `modality`, `thumbnailUrl`, `thumbnailStatus`, `thumbnailError`, `isSmartPick`
-- `Build` - pre-built solutions with `buildUrl`, `supportUrl`, thumbnails, and engagement tracking
+- `Prompt` - with `tools[]`, `modality`, `thumbnailUrl`, `thumbnailStatus`, `thumbnailError`, `isSmartPick`, `titleNormalized`, `bodyHash` (dedup fields)
+- `Build` - pre-built solutions with `buildUrl`, `supportUrl`, `buildUrlNormalized` (dedup), thumbnails, and engagement tracking
 - `BuildVersion` - version history for builds with title, summary, buildUrl, supportUrl, changelog
 - `PromptVersion` - version history for prompts
 - `PromptVariable` - dynamic variable definitions for prompts
-- `Skill` - URL-based skill documents with `skillUrl` and `supportUrl` (team-scoped)
+- `Skill` - URL-based skill documents with `skillUrl`, `supportUrl`, `skillUrlNormalized` (dedup) (team-scoped)
 - `SkillFavorite` - user favorites for skills
 - `SkillRating` - user ratings for skills (1-5 stars)
 - `SkillUsageEvent` - VIEW/COPY/SHARE tracking (skills)
-- `ContextDocument` - markdown context files (team-scoped)
+- `ContextDocument` - markdown context files with `titleNormalized`, `bodyHash` (dedup) (team-scoped)
 - `ContextVariable` - dynamic variable definitions for context documents
 - `ContextFavorite` - user favorites for context documents
 - `ContextRating` - user ratings for context documents (1-5 stars)
@@ -617,6 +640,7 @@ The application has achieved **substantial completion** of the core implementati
 - `server/src/services/helpSearch.ts`: help content search service with AI-powered question answering.
 - `server/src/services/searchParser.ts`: natural language search query parser using Gemini with local heuristic fallback.
 - `server/src/services/systemCollections.ts`: automatic tool-based and "Best of AI Library" collection management. Includes ChatGPT and Claude Cowork collections.
+- `server/src/services/dedup.ts`: asset deduplication service with fuzzy title matching (Levenshtein), content hashing (SHA-256), and URL normalization. Prevents duplicate asset creation across all types.
 - `client/src/app/providers/ToastProvider.tsx`: toast notification context and UI for success/error/info feedback.
 - `server/prisma/schema.prisma`: source of truth for users/teams/prompts/skills/context/engagement relations and enums.
 - `client/src/features/home/HomePage.tsx`: unified homepage with hero section, featured assets, tool integration cards, and admin leaderboards.
@@ -651,6 +675,7 @@ The application has achieved **substantial completion** of the core implementati
 - `client/src/features/prompts/PromptThumbnail.tsx`: thumbnail rendering with graceful placeholder states and clickable regenerate button for failed thumbnails.
 - `client/src/components/ConfirmDeleteModal.tsx`: reusable confirmation dialog for permanent asset deletion with warning messaging.
 - `client/src/components/PublishStatusModal.tsx`: modal dialog for new asset creation prompting user to choose Draft or Published status with card-style options.
+- `client/src/components/DuplicateWarningModal.tsx`: modal displaying detected duplicate assets when creation/update would result in a duplicate, with match type badges and links to existing assets.
 - `client/src/features/analytics/AnalyticsPage.tsx`: admin dashboard with top used, top rated, stale prompts, contributors, and user engagement leaderboards.
 - `client/src/features/analytics/api.ts`: strict typed contract for analytics payload shape.
 - `client/src/features/help/HelpPage.tsx`: searchable help documentation with topic index sidebar and AI search beta feature.

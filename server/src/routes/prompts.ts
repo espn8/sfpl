@@ -6,6 +6,12 @@ import { getAuthContext, requireAuth, requireWriteAccess } from "../middleware/a
 import { prisma } from "../lib/prisma";
 import { generatePromptThumbnail } from "../services/nanoBanana";
 import { refreshBestOfCollection, refreshToolCollection } from "../services/systemCollections";
+import {
+  checkPromptDuplicates,
+  computeBodyHash,
+  normalizeTitle,
+  formatDuplicateError,
+} from "../services/dedup";
 
 const promptsRouter = Router();
 
@@ -664,13 +670,20 @@ promptsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) 
   }
   const { title, summary, body, visibility, status, modelHint, tools, modality, variables } = parsedBody.data;
 
+  const duplicateCheck = await checkPromptDuplicates(title, body);
+  if (duplicateCheck.hasDuplicate) {
+    return res.status(409).json(formatDuplicateError(duplicateCheck));
+  }
+
   const prompt = await prisma.prompt.create({
     data: {
       teamId: auth.teamId,
       ownerId: auth.userId,
       title: title.trim(),
+      titleNormalized: normalizeTitle(title),
       summary: summary?.trim() || null,
       body,
+      bodyHash: computeBodyHash(body),
       visibility: visibility ?? "PUBLIC",
       status: status ?? "DRAFT",
       tools,
@@ -852,7 +865,18 @@ promptsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respon
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can modify this prompt." } });
   }
 
+  const nextTitle = typeof updateData.title === "string" ? updateData.title.trim() : existing.title;
   const nextBody = typeof updateData.body === "string" ? updateData.body : existing.body;
+
+  const titleChanged = nextTitle !== existing.title;
+  const bodyChanged = nextBody !== existing.body;
+  if (titleChanged || bodyChanged) {
+    const duplicateCheck = await checkPromptDuplicates(nextTitle, nextBody, promptId);
+    if (duplicateCheck.hasDuplicate) {
+      return res.status(409).json(formatDuplicateError(duplicateCheck));
+    }
+  }
+
   let modelHint: string | null | undefined;
   if (updateData.modelHint !== undefined) {
     if (updateData.modelHint === null) {
@@ -867,8 +891,10 @@ promptsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respon
     where: { id: promptId },
     data: {
       title: typeof updateData.title === "string" ? updateData.title.trim() : undefined,
+      titleNormalized: titleChanged ? normalizeTitle(nextTitle) : undefined,
       summary: typeof updateData.summary === "string" ? updateData.summary.trim() : undefined,
       body: nextBody,
+      bodyHash: bodyChanged ? computeBodyHash(nextBody) : undefined,
       visibility: updateData.visibility,
       status: updateData.status,
       tools: Array.isArray(updateData.tools) ? updateData.tools : undefined,

@@ -5,6 +5,11 @@ import { z } from "zod";
 import { getAuthContext, requireAuth, requireWriteAccess } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 import { generatePromptThumbnail } from "../services/nanoBanana";
+import {
+  checkSkillDuplicates,
+  normalizeUrl,
+  formatDuplicateError,
+} from "../services/dedup";
 
 const skillsRouter = Router();
 
@@ -326,6 +331,11 @@ skillsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
 
   const { title, summary, skillUrl, supportUrl, visibility, status, tools } = parsedBody.data;
 
+  const duplicateCheck = await checkSkillDuplicates(title, skillUrl);
+  if (duplicateCheck.hasDuplicate) {
+    return res.status(409).json(formatDuplicateError(duplicateCheck));
+  }
+
   const skill = await prisma.skill.create({
     data: {
       teamId: auth.teamId,
@@ -333,6 +343,7 @@ skillsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
       title: title.trim(),
       summary: summary?.trim() || null,
       skillUrl,
+      skillUrlNormalized: normalizeUrl(skillUrl),
       supportUrl: supportUrl || null,
       visibility: visibility ?? "PUBLIC",
       status: status ?? "DRAFT",
@@ -468,6 +479,15 @@ skillsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respons
   const nextSkillUrl = u.skillUrl ?? existing.skillUrl;
   const nextSupportUrl = typeof u.supportUrl === "string" ? u.supportUrl || null : existing.supportUrl;
 
+  const titleChanged = nextTitle !== existing.title;
+  const urlChanged = nextSkillUrl !== existing.skillUrl;
+  if (titleChanged || urlChanged) {
+    const duplicateCheck = await checkSkillDuplicates(nextTitle, nextSkillUrl, skillId);
+    if (duplicateCheck.hasDuplicate) {
+      return res.status(409).json(formatDuplicateError(duplicateCheck));
+    }
+  }
+
   const hasContentChange =
     nextTitle !== existing.title ||
     nextSummary !== existing.summary ||
@@ -500,6 +520,7 @@ skillsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respons
       title: nextTitle,
       summary: nextSummary,
       skillUrl: nextSkillUrl,
+      skillUrlNormalized: urlChanged ? normalizeUrl(nextSkillUrl) : undefined,
       supportUrl: nextSupportUrl,
       visibility: u.visibility,
       status: u.status,

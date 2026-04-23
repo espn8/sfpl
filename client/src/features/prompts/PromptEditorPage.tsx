@@ -3,6 +3,11 @@ import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
 import { PublishStatusModal } from "../../components/PublishStatusModal";
+import {
+  DuplicateWarningModal,
+  isDuplicateError,
+  type DuplicateMatch,
+} from "../../components/DuplicateWarningModal";
 import { sanitizeTitle } from "../../lib/sanitizeTitle";
 import {
   createPrompt,
@@ -52,6 +57,8 @@ export function PromptEditorPage() {
   const [pendingFormData, setPendingFormData] = useState<PendingPromptData | null>(null);
   const [bodyText, setBodyText] = useState("");
   const bodyRef = useRef<HTMLTextAreaElement>(null);
+  const [duplicateMatches, setDuplicateMatches] = useState<DuplicateMatch[]>([]);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
 
   const insertVariable = (key: string) => {
     const textarea = bodyRef.current;
@@ -78,6 +85,13 @@ export function PromptEditorPage() {
     },
     onError: (error) => {
       console.error("Create prompt error:", error);
+      if (error && typeof error === "object" && "response" in error) {
+        const axiosError = error as { response?: { data?: unknown } };
+        if (isDuplicateError(axiosError.response?.data)) {
+          setDuplicateMatches(axiosError.response.data.error.duplicates);
+          setShowDuplicateModal(true);
+        }
+      }
     },
   });
 
@@ -413,6 +427,15 @@ export function PromptEditorPage() {
         onClose={() => {
           setShowPublishModal(false);
           setPendingFormData(null);
+        }}
+      />
+      <DuplicateWarningModal
+        isOpen={showDuplicateModal}
+        assetType="prompt"
+        duplicates={duplicateMatches}
+        onClose={() => {
+          setShowDuplicateModal(false);
+          setDuplicateMatches([]);
         }}
       />
     </form>

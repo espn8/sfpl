@@ -5,6 +5,12 @@ import { z } from "zod";
 import { getAuthContext, requireAuth, requireWriteAccess } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 import { generatePromptThumbnail } from "../services/nanoBanana";
+import {
+  checkContextDuplicates,
+  computeBodyHash,
+  normalizeTitle,
+  formatDuplicateError,
+} from "../services/dedup";
 
 const contextRouter = Router();
 
@@ -363,13 +369,20 @@ contextRouter.post("/", requireWriteAccess, async (req: Request, res: Response) 
 
   const { title, summary, body, supportUrl, visibility, status, tools, variables } = parsedBody.data;
 
+  const duplicateCheck = await checkContextDuplicates(title, body);
+  if (duplicateCheck.hasDuplicate) {
+    return res.status(409).json(formatDuplicateError(duplicateCheck));
+  }
+
   const doc = await prisma.contextDocument.create({
     data: {
       teamId: auth.teamId,
       ownerId: auth.userId,
       title: title.trim(),
+      titleNormalized: normalizeTitle(title),
       summary: summary?.trim() || null,
       body,
+      bodyHash: computeBodyHash(body),
       supportUrl: supportUrl || null,
       visibility: visibility ?? "PUBLIC",
       status: status ?? "DRAFT",
@@ -510,8 +523,18 @@ contextRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respon
   }
 
   const u = parsedBody.data;
+  const nextTitle = typeof u.title === "string" ? u.title.trim() : existing.title;
   const nextBody = typeof u.body === "string" ? u.body : existing.body;
   const nextSupportUrl = typeof u.supportUrl === "string" ? u.supportUrl || null : existing.supportUrl;
+
+  const titleChanged = nextTitle !== existing.title;
+  const bodyChanged = nextBody !== existing.body;
+  if (titleChanged || bodyChanged) {
+    const duplicateCheck = await checkContextDuplicates(nextTitle, nextBody, contextId);
+    if (duplicateCheck.hasDuplicate) {
+      return res.status(409).json(formatDuplicateError(duplicateCheck));
+    }
+  }
 
   const hasContentChange = nextBody !== existing.body || nextSupportUrl !== existing.supportUrl;
 
@@ -537,8 +560,10 @@ contextRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respon
     where: { id: contextId },
     data: {
       title: typeof u.title === "string" ? u.title.trim() : undefined,
+      titleNormalized: titleChanged ? normalizeTitle(nextTitle) : undefined,
       summary: typeof u.summary === "string" ? u.summary.trim() || null : undefined,
       body: nextBody,
+      bodyHash: bodyChanged ? computeBodyHash(nextBody) : undefined,
       supportUrl: nextSupportUrl,
       visibility: u.visibility,
       status: u.status,

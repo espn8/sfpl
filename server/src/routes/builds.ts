@@ -5,6 +5,11 @@ import { z } from "zod";
 import { getAuthContext, requireAuth, requireWriteAccess } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 import { generatePromptThumbnail } from "../services/nanoBanana";
+import {
+  checkBuildDuplicates,
+  normalizeUrl,
+  formatDuplicateError,
+} from "../services/dedup";
 
 const buildsRouter = Router();
 
@@ -296,6 +301,11 @@ buildsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
 
   const { title, summary, buildUrl, supportUrl, visibility, status } = parsedBody.data;
 
+  const duplicateCheck = await checkBuildDuplicates(title, buildUrl);
+  if (duplicateCheck.hasDuplicate) {
+    return res.status(409).json(formatDuplicateError(duplicateCheck));
+  }
+
   const build = await prisma.build.create({
     data: {
       teamId: auth.teamId,
@@ -303,6 +313,7 @@ buildsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
       title: title.trim(),
       summary: summary?.trim() || null,
       buildUrl,
+      buildUrlNormalized: normalizeUrl(buildUrl),
       supportUrl: supportUrl || null,
       visibility: visibility ?? "PUBLIC",
       status: status ?? "DRAFT",
@@ -436,6 +447,15 @@ buildsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respons
   const nextBuildUrl = u.buildUrl ?? existing.buildUrl;
   const nextSupportUrl = typeof u.supportUrl === "string" ? u.supportUrl || null : existing.supportUrl;
 
+  const titleChanged = nextTitle !== existing.title;
+  const urlChanged = nextBuildUrl !== existing.buildUrl;
+  if (titleChanged || urlChanged) {
+    const duplicateCheck = await checkBuildDuplicates(nextTitle, nextBuildUrl, buildId);
+    if (duplicateCheck.hasDuplicate) {
+      return res.status(409).json(formatDuplicateError(duplicateCheck));
+    }
+  }
+
   const hasContentChange =
     nextTitle !== existing.title ||
     nextSummary !== existing.summary ||
@@ -468,6 +488,7 @@ buildsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respons
       title: nextTitle,
       summary: nextSummary,
       buildUrl: nextBuildUrl,
+      buildUrlNormalized: urlChanged ? normalizeUrl(nextBuildUrl) : undefined,
       supportUrl: nextSupportUrl,
       visibility: u.visibility,
       status: u.status,

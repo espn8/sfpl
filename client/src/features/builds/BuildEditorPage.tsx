@@ -1,6 +1,11 @@
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  DuplicateWarningModal,
+  isDuplicateError,
+  type DuplicateMatch,
+} from "../../components/DuplicateWarningModal";
 import { PublishStatusModal } from "../../components/PublishStatusModal";
 import { sanitizeTitle } from "../../lib/sanitizeTitle";
 import { createBuild } from "./api";
@@ -18,6 +23,8 @@ export function BuildEditorPage() {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [pendingFormData, setPendingFormData] = useState<PendingBuildData | null>(null);
+  const [duplicateMatches, setDuplicateMatches] = useState<DuplicateMatch[]>([]);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
 
   const createMutation = useMutation({
     mutationFn: createBuild,
@@ -26,6 +33,13 @@ export function BuildEditorPage() {
     },
     onError: (error) => {
       console.error("Create build error:", error);
+      if (error && typeof error === "object" && "response" in error) {
+        const axiosError = error as { response?: { data?: unknown } };
+        if (isDuplicateError(axiosError.response?.data)) {
+          setDuplicateMatches(axiosError.response.data.error.duplicates);
+          setShowDuplicateModal(true);
+        }
+      }
     },
   });
 
@@ -193,6 +207,15 @@ export function BuildEditorPage() {
         onClose={() => {
           setShowPublishModal(false);
           setPendingFormData(null);
+        }}
+      />
+      <DuplicateWarningModal
+        isOpen={showDuplicateModal}
+        assetType="build"
+        duplicates={duplicateMatches}
+        onClose={() => {
+          setShowDuplicateModal(false);
+          setDuplicateMatches([]);
         }}
       />
     </form>

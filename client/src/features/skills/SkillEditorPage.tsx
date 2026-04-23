@@ -1,6 +1,11 @@
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  DuplicateWarningModal,
+  isDuplicateError,
+  type DuplicateMatch,
+} from "../../components/DuplicateWarningModal";
 import { PublishStatusModal } from "../../components/PublishStatusModal";
 import { sanitizeTitle } from "../../lib/sanitizeTitle";
 import { ToolRequestModal } from "../prompts/ToolRequestModal";
@@ -23,6 +28,8 @@ export function SkillEditorPage() {
   const [showToolRequestModal, setShowToolRequestModal] = useState(false);
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [pendingFormData, setPendingFormData] = useState<PendingSkillData | null>(null);
+  const [duplicateMatches, setDuplicateMatches] = useState<DuplicateMatch[]>([]);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
 
   const isValidUrl = (url: string): boolean => {
     try {
@@ -40,6 +47,13 @@ export function SkillEditorPage() {
     },
     onError: (error) => {
       console.error("Create skill error:", error);
+      if (error && typeof error === "object" && "response" in error) {
+        const axiosError = error as { response?: { data?: unknown } };
+        if (isDuplicateError(axiosError.response?.data)) {
+          setDuplicateMatches(axiosError.response.data.error.duplicates);
+          setShowDuplicateModal(true);
+        }
+      }
     },
   });
 
@@ -265,6 +279,15 @@ export function SkillEditorPage() {
         onClose={() => {
           setShowPublishModal(false);
           setPendingFormData(null);
+        }}
+      />
+      <DuplicateWarningModal
+        isOpen={showDuplicateModal}
+        assetType="skill"
+        duplicates={duplicateMatches}
+        onClose={() => {
+          setShowDuplicateModal(false);
+          setDuplicateMatches([]);
         }}
       />
     </form>

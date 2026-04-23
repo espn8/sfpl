@@ -1,6 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import {
+  DuplicateWarningModal,
+  isDuplicateError,
+  type DuplicateMatch,
+} from "../../components/DuplicateWarningModal";
 import { sanitizeTitle } from "../../lib/sanitizeTitle";
 import { listTags } from "../tags/api";
 import {
@@ -56,6 +61,8 @@ export function PromptEditPage() {
   const [showToolRequestModal, setShowToolRequestModal] = useState(false);
   const [bodyText, setBodyText] = useState("");
   const bodyRef = useRef<HTMLTextAreaElement>(null);
+  const [duplicateMatches, setDuplicateMatches] = useState<DuplicateMatch[]>([]);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
 
   const promptQuery = useQuery({
     queryKey: ["prompt", promptId],
@@ -97,6 +104,16 @@ export function PromptEditPage() {
       await queryClient.invalidateQueries({ queryKey: ["prompt", promptId] });
       await queryClient.invalidateQueries({ queryKey: ["prompts"] });
       navigate(`/prompts/${promptId}`);
+    },
+    onError: (error) => {
+      console.error("Update prompt error:", error);
+      if (error && typeof error === "object" && "response" in error) {
+        const axiosError = error as { response?: { data?: unknown } };
+        if (isDuplicateError(axiosError.response?.data)) {
+          setDuplicateMatches(axiosError.response.data.error.duplicates);
+          setShowDuplicateModal(true);
+        }
+      }
     },
   });
   const regenerateMutation = useMutation({
@@ -492,6 +509,15 @@ export function PromptEditPage() {
       >
         Save Changes
       </button>
+      <DuplicateWarningModal
+        isOpen={showDuplicateModal}
+        assetType="prompt"
+        duplicates={duplicateMatches}
+        onClose={() => {
+          setShowDuplicateModal(false);
+          setDuplicateMatches([]);
+        }}
+      />
     </form>
   );
 }
