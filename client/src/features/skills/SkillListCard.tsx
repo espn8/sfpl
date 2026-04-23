@@ -15,6 +15,7 @@ import {
 import { formatPromptActivityLabel } from "../prompts/promptActivityLabel";
 import { promptOwnerAvatarUrl } from "../prompts/promptTagChips";
 import { PromptAverageStars, PromptRateStars } from "../prompts/PromptStars";
+import { AssetBadges } from "../assets/badges";
 
 type SkillListCardProps = {
   skill: Skill;
@@ -98,9 +99,12 @@ export function SkillListCard({ skill, variant = "default", showAnalytics = fals
             >
               {skill.title} <span className="text-(--color-text-muted)">[Skill]</span>
             </p>
-            <span className="shrink-0 rounded-full border border-(--color-border) px-2 py-0.5 text-xs font-medium uppercase">
-              {skill.status}
-            </span>
+            <AssetBadges
+              createdAt={skill.createdAt}
+              updatedAt={skill.updatedAt}
+              isSmartPick={skill.isSmartPick}
+              favoriteCount={skill.favoriteCount}
+            />
           </div>
           <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-(--color-text-muted)">
             <span className="flex min-w-0 items-center gap-2">

@@ -16,8 +16,8 @@ import {
 } from "./promptActionIcons";
 import { formatPromptActivityLabel } from "./promptActivityLabel";
 import { PromptAverageStars, PromptRateStars } from "./PromptStars";
-import { PromptUpdatedBadge } from "./PromptUpdatedBadge";
 import { buildPromptTagChips, promptOwnerAvatarUrl } from "./promptTagChips";
+import { AssetBadges } from "../assets/badges";
 import { shareOrCopyPromptLink } from "./sharePrompt";
 
 function composedTextForList(prompt: PromptSummary): { text: string; canCopyOrLaunch: boolean } {
@@ -102,7 +102,12 @@ export function PromptListCard({ prompt, variant = "default", showAnalytics = fa
               {highlightQuery ? highlightMatches(prompt.title, highlightQuery) : prompt.title}{" "}
               <span className="text-(--color-text-muted)">[Prompt]</span>
             </p>
-            <PromptUpdatedBadge createdAt={prompt.createdAt} updatedAt={prompt.updatedAt} />
+            <AssetBadges
+              createdAt={prompt.createdAt}
+              updatedAt={prompt.updatedAt}
+              isSmartPick={prompt.isSmartPick}
+              favoriteCount={prompt.favoriteCount}
+            />
           </div>
           <div className="mt-1">
             <PromptAverageStars value={prompt.averageRating} />

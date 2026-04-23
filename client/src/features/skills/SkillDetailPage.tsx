@@ -14,6 +14,7 @@ import { CopyIcon, DownloadIcon, HeartIcon, ShareIcon } from "../prompts/promptA
 import { PromptThumbnail } from "../prompts/PromptThumbnail";
 import { PromptAverageStars, PromptRateStars } from "../prompts/PromptStars";
 import { AssetCollectionMenu } from "../../components/AssetCollectionMenu";
+import { AssetBadges } from "../assets/badges";
 
 type ViewMode = "preview" | "raw";
 
@@ -171,7 +172,15 @@ export function SkillDetailPage() {
         />
         <div className="min-w-0 flex-1">
           <p className="text-xs font-medium uppercase tracking-wide text-(--color-text-muted)">Skill</p>
-          <h1 className="text-2xl font-semibold">{skill.title} <span className="text-(--color-text-muted)">[Skill]</span></h1>
+          <div className="flex items-start gap-2">
+            <h1 className="text-2xl font-semibold">{skill.title} <span className="text-(--color-text-muted)">[Skill]</span></h1>
+            <AssetBadges
+              createdAt={skill.createdAt}
+              updatedAt={skill.updatedAt}
+              isSmartPick={skill.isSmartPick}
+              favoriteCount={skill.favoriteCount}
+            />
+          </div>
           {skill.summary ? <p className="mt-1 text-(--color-text-muted)">{skill.summary}</p> : null}
           {skill.tools.length > 0 ? (
             <div className="mt-3 flex flex-wrap gap-2">

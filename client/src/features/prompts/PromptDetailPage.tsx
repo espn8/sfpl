@@ -40,8 +40,8 @@ import { formatPromptActivityLabel } from "./promptActivityLabel";
 import { buildPromptTagChips, promptOwnerAvatarUrl } from "./promptTagChips";
 import { PromptAverageStars, PromptRateStars } from "./PromptStars";
 import { PromptThumbnail } from "./PromptThumbnail";
-import { PromptUpdatedBadge } from "./PromptUpdatedBadge";
 import { shareOrCopyPromptLink } from "./sharePrompt";
+import { AssetBadges } from "../assets/badges";
 import { usePromptCollectionMutations } from "./usePromptCollectionMutations";
 
 function pluralize(count: number, singular: string, plural = `${singular}s`): string {
@@ -259,7 +259,12 @@ export function PromptDetailPage() {
             <h2 id="prompt-detail-title" className="text-2xl font-semibold">
               {promptData.title} <span className="text-(--color-text-muted)">[Prompt]</span>
             </h2>
-          <PromptUpdatedBadge createdAt={promptData.createdAt} updatedAt={promptData.updatedAt} />
+          <AssetBadges
+            createdAt={promptData.createdAt}
+            updatedAt={promptData.updatedAt}
+            isSmartPick={promptData.isSmartPick}
+            favoriteCount={promptData.favoriteCount}
+          />
           </div>
           <div className="mt-2">
             <PromptAverageStars value={averageRating} size="md" />

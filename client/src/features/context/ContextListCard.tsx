@@ -15,6 +15,7 @@ import {
 import { formatPromptActivityLabel } from "../prompts/promptActivityLabel";
 import { promptOwnerAvatarUrl } from "../prompts/promptTagChips";
 import { PromptAverageStars, PromptRateStars } from "../prompts/PromptStars";
+import { AssetBadges } from "../assets/badges";
 
 type ContextListCardProps = {
   context: ContextDocument;
@@ -98,9 +99,12 @@ export function ContextListCard({ context, variant = "default", showAnalytics = 
             >
               {context.title} <span className="text-(--color-text-muted)">[Context]</span>
             </p>
-            <span className="shrink-0 rounded-full border border-(--color-border) px-2 py-0.5 text-xs font-medium uppercase">
-              {context.status}
-            </span>
+            <AssetBadges
+              createdAt={context.createdAt}
+              updatedAt={context.updatedAt}
+              isSmartPick={context.isSmartPick}
+              favoriteCount={context.favoriteCount}
+            />
           </div>
           <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-(--color-text-muted)">
             <span className="flex min-w-0 items-center gap-2">
