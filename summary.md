@@ -1,7 +1,7 @@
 # AI Library - Technical Summary
 
 Last Updated: Thursday, April 23, 2026 — 16:15 CDT
-Build Version: 4a11089
+Build Version: 4b0d2d8
 
 ## Recent Changes
 
@@ -21,6 +21,13 @@ Build Version: 4a11089
 - **Help icon in header**: Added a help circle icon button in the header navigation that links to `/help` page for quick access to documentation
 
 - **AssetCollectionMenu enhancement**: Extended to support Builds in collection management
+
+- **AssetBadges component**: New unified badge system for assets showing SmartPick, New, Updated, and Popular badges:
+  - SmartPick badge (pink star) for curated featured assets
+  - New badge (green) for assets created in the last 7 days
+  - Updated badge (blue) for assets modified in the last 7 days but created earlier
+  - Popular badge (orange flame) for assets with 10+ favorites
+  - Integrated into PromptListCard, SkillListCard, ContextListCard, PromptDetailPage, SkillDetailPage
 
 ### Previous Session Changes (April 23, 2026 — earlier)
 
