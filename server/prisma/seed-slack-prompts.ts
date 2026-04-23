@@ -5,14 +5,18 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("Starting Slack Prompts seed...");
 
-  const team = await prisma.team.upsert({
-    where: { slug: "demo-team" },
-    create: {
-      name: "Demo Team",
-      slug: "demo-team",
-    },
-    update: {},
-  });
+  // Use the production team (salesforce.com) - fall back to demo-team for local dev
+  let team = await prisma.team.findUnique({ where: { slug: "salesforce-com" } });
+  if (!team) {
+    team = await prisma.team.upsert({
+      where: { slug: "demo-team" },
+      create: {
+        name: "Demo Team",
+        slug: "demo-team",
+      },
+      update: {},
+    });
+  }
   console.log(`Using team: ${team.name} (${team.slug})`);
 
   const authors = [
