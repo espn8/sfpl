@@ -1,8 +1,9 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
 import { useToast } from "../../app/providers/ToastProvider";
+import { fetchMe } from "../auth/api";
 import { highlightMatches, truncateWithHighlight } from "../search";
 import { logUsage, ratePrompt, toggleFavorite, type PromptSummary } from "./api";
 import { interpolatePromptBody } from "./interpolatePrompt";
@@ -52,6 +53,9 @@ export function PromptListCard({ prompt, variant = "default", showAnalytics = fa
 
   const [myRating, setMyRating] = useState(prompt.myRating ?? null);
   const [favorited, setFavorited] = useState(prompt.favorited ?? false);
+
+  const meQuery = useQuery({ queryKey: ["auth", "me"], queryFn: fetchMe });
+  const isOwnAsset = Boolean(meQuery.data && meQuery.data.id === prompt.owner.id);
 
   useEffect(() => {
     setMyRating(prompt.myRating ?? null);
@@ -189,17 +193,19 @@ export function PromptListCard({ prompt, variant = "default", showAnalytics = fa
           </div>
         ) : null}
 
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-          <span className="text-xs text-(--color-text-muted)">Rate this prompt</span>
-          <PromptRateStars
-            value={myRating}
-            disabled={rateMutation.isPending}
-            onChange={(value) => {
-              rateMutation.mutate(value);
-              trackEvent("prompt_rate", { prompt_id: prompt.id, value });
-            }}
-          />
-        </div>
+        {isOwnAsset ? null : (
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs text-(--color-text-muted)">Rate this prompt</span>
+            <PromptRateStars
+              value={myRating}
+              disabled={rateMutation.isPending}
+              onChange={(value) => {
+                rateMutation.mutate(value);
+                trackEvent("prompt_rate", { prompt_id: prompt.id, value });
+              }}
+            />
+          </div>
+        )}
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-(--color-border) pt-3">
           <div className="flex items-center gap-0.5">

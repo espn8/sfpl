@@ -1,8 +1,9 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
 import { useToast } from "../../app/providers/ToastProvider";
+import { fetchMe } from "../auth/api";
 import { logSkillUsage, rateSkill, toggleSkillFavorite, type Skill } from "./api";
 import { getToolLabel } from "../prompts/api";
 import {
@@ -38,6 +39,9 @@ export function SkillListCard({ skill, variant = "default", showAnalytics = fals
 
   const [favorited, setFavorited] = useState(skill.favorited ?? false);
   const [myRating, setMyRating] = useState<number | null>(skill.myRating ?? null);
+
+  const meQuery = useQuery({ queryKey: ["auth", "me"], queryFn: fetchMe });
+  const isOwnAsset = Boolean(meQuery.data && meQuery.data.id === skill.owner.id);
 
   useEffect(() => {
     setFavorited(skill.favorited ?? false);
@@ -186,18 +190,20 @@ export function SkillListCard({ skill, variant = "default", showAnalytics = fals
           </div>
         ) : null}
 
-        <div className="mt-3 flex items-center justify-between gap-2 border-t border-(--color-border) pt-3">
-          <span className="text-xs text-(--color-text-muted)">Rate:</span>
-          <PromptRateStars
-            value={myRating}
-            disabled={rateMutation.isPending}
-            size="sm"
-            onChange={(value) => {
-              rateMutation.mutate(value);
-              trackEvent("skill_rate", { skill_id: skill.id, value, source: "list" });
-            }}
-          />
-        </div>
+        {isOwnAsset ? null : (
+          <div className="mt-3 flex items-center justify-between gap-2 border-t border-(--color-border) pt-3">
+            <span className="text-xs text-(--color-text-muted)">Rate:</span>
+            <PromptRateStars
+              value={myRating}
+              disabled={rateMutation.isPending}
+              size="sm"
+              onChange={(value) => {
+                rateMutation.mutate(value);
+                trackEvent("skill_rate", { skill_id: skill.id, value, source: "list" });
+              }}
+            />
+          </div>
+        )}
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-(--color-border) pt-3">
           <div className="flex items-center gap-0.5">

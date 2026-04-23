@@ -1,8 +1,9 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
 import { useToast } from "../../app/providers/ToastProvider";
+import { fetchMe } from "../auth/api";
 import { type UnifiedAsset } from "./api";
 import { getToolLabel } from "../prompts/api";
 import { highlightMatches, truncateWithHighlight } from "../search";
@@ -36,6 +37,9 @@ export function AssetCard({ asset, variant = "default", showAnalytics = false, h
 
   const [favorited, setFavorited] = useState(asset.favorited ?? false);
   const [myRating, setMyRating] = useState(asset.myRating ?? null);
+
+  const meQuery = useQuery({ queryKey: ["auth", "me"], queryFn: fetchMe });
+  const isOwnAsset = Boolean(meQuery.data && meQuery.data.id === asset.owner.id);
 
   useEffect(() => {
     setFavorited(asset.favorited ?? false);
@@ -236,7 +240,7 @@ export function AssetCard({ asset, variant = "default", showAnalytics = false, h
           </div>
         ) : null}
 
-        {asset.assetType === "prompt" ? (
+        {asset.assetType === "prompt" && !isOwnAsset ? (
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
             <span className="text-xs text-(--color-text-muted)">Rate this prompt</span>
             <PromptRateStars
