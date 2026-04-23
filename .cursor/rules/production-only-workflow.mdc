@@ -1,27 +1,44 @@
 ---
-description: Production-only development workflow - no local or dev testing
+description: Production-only development workflow - never test locally or on dev
 alwaysApply: true
 ---
 
 # Production-Only Workflow
 
-This project does not use local or development testing. All changes are tested and verified directly in production.
+**CRITICAL**: This project is tested and verified EXCLUSIVELY in production. Never test on local or dev.
 
-## Testing Approach
+## Forbidden Actions
 
-- Do NOT start local dev servers for manual testing
-- Do NOT suggest running the app locally to verify changes
-- Run automated tests (unit/integration) to verify code correctness
-- Deploy directly to production (Heroku) for verification
+Do NOT do any of the following:
 
-## Verification Steps
+- ❌ Run `npm run dev`, `pnpm dev`, `vite`, `tsx watch`, or any local server
+- ❌ Navigate to `localhost`, `127.0.0.1`, or `http://localhost:5173` in the browser tool
+- ❌ Curl `localhost` endpoints to debug
+- ❌ Suggest the user "open the app locally" or "start dev server"
+- ❌ Ask the user to "check the browser console in dev"
 
-1. **Code verification**: TypeScript compilation, linting, automated tests
-2. **Deploy to production**: `git push heroku main:master`
-3. **Verify in production**: Check Heroku logs and production app behavior
+## Required Workflow
 
-## When Asked to Test
+1. **Code verification (local, no server)**:
+   - TypeScript: `npm --prefix client run build` or `tsc --noEmit`
+   - Lint: use the ReadLints tool
+   - Unit/integration tests only
 
-- Run `pnpm test` in client and server directories
-- Check for TypeScript errors with `pnpm tsc --noEmit`
-- Do NOT spin up local servers or suggest manual browser testing
+2. **Deploy to production**:
+   - `git push heroku main:master`
+
+3. **Verify in production**:
+   - `heroku logs --tail --app <app>`
+   - Use browser tool against the PRODUCTION URL only
+   - Check real production console errors (the user pastes them)
+
+## When Debugging Runtime Errors
+
+- User shares production console errors (e.g. minified `index-*.js` stack traces)
+- Fix the source
+- Verify compilation cleanly: `npm --prefix client run build`
+- Commit and deploy; verify in production
+
+## When In Doubt
+
+Ask: "Should I deploy to production to test this?" - never "Should I run it locally?"

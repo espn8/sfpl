@@ -1,9 +1,28 @@
 # AI Library - Technical Summary
 
-Last Updated: Thursday, April 23, 2026 — 14:50 CDT
-Build Version: 78a8085
+Last Updated: Thursday, April 23, 2026 — 14:03 CDT
+Build Version: pending (1.2.0 release)
+App Version: 1.2.0
 
 ## Recent Changes
+
+### Release: v1.2.0 (April 23, 2026 — 14:03 CDT)
+
+- **Version bump to 1.2.0**: Promoted the AI Library to the 1.2 release line, marking the milestone that includes Builds, API Keys/MCP integration, and cross-asset versioning. Root, `client`, `server`, and `mcp-server` `package.json` files all updated to `1.2.0`. Changelog entry added to `client/src/data/changelog.ts` summarizing the 1.2 feature set. Note: `heroku-postbuild` runs `scripts/version-bump.js` which auto-increments the patch on deploy, so the production footer will display `v1.2.1` after this release.
+
+- **Context detail page — documentation link**: `ContextDetailPage.tsx` now renders a documentation icon (next to the favorite button) and a "View Documentation" text link when `doc.supportUrl` is set. New inline `DocumentIcon` SVG component. Both links open in a new tab with `rel="noopener noreferrer"`.
+
+- **HomePage top performers refactor**: Replaced the four parallel per-asset-type `listAssets` queries with a single unified query using `assetType: "all"`, `sort: "mostUsed"`, `pageSize: 12`. Added `showAllTopPerformers` state and a "Show N more / Show less" toggle below the grid so users can reveal up to 12 top performers instead of the previous fixed 6. Failed-thumbnail prompts are still filtered out. Removed the old `featuredAssets` memo and replaced it with `topPerformers` (filtered) and `visibleTopPerformers` (sliced).
+
+- **Builds permanent delete — version cascade**: `DELETE /api/builds/:id/permanent` now also deletes related `buildVersion` rows inside the transaction, alongside usage events, favorites, ratings, and collection memberships. This prevents foreign-key violations after the 1.1 versioning migration.
+
+- **Dev whitelist bypass header**: Added `X-Dev-Whitelist-Token` header-based authentication bypass for automated tooling and MCP clients:
+  - Server: `authRouter.get("/me")` now calls a new `checkWhitelistBypass(req)` helper before returning 401. When the request includes a valid `X-Dev-Whitelist-Token` header matching `env.devWhitelistToken`, the helper loads the user at `env.devWhitelistUserId` and populates `req.session.auth` so downstream middleware treats the request as authenticated. Returns `false` silently if the token is missing/invalid or the user is not found.
+  - Client: `client/src/api/client.ts` reads `VITE_DEV_WHITELIST_TOKEN` from build-time env and, when present, attaches `X-Dev-Whitelist-Token` as a default header on the shared `apiClient` axios instance. The header is only sent when the env var is set (production builds omit it).
+
+- **Prompt seed utility**: New `server/prisma/seed-prompts-from-skills.ts` script that converts the legacy skill backup JSON into prompt rows, stripping "skill" terminology from titles/bodies. Paired with the `skills-backup-2026-04-23-full.json` and `.csv` backup files in the repo root.
+
+### Previous Changes
 
 - **Versioning support for Builds**: Added version tracking to Builds asset type (matching existing Prompt versioning pattern):
   - New `BuildVersion` Prisma model with version number, title, summary, buildUrl, supportUrl, changelog, and creator tracking

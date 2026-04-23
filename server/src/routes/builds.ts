@@ -536,6 +536,7 @@ buildsRouter.delete("/:id/permanent", requireWriteAccess, async (req: Request, r
     prisma.buildUsageEvent.deleteMany({ where: { buildId } }),
     prisma.buildFavorite.deleteMany({ where: { buildId } }),
     prisma.buildRating.deleteMany({ where: { buildId } }),
+    prisma.buildVersion.deleteMany({ where: { buildId } }),
     prisma.collectionBuild.deleteMany({ where: { buildId } }),
     prisma.build.delete({ where: { id: buildId } }),
   ]);

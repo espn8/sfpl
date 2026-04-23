@@ -25,6 +25,18 @@ import { PromptAverageStars, PromptRateStars } from "../prompts/PromptStars";
 import { AssetCollectionMenu } from "../../components/AssetCollectionMenu";
 import { AssetBadges } from "../assets/badges";
 
+function DocumentIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" strokeLinecap="round" strokeLinejoin="round" />
+      <polyline points="14 2 14 8 20 8" strokeLinecap="round" strokeLinejoin="round" />
+      <line x1="16" y1="13" x2="8" y2="13" strokeLinecap="round" strokeLinejoin="round" />
+      <line x1="16" y1="17" x2="8" y2="17" strokeLinecap="round" strokeLinejoin="round" />
+      <polyline points="10 9 9 9 8 9" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 type ViewMode = "preview" | "raw";
 
 export function ContextDetailPage() {
@@ -317,7 +329,31 @@ export function ContextDetailPage() {
         >
           <HeartIcon className="h-5 w-5" filled={favorited} />
         </button>
+        {doc.supportUrl ? (
+          <a
+            href={doc.supportUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-md border border-transparent p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text)"
+            aria-label="View documentation"
+          >
+            <DocumentIcon className="h-5 w-5" />
+          </a>
+        ) : null}
       </div>
+      {doc.supportUrl ? (
+        <div className="flex items-center gap-2">
+          <a
+            href={doc.supportUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm text-(--color-primary) hover:underline"
+          >
+            <DocumentIcon className="h-4 w-4" />
+            View Documentation
+          </a>
+        </div>
+      ) : null}
 
       {hasVariables ? (
         <section className="space-y-3 rounded border border-(--color-border) bg-(--color-surface) p-4">

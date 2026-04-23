@@ -1,0 +1,54 @@
+Title,Summary,Owner,Owner Email,Tools
+AI Tool Advisor,"Helps you quickly find the right AI tools for any workflow or job to be done.",Jesse Chase,jesse.chase@salesforce.com,slackbot
+Discovery Helper,"Helps SEs understand what to position for a customer by pulling org62 opportunity/account data and Slack context.",Jesse Chase,jesse.chase@salesforce.com,slackbot
+Demo Org Recommender,"Not sure which org to use for your demo? This skill queries Q Branch data and gives you an opinionated, ranked recommendation.",Jesse Chase,jesse.chase@salesforce.com,slackbot
+Q Brix Recommender,"Stop guessing what to install. Tell this skill what product, feature, or industry you're demoing and it finds the right Q Brix.",Jesse Chase,jesse.chase@salesforce.com,slackbot
+My Demo Org Assistant,"Understand your Q Labs demo org in plain English — what template it's on, what Q Brix are installed, what's ready to demo, and what to do next.",Jesse Chase,jesse.chase@salesforce.com,slackbot
+What's New in the Demo Store,"Stop browsing the Demo Store manually to find out what's new. Get a conversational changelog of every Q Brix added in the last 60 days.",Jesse Chase,jesse.chase@salesforce.com,slackbot
+Solutions CoE Roadmap Advisor,"Ask roadmap questions and get answers on what was recently delivered, what's in progress, and what's coming next.",Jesse Chase,jesse.chase@salesforce.com,slackbot
+Demo Script Generator,"Stop showing up to demos with a generic flow. Get a narrative-first demo script tailored to your actual installed Q Brix and products.",Jesse Chase,jesse.chase@salesforce.com,slackbot
+Salesforce Error Detective,"Takes your error message, explains it in plain English, and searches Slack to find how others fixed the same issue.",Stewart Anderson,stewart.anderson@salesforce.com,slackbot
+Q Brix Error Detective,"Provides quick, friendly help diagnosing Salesforce and QBrix errors by summarizing root cause and checking Brix health.",Stewart Anderson,stewart.anderson@salesforce.com,slackbot
+SE Peer Finder,"Stop guessing who to call when you need demo help on a specific product. Find the top experts with direct links to reach out.",Jesse Chase,jesse.chase@salesforce.com,slackbot
+New Feature Intake Guide,"Guides PMs and SEs through new demo feature/product intake. Gathers required docs, licensing, setup steps, and identifies the right Solutions CoE contact.",Jesse Chase,jesse.chase@salesforce.com,slackbot
+Who's Brix is it anyway?,"Ever wondered who actually owns a Brix, what it does, and whether it's causing any problems? Get ownership info and issue analysis.",Stewart Anderson,stewart.anderson@salesforce.com,slackbot
+CoE Demo Org Metrics,"Stop guessing how the demo fleet is performing. Get an executive-grade dashboard with data and context in one shot.",Jesse Chase,jesse.chase@salesforce.com,slackbot
+CoE Duplicate Buster,"Stop guessing if your team is reinventing the wheel. This skill acts as a Silo-Buster that scans every project board, sprint, and Slack request in Q Labs.",Jessica Finkbeiner,jessica.finkbeiner@salesforce.com,slackbot
+Q Project Tasks Viewer,"Shows active Q Project tasks for one or more team members in QLabs, grouped by person with parent project, status, priority, and due date.",Rachel Cowgill,rachel.cowgill@salesforce.com,slackbot
+SE SFR Prompt,"Generates SE-focused SFR updates with Slack context, challenges, and solution descriptions for CBS Marketing opportunities.",Ilya Pevzner,ilya.pevzner@salesforce.com,slackbot
+AE SFR Prompt,"Generates AE-focused SFR updates with forecast notes, compelling events, and risk flags for CBS Marketing opportunities.",Ilya Pevzner,ilya.pevzner@salesforce.com,slackbot
+RVP SFR Prompt,"Creates manager-level SFR summaries with MFJ recommendations and paste-ready Manager Forecast Notes.",Ilya Pevzner,ilya.pevzner@salesforce.com,slackbot
+AVP Forecast Prompt,"Executive briefing for CBS Marketing segment with 7-section analysis including State of the Union, Macro-Trends, and Manager Deep-Dives.",Ilya Pevzner,ilya.pevzner@salesforce.com,gemini
+SE Leader SFR Prompt,"Tech Exec summaries using Four Pillars framework (Account Involvement, Advocacy, Vision-Setting, Service-Orientation).",Ilya Pevzner,ilya.pevzner@salesforce.com,slackbot
+Find the Problem Coach,"Interactive SE deal-coach that helps create 4 exec-ready statements for Big Deal Briefings with scoring and coaching.",Daniel Morrison,daniel.morrison@salesforce.com,slackbot
+Opportunity Qualification Coach,"BANT qualification coach for AEs that helps build bulletproof qualification intel with scoring and coaching.",Daniel Morrison,daniel.morrison@salesforce.com,slackbot
+Agent Designer,"7-step interactive Agentforce agent design workflow with scoring, coaching, and Agent Blueprint output.",Daniel Morrison,daniel.morrison@salesforce.com,slackbot
+Business Process Mapper,"Maps customer business processes step-by-step with scoring and optional Lucidchart CSV export for visualization.",Daniel Morrison,daniel.morrison@salesforce.com,slackbot
+Salesforce Deal Challenge Game,"Role-playing game where you're an SE navigating a real deal to close, with consequence engine and heat monitor.",Daniel Morrison,daniel.morrison@salesforce.com,slackbot
+POV Maker,"Creates executive Point of View using 7-question framework with Executive POV Summary and Challenger Sales email output.",Daniel Morrison,daniel.morrison@salesforce.com,slackbot
+Account Research Gem,"Generates a concise, scannable business overview from a company homepage URL with structured sections and verification.",Viktor Sperling,viktor.sperling@salesforce.com,gemini
+PoV Generator Gem,"Generates a structured 6-section Point of View document for sales reps based on company research.",Viktor Sperling,viktor.sperling@salesforce.com,gemini
+Business Model Tailored Prompt,"Analyzes a company's business model using Business Model Canvas framework and outputs required changes.",Viktor Sperling,viktor.sperling@salesforce.com,gemini
+Basho Prompt,"Account research and personalized outreach generator for BDRs targeting Marketing Cloud, Data Cloud, and Commerce Cloud prospects.",David O Dowd,david.odowd@salesforce.com,slackbot
+Why You Why You Now Email Generator,"Batch email generator for up to 20 contacts with structured research output and 80-word personalized emails.",David O Dowd,david.odowd@salesforce.com,slackbot
+AE Transcript Analysis + Recovery,"Analyzes full call transcripts for deal health, identifies strengths and gaps, and builds recovery strategy with exact positioning language.",Daniel Martin,daniel.martin@salesforce.com,slackbot
+Pre-Call Strategy Operator,"Forces pre-call planning with stage progression objectives, discovery questions, objection pre-handling, and next-step commitment definition.",Daniel Martin,daniel.martin@salesforce.com,slackbot
+Gap Identification + Budget Creation,"Distinguishes 'no budget' vs 'no business case yet', identifies dangerous unknowns, and outlines steps to create budget.",Daniel Martin,daniel.martin@salesforce.com,slackbot
+Executive Escalation Prompt,"Diagnoses stalled deals, writes reset emails for executive repositioning, and defines decisive next moves.",Daniel Martin,daniel.martin@salesforce.com,slackbot
+ROI & Business Case Builder,"CFO-level coach that identifies financial levers, builds before/after models, and drafts executive summaries.",Daniel Martin,daniel.martin@salesforce.com,slackbot
+Expansion & Platform Thinking,"Strategic account operator that identifies single-threading risk, provides multi-threading language, and sequences expansion motions.",Daniel Martin,daniel.martin@salesforce.com,slackbot
+Turn Account Plan Into Field Execution,"Converts account plans into tactical execution with outbound motions, co-prime activation, and weekly rhythm.",Daniel Martin,daniel.martin@salesforce.com,slackbot
+Account Plan Execution & Accountability,"Designs execution cadence and accountability structure for co-prime meetings with scoreboard tracking.",Daniel Martin,daniel.martin@salesforce.com,slackbot
+Objection Pressure Test,"Acts as skeptical CFO to stress-test deal arguments and rewrite responses to top objections at executive level.",Daniel Martin,daniel.martin@salesforce.com,slackbot
+Competitive Displacement Prompt,"Defines switching friction, creates dissatisfaction narratives, and quantifies cost of staying with incumbent.",Daniel Martin,daniel.martin@salesforce.com,slackbot
+Renewal & Expansion Risk,"Analyzes footprint for shelfware risk, separates active vs contracted usage, and builds renewal defense narrative.",Daniel Martin,daniel.martin@salesforce.com,slackbot
+Forecast Integrity Prompt,"Revenue audit partner that challenges forecast honesty, identifies emotional bias, and tests commit evidence.",Daniel Martin,daniel.martin@salesforce.com,slackbot
+Time Allocation Optimizer,"Territory efficiency advisor that identifies over/under-investment across deals and optimizes revenue per hour.",Daniel Martin,daniel.martin@salesforce.com,slackbot
+Latent Pipeline Extraction,"Analyzes multiple transcripts for hidden revenue signals, missed expansion opportunities, and strategic drift.",Daniel Martin,daniel.martin@salesforce.com,slackbot
+Co-Prime Transcript Analysis,"Specialist perspective analysis for cross-cloud opportunities with positioning angles and risk identification.",Daniel Martin,daniel.martin@salesforce.com,slackbot
+Co-Prime Initial Plan & Stakeholder Mapping,"Creates positioning plan with product intersection mapping, 3-tier stakeholder mapping, 6-month thesis, and 90-day execution plan.",Daniel Martin,daniel.martin@salesforce.com,slackbot
+Workspace Management - Session Skills,"Claude Code skills for managing context, saving sessions, and migrating skills across workspaces.",Chandrahas Aroori,chandrahas.aroori@salesforce.com,claude_code
+GUS Workflows,"Reusable GUS automation workflows as native slash commands for sprint retrospectives, epic health, story decomposition, and more.",Chandrahas Aroori,chandrahas.aroori@salesforce.com,claude_code
+Core Development Skills,"Your workhorse to run Salesforce Core effectively - code navigation, Bazel builds, SDB management, and Git workflows.",Chandrahas Aroori,chandrahas.aroori@salesforce.com,claude_code
+Multi-Domain Toolbox,"Memory management, monitoring with Argus, GUS operations, CodeSearch, FedX, FMT, and Slack integration skills.",Chandrahas Aroori,chandrahas.aroori@salesforce.com,claude_code
+Core Developer Toolbag,"GUS management, workspace SSH, Grafana dashboards, AgentScript DSL, PR CI/CD diagnostics, and more.",Chandrahas Aroori,chandrahas.aroori@salesforce.com,claude_code

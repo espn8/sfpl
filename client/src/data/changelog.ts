@@ -6,6 +6,22 @@ export type ChangelogEntry = {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.2.0",
+    date: "2026-04-23",
+    changes: [
+      "Builds: new asset type for sharing pre-built solutions and tools, with full CRUD, favorites, ratings, usage events, and collection membership",
+      "Versioning for Builds, Skills, and Context (matching existing Prompt versioning)",
+      "Builds integrated into unified assets API, search, facets, and homepage navigation",
+      "API Keys and MCP integration: programmatic content creation from Cursor and other MCP clients",
+      "Skills migrated to URL-based format (matching Builds pattern)",
+      "Top Performers redesigned on homepage with single query, de-duplication, and expandable 'Show more'",
+      "Compliance modal requiring SAM Team policy acknowledgment every 96 hours",
+      "Documentation icon/link added to Context detail pages when supportUrl is set",
+      "Dev whitelist bypass token for automated testing of authenticated endpoints",
+      "Filter dropdown dark-mode styling fixes and improved color-scheme handling",
+    ],
+  },
+  {
     version: "1.0.0",
     date: "2026-04-23",
     changes: [

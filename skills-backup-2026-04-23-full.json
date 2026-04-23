@@ -1,0 +1,432 @@
+{
+  "exportDate": "2026-04-23",
+  "exportReason": "Pre-migration backup before converting skills from body-based to URL-based format",
+  "totalSkills": 53,
+  "skills": [
+    {
+      "title": "AI Tool Advisor",
+      "summary": "Helps you quickly find the right AI tools for any workflow or job to be done.",
+      "owner": "Jesse Chase",
+      "ownerEmail": "jesse.chase@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "## Target Audience\nSEs\n\n## What It Does\nHelps you quickly find the right AI tools for any workflow or job to be done. Get tool recommendations, add-on access info, and enablement resources organized by priority.\n\n## Example Usage\nAsk: \"I'm an SE doing Demo Build. Which AI tool should I use?\"\n\n## Contributors\n@Luigi Frascarelli @Theresa Hall"
+    },
+    {
+      "title": "Discovery Helper",
+      "summary": "Helps SEs understand what to position for a customer by pulling org62 opportunity/account data and Slack context.",
+      "owner": "Jesse Chase",
+      "ownerEmail": "jesse.chase@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "## Target Audience\nSEs\n\n## What It Does\nHelps SEs understand what to position for a customer by pulling org62 opportunity/account data and Slack context, identifying pain points, and recommending Salesforce products and features. Delivers a conversational summary with an optional canvas output.\n\n## Example Usage\nAsk: \"Tell me all you can about customer xyz\""
+    },
+    {
+      "title": "Demo Org Recommender",
+      "summary": "Not sure which org to use for your demo? This skill queries Q Branch data and gives you an opinionated, ranked recommendation.",
+      "owner": "Jesse Chase",
+      "ownerEmail": "jesse.chase@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "## Target Audience\nSEs\n\n## What It Does\nNot sure which org to use for your demo? This skill queries Q Branch data and gives you an opinionated, ranked recommendation with links and context.\n\n## Example Usage\nAsk: \"I'm building a demo org and need Slack and Data Cloud. Which Demo Orgs do you recommend?\""
+    },
+    {
+      "title": "Q Brix Recommender",
+      "summary": "Stop guessing what to install. Tell this skill what product, feature, or industry you're demoing and it finds the right Q Brix.",
+      "owner": "Jesse Chase",
+      "ownerEmail": "jesse.chase@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "## Target Audience\nSEs\n\n## What It Does\nStop guessing what to install. Tell this skill what product, feature, or industry you're demoing — and it queries the Q Labs Demo Store to surface exactly what to install, in what order, and why. It checks your org first so it never recommends something you already have, then splits the results into must-haves and nice-to-haves with opinionated guidance on each one. Q Brix are deployable assets built and vetted by the Solutions CoE — this skill finds the right ones for your scenario fast.\n\n## Example Usage\nAsk: \"Find me Brix for Agentforce in Financial Services\" or \"What should I install to showcase Service Agents on my org storm.6269dbe2d00053@salesforce.com\""
+    },
+    {
+      "title": "My Demo Org Assistant",
+      "summary": "Understand your Q Labs demo org in plain English — what template it's on, what Q Brix are installed, what's ready to demo, and what to do next.",
+      "owner": "Jesse Chase",
+      "ownerEmail": "jesse.chase@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "## Target Audience\nSEs\n\n## What It Does\nUnderstand your Q Labs demo org in plain English — what template it's on, what Q Brix are installed, what's ready to demo, and what to do next.\n\n## Example Usage\nAsk: \"Tell me about my org with username storm.6269dbe2d00053@salesforce.com\"\n\n## Contributors\n@Jessica (Louttit) Finkbeiner @Duncan McIntyre @Steve Ecker @Theresa Hall @Poole @Todd Sears"
+    },
+    {
+      "title": "What's New in the Demo Store",
+      "summary": "Stop browsing the Demo Store manually to find out what's new. Get a conversational changelog of every Q Brix added in the last 60 days.",
+      "owner": "Jesse Chase",
+      "ownerEmail": "jesse.chase@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "## Target Audience\nSEs\n\n## What It Does\nStop browsing the Demo Store manually to find out what's new. This skill queries Q Labs directly and gives you a conversational changelog of every Q Brix added in the last 60 days — grouped by product, with descriptions, compatibility details, license requirements, and direct links.\n\n## Example Usage\nAsk: \"What's new in the Demo Store?\""
+    },
+    {
+      "title": "Solutions CoE Roadmap Advisor",
+      "summary": "Ask roadmap questions and get answers on what was recently delivered, what's in progress, and what's coming next.",
+      "owner": "Jesse Chase",
+      "ownerEmail": "jesse.chase@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "## Target Audience\nSEs, Executives\n\n## What It Does\nAsk roadmap questions and get answers on what was recently delivered, what's in progress, and what's coming next — filtered to SE-relevant work.\n\n## Example Usage\nAsk: \"What demo features have been released for Service Cloud and what is coming?\"\n\n## Contributors\n@Rachel Nadel @Theresa Hall @Steve Ecker @Todd Sears @Jessica Martins @Duncan McIntyre @Avinash K @Tyler Rollings"
+    },
+    {
+      "title": "Demo Script Generator",
+      "summary": "Stop showing up to demos with a generic flow. Get a narrative-first demo script tailored to your actual installed Q Brix and products.",
+      "owner": "Jesse Chase",
+      "ownerEmail": "jesse.chase@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "## Target Audience\nSEs\n\n## What It Does\nStop showing up to demos with a generic flow. Give it your org username, target audience, industry, and how long you have — and this skill builds a narrative-first demo script tailored to your actual installed Q Brix and products. It reads your real demo guides, pulls deal context from org62 if you have an opportunity, and produces a ready-to-use canvas with scene-by-scene talking points, objection handles, and a close.\n\n## Example Usage\nAsk: \"Generate a demo script for my org\" or \"Build me a 30-min demo flow for a VP of Service in Retail\""
+    },
+    {
+      "title": "Salesforce Error Detective",
+      "summary": "Takes your error message, explains it in plain English, and searches Slack to find how others fixed the same issue.",
+      "owner": "Stewart Anderson",
+      "ownerEmail": "stewart.anderson@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "## Target Audience\nSolutions CoE Brix Builders & SEs\n\n## What It Does\nSalesforce Error Detective takes your error message, explains it in plain English (no cryptic platform-speak), and goes one step further — it searches Slack to see if anyone else has already hit the same issue and, more importantly, how they fixed it. You get: a clear explanation, likely root cause, who else has seen it, and what actually worked.\n\n## Example Usage\nAsk: \"I am getting the following error when running trialforce: You may try again or contact Support with this tracking ID: 1291298284-1072029 (868437323)\""
+    },
+    {
+      "title": "Q Brix Error Detective",
+      "summary": "Provides quick, friendly help diagnosing Salesforce and QBrix errors by summarizing root cause and checking Brix health.",
+      "owner": "Stewart Anderson",
+      "ownerEmail": "stewart.anderson@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "## Target Audience\nSolutions CoE Brix Builders & SEs\n\n## What It Does\nProvides quick, friendly help diagnosing Salesforce and QBrix errors by summarizing the root cause, identifying the product area, and checking Brix health, ownership, and recent issues. It searches Slack for similar problems, highlights known fixes, surfaces affected users, and gives clear next steps and a \"safe to use\" recommendation.\n\n## Example Usage\nAsk: \"I am getting the following error when deploying a brix: Exception: Unable to detect expected element button.slds-button:has-text('Deploy') as it was not visible or enabled. This can be for a number of reasons, anything from the page not loading correctly to missing features or licences. Try checking the page in the salesforce org first and if everything looks OK, then try the deployment again. Page URL: /lightning/o/DataStream/list?filterName=__Recent Current states: ['detached']\""
+    },
+    {
+      "title": "SE Peer Finder",
+      "summary": "Stop guessing who to call when you need demo help on a specific product. Find the top experts with direct links to reach out.",
+      "owner": "Jesse Chase",
+      "ownerEmail": "jesse.chase@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "## Target Audience\nSEs\n\n## What It Does\nStop guessing who to call when you need demo help on a specific product. This skill searches Slack profiles, org62 opportunity data, and Slack message activity to surface the top 3 people — designated specialists and hands-on practitioners — who know that product best, with a plain-English explanation of why each one made the list and a direct link to reach out.\n\n## Example Usage\nAsk: \"Find me a Service Cloud expert\" or \"Who can help me with my Agentforce + FSC demo?\""
+    },
+    {
+      "title": "New Feature Intake Guide",
+      "summary": "Guides PMs and SEs through new demo feature/product intake. Gathers required docs, licensing, setup steps, and identifies the right Solutions CoE contact.",
+      "owner": "Jesse Chase",
+      "ownerEmail": "jesse.chase@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "## Target Audience\nPMs\n\n## What It Does\nGuides PMs and SEs through new demo feature/product intake. Gathers required docs, licensing, setup steps, and identifies the right Solutions CoE contact.\n\n## Example Usage\nAsk: \"I am a PM over Agentforce. We are releasing a new feature and I want to get it into the SDO. How do I do that?\"\n\n## Contributors\n@Rachel Nadel @Duncan McIntyre"
+    },
+    {
+      "title": "Who's Brix is it anyway?",
+      "summary": "Ever wondered who actually owns a Brix, what it does, and whether it's causing any problems? Get ownership info and issue analysis.",
+      "owner": "Stewart Anderson",
+      "ownerEmail": "stewart.anderson@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "## Target Audience\nSolutions CoE Brix Builders\n\n## What It Does\nEver wondered who actually owns a Brix… what it does… and whether it's causing any problems? This skill pulls info from qlabs, checks recent deployments, and searches Slack to see if anything suspicious (or broken) is going on — even if it's just related platform issues. You will receive a plain-English explanation of what Brix does and who owns it, along with an analysis of its recent trends and known issues. This summary concludes with actionable workarounds and a clear recommendation on whether it is safe to use."
+    },
+    {
+      "title": "CoE Demo Org Metrics",
+      "summary": "Stop guessing how the demo fleet is performing. Get an executive-grade dashboard with data and context in one shot.",
+      "owner": "Jesse Chase",
+      "ownerEmail": "jesse.chase@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "## Target Audience\nCoE Leadership, PMs, Demo Managers\n\n## What It Does\nStop guessing how the demo fleet is performing. This skill runs live against Q Labs to surface an executive-grade dashboard — total org spins, top templates by volume, industry vs. agnostic org trends, and Q Brix install momentum — all compared against the same window last month so the numbers are actually fair. It then searches Slack to explain the why behind every trend: is an org down because of a known issue? Is something surging because of a release? You get data and context in one shot, with action items flagged where needed.\n\n## Example Usage\nAsk: \"Give me the CoE org metrics dashboard\" or \"What's trending in demo org usage this month?\""
+    },
+    {
+      "title": "CoE Duplicate Buster",
+      "summary": "Stop guessing if your team is reinventing the wheel. This skill acts as a Silo-Buster that scans every project board, sprint, and Slack request in Q Labs.",
+      "owner": "Jessica Finkbeiner",
+      "ownerEmail": "jessica.finkbeiner@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "## Target Audience\nProduct Owner, Developers, Engineers, Support, Qlabs Users\n\n## What It Does\nStop guessing if your team is reinventing the wheel. This skill acts as a \"Silo-Buster\" that instantly scans every project board, sprint, and Slack request in Q Labs to ensure a new task isn't already being tackled elsewhere. It identifies engineering synergy to help our teams focus on the highest value items and save themselves from unintended duplicative work.\n\n## Example Usage\nAsk: \"I'm about to start building a new Agentforce Service connector—has anyone done this?\""
+    },
+    {
+      "title": "Q Project Tasks Viewer",
+      "summary": "Shows active Q Project tasks for one or more team members in QLabs, grouped by person with parent project, status, priority, and due date.",
+      "owner": "Rachel Cowgill",
+      "ownerEmail": "rachel.cowgill@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "## Target Audience\nSolutions CoE Team Members\n\n## What It Does\nShows active Q Project tasks for one or more team members in QLabs, grouped by person with parent project, status, priority, and due date. Flags overdue items and summarizes workload.\n\n## Example Usage\nAsk: \"Tell me what [person] is working on\"\n\n## Contributors\n@Jory Dean"
+    },
+    {
+      "title": "SE SFR Prompt",
+      "summary": "Generates SE-focused SFR updates with Slack context, challenges, and solution descriptions for CBS Marketing opportunities.",
+      "owner": "Ilya Pevzner",
+      "ownerEmail": "ilya.pevzner@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "See full body in seed-slack-skills.ts - SE SFR automation prompt"
+    },
+    {
+      "title": "AE SFR Prompt",
+      "summary": "Generates AE-focused SFR updates with forecast notes, compelling events, and risk flags for CBS Marketing opportunities.",
+      "owner": "Ilya Pevzner",
+      "ownerEmail": "ilya.pevzner@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "See full body in seed-slack-skills.ts - AE SFR automation prompt"
+    },
+    {
+      "title": "RVP SFR Prompt",
+      "summary": "Creates manager-level SFR summaries with MFJ recommendations and paste-ready Manager Forecast Notes.",
+      "owner": "Ilya Pevzner",
+      "ownerEmail": "ilya.pevzner@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "See full body in seed-slack-skills.ts - RVP SFR automation prompt"
+    },
+    {
+      "title": "AVP Forecast Prompt",
+      "summary": "Executive briefing for CBS Marketing segment with 7-section analysis including State of the Union, Macro-Trends, and Manager Deep-Dives.",
+      "owner": "Ilya Pevzner",
+      "ownerEmail": "ilya.pevzner@salesforce.com",
+      "tools": ["gemini"],
+      "body": "See full body in seed-slack-skills.ts - AVP Forecast automation prompt"
+    },
+    {
+      "title": "SE Leader SFR Prompt",
+      "summary": "Tech Exec summaries using Four Pillars framework (Account Involvement, Advocacy, Vision-Setting, Service-Orientation).",
+      "owner": "Ilya Pevzner",
+      "ownerEmail": "ilya.pevzner@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "See full body in seed-slack-skills.ts - SE Leader SFR automation prompt"
+    },
+    {
+      "title": "Find the Problem Coach",
+      "summary": "Interactive SE deal-coach that helps create 4 exec-ready statements for Big Deal Briefings with scoring and coaching.",
+      "owner": "Daniel Morrison",
+      "ownerEmail": "daniel.morrison@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "See full body in seed-slack-skills.ts - Find the Problem Coach prompt"
+    },
+    {
+      "title": "Opportunity Qualification Coach",
+      "summary": "BANT qualification coach for AEs that helps build bulletproof qualification intel with scoring and coaching.",
+      "owner": "Daniel Morrison",
+      "ownerEmail": "daniel.morrison@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "See full body in seed-slack-skills.ts - BANT qualification prompt"
+    },
+    {
+      "title": "Agent Designer",
+      "summary": "7-step interactive Agentforce agent design workflow with scoring, coaching, and Agent Blueprint output.",
+      "owner": "Daniel Morrison",
+      "ownerEmail": "daniel.morrison@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "See full body in seed-slack-skills.ts - Agent Designer prompt"
+    },
+    {
+      "title": "Business Process Mapper",
+      "summary": "Maps customer business processes step-by-step with scoring and optional Lucidchart CSV export for visualization.",
+      "owner": "Daniel Morrison",
+      "ownerEmail": "daniel.morrison@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "See full body in seed-slack-skills.ts - Business Process Mapper prompt"
+    },
+    {
+      "title": "Salesforce Deal Challenge Game",
+      "summary": "Role-playing game where you're an SE navigating a real deal to close, with consequence engine and heat monitor.",
+      "owner": "Daniel Morrison",
+      "ownerEmail": "daniel.morrison@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "See full body in seed-slack-skills.ts - Deal Challenge Game prompt"
+    },
+    {
+      "title": "POV Maker",
+      "summary": "Creates executive Point of View using 7-question framework with Executive POV Summary and Challenger Sales email output.",
+      "owner": "Daniel Morrison",
+      "ownerEmail": "daniel.morrison@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "See full body in seed-slack-skills.ts - POV Maker prompt"
+    },
+    {
+      "title": "Account Research Gem",
+      "summary": "Generates a concise, scannable business overview from a company homepage URL with structured sections and verification.",
+      "owner": "Viktor Sperling",
+      "ownerEmail": "viktor.sperling@salesforce.com",
+      "tools": ["gemini"],
+      "body": "See full body in seed-slack-skills.ts - Account Research Gem prompt"
+    },
+    {
+      "title": "PoV Generator Gem",
+      "summary": "Generates a structured 6-section Point of View document for sales reps based on company research.",
+      "owner": "Viktor Sperling",
+      "ownerEmail": "viktor.sperling@salesforce.com",
+      "tools": ["gemini"],
+      "body": "See full body in seed-slack-skills.ts - PoV Generator Gem prompt"
+    },
+    {
+      "title": "Business Model Tailored Prompt",
+      "summary": "Analyzes a company's business model using Business Model Canvas framework and outputs required changes.",
+      "owner": "Viktor Sperling",
+      "ownerEmail": "viktor.sperling@salesforce.com",
+      "tools": ["gemini"],
+      "body": "See full body in seed-slack-skills.ts - Business Model Canvas prompt"
+    },
+    {
+      "title": "Basho Prompt",
+      "summary": "Account research and personalized outreach generator for BDRs targeting Marketing Cloud, Data Cloud, and Commerce Cloud prospects.",
+      "owner": "David O Dowd",
+      "ownerEmail": "david.odowd@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "See full body in seed-slack-skills.ts - Basho outreach prompt"
+    },
+    {
+      "title": "Why You Why You Now Email Generator",
+      "summary": "Batch email generator for up to 20 contacts with structured research output and 80-word personalized emails.",
+      "owner": "David O Dowd",
+      "ownerEmail": "david.odowd@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "See full body in seed-slack-skills.ts - Why You Why You Now prompt"
+    },
+    {
+      "title": "AE Transcript Analysis + Recovery",
+      "summary": "Analyzes full call transcripts for deal health, identifies strengths and gaps, and builds recovery strategy with exact positioning language.",
+      "owner": "Daniel Martin",
+      "ownerEmail": "daniel.martin@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "See full body in seed-slack-skills.ts - Transcript Analysis prompt"
+    },
+    {
+      "title": "Pre-Call Strategy Operator",
+      "summary": "Forces pre-call planning with stage progression objectives, discovery questions, objection pre-handling, and next-step commitment definition.",
+      "owner": "Daniel Martin",
+      "ownerEmail": "daniel.martin@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "See full body in seed-slack-skills.ts - Pre-Call Strategy prompt"
+    },
+    {
+      "title": "Gap Identification + Budget Creation",
+      "summary": "Distinguishes 'no budget' vs 'no business case yet', identifies dangerous unknowns, and outlines steps to create budget.",
+      "owner": "Daniel Martin",
+      "ownerEmail": "daniel.martin@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "See full body in seed-slack-skills.ts - Gap Identification prompt"
+    },
+    {
+      "title": "Executive Escalation Prompt",
+      "summary": "Diagnoses stalled deals, writes reset emails for executive repositioning, and defines decisive next moves.",
+      "owner": "Daniel Martin",
+      "ownerEmail": "daniel.martin@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "See full body in seed-slack-skills.ts - Executive Escalation prompt"
+    },
+    {
+      "title": "ROI & Business Case Builder",
+      "summary": "CFO-level coach that identifies financial levers, builds before/after models, and drafts executive summaries.",
+      "owner": "Daniel Martin",
+      "ownerEmail": "daniel.martin@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "See full body in seed-slack-skills.ts - ROI Business Case prompt"
+    },
+    {
+      "title": "Expansion & Platform Thinking",
+      "summary": "Strategic account operator that identifies single-threading risk, provides multi-threading language, and sequences expansion motions.",
+      "owner": "Daniel Martin",
+      "ownerEmail": "daniel.martin@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "See full body in seed-slack-skills.ts - Expansion Platform prompt"
+    },
+    {
+      "title": "Turn Account Plan Into Field Execution",
+      "summary": "Converts account plans into tactical execution with outbound motions, co-prime activation, and weekly rhythm.",
+      "owner": "Daniel Martin",
+      "ownerEmail": "daniel.martin@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "See full body in seed-slack-skills.ts - Account Plan Execution prompt"
+    },
+    {
+      "title": "Account Plan Execution & Accountability",
+      "summary": "Designs execution cadence and accountability structure for co-prime meetings with scoreboard tracking.",
+      "owner": "Daniel Martin",
+      "ownerEmail": "daniel.martin@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "See full body in seed-slack-skills.ts - Accountability prompt"
+    },
+    {
+      "title": "Objection Pressure Test",
+      "summary": "Acts as skeptical CFO to stress-test deal arguments and rewrite responses to top objections at executive level.",
+      "owner": "Daniel Martin",
+      "ownerEmail": "daniel.martin@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "See full body in seed-slack-skills.ts - Objection Pressure Test prompt"
+    },
+    {
+      "title": "Competitive Displacement Prompt",
+      "summary": "Defines switching friction, creates dissatisfaction narratives, and quantifies cost of staying with incumbent.",
+      "owner": "Daniel Martin",
+      "ownerEmail": "daniel.martin@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "See full body in seed-slack-skills.ts - Competitive Displacement prompt"
+    },
+    {
+      "title": "Renewal & Expansion Risk",
+      "summary": "Analyzes footprint for shelfware risk, separates active vs contracted usage, and builds renewal defense narrative.",
+      "owner": "Daniel Martin",
+      "ownerEmail": "daniel.martin@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "See full body in seed-slack-skills.ts - Renewal Expansion Risk prompt"
+    },
+    {
+      "title": "Forecast Integrity Prompt",
+      "summary": "Revenue audit partner that challenges forecast honesty, identifies emotional bias, and tests commit evidence.",
+      "owner": "Daniel Martin",
+      "ownerEmail": "daniel.martin@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "See full body in seed-slack-skills.ts - Forecast Integrity prompt"
+    },
+    {
+      "title": "Time Allocation Optimizer",
+      "summary": "Territory efficiency advisor that identifies over/under-investment across deals and optimizes revenue per hour.",
+      "owner": "Daniel Martin",
+      "ownerEmail": "daniel.martin@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "See full body in seed-slack-skills.ts - Time Allocation prompt"
+    },
+    {
+      "title": "Latent Pipeline Extraction",
+      "summary": "Analyzes multiple transcripts for hidden revenue signals, missed expansion opportunities, and strategic drift.",
+      "owner": "Daniel Martin",
+      "ownerEmail": "daniel.martin@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "See full body in seed-slack-skills.ts - Latent Pipeline prompt"
+    },
+    {
+      "title": "Co-Prime Transcript Analysis",
+      "summary": "Specialist perspective analysis for cross-cloud opportunities with positioning angles and risk identification.",
+      "owner": "Daniel Martin",
+      "ownerEmail": "daniel.martin@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "See full body in seed-slack-skills.ts - Co-Prime Transcript prompt"
+    },
+    {
+      "title": "Co-Prime Initial Plan & Stakeholder Mapping",
+      "summary": "Creates positioning plan with product intersection mapping, 3-tier stakeholder mapping, 6-month thesis, and 90-day execution plan.",
+      "owner": "Daniel Martin",
+      "ownerEmail": "daniel.martin@salesforce.com",
+      "tools": ["slackbot"],
+      "body": "See full body in seed-slack-skills.ts - Co-Prime Initial Plan prompt"
+    },
+    {
+      "title": "Workspace Management - Session Skills",
+      "summary": "Claude Code skills for managing context, saving sessions, and migrating skills across workspaces.",
+      "owner": "Chandrahas Aroori",
+      "ownerEmail": "chandrahas.aroori@salesforce.com",
+      "tools": ["claude_code"],
+      "body": "See full body in seed-slack-skills.ts - Workspace Management skills"
+    },
+    {
+      "title": "GUS Workflows",
+      "summary": "Reusable GUS automation workflows as native slash commands for sprint retrospectives, epic health, story decomposition, and more.",
+      "owner": "Chandrahas Aroori",
+      "ownerEmail": "chandrahas.aroori@salesforce.com",
+      "tools": ["claude_code"],
+      "body": "See full body in seed-slack-skills.ts - GUS Workflows skills"
+    },
+    {
+      "title": "Core Development Skills",
+      "summary": "Your workhorse to run Salesforce Core effectively - code navigation, Bazel builds, SDB management, and Git workflows.",
+      "owner": "Chandrahas Aroori",
+      "ownerEmail": "chandrahas.aroori@salesforce.com",
+      "tools": ["claude_code"],
+      "body": "See full body in seed-slack-skills.ts - Core Development skills"
+    },
+    {
+      "title": "Multi-Domain Toolbox",
+      "summary": "Memory management, monitoring with Argus, GUS operations, CodeSearch, FedX, FMT, and Slack integration skills.",
+      "owner": "Chandrahas Aroori",
+      "ownerEmail": "chandrahas.aroori@salesforce.com",
+      "tools": ["claude_code"],
+      "body": "See full body in seed-slack-skills.ts - Multi-Domain Toolbox skills"
+    },
+    {
+      "title": "Core Developer Toolbag",
+      "summary": "GUS management, workspace SSH, Grafana dashboards, AgentScript DSL, PR CI/CD diagnostics, and more.",
+      "owner": "Chandrahas Aroori",
+      "ownerEmail": "chandrahas.aroori@salesforce.com",
+      "tools": ["claude_code"],
+      "body": "See full body in seed-slack-skills.ts - Core Developer Toolbag skills"
+    }
+  ],
+  "note": "Full body content for all skills is preserved in server/prisma/seed-slack-skills.ts. This JSON serves as a reference backup with metadata. The seed file itself (2438 lines) contains the complete prompt bodies."
+}

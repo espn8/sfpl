@@ -222,30 +222,32 @@ export function HomePage() {
     queryFn: () => listAssets(apiFilters),
   });
 
-  const topPerformersQueries = useQuery({
+  const topPerformersQuery = useQuery({
     queryKey: ["assets", "topPerformers"],
-    queryFn: async () => {
-      const assetTypes = ["prompt", "skill", "context", "build"] as const;
-      const results = await Promise.all(
-        assetTypes.map((assetType) =>
-          listAssets({
-            assetType,
-            sort: "mostUsed",
-            pageSize: 3,
-            page: 1,
-          })
-        )
-      );
-      return results.flatMap((r) => r.data);
-    },
+    queryFn: () =>
+      listAssets({
+        assetType: "all",
+        sort: "mostUsed",
+        pageSize: 12,
+        page: 1,
+      }),
     enabled: !mineFilter,
   });
+
+  const [showAllTopPerformers, setShowAllTopPerformers] = useState(false);
 
   const analyticsQuery = useQuery({
     queryKey: ["analytics", "overview"],
     queryFn: getAnalyticsOverview,
     enabled: canViewAnalytics,
   });
+
+  const topPerformers = useMemo(() => {
+    const allAssets = topPerformersQuery.data?.data ?? [];
+    return allAssets.filter(
+      (a) => a.assetType !== "prompt" || a.thumbnailStatus !== "FAILED"
+    );
+  }, [topPerformersQuery.data]);
 
   if (assetsQuery.isLoading) {
     return <p>Loading AI assets...</p>;
@@ -281,23 +283,9 @@ export function HomePage() {
     },
   ] as const;
 
-  const featuredAssets = useMemo(() => {
-    const allTopPerformers = topPerformersQueries.data ?? [];
-    const filtered = allTopPerformers.filter(
-      (a) => a.assetType !== "prompt" || a.thumbnailStatus !== "FAILED"
-    );
-    const sorted = [...filtered].sort((a, b) => b.usageCount - a.usageCount);
-    const seen = new Set<string>();
-    const deduped: typeof sorted = [];
-    for (const asset of sorted) {
-      const key = `${asset.assetType}-${asset.id}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        deduped.push(asset);
-      }
-    }
-    return deduped.slice(0, 6);
-  }, [topPerformersQueries.data]);
+  const visibleTopPerformers = showAllTopPerformers
+    ? topPerformers
+    : topPerformers.slice(0, 6);
 
 
   const contributorLeaderboard = (analyticsQuery.data?.contributors ?? []).slice(0, 5);
@@ -452,7 +440,7 @@ export function HomePage() {
               <span className="text-sm font-medium text-(--color-text-muted)">The AI assets people can't stop using</span>
             </div>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {featuredAssets.map((asset) => (
+              {visibleTopPerformers.map((asset) => (
                 <AssetCard
                   key={`${asset.assetType}-${asset.id}`}
                   asset={asset}
@@ -461,6 +449,31 @@ export function HomePage() {
                 />
               ))}
             </div>
+            {topPerformers.length > 6 && (
+              <div className="flex justify-center pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAllTopPerformers(!showAllTopPerformers)}
+                  className="flex items-center gap-1.5 rounded-lg border border-(--color-border) bg-(--color-surface) px-4 py-2 text-sm font-medium transition-colors hover:bg-(--color-surface-muted)"
+                >
+                  {showAllTopPerformers ? (
+                    <>
+                      Show less
+                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                        <path d="m18 15-6-6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </>
+                  ) : (
+                    <>
+                      Show {topPerformers.length - 6} more
+                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                        <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </section>
 
           <section className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-sm transition-all duration-300 hover:shadow motion-reduce:transition-none">
