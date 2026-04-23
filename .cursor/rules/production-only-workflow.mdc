@@ -29,7 +29,8 @@ Do NOT do any of the following:
 
 3. **Verify in production**:
    - `heroku logs --tail --app <app>`
-   - Use browser tool against the PRODUCTION URL only
+   - Use browser tool against the PRODUCTION URL only: `https://ail.mysalesforcedemo.com`
+   - Do NOT use `*.herokuapp.com` URLs — always use `https://ail.mysalesforcedemo.com`
    - Check real production console errors (the user pastes them)
 
 ## When Debugging Runtime Errors

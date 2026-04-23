@@ -1,0 +1,32 @@
+---
+description: The canonical live site URL for this project
+alwaysApply: true
+---
+
+# Live Site URL
+
+**The live site URL is always `https://ail.mysalesforcedemo.com`.**
+
+This is the canonical production URL for the AI Library. Use it anywhere a production URL is referenced.
+
+## Required Usage
+
+- In rules, docs, READMEs, summaries, deploy reports, and commit/PR descriptions: refer to production as `https://ail.mysalesforcedemo.com`.
+- For browser testing, `curl`, `fetch`, or any HTTP tool targeting the deployed app: use `https://ail.mysalesforcedemo.com` (or paths under it).
+- When reporting a successful deploy back to the user, cite `https://ail.mysalesforcedemo.com` — not the `*.herokuapp.com` URL.
+- In config values (`CORS_ORIGIN`, `APP_BASE_URL`, `GOOGLE_CALLBACK_URL` host, etc.): use `https://ail.mysalesforcedemo.com`.
+
+## Forbidden
+
+Do NOT present any of the following as the live site URL:
+
+- `https://aosfail-2a55fb282d59.herokuapp.com/` or any other `*.herokuapp.com` host
+- `https://sfpl.mysalesforcedemo.com` (legacy)
+- `http://localhost:*`, `http://127.0.0.1:*`, or any dev host
+
+The `*.herokuapp.com` host is the Heroku dyno origin behind the CDN/DNS; reference it only when explicitly discussing the Heroku dyno itself (logs, release names). Never as "the live site."
+
+## Example
+
+- Good: "Deployed — live at https://ail.mysalesforcedemo.com."
+- Bad: "Deployed — live at https://aosfail-2a55fb282d59.herokuapp.com/."

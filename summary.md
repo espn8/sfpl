@@ -3,6 +3,7 @@
 Last Updated: Thursday, April 23, 2026 — 15:50 CDT
 Build Version: 1117c67 (Heroku release v157)
 App Version: 1.25.1 (package.json 1.25.0 auto-bumped on deploy)
+Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
 

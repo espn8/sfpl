@@ -41,7 +41,7 @@ Add/standardize these environment variables in `server/.env` and Heroku config v
 - `COOKIE_SECURE` (`true` in production)
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
-- `GOOGLE_CALLBACK_URL` (example: `http://sfpl.mysalesforcedemo.com/api/auth/google/callback`)
+- `GOOGLE_CALLBACK_URL` (example: `https://ail.mysalesforcedemo.com/api/auth/google/callback`)
 - `GOOGLE_ALLOWED_DOMAIN` (optional; restrict access to company domain)
 
 Frontend analytics vars:
