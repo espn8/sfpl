@@ -1,9 +1,13 @@
 # AI Library - Technical Summary
 
-Last Updated: Wednesday, April 22, 2026 — 16:16 CDT
-Build Version: 4db99af
+Last Updated: Thursday, April 23, 2026 — 10:30 CDT
+Build Version: 904e46c
 
 ## Recent Changes
+
+- **Expanded Slack Skills seed script**: Significantly expanded `seed-slack-skills.ts` with 7 new authors (Ilya Pevzner, Chandrahas Aroori, Daniel Morrison, Viktor Sperling, Daniel Martin, David O Dowd, Jonathan Arteaga) and many new skill seeds including SE/AE SFR prompts, Gemini prompts, and other Slackbot skills. Added optional `tools` field to skill seeds for specifying target tools (e.g., `slackbot`).
+
+### Previous Session Changes (April 22, 2026)
 
 - **Login page redirect for authenticated users**: Updated `LoginPage` to check authentication status and automatically redirect logged-in users to the homepage. Previously, authenticated users could navigate to `/login` and see the login form unnecessarily. Now uses `useQuery` to check `/api/auth/me` and renders `<Navigate to="/" replace />` if already authenticated.
 
