@@ -2,8 +2,12 @@ import type { Prisma } from "@prisma/client";
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { z } from "zod";
-import { getAuthContext, requireAuth, requireWriteAccess } from "../middleware/auth";
+import { getAuthContext, requireAuth, requireWriteAccess, type AuthContext } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
+import {
+  buildVisibilityWhereFragment,
+  canAccessByVisibility as sharedCanAccessByVisibility,
+} from "../lib/visibility";
 import { generatePromptThumbnail } from "../services/nanoBanana";
 import {
   checkSkillDuplicates,
@@ -48,27 +52,11 @@ function badRequestFromZodError(error: z.ZodError) {
   };
 }
 
-function isAdminOrOwner(role: string): boolean {
-  return role === "ADMIN" || role === "OWNER";
-}
-
 function canAccessByVisibility(
-  item: { visibility: string; ownerId: number; owner?: { ou: string | null } | null },
-  auth: { userId: number; userOu: string | null; role: string },
+  item: { teamId: number; visibility: string; ownerId: number; owner?: { ou: string | null } | null },
+  auth: AuthContext,
 ): boolean {
-  if (item.visibility === "PUBLIC") {
-    return true;
-  }
-  if (item.ownerId === auth.userId) {
-    return true;
-  }
-  if (isAdminOrOwner(auth.role)) {
-    return true;
-  }
-  if (item.visibility === "TEAM" && auth.userOu && item.owner?.ou === auth.userOu) {
-    return true;
-  }
-  return false;
+  return sharedCanAccessByVisibility(item, auth);
 }
 
 const listSkillsQuerySchema = z.object({
@@ -194,21 +182,13 @@ skillsRouter.get("/", async (req: Request, res: Response) => {
   const pageSize = parsedQuery.data.pageSize ?? 20;
   const skip = (page - 1) * pageSize;
 
-  const where: Prisma.SkillWhereInput = { teamId: auth.teamId };
+  const where: Prisma.SkillWhereInput = {};
+  const whereAnd: Prisma.SkillWhereInput[] = [];
   if (mine) {
     where.ownerId = auth.userId;
-  } else if (!isAdminOrOwner(auth.role)) {
-    const visibilityConditions: Prisma.SkillWhereInput[] = [
-      { visibility: "PUBLIC" },
-      { ownerId: auth.userId },
-    ];
-    if (auth.userOu) {
-      visibilityConditions.push({
-        visibility: "TEAM",
-        owner: { ou: auth.userOu },
-      });
-    }
-    where.OR = visibilityConditions;
+    where.teamId = auth.teamId;
+  } else {
+    whereAnd.push(buildVisibilityWhereFragment(auth) as Prisma.SkillWhereInput);
   }
   if (status) {
     where.status = status;
@@ -217,16 +197,15 @@ skillsRouter.get("/", async (req: Request, res: Response) => {
     where.tools = { has: tool };
   }
   if (q) {
-    const existingAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
-    where.AND = [
-      ...existingAnd,
-      {
-        OR: [
-          { title: { contains: q, mode: "insensitive" } },
-          { summary: { contains: q, mode: "insensitive" } },
-        ],
-      },
-    ];
+    whereAnd.push({
+      OR: [
+        { title: { contains: q, mode: "insensitive" } },
+        { summary: { contains: q, mode: "insensitive" } },
+      ],
+    });
+  }
+  if (whereAnd.length > 0) {
+    where.AND = whereAnd;
   }
 
   const orderBy: Prisma.SkillOrderByWithRelationInput =
@@ -389,8 +368,8 @@ skillsRouter.get("/:id", async (req: Request, res: Response) => {
   }
 
   const skillId = parsedParams.data.id;
-  const skill = await prisma.skill.findFirst({
-    where: { id: skillId, teamId: auth.teamId },
+  const skill = await prisma.skill.findUnique({
+    where: { id: skillId },
     select: {
       id: true,
       teamId: true,
@@ -610,9 +589,21 @@ skillsRouter.post("/:id/favorite", async (req: Request, res: Response) => {
   }
 
   const skillId = parsedParams.data.id;
-  const skill = await prisma.skill.findFirst({ where: { id: skillId, teamId: auth.teamId } });
+  const skill = await prisma.skill.findUnique({
+    where: { id: skillId },
+    select: {
+      id: true,
+      teamId: true,
+      ownerId: true,
+      visibility: true,
+      owner: { select: { ou: true } },
+    },
+  });
   if (!skill) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not found." } });
+  }
+  if (!canAccessByVisibility(skill, auth)) {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this skill." } });
   }
 
   const existing = await prisma.skillFavorite.findUnique({
@@ -645,9 +636,21 @@ skillsRouter.post("/:id/usage", async (req: Request, res: Response) => {
   const skillId = parsedParams.data.id;
   const { eventType } = parsedBody.data;
 
-  const skill = await prisma.skill.findFirst({ where: { id: skillId, teamId: auth.teamId } });
+  const skill = await prisma.skill.findUnique({
+    where: { id: skillId },
+    select: {
+      id: true,
+      teamId: true,
+      ownerId: true,
+      visibility: true,
+      owner: { select: { ou: true } },
+    },
+  });
   if (!skill) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not found." } });
+  }
+  if (!canAccessByVisibility(skill, auth)) {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this skill." } });
   }
 
   await prisma.skillUsageEvent.create({ data: { skillId, userId: auth.userId, eventType } });
@@ -677,12 +680,21 @@ skillsRouter.post("/:id/rating", async (req: Request, res: Response) => {
   const skillId = parsedParams.data.id;
   const { value } = parsedBody.data;
 
-  const skill = await prisma.skill.findFirst({
-    where: { id: skillId, teamId: auth.teamId },
-    select: { id: true, ownerId: true },
+  const skill = await prisma.skill.findUnique({
+    where: { id: skillId },
+    select: {
+      id: true,
+      teamId: true,
+      ownerId: true,
+      visibility: true,
+      owner: { select: { ou: true } },
+    },
   });
   if (!skill) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not found." } });
+  }
+  if (!canAccessByVisibility(skill, auth)) {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this skill." } });
   }
   if (skill.ownerId === auth.userId) {
     return res
@@ -826,9 +838,21 @@ skillsRouter.get("/:id/versions", async (req: Request, res: Response) => {
   }
 
   const skillId = parsedParams.data.id;
-  const skill = await prisma.skill.findFirst({ where: { id: skillId, teamId: auth.teamId } });
+  const skill = await prisma.skill.findUnique({
+    where: { id: skillId },
+    select: {
+      id: true,
+      teamId: true,
+      ownerId: true,
+      visibility: true,
+      owner: { select: { ou: true } },
+    },
+  });
   if (!skill) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not found." } });
+  }
+  if (!canAccessByVisibility(skill, auth)) {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this skill." } });
   }
 
   const versions = await prisma.skillVersion.findMany({

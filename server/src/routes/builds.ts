@@ -2,8 +2,12 @@ import type { Prisma } from "@prisma/client";
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { z } from "zod";
-import { getAuthContext, requireAuth, requireWriteAccess } from "../middleware/auth";
+import { getAuthContext, requireAuth, requireWriteAccess, type AuthContext } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
+import {
+  buildVisibilityWhereFragment,
+  canAccessByVisibility as sharedCanAccessByVisibility,
+} from "../lib/visibility";
 import { generatePromptThumbnail } from "../services/nanoBanana";
 import {
   checkBuildDuplicates,
@@ -26,27 +30,11 @@ function badRequestFromZodError(error: z.ZodError) {
   };
 }
 
-function isAdminOrOwner(role: string): boolean {
-  return role === "ADMIN" || role === "OWNER";
-}
-
 function canAccessByVisibility(
-  item: { visibility: string; ownerId: number; owner?: { ou: string | null } | null },
-  auth: { userId: number; userOu: string | null; role: string },
+  item: { teamId: number; visibility: string; ownerId: number; owner?: { ou: string | null } | null },
+  auth: AuthContext,
 ): boolean {
-  if (item.visibility === "PUBLIC") {
-    return true;
-  }
-  if (item.ownerId === auth.userId) {
-    return true;
-  }
-  if (isAdminOrOwner(auth.role)) {
-    return true;
-  }
-  if (item.visibility === "TEAM" && auth.userOu && item.owner?.ou === auth.userOu) {
-    return true;
-  }
-  return false;
+  return sharedCanAccessByVisibility(item, auth);
 }
 
 const listBuildsQuerySchema = z.object({
@@ -168,36 +156,27 @@ buildsRouter.get("/", async (req: Request, res: Response) => {
   const pageSize = parsedQuery.data.pageSize ?? 20;
   const skip = (page - 1) * pageSize;
 
-  const where: Prisma.BuildWhereInput = { teamId: auth.teamId };
+  const where: Prisma.BuildWhereInput = {};
+  const whereAnd: Prisma.BuildWhereInput[] = [];
   if (mine) {
     where.ownerId = auth.userId;
-  } else if (!isAdminOrOwner(auth.role)) {
-    const visibilityConditions: Prisma.BuildWhereInput[] = [
-      { visibility: "PUBLIC" },
-      { ownerId: auth.userId },
-    ];
-    if (auth.userOu) {
-      visibilityConditions.push({
-        visibility: "TEAM",
-        owner: { ou: auth.userOu },
-      });
-    }
-    where.OR = visibilityConditions;
+    where.teamId = auth.teamId;
+  } else {
+    whereAnd.push(buildVisibilityWhereFragment(auth) as Prisma.BuildWhereInput);
   }
   if (status) {
     where.status = status;
   }
   if (q) {
-    const existingAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
-    where.AND = [
-      ...existingAnd,
-      {
-        OR: [
-          { title: { contains: q, mode: "insensitive" } },
-          { summary: { contains: q, mode: "insensitive" } },
-        ],
-      },
-    ];
+    whereAnd.push({
+      OR: [
+        { title: { contains: q, mode: "insensitive" } },
+        { summary: { contains: q, mode: "insensitive" } },
+      ],
+    });
+  }
+  if (whereAnd.length > 0) {
+    where.AND = whereAnd;
   }
 
   const orderBy: Prisma.BuildOrderByWithRelationInput =
@@ -358,8 +337,8 @@ buildsRouter.get("/:id", async (req: Request, res: Response) => {
   }
 
   const buildId = parsedParams.data.id;
-  const build = await prisma.build.findFirst({
-    where: { id: buildId, teamId: auth.teamId },
+  const build = await prisma.build.findUnique({
+    where: { id: buildId },
     select: {
       id: true,
       teamId: true,
@@ -577,9 +556,21 @@ buildsRouter.post("/:id/favorite", async (req: Request, res: Response) => {
   }
 
   const buildId = parsedParams.data.id;
-  const build = await prisma.build.findFirst({ where: { id: buildId, teamId: auth.teamId } });
+  const build = await prisma.build.findUnique({
+    where: { id: buildId },
+    select: {
+      id: true,
+      teamId: true,
+      ownerId: true,
+      visibility: true,
+      owner: { select: { ou: true } },
+    },
+  });
   if (!build) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Build not found." } });
+  }
+  if (!canAccessByVisibility(build, auth)) {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this build." } });
   }
 
   const existing = await prisma.buildFavorite.findUnique({
@@ -612,9 +603,21 @@ buildsRouter.post("/:id/usage", async (req: Request, res: Response) => {
   const buildId = parsedParams.data.id;
   const { eventType } = parsedBody.data;
 
-  const build = await prisma.build.findFirst({ where: { id: buildId, teamId: auth.teamId } });
+  const build = await prisma.build.findUnique({
+    where: { id: buildId },
+    select: {
+      id: true,
+      teamId: true,
+      ownerId: true,
+      visibility: true,
+      owner: { select: { ou: true } },
+    },
+  });
   if (!build) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Build not found." } });
+  }
+  if (!canAccessByVisibility(build, auth)) {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this build." } });
   }
 
   await prisma.buildUsageEvent.create({ data: { buildId, userId: auth.userId, eventType } });
@@ -644,12 +647,21 @@ buildsRouter.post("/:id/rating", async (req: Request, res: Response) => {
   const buildId = parsedParams.data.id;
   const { value } = parsedBody.data;
 
-  const build = await prisma.build.findFirst({
-    where: { id: buildId, teamId: auth.teamId },
-    select: { id: true, ownerId: true },
+  const build = await prisma.build.findUnique({
+    where: { id: buildId },
+    select: {
+      id: true,
+      teamId: true,
+      ownerId: true,
+      visibility: true,
+      owner: { select: { ou: true } },
+    },
   });
   if (!build) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Build not found." } });
+  }
+  if (!canAccessByVisibility(build, auth)) {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this build." } });
   }
   if (build.ownerId === auth.userId) {
     return res
@@ -793,9 +805,21 @@ buildsRouter.get("/:id/versions", async (req: Request, res: Response) => {
   }
 
   const buildId = parsedParams.data.id;
-  const build = await prisma.build.findFirst({ where: { id: buildId, teamId: auth.teamId } });
+  const build = await prisma.build.findUnique({
+    where: { id: buildId },
+    select: {
+      id: true,
+      teamId: true,
+      ownerId: true,
+      visibility: true,
+      owner: { select: { ou: true } },
+    },
+  });
   if (!build) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Build not found." } });
+  }
+  if (!canAccessByVisibility(build, auth)) {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this build." } });
   }
 
   const versions = await prisma.buildVersion.findMany({

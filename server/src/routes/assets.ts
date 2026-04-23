@@ -4,6 +4,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { getAuthContext, requireAuth } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
+import { buildVisibilityWhereFragment } from "../lib/visibility";
 
 const assetsRouter = Router();
 
@@ -71,10 +72,6 @@ function badRequestFromZodError(error: z.ZodError) {
       details: error.issues,
     },
   };
-}
-
-function isAdminOrOwner(role: string): boolean {
-  return role === "ADMIN" || role === "OWNER";
 }
 
 const listAssetsQuerySchema = z.object({
@@ -148,29 +145,21 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
   const includeContext = assetType === "all" || assetType === "context";
   const includeBuilds = assetType === "all" || assetType === "build";
 
-  const buildVisibilityConditions = <T extends { visibility: string; ownerId: number; owner?: { ou: string | null } }>(
-    baseWhere: Prisma.Args<typeof prisma.prompt, "findMany">["where"],
-  ) => {
-    const where = { ...baseWhere, teamId: auth.teamId } as Prisma.PromptWhereInput;
+  const buildPromptVisibilityWhere = (): Prisma.PromptWhereInput => {
+    const where: Prisma.PromptWhereInput = {};
     if (mine) {
       where.ownerId = auth.userId;
-    } else if (!isAdminOrOwner(auth.role)) {
-      const visibilityConditions: Prisma.PromptWhereInput[] = [
-        { visibility: "PUBLIC" },
-        { ownerId: auth.userId },
-      ];
-      if (auth.userOu) {
-        visibilityConditions.push({
-          visibility: "TEAM",
-          owner: { ou: auth.userOu },
-        });
+      where.teamId = auth.teamId;
+    } else {
+      const fragment = buildVisibilityWhereFragment(auth) as Prisma.PromptWhereInput;
+      if (fragment.OR) {
+        where.AND = [fragment];
       }
-      where.OR = visibilityConditions;
     }
     return where;
   };
 
-  const buildSearchConditions = (where: Prisma.PromptWhereInput) => {
+  const addPromptSearchConditions = (where: Prisma.PromptWhereInput) => {
     if (q) {
       const existingAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
       where.AND = [
@@ -190,8 +179,8 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
   const allAssets: UnifiedAsset[] = [];
 
   if (includePrompts) {
-    let promptWhere: Prisma.PromptWhereInput = buildVisibilityConditions({});
-    promptWhere = buildSearchConditions(promptWhere);
+    let promptWhere: Prisma.PromptWhereInput = buildPromptVisibilityWhere();
+    promptWhere = addPromptSearchConditions(promptWhere);
     if (tool) {
       promptWhere.tools = { has: tool };
     }
@@ -308,39 +297,30 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
   }
 
   if (includeSkills) {
-    let skillWhere: Prisma.SkillWhereInput = { teamId: auth.teamId };
+    const skillWhere: Prisma.SkillWhereInput = {};
+    const skillAnd: Prisma.SkillWhereInput[] = [];
     if (mine) {
       skillWhere.ownerId = auth.userId;
-    } else if (!isAdminOrOwner(auth.role)) {
-      const visibilityConditions: Prisma.SkillWhereInput[] = [
-        { visibility: "PUBLIC" },
-        { ownerId: auth.userId },
-      ];
-      if (auth.userOu) {
-        visibilityConditions.push({
-          visibility: "TEAM",
-          owner: { ou: auth.userOu },
-        });
-      }
-      skillWhere.OR = visibilityConditions;
+      skillWhere.teamId = auth.teamId;
+    } else {
+      skillAnd.push(buildVisibilityWhereFragment(auth) as Prisma.SkillWhereInput);
     }
     if (q) {
-      const existingAnd = Array.isArray(skillWhere.AND) ? skillWhere.AND : skillWhere.AND ? [skillWhere.AND] : [];
-      skillWhere.AND = [
-        ...existingAnd,
-        {
-          OR: [
-            { title: { contains: q, mode: "insensitive" } },
-            { summary: { contains: q, mode: "insensitive" } },
-          ],
-        },
-      ];
+      skillAnd.push({
+        OR: [
+          { title: { contains: q, mode: "insensitive" } },
+          { summary: { contains: q, mode: "insensitive" } },
+        ],
+      });
     }
     if (tool) {
       skillWhere.tools = { has: tool };
     }
     if (status) {
       skillWhere.status = status;
+    }
+    if (skillAnd.length > 0) {
+      skillWhere.AND = skillAnd;
     }
 
     const skillOrderBy: Prisma.SkillOrderByWithRelationInput =
@@ -450,40 +430,31 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
   }
 
   if (includeContext) {
-    let contextWhere: Prisma.ContextDocumentWhereInput = { teamId: auth.teamId };
+    const contextWhere: Prisma.ContextDocumentWhereInput = {};
+    const contextAnd: Prisma.ContextDocumentWhereInput[] = [];
     if (mine) {
       contextWhere.ownerId = auth.userId;
-    } else if (!isAdminOrOwner(auth.role)) {
-      const visibilityConditions: Prisma.ContextDocumentWhereInput[] = [
-        { visibility: "PUBLIC" },
-        { ownerId: auth.userId },
-      ];
-      if (auth.userOu) {
-        visibilityConditions.push({
-          visibility: "TEAM",
-          owner: { ou: auth.userOu },
-        });
-      }
-      contextWhere.OR = visibilityConditions;
+      contextWhere.teamId = auth.teamId;
+    } else {
+      contextAnd.push(buildVisibilityWhereFragment(auth) as Prisma.ContextDocumentWhereInput);
     }
     if (q) {
-      const existingAnd = Array.isArray(contextWhere.AND) ? contextWhere.AND : contextWhere.AND ? [contextWhere.AND] : [];
-      contextWhere.AND = [
-        ...existingAnd,
-        {
-          OR: [
-            { title: { contains: q, mode: "insensitive" } },
-            { summary: { contains: q, mode: "insensitive" } },
-            { body: { contains: q, mode: "insensitive" } },
-          ],
-        },
-      ];
+      contextAnd.push({
+        OR: [
+          { title: { contains: q, mode: "insensitive" } },
+          { summary: { contains: q, mode: "insensitive" } },
+          { body: { contains: q, mode: "insensitive" } },
+        ],
+      });
     }
     if (tool) {
       contextWhere.tools = { has: tool };
     }
     if (status) {
       contextWhere.status = status;
+    }
+    if (contextAnd.length > 0) {
+      contextWhere.AND = contextAnd;
     }
 
     const contextOrderBy: Prisma.ContextDocumentOrderByWithRelationInput =
@@ -593,36 +564,27 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
   }
 
   if (includeBuilds) {
-    let buildWhere: Prisma.BuildWhereInput = { teamId: auth.teamId };
+    const buildWhere: Prisma.BuildWhereInput = {};
+    const buildAnd: Prisma.BuildWhereInput[] = [];
     if (mine) {
       buildWhere.ownerId = auth.userId;
-    } else if (!isAdminOrOwner(auth.role)) {
-      const visibilityConditions: Prisma.BuildWhereInput[] = [
-        { visibility: "PUBLIC" },
-        { ownerId: auth.userId },
-      ];
-      if (auth.userOu) {
-        visibilityConditions.push({
-          visibility: "TEAM",
-          owner: { ou: auth.userOu },
-        });
-      }
-      buildWhere.OR = visibilityConditions;
+      buildWhere.teamId = auth.teamId;
+    } else {
+      buildAnd.push(buildVisibilityWhereFragment(auth) as Prisma.BuildWhereInput);
     }
     if (q) {
-      const existingAnd = Array.isArray(buildWhere.AND) ? buildWhere.AND : buildWhere.AND ? [buildWhere.AND] : [];
-      buildWhere.AND = [
-        ...existingAnd,
-        {
-          OR: [
-            { title: { contains: q, mode: "insensitive" } },
-            { summary: { contains: q, mode: "insensitive" } },
-          ],
-        },
-      ];
+      buildAnd.push({
+        OR: [
+          { title: { contains: q, mode: "insensitive" } },
+          { summary: { contains: q, mode: "insensitive" } },
+        ],
+      });
     }
     if (status) {
       buildWhere.status = status;
+    }
+    if (buildAnd.length > 0) {
+      buildWhere.AND = buildAnd;
     }
 
     const buildOrderBy: Prisma.BuildOrderByWithRelationInput =
@@ -763,22 +725,9 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
   }
 
   const publishedSnapshotWhere: Prisma.PromptWhereInput = {
-    teamId: auth.teamId,
     status: "PUBLISHED",
+    AND: [buildVisibilityWhereFragment(auth) as Prisma.PromptWhereInput],
   };
-  if (!isAdminOrOwner(auth.role)) {
-    const snapshotVisibilityConditions: Prisma.PromptWhereInput[] = [
-      { visibility: "PUBLIC" },
-      { ownerId: auth.userId },
-    ];
-    if (auth.userOu) {
-      snapshotVisibilityConditions.push({
-        visibility: "TEAM",
-        owner: { ou: auth.userOu },
-      });
-    }
-    publishedSnapshotWhere.OR = snapshotVisibilityConditions;
-  }
 
   const [promptsPublished, skillsPublished, contextPublished, buildsPublished, activeUsers, promptsUsed] = await Promise.all([
     prisma.prompt.count({ where: publishedSnapshotWhere }),

@@ -79,6 +79,7 @@ export type PromptSummary = {
   summary: string | null;
   body: string;
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  visibility: "PUBLIC" | "TEAM" | "PRIVATE";
   tools: PromptTool[];
   modality: PromptModality;
   createdAt: string;

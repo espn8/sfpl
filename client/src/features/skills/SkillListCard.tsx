@@ -16,6 +16,7 @@ import { formatPromptActivityLabel } from "../prompts/promptActivityLabel";
 import { promptOwnerAvatarUrl } from "../prompts/promptTagChips";
 import { PromptAverageStars, PromptRateStars } from "../prompts/PromptStars";
 import { AssetBadges } from "../assets/badges";
+import { VisibilityBadge } from "../assets/VisibilityBadge";
 
 function DownloadIcon({ className }: { className?: string }) {
   return (
@@ -111,12 +112,15 @@ export function SkillListCard({ skill, variant = "default", showAnalytics = fals
             >
               {skill.title} <span className="text-(--color-text-muted)">[Skill]</span>
             </p>
-            <AssetBadges
-              createdAt={skill.createdAt}
-              updatedAt={skill.updatedAt}
-              isSmartPick={skill.isSmartPick}
-              favoriteCount={skill.favoriteCount}
-            />
+            <span className="inline-flex shrink-0 items-center gap-1.5">
+              <VisibilityBadge visibility={skill.visibility} />
+              <AssetBadges
+                createdAt={skill.createdAt}
+                updatedAt={skill.updatedAt}
+                isSmartPick={skill.isSmartPick}
+                favoriteCount={skill.favoriteCount}
+              />
+            </span>
           </div>
           <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-(--color-text-muted)">
             <span className="flex min-w-0 items-center gap-2">

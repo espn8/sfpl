@@ -5,6 +5,7 @@ import { z } from "zod";
 import { getAuthContext, requireAuth } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 import { parseSearchQuery } from "../services/searchParser";
+import { buildVisibilityWhereFragment } from "../lib/visibility";
 
 const searchRouter = Router();
 
@@ -68,10 +69,6 @@ type SuggestionsResponse = {
   filters: FilterSuggestion[];
 };
 
-function isAdminOrOwner(role: string): boolean {
-  return role === "ADMIN" || role === "OWNER";
-}
-
 searchRouter.use(requireAuth);
 
 searchRouter.get("/suggestions", async (req: Request, res: Response) => {
@@ -120,29 +117,21 @@ searchRouter.get("/suggestions", async (req: Request, res: Response) => {
     }
   }
 
-  const buildVisibilityConditions = () => {
-    const conditions: Prisma.PromptWhereInput[] = [{ visibility: "PUBLIC" }, { ownerId: auth.userId }];
-    if (auth.userOu) {
-      conditions.push({
-        visibility: "TEAM",
-        owner: { ou: auth.userOu },
-      });
-    }
-    return conditions;
-  };
-
   const assetLimit = Math.max(1, limit - matchingFilters.length);
   const perTypeLimit = Math.ceil(assetLimit / 3);
+
+  const searchTermOr = [
+    { title: { contains: q, mode: "insensitive" as const } },
+    { summary: { contains: q, mode: "insensitive" as const } },
+  ];
 
   const [prompts, skills, contextDocs] = await Promise.all([
     prisma.prompt.findMany({
       where: {
-        teamId: auth.teamId,
         status: "PUBLISHED",
-        ...(isAdminOrOwner(auth.role) ? {} : { OR: buildVisibilityConditions() }),
-        OR: [
-          { title: { contains: q, mode: "insensitive" } },
-          { summary: { contains: q, mode: "insensitive" } },
+        AND: [
+          buildVisibilityWhereFragment(auth) as Prisma.PromptWhereInput,
+          { OR: searchTermOr },
         ],
       },
       select: {
@@ -155,16 +144,10 @@ searchRouter.get("/suggestions", async (req: Request, res: Response) => {
     }),
     prisma.skill.findMany({
       where: {
-        teamId: auth.teamId,
         status: "PUBLISHED",
-        ...(isAdminOrOwner(auth.role)
-          ? {}
-          : {
-              OR: [{ visibility: "PUBLIC" }, { ownerId: auth.userId }, ...(auth.userOu ? [{ visibility: "TEAM" as const, owner: { ou: auth.userOu } }] : [])],
-            }),
-        OR: [
-          { title: { contains: q, mode: "insensitive" } },
-          { summary: { contains: q, mode: "insensitive" } },
+        AND: [
+          buildVisibilityWhereFragment(auth) as Prisma.SkillWhereInput,
+          { OR: searchTermOr },
         ],
       },
       select: {
@@ -177,16 +160,10 @@ searchRouter.get("/suggestions", async (req: Request, res: Response) => {
     }),
     prisma.contextDocument.findMany({
       where: {
-        teamId: auth.teamId,
         status: "PUBLISHED",
-        ...(isAdminOrOwner(auth.role)
-          ? {}
-          : {
-              OR: [{ visibility: "PUBLIC" }, { ownerId: auth.userId }, ...(auth.userOu ? [{ visibility: "TEAM" as const, owner: { ou: auth.userOu } }] : [])],
-            }),
-        OR: [
-          { title: { contains: q, mode: "insensitive" } },
-          { summary: { contains: q, mode: "insensitive" } },
+        AND: [
+          buildVisibilityWhereFragment(auth) as Prisma.ContextDocumentWhereInput,
+          { OR: searchTermOr },
         ],
       },
       select: {

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { AxiosError } from "axios";
 import { fetchMe, updateMyProfile, uploadProfilePhoto } from "../features/auth/api";
 import { canAccessAdminUi, canCreateContent } from "../features/auth/roles";
 import { ThemeModeToggle } from "./ui/ThemeModeToggle";
@@ -34,12 +35,29 @@ function HelpCircleIcon({ className }: { className?: string }) {
   );
 }
 
+function MenuIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function CloseIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <path d="M6 6l12 12M18 6l-12 12" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 type AppShellProps = {
   children: React.ReactNode;
 };
 
 export function AppShell({ children }: AppShellProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const meQuery = useQuery({
@@ -56,6 +74,9 @@ export function AppShell({ children }: AppShellProps) {
   const [formError, setFormError] = useState<string | null>(null);
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
   const createMenuRef = useRef<HTMLDivElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const hamburgerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!meQuery.data) {
@@ -88,6 +109,41 @@ export function AppShell({ children }: AppShellProps) {
     };
   }, [createMenuOpen]);
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMenuOpen(false);
+        hamburgerRef.current?.focus();
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [menuOpen]);
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setMenuOpen(false);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const updateProfileMutation = useMutation({
     mutationFn: updateMyProfile,
     onSuccess: async (updatedUser) => {
@@ -95,7 +151,16 @@ export function AppShell({ children }: AppShellProps) {
       await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
       setFormError(null);
     },
-    onError: () => {
+    onError: (error: unknown) => {
+      if (error instanceof AxiosError) {
+        const apiError = error.response?.data?.error;
+        if (apiError?.code === "OU_REQUIRED") {
+          setFormError(
+            apiError.message ?? "Please select your Organizational Unit (OU) before continuing.",
+          );
+          return;
+        }
+      }
       setFormError("Unable to save your profile. Please try again.");
     },
   });
@@ -133,131 +198,216 @@ export function AppShell({ children }: AppShellProps) {
 
   const showWelcomeModal = Boolean(meQuery.data && !meQuery.data.onboardingCompleted);
 
+  const panelItemClass =
+    "block rounded px-4 py-2 text-sm text-(--color-text) hover:bg-(--color-surface-muted) focus-visible:bg-(--color-surface-muted) focus-visible:outline-none";
+  const isAdmin = Boolean(meQuery.data && canAccessAdminUi(meQuery.data.role));
+  const canCreate = canCreateContent(meQuery.data?.role);
+  const closeMenu = () => setMenuOpen(false);
+
   return (
     <main className="min-h-screen bg-(--color-bg) text-(--color-text)">
       <div className="mx-auto max-w-5xl px-6 py-8">
-        <header className="mb-6 flex items-center justify-between rounded-lg border border-(--color-border) bg-(--color-surface) px-4 py-3">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-3">
-              <a
-                href="/"
-                className="inline-flex items-center gap-2 focus-visible:outline-none"
-                aria-label="SF AI Library home"
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate({ pathname: "/", search: "" }, { replace: false });
-                }}
-              >
-                <img src={SALESFORCE_LOGO} alt="" className="h-10 w-auto object-contain" />
-                <span className="hidden font-semibold text-(--color-text) sm:inline">AI Library</span>
-              </a>
-            </div>
-            <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-              <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/prompts">
-                Prompts
-              </Link>
-              <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/skills">
-                Skills
-              </Link>
-              <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/context">
-                Context
-              </Link>
-              <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/builds">
-                Builds
-              </Link>
-              <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/collections">
-                Collections
-              </Link>
-              {meQuery.data && canAccessAdminUi(meQuery.data.role) ? (
-                <>
-                  <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/analytics">
-                    Analytics
-                  </Link>
-                  <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/admin/tool-requests">
-                    Tool Requests
-                  </Link>
-                </>
-              ) : null}
-            </nav>
-          </div>
-          <div className="flex items-center gap-3">
-            {canCreateContent(meQuery.data?.role) && (
-              <div className="relative" ref={createMenuRef}>
-                <button
-                  type="button"
-                  onClick={() => setCreateMenuOpen(!createMenuOpen)}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-full bg-(--color-launch) px-4 py-2 text-sm font-semibold text-white shadow-sm transition-[background-color,box-shadow,transform] hover:bg-(--color-launch-hover) hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--color-launch) focus-visible:ring-offset-2 focus-visible:ring-offset-(--color-surface) active:scale-[0.98]"
-                  aria-haspopup="true"
-                  aria-expanded={createMenuOpen}
+        <div ref={menuRef}>
+          <header className="mb-6 flex items-center justify-between gap-3 rounded-lg border border-(--color-border) bg-(--color-surface) px-4 py-3">
+            <div className="flex min-w-0 items-center gap-6">
+              <div className="flex items-center gap-3">
+                <a
+                  href="/"
+                  className="inline-flex items-center gap-2 focus-visible:outline-none"
+                  aria-label="SF AI Library home"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate({ pathname: "/", search: "" }, { replace: false });
+                  }}
                 >
-                  <PlusIcon className="h-4 w-4" />
-                  <span>Create</span>
-                  <ChevronDownIcon className="h-4 w-4" />
-                </button>
-                {createMenuOpen && (
-                  <div
-                    className="absolute right-0 z-50 mt-2 w-44 rounded-lg border border-(--color-border) bg-(--color-surface) py-1 shadow-lg"
-                    role="menu"
-                    aria-orientation="vertical"
-                  >
-                    <Link
-                      to="/prompts/new"
-                      className="block px-4 py-2 text-sm text-(--color-text) hover:bg-(--color-surface-muted) focus-visible:bg-(--color-surface-muted) focus-visible:outline-none"
-                      role="menuitem"
-                      onClick={() => setCreateMenuOpen(false)}
-                    >
-                      New Prompt
-                    </Link>
-                    <Link
-                      to="/skills/new"
-                      className="block px-4 py-2 text-sm text-(--color-text) hover:bg-(--color-surface-muted) focus-visible:bg-(--color-surface-muted) focus-visible:outline-none"
-                      role="menuitem"
-                      onClick={() => setCreateMenuOpen(false)}
-                    >
-                      New Skill
-                    </Link>
-                    <Link
-                      to="/context/new"
-                      className="block px-4 py-2 text-sm text-(--color-text) hover:bg-(--color-surface-muted) focus-visible:bg-(--color-surface-muted) focus-visible:outline-none"
-                      role="menuitem"
-                      onClick={() => setCreateMenuOpen(false)}
-                    >
-                      New Context
-                    </Link>
-                    <Link
-                      to="/builds/new"
-                      className="block px-4 py-2 text-sm text-(--color-text) hover:bg-(--color-surface-muted) focus-visible:bg-(--color-surface-muted) focus-visible:outline-none"
-                      role="menuitem"
-                      onClick={() => setCreateMenuOpen(false)}
-                    >
-                      New Build
-                    </Link>
-                  </div>
-                )}
+                  <img src={SALESFORCE_LOGO} alt="" className="h-10 w-auto object-contain" />
+                  <span className="hidden font-semibold text-(--color-text) sm:inline">AI Library</span>
+                </a>
               </div>
-            )}
-            {meQuery.data ? (
+              <nav className="hidden flex-wrap items-center gap-x-4 gap-y-1 text-sm lg:flex">
+                <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/prompts">
+                  Prompts
+                </Link>
+                <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/skills">
+                  Skills
+                </Link>
+                <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/context">
+                  Context
+                </Link>
+                <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/builds">
+                  Builds
+                </Link>
+                <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/collections">
+                  Collections
+                </Link>
+                {isAdmin ? (
+                  <>
+                    <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/analytics">
+                      Analytics
+                    </Link>
+                    <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/admin/tool-requests">
+                      Tool Requests
+                    </Link>
+                  </>
+                ) : null}
+              </nav>
+            </div>
+            <div className="flex flex-shrink-0 items-center gap-3">
+              {canCreate && (
+                <div className="relative hidden md:block" ref={createMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => setCreateMenuOpen(!createMenuOpen)}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-full bg-(--color-launch) px-4 py-2 text-sm font-semibold text-white shadow-sm transition-[background-color,box-shadow,transform] hover:bg-(--color-launch-hover) hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--color-launch) focus-visible:ring-offset-2 focus-visible:ring-offset-(--color-surface) active:scale-[0.98]"
+                    aria-haspopup="true"
+                    aria-expanded={createMenuOpen}
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                    <span>Create</span>
+                    <ChevronDownIcon className="h-4 w-4" />
+                  </button>
+                  {createMenuOpen && (
+                    <div
+                      className="absolute right-0 z-50 mt-2 w-44 rounded-lg border border-(--color-border) bg-(--color-surface) py-1 shadow-lg"
+                      role="menu"
+                      aria-orientation="vertical"
+                    >
+                      <Link
+                        to="/prompts/new"
+                        className="block px-4 py-2 text-sm text-(--color-text) hover:bg-(--color-surface-muted) focus-visible:bg-(--color-surface-muted) focus-visible:outline-none"
+                        role="menuitem"
+                        onClick={() => setCreateMenuOpen(false)}
+                      >
+                        New Prompt
+                      </Link>
+                      <Link
+                        to="/skills/new"
+                        className="block px-4 py-2 text-sm text-(--color-text) hover:bg-(--color-surface-muted) focus-visible:bg-(--color-surface-muted) focus-visible:outline-none"
+                        role="menuitem"
+                        onClick={() => setCreateMenuOpen(false)}
+                      >
+                        New Skill
+                      </Link>
+                      <Link
+                        to="/context/new"
+                        className="block px-4 py-2 text-sm text-(--color-text) hover:bg-(--color-surface-muted) focus-visible:bg-(--color-surface-muted) focus-visible:outline-none"
+                        role="menuitem"
+                        onClick={() => setCreateMenuOpen(false)}
+                      >
+                        New Context
+                      </Link>
+                      <Link
+                        to="/builds/new"
+                        className="block px-4 py-2 text-sm text-(--color-text) hover:bg-(--color-surface-muted) focus-visible:bg-(--color-surface-muted) focus-visible:outline-none"
+                        role="menuitem"
+                        onClick={() => setCreateMenuOpen(false)}
+                      >
+                        New Build
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
+              {meQuery.data ? (
+                <Link
+                  to="/settings"
+                  className="rounded-full border border-(--color-border) p-0.5 focus-visible:outline-none"
+                  aria-label="Settings"
+                >
+                  <img
+                    src={meQuery.data.avatarUrl ?? defaultProfilePhotoUrl}
+                    alt={meQuery.data.name ? `${meQuery.data.name}'s profile photo` : "User profile photo"}
+                    className="h-8 w-8 rounded-full object-cover"
+                  />
+                </Link>
+              ) : null}
               <Link
-                to="/settings"
-                className="rounded-full border border-(--color-border) p-0.5 focus-visible:outline-none"
-                aria-label="Settings"
+                to="/help"
+                className="hidden rounded-full border border-(--color-border) p-1.5 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text) focus-visible:outline-none md:inline-flex"
+                aria-label="Help"
               >
-                <img
-                  src={meQuery.data.avatarUrl ?? defaultProfilePhotoUrl}
-                  alt={meQuery.data.name ? `${meQuery.data.name}'s profile photo` : "User profile photo"}
-                  className="h-8 w-8 rounded-full object-cover"
-                />
+                <HelpCircleIcon className="h-5 w-5" />
               </Link>
-            ) : null}
-            <Link
-              to="/help"
-              className="rounded-full border border-(--color-border) p-1.5 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text) focus-visible:outline-none"
-              aria-label="Help"
+              <button
+                ref={hamburgerRef}
+                type="button"
+                onClick={() => setMenuOpen((v) => !v)}
+                className="inline-flex items-center justify-center rounded-full border border-(--color-border) p-1.5 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--color-launch) focus-visible:ring-offset-2 focus-visible:ring-offset-(--color-surface) lg:hidden"
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                aria-controls="app-nav-panel"
+                aria-label={menuOpen ? "Close menu" : "Open menu"}
+              >
+                {menuOpen ? <CloseIcon className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
+              </button>
+            </div>
+          </header>
+          {menuOpen && (
+            <div
+              id="app-nav-panel"
+              role="menu"
+              aria-orientation="vertical"
+              className="-mt-4 mb-6 rounded-lg border border-(--color-border) bg-(--color-surface) p-2 shadow-lg lg:hidden"
             >
-              <HelpCircleIcon className="h-5 w-5" />
-            </Link>
-          </div>
-        </header>
+              <div className="flex flex-col py-1">
+                <Link to="/prompts" role="menuitem" className={panelItemClass} onClick={closeMenu}>
+                  Prompts
+                </Link>
+                <Link to="/skills" role="menuitem" className={panelItemClass} onClick={closeMenu}>
+                  Skills
+                </Link>
+                <Link to="/context" role="menuitem" className={panelItemClass} onClick={closeMenu}>
+                  Context
+                </Link>
+                <Link to="/builds" role="menuitem" className={panelItemClass} onClick={closeMenu}>
+                  Builds
+                </Link>
+                <Link to="/collections" role="menuitem" className={panelItemClass} onClick={closeMenu}>
+                  Collections
+                </Link>
+                {isAdmin ? (
+                  <>
+                    <Link to="/analytics" role="menuitem" className={panelItemClass} onClick={closeMenu}>
+                      Analytics
+                    </Link>
+                    <Link to="/admin/tool-requests" role="menuitem" className={panelItemClass} onClick={closeMenu}>
+                      Tool Requests
+                    </Link>
+                  </>
+                ) : null}
+              </div>
+              {canCreate && (
+                <div className="md:hidden">
+                  <div className="my-1 border-t border-(--color-border)" />
+                  <p className="px-4 pt-2 pb-1 text-xs font-semibold uppercase tracking-wide text-(--color-text-muted)">
+                    Create
+                  </p>
+                  <Link to="/prompts/new" role="menuitem" className={panelItemClass} onClick={closeMenu}>
+                    New Prompt
+                  </Link>
+                  <Link to="/skills/new" role="menuitem" className={panelItemClass} onClick={closeMenu}>
+                    New Skill
+                  </Link>
+                  <Link to="/context/new" role="menuitem" className={panelItemClass} onClick={closeMenu}>
+                    New Context
+                  </Link>
+                  <Link to="/builds/new" role="menuitem" className={panelItemClass} onClick={closeMenu}>
+                    New Build
+                  </Link>
+                </div>
+              )}
+              <div className="md:hidden">
+                <div className="my-1 border-t border-(--color-border)" />
+                <Link to="/settings" role="menuitem" className={panelItemClass} onClick={closeMenu}>
+                  Settings
+                </Link>
+                <Link to="/help" role="menuitem" className={panelItemClass} onClick={closeMenu}>
+                  Help
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
         {children}
         <footer className="mt-8 rounded-lg border border-(--color-border) bg-(--color-surface) px-4 py-3">
           <div className="flex items-center justify-between gap-4">
@@ -308,6 +458,10 @@ export function AppShell({ children }: AppShellProps) {
                 event.preventDefault();
                 if (!name || !profilePhotoUrl) {
                   setFormError("Name and profile photo are required.");
+                  return;
+                }
+                if (!ou) {
+                  setFormError("Please select your Organizational Unit (OU) before continuing.");
                   return;
                 }
                 updateProfileMutation.mutate({
@@ -380,11 +534,14 @@ export function AppShell({ children }: AppShellProps) {
                 </label>
 
                 <label className="block text-sm">
-                  <span className="mb-1 block">OU</span>
+                  <span className="mb-1 block">
+                    OU <span className="text-(--color-text-muted)">(required)</span>
+                  </span>
                   <select
                     className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
                     value={ou}
                     onChange={(event) => setOu(event.target.value)}
+                    required
                   >
                     <option value="">Select OU</option>
                     <option value="AMER ACC">AMER ACC</option>
@@ -402,6 +559,9 @@ export function AppShell({ children }: AppShellProps) {
                     <option value="NEXTGEN PLATFORM">NEXTGEN PLATFORM</option>
                     <option value="SOUTH ASIA">SOUTH ASIA</option>
                   </select>
+                  <span className="mt-1 block text-xs text-(--color-text-muted)">
+                    Your OU determines who sees assets you share with My Team.
+                  </span>
                 </label>
               </div>
 
@@ -420,7 +580,7 @@ export function AppShell({ children }: AppShellProps) {
               <div className="mt-4 flex justify-end gap-2 border-t border-(--color-border) pt-4">
                 <button
                   type="submit"
-                  disabled={updateProfileMutation.isPending}
+                  disabled={updateProfileMutation.isPending || !ou}
                   className="rounded bg-(--color-primary) px-4 py-2 text-(--color-text-inverse) hover:bg-(--color-primary-active) active:bg-(--color-primary-active) disabled:opacity-60"
                 >
                   {updateProfileMutation.isPending ? "Saving..." : "Get Started"}

@@ -2,8 +2,12 @@ import { Prisma, PromptModality, UsageAction } from "@prisma/client";
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { z } from "zod";
-import { getAuthContext, requireAuth, requireWriteAccess } from "../middleware/auth";
+import { getAuthContext, requireAuth, requireWriteAccess, type AuthContext } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
+import {
+  buildVisibilityWhereFragment,
+  canAccessByVisibility,
+} from "../lib/visibility";
 import { generatePromptThumbnail } from "../services/nanoBanana";
 import { refreshBestOfCollection, refreshToolCollection } from "../services/systemCollections";
 import {
@@ -254,10 +258,6 @@ function badRequestFromZodError(error: z.ZodError) {
   };
 }
 
-function isAdminOrOwner(role: string): boolean {
-  return role === "ADMIN" || role === "OWNER";
-}
-
 function parseSort(value: unknown): PromptSort {
   if (value === "topRated" || value === "mostUsed") {
     return value;
@@ -289,22 +289,10 @@ function scheduleSystemCollectionRefresh(teamId: number, tools: string[]) {
 }
 
 function canAccessPromptByVisibility(
-  prompt: { visibility: string; ownerId: number; owner?: { ou: string | null } | null },
-  auth: { userId: number; userOu: string | null; role: string },
+  prompt: { teamId: number; visibility: string; ownerId: number; owner?: { ou: string | null } | null },
+  auth: AuthContext,
 ): boolean {
-  if (prompt.visibility === "PUBLIC") {
-    return true;
-  }
-  if (prompt.ownerId === auth.userId) {
-    return true;
-  }
-  if (isAdminOrOwner(auth.role)) {
-    return true;
-  }
-  if (prompt.visibility === "TEAM" && auth.userOu && prompt.owner?.ou === auth.userOu) {
-    return true;
-  }
-  return false;
+  return canAccessByVisibility(prompt, auth);
 }
 
 async function queuePromptThumbnailGeneration(promptId: number) {
@@ -377,37 +365,25 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
   const includeSkills = types?.includes("skill") ?? false;
   const includeContext = types?.includes("context") ?? false;
 
-  const where: Prisma.PromptWhereInput = { teamId: auth.teamId };
+  const where: Prisma.PromptWhereInput = {};
+  const whereAnd: Prisma.PromptWhereInput[] = [];
   if (mine) {
     where.ownerId = auth.userId;
-  } else if (!isAdminOrOwner(auth.role)) {
-    const visibilityConditions: Prisma.PromptWhereInput[] = [
-      { visibility: "PUBLIC" },
-      { ownerId: auth.userId },
-    ];
-    if (auth.userOu) {
-      visibilityConditions.push({
-        visibility: "TEAM",
-        owner: { ou: auth.userOu },
-      });
-    }
-    where.OR = visibilityConditions;
+    where.teamId = auth.teamId;
+  } else {
+    whereAnd.push(buildVisibilityWhereFragment(auth) as Prisma.PromptWhereInput);
   }
   if (status) {
     where.status = status;
   }
   if (q) {
-    const existingAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
-    where.AND = [
-      ...existingAnd,
-      {
-        OR: [
-          { title: { contains: q, mode: "insensitive" } },
-          { summary: { contains: q, mode: "insensitive" } },
-          { body: { contains: q, mode: "insensitive" } },
-        ],
-      },
-    ];
+    whereAnd.push({
+      OR: [
+        { title: { contains: q, mode: "insensitive" } },
+        { summary: { contains: q, mode: "insensitive" } },
+        { body: { contains: q, mode: "insensitive" } },
+      ],
+    });
   }
   if (tag) {
     where.promptTags = { some: { tag: { name: { equals: tag, mode: "insensitive" } } } };
@@ -421,6 +397,9 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
   if (modality) {
     where.modality = apiToDbModality[modality];
   }
+  if (whereAnd.length > 0) {
+    where.AND = whereAnd;
+  }
 
   const orderBy: Prisma.PromptOrderByWithRelationInput =
     sort === "topRated"
@@ -430,22 +409,9 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
         : { createdAt: "desc" as const };
 
   const publishedSnapshotWhere: Prisma.PromptWhereInput = {
-    teamId: auth.teamId,
     status: "PUBLISHED",
+    AND: [buildVisibilityWhereFragment(auth) as Prisma.PromptWhereInput],
   };
-  if (!isAdminOrOwner(auth.role)) {
-    const snapshotVisibilityConditions: Prisma.PromptWhereInput[] = [
-      { visibility: "PUBLIC" },
-      { ownerId: auth.userId },
-    ];
-    if (auth.userOu) {
-      snapshotVisibilityConditions.push({
-        visibility: "TEAM",
-        owner: { ou: auth.userOu },
-      });
-    }
-    publishedSnapshotWhere.OR = snapshotVisibilityConditions;
-  }
 
   // If types filter excludes prompts and only requests skill/context (not yet supported in unified results),
   // return empty results for now. Skills and Context will be integrated in a future update.
@@ -804,8 +770,8 @@ promptsRouter.get("/:id", async (req: Request, res: Response) => {
     return res.status(400).json(badRequestFromZodError(parsedParams.error));
   }
   const promptId = parsedParams.data.id;
-  const prompt = await prisma.prompt.findFirst({
-    where: { id: promptId, teamId: auth.teamId },
+  const prompt = await prisma.prompt.findUnique({
+    where: { id: promptId },
     include: {
       owner: { select: { id: true, name: true, avatarUrl: true, ou: true } },
       promptTags: { include: { tag: true } },
@@ -1104,9 +1070,21 @@ promptsRouter.get("/:id/versions", async (req: Request, res: Response) => {
     return res.status(400).json(badRequestFromZodError(parsedParams.error));
   }
   const promptId = parsedParams.data.id;
-  const prompt = await prisma.prompt.findFirst({ where: { id: promptId, teamId: auth.teamId }, select: { id: true } });
+  const prompt = await prisma.prompt.findUnique({
+    where: { id: promptId },
+    select: {
+      id: true,
+      teamId: true,
+      ownerId: true,
+      visibility: true,
+      owner: { select: { ou: true } },
+    },
+  });
   if (!prompt) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
+  }
+  if (!canAccessPromptByVisibility(prompt, auth)) {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this prompt." } });
   }
   const versions = await prisma.promptVersion.findMany({
     where: { promptId },
@@ -1210,9 +1188,21 @@ promptsRouter.post("/:id/favorite", async (req: Request, res: Response) => {
     return res.status(400).json(badRequestFromZodError(parsedParams.error));
   }
   const promptId = parsedParams.data.id;
-  const prompt = await prisma.prompt.findFirst({ where: { id: promptId, teamId: auth.teamId }, select: { id: true } });
+  const prompt = await prisma.prompt.findUnique({
+    where: { id: promptId },
+    select: {
+      id: true,
+      teamId: true,
+      ownerId: true,
+      visibility: true,
+      owner: { select: { ou: true } },
+    },
+  });
   if (!prompt) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
+  }
+  if (!canAccessPromptByVisibility(prompt, auth)) {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this prompt." } });
   }
 
   const existing = await prisma.favorite.findUnique({ where: { userId_promptId: { userId: auth.userId, promptId } } });
@@ -1239,12 +1229,21 @@ promptsRouter.post("/:id/rating", async (req: Request, res: Response) => {
   }
   const promptId = parsedParams.data.id;
   const value = parsedBody.data.value;
-  const prompt = await prisma.prompt.findFirst({
-    where: { id: promptId, teamId: auth.teamId },
-    select: { id: true, ownerId: true },
+  const prompt = await prisma.prompt.findUnique({
+    where: { id: promptId },
+    select: {
+      id: true,
+      teamId: true,
+      ownerId: true,
+      visibility: true,
+      owner: { select: { ou: true } },
+    },
   });
   if (!prompt) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
+  }
+  if (!canAccessPromptByVisibility(prompt, auth)) {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this prompt." } });
   }
   if (prompt.ownerId === auth.userId) {
     return res
@@ -1274,9 +1273,21 @@ promptsRouter.post("/:id/usage", async (req: Request, res: Response) => {
   }
   const promptId = parsedParams.data.id;
   const action = parsedBody.data.action;
-  const prompt = await prisma.prompt.findFirst({ where: { id: promptId, teamId: auth.teamId }, select: { id: true } });
+  const prompt = await prisma.prompt.findUnique({
+    where: { id: promptId },
+    select: {
+      id: true,
+      teamId: true,
+      ownerId: true,
+      visibility: true,
+      owner: { select: { ou: true } },
+    },
+  });
   if (!prompt) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
+  }
+  if (!canAccessPromptByVisibility(prompt, auth)) {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this prompt." } });
   }
   await prisma.usageEvent.create({ data: { promptId, userId: auth.userId, action } });
   return res.status(200).json({ data: { ok: true } });

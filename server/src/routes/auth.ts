@@ -561,6 +561,22 @@ authRouter.patch("/me", async (req: Request, res: Response) => {
   }
 
   const { name, avatarUrl, region, ou, title } = parsedBody.data;
+
+  const existingUser = await prisma.user.findUnique({
+    where: { id: sessionAuth.userId },
+    select: { ou: true },
+  });
+  const hasOuInPayload = typeof ou === "string" && ou.trim().length > 0;
+  const hasOuInDb = typeof existingUser?.ou === "string" && existingUser.ou.trim().length > 0;
+  if (!hasOuInPayload && !hasOuInDb) {
+    return res.status(400).json({
+      error: {
+        code: "OU_REQUIRED",
+        message: "Please select your Organizational Unit (OU) before continuing.",
+      },
+    });
+  }
+
   let updatedUser;
   try {
     updatedUser = await prisma.user.update({
