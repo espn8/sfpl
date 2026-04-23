@@ -1,9 +1,24 @@
 # AI Library - Technical Summary
 
-Last Updated: Thursday, April 23, 2026 — 18:15 CDT
-Build Version: e1b355d
+Last Updated: Thursday, April 23, 2026 — 18:45 CDT
+Build Version: 8ba0dfb
 
 ## Recent Changes
+
+- **Skills URL migration**: Converted Skills from text body-based assets to URL-based assets (matching Builds pattern):
+  - Removed `body` field and `SkillVariable` model from Skill
+  - Added `skillUrl` (required) and `supportUrl` (optional) fields to Skill model
+  - Migration deletes existing skills (must be recreated with URLs)
+  - Updated client API types and server routes for URL-based skills
+  - Added `isValidArchiveUrl()` helper for validating skill archive URLs
+
+- **Filter dropdown styling fix**: Fixed filter dropdown visibility issues in dark mode:
+  - Added explicit text color (`text-(--color-text)`) to all select elements in SearchBar
+  - Added `cursor-pointer` styling for better UX
+  - Added global CSS rules for native `<select>` and `<option>` elements to ensure proper colors in dark theme
+  - Added `color-scheme: dark light` for proper browser theme awareness
+
+### Previous Session Changes (April 23, 2026 — 18:15 CDT)
 
 - **Build card in homepage hero**: Added a fourth navigation card for "Builds" in the homepage hero section alongside Prompts, Skills, and Context. Updated grid layout from 3 columns to responsive 2/4 columns (`sm:grid-cols-2 lg:grid-cols-4`) for better display of all four asset types. Build card includes cube/package icon and links to `/builds`.
 
@@ -456,8 +471,7 @@ The application has achieved **substantial completion** of the core implementati
 - `Build` - pre-built solutions with `buildUrl`, `supportUrl`, thumbnails, and engagement tracking
 - `PromptVersion` - version history for prompts
 - `PromptVariable` - dynamic variable definitions for prompts
-- `Skill` - markdown body skill documents (team-scoped)
-- `SkillVariable` - dynamic variable definitions for skills
+- `Skill` - URL-based skill documents with `skillUrl` and `supportUrl` (team-scoped)
 - `SkillFavorite` - user favorites for skills
 - `SkillRating` - user ratings for skills (1-5 stars)
 - `SkillUsageEvent` - VIEW/COPY/SHARE tracking (skills)
@@ -496,7 +510,7 @@ The application has achieved **substantial completion** of the core implementati
 | `assets.ts` | `GET /` (unified asset listing with type/tool/status/search filters, sort options, pagination, and facet counts) |
 | `search.ts` | `GET /suggestions` (asset/filter suggestions), `GET /parse` (natural language query parsing via Gemini) |
 | `prompts.ts` | Full CRUD, `DELETE /:id/permanent`, `/versions`, `/restore/:version`, `/favorite`, `/rating`, `/usage`, `/regenerate-thumbnail` |
-| `skills.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `DELETE /:id/permanent`, `POST /:id/usage`, `POST /:id/favorite`, `POST /:id/rating`, `PUT /:id/variables`, `POST /:id/collections/:collectionId`, `DELETE /:id/collections/:collectionId` |
+| `skills.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `DELETE /:id/permanent`, `POST /:id/usage`, `POST /:id/favorite`, `POST /:id/rating`, `POST /:id/collections/:collectionId`, `DELETE /:id/collections/:collectionId` |
 | `context.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `DELETE /:id/permanent`, `POST /:id/usage`, `POST /:id/favorite`, `POST /:id/rating`, `PUT /:id/variables`, `POST /:id/collections/:collectionId`, `DELETE /:id/collections/:collectionId` |
 | `builds.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id` (archive), `DELETE /:id/permanent`, `POST /:id/usage`, `POST /:id/favorite`, `POST /:id/rating`, `POST /:id/regenerate-thumbnail`, `POST /:id/collections/:collectionId`, `DELETE /:id/collections/:collectionId` |
 | `collections.ts` | CRUD + `/prompts/:promptId` membership + `/users/:userId` membership + `POST /system/refresh` (admin-only system collection refresh) |
@@ -540,7 +554,7 @@ The application has achieved **substantial completion** of the core implementati
 ### Major Modules and Why They Exist
 
 - `server/src/routes/prompts.ts`: primary prompt API with filtering, sorting, pagination, CRUD, versions, and engagement.
-- `server/src/routes/skills.ts`: skill CRUD with team scoping, search, archive (soft delete), and usage tracking.
+- `server/src/routes/skills.ts`: URL-based skill CRUD with team scoping, search, archive (soft delete), and usage tracking. Skills now use `skillUrl` and `supportUrl` instead of text body.
 - `server/src/routes/context.ts`: context document CRUD with team scoping, search, archive, and usage tracking.
 - `server/src/routes/builds.ts`: build CRUD with team scoping, visibility control, favorites, ratings, usage events, collection membership, and thumbnail generation.
 - `server/src/routes/search.ts`: smart search API with asset/filter suggestions and natural language query parsing.

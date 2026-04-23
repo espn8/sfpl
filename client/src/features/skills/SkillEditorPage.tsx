@@ -1,19 +1,18 @@
 import { useMutation } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PublishStatusModal } from "../../components/PublishStatusModal";
-import { VariableEditor, type VariableRow } from "../../components/VariableEditor";
 import { sanitizeTitle } from "../../lib/sanitizeTitle";
 import { ToolRequestModal } from "../prompts/ToolRequestModal";
-import { createSkill, getSkillToolsSortedAlphabetically, getSkillToolLabel, type SkillTool } from "./api";
+import { createSkill, getSkillToolsSortedAlphabetically, getSkillToolLabel, isValidArchiveUrl, ARCHIVE_EXTENSIONS, type SkillTool } from "./api";
 
 type PendingSkillData = {
   title: string;
   summary?: string;
-  body: string;
+  skillUrl: string;
+  supportUrl?: string;
   visibility: "PUBLIC" | "TEAM" | "PRIVATE";
   tools: SkillTool[];
-  variables?: Array<{ key: string; label: string | null; defaultValue: string; required: boolean }>;
 };
 
 export function SkillEditorPage() {
@@ -24,26 +23,14 @@ export function SkillEditorPage() {
   const [showToolRequestModal, setShowToolRequestModal] = useState(false);
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [pendingFormData, setPendingFormData] = useState<PendingSkillData | null>(null);
-  const [variableRows, setVariableRows] = useState<VariableRow[]>([]);
-  const [bodyText, setBodyText] = useState("");
-  const bodyRef = useRef<HTMLTextAreaElement>(null);
 
-  const insertVariable = (key: string) => {
-    const textarea = bodyRef.current;
-    if (!textarea) return;
-
-    const placeholder = `[${key}]`;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-
-    const newText = bodyText.slice(0, start) + placeholder + bodyText.slice(end);
-    setBodyText(newText);
-
-    requestAnimationFrame(() => {
-      textarea.focus();
-      const newPos = start + placeholder.length;
-      textarea.setSelectionRange(newPos, newPos);
-    });
+  const isValidUrl = (url: string): boolean => {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   const createMutation = useMutation({
@@ -75,15 +62,29 @@ export function SkillEditorPage() {
         const formData = new FormData(event.currentTarget);
         const title = sanitizeTitle(String(formData.get("title") ?? ""));
         const summary = String(formData.get("summary") ?? "").trim();
-        const body = bodyText.trim();
+        const skillUrl = String(formData.get("skillUrl") ?? "").trim();
+        const supportUrl = String(formData.get("supportUrl") ?? "").trim();
         const visibility = String(formData.get("visibility") ?? "PUBLIC") as "PUBLIC" | "TEAM" | "PRIVATE";
         const toolsArray = Array.from(selectedTools);
+
         if (!title) {
           setValidationError("Title is required.");
           return;
         }
-        if (!body) {
-          setValidationError("Body is required.");
+        if (!skillUrl) {
+          setValidationError("Skill URL is required.");
+          return;
+        }
+        if (!isValidUrl(skillUrl)) {
+          setValidationError("Skill URL must be a valid URL.");
+          return;
+        }
+        if (!isValidArchiveUrl(skillUrl)) {
+          setValidationError(`Skill URL must link to a compressed file (${ARCHIVE_EXTENSIONS.join(", ")}).`);
+          return;
+        }
+        if (supportUrl && !isValidUrl(supportUrl)) {
+          setValidationError("Documentation URL must be a valid URL if provided.");
           return;
         }
         if (toolsArray.length === 0) {
@@ -94,37 +95,34 @@ export function SkillEditorPage() {
           setValidationError("Please enter the tool name for 'Other'.");
           return;
         }
-        const variables = variableRows
-          .map((row) => ({
-            key: row.key.trim(),
-            label: row.label.trim() || null,
-            defaultValue: row.defaultValue,
-            required: row.required,
-          }))
-          .filter((row) => row.key.length > 0);
         
         setPendingFormData({
           title,
           summary: summary || undefined,
-          body,
+          skillUrl,
+          supportUrl: supportUrl || undefined,
           visibility,
           tools: toolsArray,
-          variables: variables.length > 0 ? variables : undefined,
         });
         setShowPublishModal(true);
       }}
     >
-      <h2 className="text-2xl font-semibold">Create skill</h2>
-      <p className="text-sm text-(--color-text-muted)">Body supports Markdown.</p>
+      <h2 className="text-2xl font-semibold">Create Skill</h2>
+      <div className="rounded-lg border border-(--color-border) bg-(--color-surface-muted) p-4">
+        <p className="text-sm text-(--color-text-muted)">
+          <strong>Skills</strong> are downloadable assets like plugins, extensions, or toolkits. 
+          Provide a URL to a compressed file (.zip, .tar.gz, etc.) and optional documentation.
+        </p>
+      </div>
       <input
         name="title"
-        placeholder="Title"
+        placeholder="Skill name"
         required
         className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
       />
       <input
         name="summary"
-        placeholder="Summary (optional)"
+        placeholder="Summary (optional) - Brief description of what this skill does"
         className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
       />
       <select
@@ -190,16 +188,39 @@ export function SkillEditorPage() {
         )}
         <ToolRequestModal isOpen={showToolRequestModal} onClose={() => setShowToolRequestModal(false)} />
       </div>
-      <textarea
-        ref={bodyRef}
-        name="body"
-        value={bodyText}
-        onChange={(e) => setBodyText(e.target.value)}
-        placeholder="Write your skill instructions here. Use [VARIABLE] or {{VARIABLE}} for customizable fields."
-        rows={16}
-        className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2 font-mono text-sm"
-      />
-      <VariableEditor variables={variableRows} onChange={setVariableRows} onInsert={insertVariable} />
+
+      <div className="space-y-3 rounded border border-(--color-border) bg-(--color-surface-muted) p-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Skill URL <span className="text-red-500">*</span>
+          </label>
+          <input
+            name="skillUrl"
+            type="url"
+            placeholder="https://example.com/my-skill.zip"
+            required
+            className="w-full rounded border border-(--color-border) bg-(--color-surface) px-3 py-2"
+          />
+          <p className="mt-1 text-xs text-(--color-text-muted)">
+            Link to the skill package file. Must be a compressed file ({ARCHIVE_EXTENSIONS.join(", ")}).
+          </p>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Documentation URL <span className="text-(--color-text-muted)">(optional)</span>
+          </label>
+          <input
+            name="supportUrl"
+            type="url"
+            placeholder="https://docs.example.com/readme"
+            className="w-full rounded border border-(--color-border) bg-(--color-surface) px-3 py-2"
+          />
+          <p className="mt-1 text-xs text-(--color-text-muted)">
+            Link to documentation, README, help page, or any supporting resources
+          </p>
+        </div>
+      </div>
+
       {validationError ? (
         <p className="text-sm text-red-600" role="alert">
           {validationError}

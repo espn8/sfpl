@@ -14,7 +14,24 @@ const promptStatusSchema = z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]);
 const SKILL_TOOLS = ["chatgpt", "claude_code", "claude_cowork", "cursor", "gemini", "meshmesh", "notebooklm", "other", "saleo", "slackbot"] as const;
 const skillToolSchema = z.enum(SKILL_TOOLS);
 
-const MAX_BODY_LENGTH = 500_000;
+const ARCHIVE_EXTENSIONS = [".zip", ".tar", ".tar.gz", ".tgz", ".tar.bz2", ".7z", ".rar"];
+
+function isValidArchiveUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const pathname = parsed.pathname.toLowerCase();
+    return ARCHIVE_EXTENSIONS.some((ext) => pathname.endsWith(ext));
+  } catch {
+    return false;
+  }
+}
+
+const skillUrlSchema = z
+  .string()
+  .url("skillUrl must be a valid URL.")
+  .refine(isValidArchiveUrl, {
+    message: "skillUrl must link to a compressed file (.zip, .tar, .tar.gz, .tgz, .tar.bz2, .7z, or .rar).",
+  });
 
 function badRequestFromZodError(error: z.ZodError) {
   return {
@@ -68,73 +85,22 @@ const usageBodySchema = z.object({
   eventType: z.enum(["VIEW", "COPY"]),
 });
 
-const skillVariableItemSchema = z.object({
-  key: z
-    .string()
-    .trim()
-    .min(1, "variable key is required.")
-    .max(64, "variable key is too long.")
-    .regex(/^[A-Za-z][A-Za-z0-9_]*$/, "variable key must start with a letter and use letters, numbers, or underscores."),
-  label: z.string().trim().max(200).optional().nullable(),
-  defaultValue: z.string().max(20000).optional().nullable(),
-  required: z.boolean().optional(),
+const createSkillBodySchema = z.object({
+  title: z.string().trim().min(1, "title is required."),
+  summary: z.string().trim().optional(),
+  skillUrl: skillUrlSchema,
+  supportUrl: z.string().url("supportUrl must be a valid URL.").optional().or(z.literal("")),
+  visibility: promptVisibilitySchema.optional(),
+  status: promptStatusSchema.optional(),
+  tools: z.array(z.union([skillToolSchema, z.string()])).optional(),
 });
-
-const replaceSkillVariablesBodySchema = z
-  .object({
-    variables: z.array(skillVariableItemSchema).max(40, "too many variables."),
-  })
-  .superRefine((value, ctx) => {
-    const keys = value.variables.map((item) => item.key);
-    const seen = new Set<string>();
-    for (let index = 0; index < keys.length; index += 1) {
-      const key = keys[index];
-      if (seen.has(key)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Duplicate variable key: ${key}.`,
-          path: ["variables", index, "key"],
-        });
-        return;
-      }
-      seen.add(key);
-    }
-  });
-
-const createSkillBodySchema = z
-  .object({
-    title: z.string().trim().min(1, "title is required."),
-    summary: z.string().trim().optional(),
-    body: z.string().min(1, "body is required.").max(MAX_BODY_LENGTH, "body is too long."),
-    visibility: promptVisibilitySchema.optional(),
-    status: promptStatusSchema.optional(),
-    tools: z.array(z.union([skillToolSchema, z.string()])).optional(),
-    variables: z.array(skillVariableItemSchema).max(40).optional(),
-  })
-  .superRefine((value, ctx) => {
-    if (!value.variables?.length) {
-      return;
-    }
-    const seen = new Set<string>();
-    for (let index = 0; index < value.variables.length; index += 1) {
-      const key = value.variables[index].key;
-      if (seen.has(key)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Duplicate variable key: ${key}.`,
-          path: ["variables", index, "key"],
-        });
-        return;
-      }
-      seen.add(key);
-    }
-  });
 
 const updateSkillBodySchema = z
   .object({
     title: z.string().trim().optional(),
     summary: z.string().trim().optional(),
-    body: z.string().min(1).max(MAX_BODY_LENGTH, "body is too long.").optional(),
+    skillUrl: skillUrlSchema.optional(),
+    supportUrl: z.string().url("supportUrl must be a valid URL.").optional().or(z.literal("")),
     visibility: promptVisibilitySchema.optional(),
     status: promptStatusSchema.optional(),
     tools: z.array(z.union([skillToolSchema, z.string()])).optional(),
@@ -162,7 +128,7 @@ function serializeSkill<T extends { owner: { id: number; name: string | null; av
 async function queueSkillThumbnailGeneration(skillId: number) {
   const skill = await prisma.skill.findUnique({
     where: { id: skillId },
-    select: { id: true, title: true, summary: true, body: true },
+    select: { id: true, title: true, summary: true },
   });
   if (!skill) {
     console.warn(`[Thumbnail] Skill ${skillId} not found, skipping thumbnail generation.`);
@@ -175,7 +141,7 @@ async function queueSkillThumbnailGeneration(skillId: number) {
     const thumbnailUrl = await generatePromptThumbnail({
       title: skill.title,
       summary: skill.summary,
-      body: skill.body,
+      body: skill.summary || skill.title,
     });
     await prisma.skill.update({
       where: { id: skillId },
@@ -252,7 +218,6 @@ skillsRouter.get("/", async (req: Request, res: Response) => {
         OR: [
           { title: { contains: q, mode: "insensitive" } },
           { summary: { contains: q, mode: "insensitive" } },
-          { body: { contains: q, mode: "insensitive" } },
         ],
       },
     ];
@@ -270,7 +235,8 @@ skillsRouter.get("/", async (req: Request, res: Response) => {
         id: true,
         title: true,
         summary: true,
-        body: true,
+        skillUrl: true,
+        supportUrl: true,
         status: true,
         visibility: true,
         tools: true,
@@ -281,7 +247,6 @@ skillsRouter.get("/", async (req: Request, res: Response) => {
         createdAt: true,
         updatedAt: true,
         owner: { select: { id: true, name: true, avatarUrl: true } },
-        variables: { select: { id: true, key: true, label: true, defaultValue: true, required: true } },
       },
       orderBy,
       skip,
@@ -358,7 +323,7 @@ skillsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
     return res.status(400).json(badRequestFromZodError(parsedBody.error));
   }
 
-  const { title, summary, body, visibility, status, tools, variables } = parsedBody.data;
+  const { title, summary, skillUrl, supportUrl, visibility, status, tools } = parsedBody.data;
 
   const skill = await prisma.skill.create({
     data: {
@@ -366,27 +331,16 @@ skillsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
       ownerId: auth.userId,
       title: title.trim(),
       summary: summary?.trim() || null,
-      body,
+      skillUrl,
+      supportUrl: supportUrl || null,
       visibility: visibility ?? "PUBLIC",
       status: status ?? "DRAFT",
       tools: tools ?? [],
       thumbnailStatus: "PENDING",
       thumbnailError: null,
-      variables:
-        variables && variables.length > 0
-          ? {
-              create: variables.map((item) => ({
-                key: item.key.trim(),
-                label: item.label?.trim() || null,
-                defaultValue: typeof item.defaultValue === "string" ? item.defaultValue : null,
-                required: item.required ?? false,
-              })),
-            }
-          : undefined,
     },
     include: {
       owner: { select: { id: true, name: true, avatarUrl: true } },
-      variables: { select: { id: true, key: true, label: true, defaultValue: true, required: true } },
     },
   });
 
@@ -420,7 +374,8 @@ skillsRouter.get("/:id", async (req: Request, res: Response) => {
       ownerId: true,
       title: true,
       summary: true,
-      body: true,
+      skillUrl: true,
+      supportUrl: true,
       visibility: true,
       status: true,
       tools: true,
@@ -431,7 +386,6 @@ skillsRouter.get("/:id", async (req: Request, res: Response) => {
       createdAt: true,
       updatedAt: true,
       owner: { select: { id: true, name: true, avatarUrl: true, ou: true } },
-      variables: { select: { id: true, key: true, label: true, defaultValue: true, required: true } },
     },
   });
 
@@ -502,75 +456,18 @@ skillsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respons
     data: {
       title: typeof u.title === "string" ? u.title.trim() : undefined,
       summary: typeof u.summary === "string" ? u.summary.trim() || null : undefined,
-      body: typeof u.body === "string" ? u.body : undefined,
+      skillUrl: u.skillUrl,
+      supportUrl: typeof u.supportUrl === "string" ? u.supportUrl || null : undefined,
       visibility: u.visibility,
       status: u.status,
       tools: u.tools,
     },
     include: {
       owner: { select: { id: true, name: true, avatarUrl: true } },
-      variables: { select: { id: true, key: true, label: true, defaultValue: true, required: true } },
     },
   });
 
   return res.status(200).json({ data: serializeSkill(updated) });
-});
-
-skillsRouter.put("/:id/variables", async (req: Request, res: Response) => {
-  const auth = getAuthContext(req);
-  if (!auth) {
-    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
-  }
-
-  const parsedParams = skillIdParamsSchema.safeParse(req.params);
-  if (!parsedParams.success) {
-    return res.status(400).json(badRequestFromZodError(parsedParams.error));
-  }
-  const parsedBody = replaceSkillVariablesBodySchema.safeParse(req.body);
-  if (!parsedBody.success) {
-    return res.status(400).json(badRequestFromZodError(parsedBody.error));
-  }
-
-  const skillId = parsedParams.data.id;
-  const existing = await prisma.skill.findFirst({ where: { id: skillId, teamId: auth.teamId } });
-  if (!existing) {
-    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not found." } });
-  }
-
-  if (existing.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
-    return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can modify this skill." } });
-  }
-
-  const rows = parsedBody.data.variables.map((item) => ({
-    skillId,
-    key: item.key.trim(),
-    label: item.label?.trim() || null,
-    defaultValue: typeof item.defaultValue === "string" ? item.defaultValue : null,
-    required: item.required ?? false,
-  }));
-
-  const transactionSteps = [prisma.skillVariable.deleteMany({ where: { skillId } })];
-  if (rows.length > 0) {
-    transactionSteps.push(prisma.skillVariable.createMany({ data: rows }));
-  }
-  await prisma.$transaction(transactionSteps);
-
-  const skill = await prisma.skill.findFirst({
-    where: { id: skillId, teamId: auth.teamId },
-    include: {
-      owner: { select: { id: true, name: true, avatarUrl: true, ou: true } },
-      variables: { select: { id: true, key: true, label: true, defaultValue: true, required: true } },
-    },
-  });
-
-  if (!skill) {
-    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not found." } });
-  }
-  if (!canAccessByVisibility(skill, auth)) {
-    return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this skill." } });
-  }
-
-  return res.status(200).json({ data: serializeSkill(skill) });
 });
 
 skillsRouter.delete("/:id", requireWriteAccess, async (req: Request, res: Response) => {
@@ -629,7 +526,6 @@ skillsRouter.delete("/:id/permanent", requireWriteAccess, async (req: Request, r
     prisma.skillUsageEvent.deleteMany({ where: { skillId } }),
     prisma.skillFavorite.deleteMany({ where: { skillId } }),
     prisma.skillRating.deleteMany({ where: { skillId } }),
-    prisma.skillVariable.deleteMany({ where: { skillId } }),
     prisma.skill.delete({ where: { id: skillId } }),
   ]);
 

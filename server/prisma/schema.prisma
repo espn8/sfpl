@@ -94,7 +94,8 @@ model Skill {
   ownerId         Int
   title           String
   summary         String?
-  body            String
+  skillUrl        String
+  supportUrl      String?
   visibility      PromptVisibility @default(PUBLIC)
   status          PromptStatus     @default(DRAFT)
   tools           String[]         @default([])
@@ -108,7 +109,6 @@ model Skill {
   owner           User             @relation(fields: [ownerId], references: [id], onDelete: Restrict)
   favorites       SkillFavorite[]
   usageEvents     SkillUsageEvent[]
-  variables       SkillVariable[]
   ratings         SkillRating[]
   collections     CollectionSkill[]
 
@@ -315,17 +315,6 @@ model PromptVariable {
   @@unique([promptId, key])
 }
 
-model SkillVariable {
-  id           Int      @id @default(autoincrement())
-  skillId      Int
-  key          String
-  label        String?
-  defaultValue String?
-  required     Boolean  @default(false)
-  skill        Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
-
-  @@unique([skillId, key])
-}
 
 model ContextVariable {
   id           Int             @id @default(autoincrement())

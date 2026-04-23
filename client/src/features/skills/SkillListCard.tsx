@@ -7,7 +7,6 @@ import { logSkillUsage, rateSkill, toggleSkillFavorite, type Skill } from "./api
 import { getToolLabel } from "../prompts/api";
 import {
   CalendarIcon,
-  CopyIcon,
   EyeIcon,
   HeartIcon,
   ShareIcon,
@@ -16,6 +15,16 @@ import { formatPromptActivityLabel } from "../prompts/promptActivityLabel";
 import { promptOwnerAvatarUrl } from "../prompts/promptTagChips";
 import { PromptAverageStars, PromptRateStars } from "../prompts/PromptStars";
 import { AssetBadges } from "../assets/badges";
+
+function DownloadIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" strokeLinecap="round" strokeLinejoin="round" />
+      <polyline points="7 10 12 15 17 10" strokeLinecap="round" strokeLinejoin="round" />
+      <line x1="12" y1="15" x2="12" y2="3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 type SkillListCardProps = {
   skill: Skill;
@@ -80,11 +89,10 @@ export function SkillListCard({ skill, variant = "default", showAnalytics = fals
     }
   };
 
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(skill.body);
+  const handleDownload = () => {
+    window.open(skill.skillUrl, "_blank", "noopener,noreferrer");
     void logSkillUsage(skill.id, "COPY");
-    trackEvent("skill_copy", { skill_id: skill.id, source: "list" });
-    showToast("Copied to clipboard");
+    trackEvent("skill_download", { skill_id: skill.id, source: "list" });
   };
 
   return (
@@ -225,11 +233,11 @@ export function SkillListCard({ skill, variant = "default", showAnalytics = fals
             <button
               type="button"
               className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors bg-[#5A1BA9] text-white hover:bg-[#4A1589]"
-              aria-label="Copy skill"
-              onClick={handleCopy}
+              aria-label="Download skill"
+              onClick={handleDownload}
             >
-              <CopyIcon className="h-4 w-4" />
-              Copy
+              <DownloadIcon className="h-4 w-4" />
+              Download
             </button>
           </div>
         </div>

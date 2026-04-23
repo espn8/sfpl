@@ -96,7 +96,9 @@ type UnifiedAsset = {
   assetType: AssetType;
   title: string;
   summary: string | null;
-  body: string;
+  body?: string;
+  skillUrl?: string;
+  supportUrl?: string | null;
   status: string;
   visibility: string;
   tools: string[];
@@ -329,7 +331,6 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
           OR: [
             { title: { contains: q, mode: "insensitive" } },
             { summary: { contains: q, mode: "insensitive" } },
-            { body: { contains: q, mode: "insensitive" } },
           ],
         },
       ];
@@ -354,7 +355,8 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         id: true,
         title: true,
         summary: true,
-        body: true,
+        skillUrl: true,
+        supportUrl: true,
         status: true,
         visibility: true,
         tools: true,
@@ -364,7 +366,6 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         createdAt: true,
         updatedAt: true,
         owner: { select: { id: true, name: true, avatarUrl: true } },
-        variables: { select: { key: true, label: true, defaultValue: true, required: true } },
       },
       orderBy: skillOrderBy,
       take: pageSize * 3,
@@ -425,7 +426,8 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         assetType: "skill",
         title: skill.title,
         summary: skill.summary,
-        body: skill.body,
+        skillUrl: skill.skillUrl,
+        supportUrl: skill.supportUrl,
         status: skill.status,
         visibility: skill.visibility,
         tools: skill.tools,
@@ -441,7 +443,6 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         ratingCount: ratingInfo?.count ?? 0,
         averageRating: ratingInfo?.avg ?? null,
         myRating: myRatingBySkill.get(skill.id) ?? null,
-        variables: skill.variables,
         isSmartPick: skill.isSmartPick,
       });
     }

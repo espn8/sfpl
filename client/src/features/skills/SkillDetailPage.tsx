@@ -1,28 +1,43 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
 import { ConfirmDeleteModal } from "../../components/ConfirmDeleteModal";
-import { MarkdownPreview } from "../../components/MarkdownPreview";
-import { VariableInputs } from "../../components/VariableInputs";
-import { interpolateBody } from "../../lib/interpolate";
-import { buildShareUrl, copyToClipboard, downloadAsMarkdown, shareOrCopyLink } from "../../lib/shareOrCopyLink";
+import { buildShareUrl, shareOrCopyLink } from "../../lib/shareOrCopyLink";
 import { fetchMe } from "../auth/api";
 import { canCreateContent } from "../auth/roles";
 import { archiveSkill, deleteSkillPermanently, getSkill, logSkillUsage, rateSkill, regenerateSkillThumbnail, toggleSkillFavorite, getSkillToolLabel } from "./api";
-import { CopyIcon, DownloadIcon, HeartIcon, ShareIcon } from "../prompts/promptActionIcons";
+import { HeartIcon, ShareIcon } from "../prompts/promptActionIcons";
 import { PromptThumbnail } from "../prompts/PromptThumbnail";
 import { PromptAverageStars, PromptRateStars } from "../prompts/PromptStars";
 import { AssetCollectionMenu } from "../../components/AssetCollectionMenu";
 import { AssetBadges } from "../assets/badges";
 
-type ViewMode = "preview" | "raw";
+function DownloadIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" strokeLinecap="round" strokeLinejoin="round" />
+      <polyline points="7 10 12 15 17 10" strokeLinecap="round" strokeLinejoin="round" />
+      <line x1="12" y1="15" x2="12" y2="3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function DocumentIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" strokeLinecap="round" strokeLinejoin="round" />
+      <polyline points="14 2 14 8 20 8" strokeLinecap="round" strokeLinejoin="round" />
+      <line x1="16" y1="13" x2="8" y2="13" strokeLinecap="round" strokeLinejoin="round" />
+      <line x1="16" y1="17" x2="8" y2="17" strokeLinecap="round" strokeLinejoin="round" />
+      <polyline points="10 9 9 9 8 9" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 export function SkillDetailPage() {
-  const [viewMode, setViewMode] = useState<ViewMode>("preview");
   const [favorited, setFavorited] = useState(false);
   const [myRating, setMyRating] = useState<number | null>(null);
-  const [variableValues, setVariableValues] = useState<Record<string, string>>({});
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const params = useParams();
   const skillId = Number(params.id);
@@ -87,11 +102,6 @@ export function SkillDetailPage() {
     if (skillQuery.data) {
       setFavorited(skillQuery.data.favorited ?? false);
       setMyRating(skillQuery.data.myRating ?? null);
-      const next: Record<string, string> = {};
-      for (const variable of skillQuery.data.variables ?? []) {
-        next[variable.key] = variable.defaultValue ?? "";
-      }
-      setVariableValues(next);
     }
   }, [skillQuery.data?.id, skillQuery.data?.favorited, skillQuery.data?.myRating]);
 
@@ -103,17 +113,6 @@ export function SkillDetailPage() {
   }, [skillId]);
 
   const skill = skillQuery.data;
-
-  const composed = useMemo(() => {
-    if (!skill) {
-      return { text: "", missingRequiredKeys: [] as string[] };
-    }
-    const variables = skill.variables ?? [];
-    if (variables.length === 0) {
-      return { text: skill.body, missingRequiredKeys: [] as string[] };
-    }
-    return interpolateBody(skill.body, variables, variableValues);
-  }, [skill, variableValues]);
 
   if (!Number.isInteger(skillId) || skillId <= 0) {
     return <p className="text-sm text-(--color-text-muted)">Invalid skill.</p>;
@@ -137,7 +136,6 @@ export function SkillDetailPage() {
   const favoriteCount = skill.favoriteCount ?? 0;
   const ratingCount = skill.ratingCount ?? 0;
   const averageRating = skill.averageRating ?? null;
-  const hasVariables = (skill.variables?.length ?? 0) > 0;
 
   const shareUrl = buildShareUrl(`/skills/${skillId}`);
 
@@ -146,16 +144,8 @@ export function SkillDetailPage() {
     trackEvent("skill_share", { skill_id: skillId, source: "detail" });
   };
 
-  const handleCopyContent = async () => {
-    const success = await copyToClipboard(composed.text);
-    if (success) {
-      trackEvent("skill_copy", { skill_id: skillId, source: "detail" });
-    }
-  };
-
-  const handleDownload = () => {
-    const safeTitle = skill.title.replace(/[^a-zA-Z0-9-_]/g, "_").slice(0, 50);
-    downloadAsMarkdown(composed.text, `${safeTitle}.md`);
+  const handleDownloadSkill = () => {
+    void logSkillUsage(skillId, "COPY");
     trackEvent("skill_download", { skill_id: skillId, source: "detail" });
   };
 
@@ -248,7 +238,7 @@ export function SkillDetailPage() {
           <span className="font-semibold">Views:</span> {viewCount.toLocaleString()}
         </p>
         <p className="rounded border border-(--color-border) px-3 py-2">
-          <span className="font-semibold">Copies:</span> {copyCount.toLocaleString()}
+          <span className="font-semibold">Downloads:</span> {copyCount.toLocaleString()}
         </p>
         <p className="rounded border border-(--color-border) px-3 py-2">
           <span className="font-semibold">Favorites:</span> {favoriteCount.toLocaleString()}
@@ -274,22 +264,6 @@ export function SkillDetailPage() {
         <button
           type="button"
           className="rounded-md border border-transparent p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text)"
-          aria-label="Copy skill content"
-          onClick={() => void handleCopyContent()}
-        >
-          <CopyIcon className="h-5 w-5" />
-        </button>
-        <button
-          type="button"
-          className="rounded-md border border-transparent p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text)"
-          aria-label="Download as .md file"
-          onClick={handleDownload}
-        >
-          <DownloadIcon className="h-5 w-5" />
-        </button>
-        <button
-          type="button"
-          className="rounded-md border border-transparent p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text)"
           aria-label="Share skill link"
           onClick={() => void handleShare()}
         >
@@ -310,103 +284,35 @@ export function SkillDetailPage() {
         </button>
       </div>
 
-      {hasVariables ? (
-        <section className="space-y-3 rounded border border-(--color-border) bg-(--color-surface) p-4">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-(--color-text-muted)">Template</h3>
-          <p className="text-xs text-(--color-text-muted)">
-            This skill uses variables. Fill them in below to see your customized version.
-          </p>
-          <pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded border border-(--color-border) bg-(--color-surface-muted) p-3 text-sm">
-            {skill.body}
-          </pre>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-(--color-text-muted)">Variables</h3>
-          <VariableInputs
-            variables={skill.variables ?? []}
-            values={variableValues}
-            onChange={setVariableValues}
-          />
-          {composed.missingRequiredKeys.length > 0 ? (
-            <p className="text-sm text-(--color-danger)">
-              Fill required variables: {composed.missingRequiredKeys.join(", ")}
-            </p>
+      <section className="space-y-4 rounded-lg border border-(--color-border) bg-(--color-surface-muted) p-6">
+        <h2 className="text-lg font-semibold">Download Skill</h2>
+        <div className="flex flex-wrap gap-3">
+          <a
+            href={skill.skillUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={handleDownloadSkill}
+            className="inline-flex items-center gap-2 rounded-xl border border-(--color-primary) bg-(--color-primary) px-6 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-(--color-primary-hover)"
+          >
+            <DownloadIcon className="h-5 w-5" />
+            Download Skill
+          </a>
+          {skill.supportUrl ? (
+            <a
+              href={skill.supportUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-xl border border-(--color-border) bg-(--color-surface) px-6 py-3 text-base font-semibold shadow-sm transition-colors hover:bg-(--color-surface-muted)"
+            >
+              <DocumentIcon className="h-5 w-5" />
+              View Documentation
+            </a>
           ) : null}
-          <div>
-            <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-(--color-text-muted)">Preview</h3>
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex rounded-md border border-(--color-border) bg-(--color-surface) p-0.5">
-                <button
-                  type="button"
-                  onClick={() => setViewMode("preview")}
-                  className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
-                    viewMode === "preview"
-                      ? "bg-(--color-primary) text-(--color-text-inverse)"
-                      : "text-(--color-text-muted) hover:text-(--color-text)"
-                  }`}
-                >
-                  Preview
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode("raw")}
-                  className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
-                    viewMode === "raw"
-                      ? "bg-(--color-primary) text-(--color-text-inverse)"
-                      : "text-(--color-text-muted) hover:text-(--color-text)"
-                  }`}
-                >
-                  Raw
-                </button>
-              </div>
-            </div>
-            {viewMode === "preview" ? (
-              <div className="mt-3 max-h-128 overflow-auto">
-                <MarkdownPreview content={composed.text} />
-              </div>
-            ) : (
-              <pre className="mt-3 max-h-128 overflow-auto whitespace-pre-wrap rounded border border-(--color-border) bg-(--color-surface-muted) p-3 font-mono text-sm">
-                {composed.text}
-              </pre>
-            )}
-          </div>
-        </section>
-      ) : (
-        <section className="rounded-lg border border-(--color-border) bg-(--color-surface-muted) p-4">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold text-(--color-text-muted)">Body (Markdown)</h2>
-            <div className="flex rounded-md border border-(--color-border) bg-(--color-surface) p-0.5">
-              <button
-                type="button"
-                onClick={() => setViewMode("preview")}
-                className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
-                  viewMode === "preview"
-                    ? "bg-(--color-primary) text-(--color-text-inverse)"
-                    : "text-(--color-text-muted) hover:text-(--color-text)"
-                }`}
-              >
-                Preview
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("raw")}
-                className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
-                  viewMode === "raw"
-                    ? "bg-(--color-primary) text-(--color-text-inverse)"
-                    : "text-(--color-text-muted) hover:text-(--color-text)"
-                }`}
-              >
-                Raw
-              </button>
-            </div>
-          </div>
-          {viewMode === "preview" ? (
-            <div className="mt-3 max-h-128 overflow-auto">
-              <MarkdownPreview content={skill.body} />
-            </div>
-          ) : (
-            <pre className="mt-3 max-h-128 overflow-auto whitespace-pre-wrap font-mono text-sm">{skill.body}</pre>
-          )}
-        </section>
-      )}
+        </div>
+        <p className="text-sm text-(--color-text-muted)">
+          Skill URL: <a href={skill.skillUrl} target="_blank" rel="noopener noreferrer" className="text-(--color-primary) hover:underline">{skill.skillUrl}</a>
+        </p>
+      </section>
 
       <ConfirmDeleteModal
         isOpen={showDeleteModal}

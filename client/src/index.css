@@ -20,3 +20,12 @@ body {
 .link:hover {
   color: var(--color-primary-hover);
 }
+
+select {
+  color-scheme: dark light;
+}
+
+select option {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+}

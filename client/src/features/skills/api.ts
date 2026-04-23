@@ -25,14 +25,6 @@ export type SkillOwner = {
   avatarUrl: string | null;
 };
 
-export type SkillVariable = {
-  id: number;
-  key: string;
-  label: string | null;
-  defaultValue: string | null;
-  required: boolean;
-};
-
 export type SkillRating = {
   value: number;
 };
@@ -41,7 +33,8 @@ export type Skill = {
   id: number;
   title: string;
   summary: string | null;
-  body: string;
+  skillUrl: string;
+  supportUrl: string | null;
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   visibility: "PUBLIC" | "TEAM" | "PRIVATE";
   tools: string[];
@@ -51,7 +44,6 @@ export type Skill = {
   createdAt: string;
   updatedAt: string;
   owner: SkillOwner;
-  variables?: SkillVariable[];
   viewCount?: number;
   copyCount?: number;
   favoriteCount?: number;
@@ -89,21 +81,14 @@ export async function getSkill(id: number): Promise<Skill> {
   return data.data;
 }
 
-export type SkillVariableInput = {
-  key: string;
-  label?: string | null;
-  defaultValue?: string | null;
-  required?: boolean;
-};
-
 export type CreateSkillInput = {
   title: string;
   summary?: string;
-  body: string;
+  skillUrl: string;
+  supportUrl?: string;
   visibility?: "PUBLIC" | "TEAM" | "PRIVATE";
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   tools?: string[];
-  variables?: SkillVariableInput[];
 };
 
 export async function createSkill(input: CreateSkillInput): Promise<Skill> {
@@ -114,7 +99,8 @@ export async function createSkill(input: CreateSkillInput): Promise<Skill> {
 export type UpdateSkillInput = Partial<{
   title: string;
   summary: string;
-  body: string;
+  skillUrl: string;
+  supportUrl: string;
   visibility: "PUBLIC" | "TEAM" | "PRIVATE";
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   tools: string[];
@@ -138,14 +124,6 @@ export async function logSkillUsage(skillId: number, eventType: "VIEW" | "COPY")
   await apiClient.post(`/api/skills/${skillId}/usage`, { eventType });
 }
 
-export async function replaceSkillVariables(
-  skillId: number,
-  variables: SkillVariableInput[],
-): Promise<Skill> {
-  const { data } = await apiClient.put<{ data: Skill }>(`/api/skills/${skillId}/variables`, { variables });
-  return data.data;
-}
-
 export async function deleteSkillPermanently(skillId: number): Promise<void> {
   await apiClient.delete(`/api/skills/${skillId}/permanent`);
 }
@@ -166,4 +144,16 @@ export async function addSkillToCollection(skillId: number, collectionId: number
 
 export async function removeSkillFromCollection(skillId: number, collectionId: number): Promise<void> {
   await apiClient.delete(`/api/skills/${skillId}/collections/${collectionId}`);
+}
+
+export const ARCHIVE_EXTENSIONS = [".zip", ".tar", ".tar.gz", ".tgz", ".tar.bz2", ".7z", ".rar"];
+
+export function isValidArchiveUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const pathname = parsed.pathname.toLowerCase();
+    return ARCHIVE_EXTENSIONS.some((ext) => pathname.endsWith(ext));
+  } catch {
+    return false;
+  }
 }

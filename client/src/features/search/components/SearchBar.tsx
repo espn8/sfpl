@@ -220,7 +220,7 @@ export function SearchBar({
               <select
                 value={filters.sort}
                 onChange={(e) => onFilterChange("sort", e.target.value as SortOption)}
-                className="rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
+                className="rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm text-(--color-text) cursor-pointer"
               >
                 <option value="recent">Date added</option>
                 <option value="mostUsed">Most used</option>
@@ -231,7 +231,7 @@ export function SearchBar({
               <select
                 value={filters.status}
                 onChange={(e) => onFilterChange("status", e.target.value as SearchFilters["status"])}
-                className="rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
+                className="rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm text-(--color-text) cursor-pointer"
               >
                 <option value="">All statuses</option>
                 <option value="DRAFT">Draft</option>
@@ -244,7 +244,7 @@ export function SearchBar({
               <select
                 value={filters.assetType}
                 onChange={(e) => onFilterChange("assetType", e.target.value as SearchFilters["assetType"])}
-                className="rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
+                className="rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm text-(--color-text) cursor-pointer"
               >
                 <option value="all">All types</option>
                 {ASSET_TYPE_OPTIONS.map((type) => (
@@ -258,7 +258,7 @@ export function SearchBar({
             <select
               value={filters.tool}
               onChange={(e) => onFilterChange("tool", e.target.value as SearchFilters["tool"])}
-              className="rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
+              className="rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm text-(--color-text) cursor-pointer"
             >
               <option value="">All tools</option>
               {getToolsSortedAlphabetically().map((tool) => (
@@ -272,7 +272,7 @@ export function SearchBar({
               <select
                 value={filters.modality}
                 onChange={(e) => onFilterChange("modality", e.target.value as SearchFilters["modality"])}
-                className="rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
+                className="rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm text-(--color-text) cursor-pointer"
               >
                 <option value="">All outputs</option>
                 {PROMPT_MODALITY_OPTIONS.map((modality) => (
@@ -287,7 +287,7 @@ export function SearchBar({
               <select
                 value={filters.collectionId}
                 onChange={(e) => onFilterChange("collectionId", e.target.value)}
-                className="rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm"
+                className="rounded-lg border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm text-(--color-text) cursor-pointer"
               >
                 <option value="">All collections</option>
                 {collections.map((collection) => (

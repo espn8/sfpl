@@ -50,7 +50,7 @@ async function retryStuckSkills() {
       thumbnailStatus: "PENDING",
       updatedAt: { lt: stuckThreshold },
     },
-    select: { id: true, title: true, summary: true, body: true },
+    select: { id: true, title: true, summary: true },
     take: 10,
   });
 
@@ -60,7 +60,7 @@ async function retryStuckSkills() {
       const thumbnailUrl = await generatePromptThumbnail({
         title: skill.title,
         summary: skill.summary,
-        body: skill.body,
+        body: skill.summary || skill.title,
       });
       await prisma.skill.update({
         where: { id: skill.id },
