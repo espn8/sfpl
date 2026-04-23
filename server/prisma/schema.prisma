@@ -27,7 +27,10 @@ model User {
   contextDocuments ContextDocument[]
   favorites  Favorite[]
   ratings    Rating[]
-  versions   PromptVersion[]
+  promptVersions   PromptVersion[]  @relation("PromptVersionCreator")
+  skillVersions    SkillVersion[]   @relation("SkillVersionCreator")
+  contextVersions  ContextVersion[] @relation("ContextVersionCreator")
+  buildVersions    BuildVersion[]   @relation("BuildVersionCreator")
   usage      UsageEvent[]
   collections Collection[] @relation("CollectionCreator")
   collectionMemberships CollectionUser[] @relation("CollectionMembership")
@@ -112,6 +115,7 @@ model Skill {
   usageEvents     SkillUsageEvent[]
   ratings         SkillRating[]
   collections     CollectionSkill[]
+  versions        SkillVersion[]
 
   @@index([teamId, updatedAt])
 }
@@ -123,6 +127,7 @@ model ContextDocument {
   title           String
   summary         String?
   body            String
+  supportUrl      String?
   visibility      PromptVisibility @default(PUBLIC)
   status          PromptStatus     @default(DRAFT)
   tools           String[]         @default([])
@@ -139,6 +144,7 @@ model ContextDocument {
   variables       ContextVariable[]
   ratings         ContextRating[]
   collections     CollectionContext[]
+  versions        ContextVersion[]
 
   @@index([teamId, updatedAt])
 }
@@ -165,6 +171,7 @@ model Build {
   usageEvents     BuildUsageEvent[]
   ratings         BuildRating[]
   collections     CollectionBuild[]
+  versions        BuildVersion[]
 
   @@index([teamId, updatedAt])
 }
@@ -178,9 +185,58 @@ model PromptVersion {
   createdById Int
   createdAt   DateTime @default(now())
   prompt      Prompt   @relation(fields: [promptId], references: [id], onDelete: Cascade)
-  createdBy   User     @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdBy   User     @relation("PromptVersionCreator", fields: [createdById], references: [id], onDelete: Restrict)
 
   @@unique([promptId, version])
+}
+
+model SkillVersion {
+  id          Int      @id @default(autoincrement())
+  skillId     Int
+  version     Int
+  title       String
+  summary     String?
+  skillUrl    String
+  supportUrl  String?
+  changelog   String?
+  createdById Int
+  createdAt   DateTime @default(now())
+  skill       Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  createdBy   User     @relation("SkillVersionCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@unique([skillId, version])
+}
+
+model ContextVersion {
+  id          Int             @id @default(autoincrement())
+  contextId   Int
+  version     Int
+  body        String
+  supportUrl  String?
+  changelog   String?
+  createdById Int
+  createdAt   DateTime        @default(now())
+  context     ContextDocument @relation(fields: [contextId], references: [id], onDelete: Cascade)
+  createdBy   User            @relation("ContextVersionCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@unique([contextId, version])
+}
+
+model BuildVersion {
+  id          Int      @id @default(autoincrement())
+  buildId     Int
+  version     Int
+  title       String
+  summary     String?
+  buildUrl    String
+  supportUrl  String?
+  changelog   String?
+  createdById Int
+  createdAt   DateTime @default(now())
+  build       Build    @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  createdBy   User     @relation("BuildVersionCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@unique([buildId, version])
 }
 
 model Tag {

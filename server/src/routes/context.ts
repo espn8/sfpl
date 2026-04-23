@@ -106,6 +106,7 @@ const createContextBodySchema = z
     title: z.string().trim().min(1, "title is required."),
     summary: z.string().trim().optional(),
     body: z.string().min(1, "body is required.").max(MAX_BODY_LENGTH, "body is too long."),
+    supportUrl: z.string().url("supportUrl must be a valid URL.").optional().or(z.literal("")),
     visibility: promptVisibilitySchema.optional(),
     status: promptStatusSchema.optional(),
     tools: z.array(z.union([contextToolSchema, z.string()])).optional(),
@@ -135,9 +136,11 @@ const updateContextBodySchema = z
     title: z.string().trim().optional(),
     summary: z.string().trim().optional(),
     body: z.string().min(1).max(MAX_BODY_LENGTH, "body is too long.").optional(),
+    supportUrl: z.string().url("supportUrl must be a valid URL.").optional().or(z.literal("")),
     visibility: promptVisibilitySchema.optional(),
     status: promptStatusSchema.optional(),
     tools: z.array(z.union([contextToolSchema, z.string()])).optional(),
+    changelog: z.string().trim().optional(),
   })
   .refine(
     (value) => Object.values(value).some((item) => item !== undefined),
@@ -358,7 +361,7 @@ contextRouter.post("/", requireWriteAccess, async (req: Request, res: Response) 
     return res.status(400).json(badRequestFromZodError(parsedBody.error));
   }
 
-  const { title, summary, body, visibility, status, tools, variables } = parsedBody.data;
+  const { title, summary, body, supportUrl, visibility, status, tools, variables } = parsedBody.data;
 
   const doc = await prisma.contextDocument.create({
     data: {
@@ -367,6 +370,7 @@ contextRouter.post("/", requireWriteAccess, async (req: Request, res: Response) 
       title: title.trim(),
       summary: summary?.trim() || null,
       body,
+      supportUrl: supportUrl || null,
       visibility: visibility ?? "PUBLIC",
       status: status ?? "DRAFT",
       tools: tools ?? [],
@@ -383,6 +387,15 @@ contextRouter.post("/", requireWriteAccess, async (req: Request, res: Response) 
               })),
             }
           : undefined,
+      versions: {
+        create: {
+          version: 1,
+          body,
+          supportUrl: supportUrl || null,
+          createdById: auth.userId,
+          changelog: "Initial version",
+        },
+      },
     },
     include: {
       owner: { select: { id: true, name: true, avatarUrl: true } },
@@ -486,8 +499,8 @@ contextRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respon
     return res.status(400).json(badRequestFromZodError(parsedBody.error));
   }
 
-  const docId = parsedParams.data.id;
-  const existing = await prisma.contextDocument.findFirst({ where: { id: docId, teamId: auth.teamId } });
+  const contextId = parsedParams.data.id;
+  const existing = await prisma.contextDocument.findFirst({ where: { id: contextId, teamId: auth.teamId } });
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Context document not found." } });
   }
@@ -497,12 +510,36 @@ contextRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respon
   }
 
   const u = parsedBody.data;
+  const nextBody = typeof u.body === "string" ? u.body : existing.body;
+  const nextSupportUrl = typeof u.supportUrl === "string" ? u.supportUrl || null : existing.supportUrl;
+
+  const hasContentChange = nextBody !== existing.body || nextSupportUrl !== existing.supportUrl;
+
+  if (hasContentChange) {
+    const latest = await prisma.contextVersion.findFirst({
+      where: { contextId },
+      orderBy: { version: "desc" },
+      select: { version: true },
+    });
+    await prisma.contextVersion.create({
+      data: {
+        contextId,
+        version: (latest?.version ?? 0) + 1,
+        body: nextBody,
+        supportUrl: nextSupportUrl,
+        createdById: auth.userId,
+        changelog: typeof u.changelog === "string" ? u.changelog : null,
+      },
+    });
+  }
+
   const updated = await prisma.contextDocument.update({
-    where: { id: docId },
+    where: { id: contextId },
     data: {
       title: typeof u.title === "string" ? u.title.trim() : undefined,
       summary: typeof u.summary === "string" ? u.summary.trim() || null : undefined,
-      body: typeof u.body === "string" ? u.body : undefined,
+      body: nextBody,
+      supportUrl: nextSupportUrl,
       visibility: u.visibility,
       status: u.status,
       tools: u.tools,
@@ -630,6 +667,8 @@ contextRouter.delete("/:id/permanent", requireWriteAccess, async (req: Request, 
     prisma.contextFavorite.deleteMany({ where: { contextId } }),
     prisma.contextRating.deleteMany({ where: { contextId } }),
     prisma.contextVariable.deleteMany({ where: { contextId } }),
+    prisma.contextVersion.deleteMany({ where: { contextId } }),
+    prisma.collectionContext.deleteMany({ where: { contextId } }),
     prisma.contextDocument.delete({ where: { id: contextId } }),
   ]);
 
@@ -842,6 +881,75 @@ contextRouter.delete("/:id/collections/:collectionId", async (req: Request, res:
 
   await prisma.collectionContext.delete({ where: { collectionId_contextId: { collectionId, contextId } } });
   return res.status(200).json({ data: { ok: true } });
+});
+
+contextRouter.get("/:id/versions", async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+
+  const parsedParams = contextIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+
+  const contextId = parsedParams.data.id;
+  const doc = await prisma.contextDocument.findFirst({ where: { id: contextId, teamId: auth.teamId } });
+  if (!doc) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Context document not found." } });
+  }
+
+  const versions = await prisma.contextVersion.findMany({
+    where: { contextId },
+    orderBy: { version: "desc" },
+  });
+
+  return res.status(200).json({ data: versions });
+});
+
+const contextRestoreParamsSchema = z.object({
+  id: z.coerce.number().int().positive(),
+  version: z.coerce.number().int().positive(),
+});
+
+contextRouter.post("/:id/restore/:version", requireWriteAccess, async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+
+  const parsedParams = contextRestoreParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+
+  const contextId = parsedParams.data.id;
+  const targetVersion = parsedParams.data.version;
+
+  const doc = await prisma.contextDocument.findFirst({ where: { id: contextId, teamId: auth.teamId } });
+  if (!doc) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Context document not found." } });
+  }
+
+  if (doc.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can restore this document." } });
+  }
+
+  const version = await prisma.contextVersion.findFirst({ where: { contextId, version: targetVersion } });
+  if (!version) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Context version not found." } });
+  }
+
+  const updated = await prisma.contextDocument.update({
+    where: { id: contextId },
+    data: {
+      body: version.body,
+      supportUrl: version.supportUrl,
+    },
+  });
+
+  return res.status(200).json({ data: updated });
 });
 
 export { contextRouter };

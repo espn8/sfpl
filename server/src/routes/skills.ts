@@ -104,6 +104,7 @@ const updateSkillBodySchema = z
     visibility: promptVisibilitySchema.optional(),
     status: promptStatusSchema.optional(),
     tools: z.array(z.union([skillToolSchema, z.string()])).optional(),
+    changelog: z.string().trim().optional(),
   })
   .refine(
     (value) => Object.values(value).some((item) => item !== undefined),
@@ -338,6 +339,17 @@ skillsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
       tools: tools ?? [],
       thumbnailStatus: "PENDING",
       thumbnailError: null,
+      versions: {
+        create: {
+          version: 1,
+          title: title.trim(),
+          summary: summary?.trim() || null,
+          skillUrl,
+          supportUrl: supportUrl || null,
+          createdById: auth.userId,
+          changelog: "Initial version",
+        },
+      },
     },
     include: {
       owner: { select: { id: true, name: true, avatarUrl: true } },
@@ -451,13 +463,44 @@ skillsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respons
   }
 
   const u = parsedBody.data;
+  const nextTitle = typeof u.title === "string" ? u.title.trim() : existing.title;
+  const nextSummary = typeof u.summary === "string" ? u.summary.trim() || null : existing.summary;
+  const nextSkillUrl = u.skillUrl ?? existing.skillUrl;
+  const nextSupportUrl = typeof u.supportUrl === "string" ? u.supportUrl || null : existing.supportUrl;
+
+  const hasContentChange =
+    nextTitle !== existing.title ||
+    nextSummary !== existing.summary ||
+    nextSkillUrl !== existing.skillUrl ||
+    nextSupportUrl !== existing.supportUrl;
+
+  if (hasContentChange) {
+    const latest = await prisma.skillVersion.findFirst({
+      where: { skillId },
+      orderBy: { version: "desc" },
+      select: { version: true },
+    });
+    await prisma.skillVersion.create({
+      data: {
+        skillId,
+        version: (latest?.version ?? 0) + 1,
+        title: nextTitle,
+        summary: nextSummary,
+        skillUrl: nextSkillUrl,
+        supportUrl: nextSupportUrl,
+        createdById: auth.userId,
+        changelog: typeof u.changelog === "string" ? u.changelog : null,
+      },
+    });
+  }
+
   const updated = await prisma.skill.update({
     where: { id: skillId },
     data: {
-      title: typeof u.title === "string" ? u.title.trim() : undefined,
-      summary: typeof u.summary === "string" ? u.summary.trim() || null : undefined,
-      skillUrl: u.skillUrl,
-      supportUrl: typeof u.supportUrl === "string" ? u.supportUrl || null : undefined,
+      title: nextTitle,
+      summary: nextSummary,
+      skillUrl: nextSkillUrl,
+      supportUrl: nextSupportUrl,
       visibility: u.visibility,
       status: u.status,
       tools: u.tools,
@@ -526,6 +569,8 @@ skillsRouter.delete("/:id/permanent", requireWriteAccess, async (req: Request, r
     prisma.skillUsageEvent.deleteMany({ where: { skillId } }),
     prisma.skillFavorite.deleteMany({ where: { skillId } }),
     prisma.skillRating.deleteMany({ where: { skillId } }),
+    prisma.skillVersion.deleteMany({ where: { skillId } }),
+    prisma.collectionSkill.deleteMany({ where: { skillId } }),
     prisma.skill.delete({ where: { id: skillId } }),
   ]);
 
@@ -738,6 +783,77 @@ skillsRouter.delete("/:id/collections/:collectionId", async (req: Request, res: 
 
   await prisma.collectionSkill.delete({ where: { collectionId_skillId: { collectionId, skillId } } });
   return res.status(200).json({ data: { ok: true } });
+});
+
+skillsRouter.get("/:id/versions", async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+
+  const parsedParams = skillIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+
+  const skillId = parsedParams.data.id;
+  const skill = await prisma.skill.findFirst({ where: { id: skillId, teamId: auth.teamId } });
+  if (!skill) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not found." } });
+  }
+
+  const versions = await prisma.skillVersion.findMany({
+    where: { skillId },
+    orderBy: { version: "desc" },
+  });
+
+  return res.status(200).json({ data: versions });
+});
+
+const skillRestoreParamsSchema = z.object({
+  id: z.coerce.number().int().positive(),
+  version: z.coerce.number().int().positive(),
+});
+
+skillsRouter.post("/:id/restore/:version", requireWriteAccess, async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+
+  const parsedParams = skillRestoreParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+
+  const skillId = parsedParams.data.id;
+  const targetVersion = parsedParams.data.version;
+
+  const skill = await prisma.skill.findFirst({ where: { id: skillId, teamId: auth.teamId } });
+  if (!skill) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not found." } });
+  }
+
+  if (skill.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can restore this skill." } });
+  }
+
+  const version = await prisma.skillVersion.findFirst({ where: { skillId, version: targetVersion } });
+  if (!version) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill version not found." } });
+  }
+
+  const updated = await prisma.skill.update({
+    where: { id: skillId },
+    data: {
+      title: version.title,
+      summary: version.summary,
+      skillUrl: version.skillUrl,
+      supportUrl: version.supportUrl,
+    },
+  });
+
+  return res.status(200).json({ data: updated });
 });
 
 export { skillsRouter };
