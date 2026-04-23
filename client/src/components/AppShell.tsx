@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { fetchMe, updateMyProfile, uploadProfilePhoto } from "../features/auth/api";
 import { canAccessAdminUi, canCreateContent } from "../features/auth/roles";
 import { ThemeModeToggle } from "./ui/ThemeModeToggle";
+import { ComplianceModal } from "./ComplianceModal";
 
 const SALESFORCE_LOGO = "/salesforce-logo.png";
 
@@ -292,6 +293,7 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         </footer>
       </div>
+      <ComplianceModal />
       {showWelcomeModal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-2xl rounded-lg border border-(--color-border) bg-(--color-surface) p-6 shadow-lg">

@@ -1,9 +1,21 @@
 # AI Library - Technical Summary
 
-Last Updated: Thursday, April 23, 2026 — 16:15 CDT
-Build Version: b947292
+Last Updated: Thursday, April 23, 2026 — 17:30 CDT
+Build Version: 1.1
 
 ## Recent Changes
+
+- **Compliance Modal**: Added `ComplianceModal` component that displays a compliance notice requiring users to acknowledge Salesforce SAM Team policies and Data Classification Policy:
+  - Modal appears on app load and requires acknowledgment every 96 hours
+  - Stores acknowledgment timestamp in localStorage (`promptlibrary.compliance.acknowledged`)
+  - Two options: "I Understand" (dismisses and stores timestamp) or "Nope, get me out of here" (redirects to salesforce.com)
+  - Links to SAM Policy and Data Classification Policy on Basecamp
+  - Warning about unauthorized tool usage and improper data handling
+  - Integrated into `AppShell.tsx` to display on all authenticated pages
+
+- **Procfile release phase**: Added Prisma deploy command to Heroku release phase for automatic database migrations on deploy
+
+### Previous Session Changes (April 23, 2026 — earlier)
 
 - **Builds asset type**: Introduced a new "Build" asset type for sharing pre-built solutions and tools:
   - New `Build` Prisma model with `title`, `summary`, `buildUrl`, `supportUrl`, visibility, status, thumbnails, and engagement tracking
