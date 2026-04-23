@@ -79,7 +79,7 @@ function isAdminOrOwner(role: string): boolean {
 
 const listAssetsQuerySchema = z.object({
   q: z.string().trim().optional(),
-  assetType: z.enum(["all", "prompt", "skill", "context"]).optional(),
+  assetType: z.enum(["all", "prompt", "skill", "context", "build"]).optional(),
   tool: assetToolSchema.optional(),
   status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).optional(),
   sort: z.enum(["recent", "mostUsed", "name", "updatedAt"]).optional(),
@@ -89,7 +89,7 @@ const listAssetsQuerySchema = z.object({
   pageSize: z.coerce.number().int().positive().max(100).optional(),
 });
 
-type AssetType = "prompt" | "skill" | "context";
+type AssetType = "prompt" | "skill" | "context" | "build";
 
 type UnifiedAsset = {
   id: number;
@@ -146,6 +146,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
   const includePrompts = assetType === "all" || assetType === "prompt";
   const includeSkills = assetType === "all" || assetType === "skill";
   const includeContext = assetType === "all" || assetType === "context";
+  const includeBuilds = assetType === "all" || assetType === "build";
 
   const buildVisibilityConditions = <T extends { visibility: string; ownerId: number; owner?: { ou: string | null } }>(
     baseWhere: Prisma.Args<typeof prisma.prompt, "findMany">["where"],
@@ -591,6 +592,145 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
     }
   }
 
+  if (includeBuilds) {
+    let buildWhere: Prisma.BuildWhereInput = { teamId: auth.teamId };
+    if (mine) {
+      buildWhere.ownerId = auth.userId;
+    } else if (!isAdminOrOwner(auth.role)) {
+      const visibilityConditions: Prisma.BuildWhereInput[] = [
+        { visibility: "PUBLIC" },
+        { ownerId: auth.userId },
+      ];
+      if (auth.userOu) {
+        visibilityConditions.push({
+          visibility: "TEAM",
+          owner: { ou: auth.userOu },
+        });
+      }
+      buildWhere.OR = visibilityConditions;
+    }
+    if (q) {
+      const existingAnd = Array.isArray(buildWhere.AND) ? buildWhere.AND : buildWhere.AND ? [buildWhere.AND] : [];
+      buildWhere.AND = [
+        ...existingAnd,
+        {
+          OR: [
+            { title: { contains: q, mode: "insensitive" } },
+            { summary: { contains: q, mode: "insensitive" } },
+          ],
+        },
+      ];
+    }
+    if (status) {
+      buildWhere.status = status;
+    }
+
+    const buildOrderBy: Prisma.BuildOrderByWithRelationInput =
+      sort === "name"
+        ? { title: "asc" as const }
+        : sort === "updatedAt"
+        ? { updatedAt: "desc" as const }
+        : { createdAt: "desc" as const };
+
+    const builds = await prisma.build.findMany({
+      where: buildWhere,
+      select: {
+        id: true,
+        title: true,
+        summary: true,
+        buildUrl: true,
+        supportUrl: true,
+        status: true,
+        visibility: true,
+        thumbnailUrl: true,
+        thumbnailStatus: true,
+        isSmartPick: true,
+        createdAt: true,
+        updatedAt: true,
+        owner: { select: { id: true, name: true, avatarUrl: true } },
+      },
+      orderBy: buildOrderBy,
+      take: pageSize * 3,
+    });
+
+    const buildIds = builds.map((b) => b.id);
+    let viewCountByBuild = new Map<number, number>();
+    let copyCountByBuild = new Map<number, number>();
+    let favoritedBuildIds = new Set<number>();
+    let favoriteCountByBuild = new Map<number, number>();
+    let myRatingByBuild = new Map<number, number>();
+    let ratingDataByBuild = new Map<number, { count: number; avg: number | null }>();
+
+    if (buildIds.length > 0) {
+      const [viewGroups, copyGroups, favoriteRows, favoriteCountGroups, ratingRows, ratingGroups] = await Promise.all([
+        prisma.buildUsageEvent.groupBy({
+          by: ["buildId"],
+          where: { buildId: { in: buildIds }, eventType: "VIEW" },
+          _count: { buildId: true },
+        }),
+        prisma.buildUsageEvent.groupBy({
+          by: ["buildId"],
+          where: { buildId: { in: buildIds }, eventType: "COPY" },
+          _count: { buildId: true },
+        }),
+        prisma.buildFavorite.findMany({
+          where: { userId: auth.userId, buildId: { in: buildIds } },
+          select: { buildId: true },
+        }),
+        prisma.buildFavorite.groupBy({
+          by: ["buildId"],
+          where: { buildId: { in: buildIds } },
+          _count: { _all: true },
+        }),
+        prisma.buildRating.findMany({
+          where: { userId: auth.userId, buildId: { in: buildIds } },
+          select: { buildId: true, value: true },
+        }),
+        prisma.buildRating.groupBy({
+          by: ["buildId"],
+          where: { buildId: { in: buildIds } },
+          _count: { buildId: true },
+          _avg: { value: true },
+        }),
+      ]);
+      viewCountByBuild = new Map(viewGroups.map((g) => [g.buildId, g._count.buildId]));
+      copyCountByBuild = new Map(copyGroups.map((g) => [g.buildId, g._count.buildId]));
+      favoritedBuildIds = new Set(favoriteRows.map((r) => r.buildId));
+      favoriteCountByBuild = new Map(favoriteCountGroups.map((g) => [g.buildId, g._count._all]));
+      myRatingByBuild = new Map(ratingRows.map((r) => [r.buildId, r.value]));
+      ratingDataByBuild = new Map(ratingGroups.map((g) => [g.buildId, { count: g._count.buildId, avg: g._avg.value }]));
+    }
+
+    for (const build of builds) {
+      const ratingInfo = ratingDataByBuild.get(build.id);
+      allAssets.push({
+        id: build.id,
+        assetType: "build",
+        title: build.title,
+        summary: build.summary,
+        body: build.buildUrl,
+        skillUrl: build.buildUrl,
+        supportUrl: build.supportUrl,
+        status: build.status,
+        visibility: build.visibility,
+        tools: [],
+        thumbnailUrl: build.thumbnailUrl,
+        thumbnailStatus: build.thumbnailStatus,
+        createdAt: build.createdAt,
+        updatedAt: build.updatedAt,
+        owner: build.owner,
+        viewCount: viewCountByBuild.get(build.id) ?? 0,
+        usageCount: copyCountByBuild.get(build.id) ?? 0,
+        favorited: favoritedBuildIds.has(build.id),
+        favoriteCount: favoriteCountByBuild.get(build.id) ?? 0,
+        ratingCount: ratingInfo?.count ?? 0,
+        averageRating: ratingInfo?.avg ?? null,
+        myRating: myRatingByBuild.get(build.id) ?? null,
+        isSmartPick: build.isSmartPick,
+      });
+    }
+  }
+
   if (sort === "mostUsed") {
     allAssets.sort((a, b) => b.usageCount - a.usageCount);
   } else if (sort === "name") {
@@ -611,6 +751,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
       prompt: allAssets.filter((a) => a.assetType === "prompt").length,
       skill: allAssets.filter((a) => a.assetType === "skill").length,
       context: allAssets.filter((a) => a.assetType === "context").length,
+      build: allAssets.filter((a) => a.assetType === "build").length,
     },
     tool: {} as Record<string, number>,
   };
@@ -639,10 +780,11 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
     publishedSnapshotWhere.OR = snapshotVisibilityConditions;
   }
 
-  const [promptsPublished, skillsPublished, contextPublished, activeUsers, promptsUsed] = await Promise.all([
+  const [promptsPublished, skillsPublished, contextPublished, buildsPublished, activeUsers, promptsUsed] = await Promise.all([
     prisma.prompt.count({ where: publishedSnapshotWhere }),
     prisma.skill.count({ where: { teamId: auth.teamId, status: "PUBLISHED" } }),
     prisma.contextDocument.count({ where: { teamId: auth.teamId, status: "PUBLISHED" } }),
+    prisma.build.count({ where: { teamId: auth.teamId, status: "PUBLISHED" } }),
     prisma.user.count({ where: { teamId: auth.teamId } }),
     prisma.usageEvent.count({
       where: {
@@ -661,10 +803,11 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
       totalPages,
       facets,
       snapshot: {
-        assetsPublished: promptsPublished + skillsPublished + contextPublished,
+        assetsPublished: promptsPublished + skillsPublished + contextPublished + buildsPublished,
         promptsPublished,
         skillsPublished,
         contextPublished,
+        buildsPublished,
         activeUsers,
         promptsUsed,
       },

@@ -12,6 +12,7 @@ const ASSET_TYPE_LABELS: Record<string, string> = {
   prompt: "Prompts",
   skill: "Skills",
   context: "Context",
+  build: "Builds",
 };
 
 export function FacetedFilters({ facets, currentFilters, onFilterChange }: FacetedFiltersProps) {
@@ -19,7 +20,7 @@ export function FacetedFilters({ facets, currentFilters, onFilterChange }: Facet
 
   const { assetType: assetTypeCounts, tool: toolCounts } = facets;
 
-  const totalAssets = assetTypeCounts.prompt + assetTypeCounts.skill + assetTypeCounts.context;
+  const totalAssets = assetTypeCounts.prompt + assetTypeCounts.skill + assetTypeCounts.context + (assetTypeCounts.build ?? 0);
   if (totalAssets === 0) return null;
 
   const toolEntries = Object.entries(toolCounts)
@@ -38,16 +39,19 @@ export function FacetedFilters({ facets, currentFilters, onFilterChange }: Facet
             isActive={currentFilters.assetType === "all"}
             onClick={() => onFilterChange("assetType", "all")}
           />
-          {(["prompt", "skill", "context"] as const).map((type) => (
-            <FacetButton
-              key={type}
-              label={ASSET_TYPE_LABELS[type]}
-              count={assetTypeCounts[type]}
-              isActive={currentFilters.assetType === type}
-              onClick={() => onFilterChange("assetType", type)}
-              disabled={assetTypeCounts[type] === 0}
-            />
-          ))}
+          {(["prompt", "skill", "context", "build"] as const).map((type) => {
+            const count = assetTypeCounts[type] ?? 0;
+            return (
+              <FacetButton
+                key={type}
+                label={ASSET_TYPE_LABELS[type]}
+                count={count}
+                isActive={currentFilters.assetType === type}
+                onClick={() => onFilterChange("assetType", type)}
+                disabled={count === 0}
+              />
+            );
+          })}
         </div>
       </div>
 

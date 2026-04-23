@@ -46,6 +46,8 @@ export function AssetListView({ assets }: AssetListViewProps) {
         return `/skills/${asset.id}`;
       case "context":
         return `/context/${asset.id}`;
+      case "build":
+        return `/builds/${asset.id}`;
     }
   };
 
@@ -57,6 +59,8 @@ export function AssetListView({ assets }: AssetListViewProps) {
         return `/skills/${asset.id}/edit`;
       case "context":
         return `/context/${asset.id}/edit`;
+      case "build":
+        return `/builds/${asset.id}/edit`;
     }
   };
 

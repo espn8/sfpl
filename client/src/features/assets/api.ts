@@ -1,7 +1,7 @@
 import { apiClient } from "../../api/client";
 import type { PromptTool } from "../prompts/api";
 
-export type AssetType = "prompt" | "skill" | "context";
+export type AssetType = "prompt" | "skill" | "context" | "build";
 
 export type AssetOwner = {
   id: number;
@@ -60,6 +60,7 @@ export type ListAssetsSnapshot = {
   promptsPublished: number;
   skillsPublished: number;
   contextPublished: number;
+  buildsPublished: number;
   activeUsers: number;
   promptsUsed: number;
 };
@@ -69,6 +70,7 @@ export type ListAssetsFacets = {
     prompt: number;
     skill: number;
     context: number;
+    build: number;
   };
   tool: Record<string, number>;
 };

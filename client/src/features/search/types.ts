@@ -1,6 +1,6 @@
 import type { PromptModality, PromptTool } from "../prompts/api";
 
-export type AssetTypeFilter = "all" | "prompt" | "skill" | "context";
+export type AssetTypeFilter = "all" | "prompt" | "skill" | "context" | "build";
 export type AssetStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
 export type SortOption = "recent" | "mostUsed";
 
@@ -35,7 +35,7 @@ export const DEFAULT_FILTERS: SearchFilters = {
 export type SearchSuggestion = {
   type: "asset" | "filter";
   id?: number;
-  assetType?: "prompt" | "skill" | "context";
+  assetType?: "prompt" | "skill" | "context" | "build";
   title?: string;
   tool?: string;
   filterKey?: keyof SearchFilters;
@@ -45,7 +45,7 @@ export type SearchSuggestion = {
 
 export type ParsedSearchQuery = {
   tool: PromptTool | null;
-  assetType: "prompt" | "skill" | "context" | null;
+  assetType: "prompt" | "skill" | "context" | "build" | null;
   modality: PromptModality | null;
   searchTerms: string;
 };

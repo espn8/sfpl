@@ -1,9 +1,17 @@
 # AI Library - Technical Summary
 
-Last Updated: Thursday, April 23, 2026 — 21:30 CDT
-Build Version: c926074
+Last Updated: Thursday, April 23, 2026 — 13:20 CDT
+Build Version: 3d01b64
 
 ## Recent Changes
+
+- **Builds integrated into unified assets API**: Extended the `/api/assets` endpoint and search system to include Builds as a fourth asset type:
+  - Server-side: Added `includeBuilds` logic to assets route, fetches builds with visibility/status filtering, includes in facets and snapshot counts
+  - Client-side: Added `build` to `AssetType`, `AssetTypeFilter`, `ListAssetsFacets`, and `ListAssetsSnapshot` types
+  - FacetedFilters now shows Builds count and filter button alongside Prompts, Skills, and Context
+  - AssetAnalyticsTable and AssetListView now include build detail/edit paths in switch statements
+
+### Previous Session Changes (April 23, 2026 — 21:30 CDT)
 
 - **API Keys and MCP Integration**: Added programmatic API access for external tools to create content in the AI Library:
   - New `ApiKey` database model with secure SHA-256 hash storage, expiration dates, and revocation support
