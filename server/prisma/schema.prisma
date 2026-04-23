@@ -64,59 +64,66 @@ model Team {
 }
 
 model Prompt {
-  id           Int               @id @default(autoincrement())
-  teamId       Int
-  ownerId      Int
-  title        String
-  summary      String?
-  body         String
-  visibility   PromptVisibility  @default(PUBLIC)
-  status       PromptStatus      @default(DRAFT)
-  modelHint    String?
-  tools        String[]          @default([])
-  modality     PromptModality    @default(TEXT)
-  thumbnailUrl String?
-  thumbnailStatus ThumbnailStatus @default(PENDING)
-  thumbnailError String?
-  isSmartPick  Boolean           @default(false)
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-  team         Team              @relation(fields: [teamId], references: [id], onDelete: Restrict)
-  owner        User              @relation(fields: [ownerId], references: [id], onDelete: Restrict)
-  versions     PromptVersion[]
-  promptTags   PromptTag[]
-  collections  CollectionPrompt[]
-  favorites    Favorite[]
-  ratings      Rating[]
-  variables    PromptVariable[]
-  usageEvents  UsageEvent[]
-}
-
-model Skill {
-  id              Int              @id @default(autoincrement())
+  id              Int               @id @default(autoincrement())
   teamId          Int
   ownerId         Int
   title           String
+  titleNormalized String?
   summary         String?
-  skillUrl        String
-  supportUrl      String?
-  visibility      PromptVisibility @default(PUBLIC)
-  status          PromptStatus     @default(DRAFT)
-  tools           String[]         @default([])
+  body            String
+  bodyHash        String?
+  visibility      PromptVisibility  @default(PUBLIC)
+  status          PromptStatus      @default(DRAFT)
+  modelHint       String?
+  tools           String[]          @default([])
+  modality        PromptModality    @default(TEXT)
   thumbnailUrl    String?
-  thumbnailStatus ThumbnailStatus  @default(PENDING)
+  thumbnailStatus ThumbnailStatus   @default(PENDING)
   thumbnailError  String?
-  isSmartPick     Boolean          @default(false)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  team            Team             @relation(fields: [teamId], references: [id], onDelete: Restrict)
-  owner           User             @relation(fields: [ownerId], references: [id], onDelete: Restrict)
-  favorites       SkillFavorite[]
-  usageEvents     SkillUsageEvent[]
-  ratings         SkillRating[]
-  collections     CollectionSkill[]
-  versions        SkillVersion[]
+  isSmartPick     Boolean           @default(false)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  team            Team              @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  owner           User              @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  versions        PromptVersion[]
+  promptTags      PromptTag[]
+  collections     CollectionPrompt[]
+  favorites       Favorite[]
+  ratings         Rating[]
+  variables       PromptVariable[]
+  usageEvents     UsageEvent[]
 
+  @@unique([bodyHash])
+  @@index([titleNormalized])
+}
+
+model Skill {
+  id                 Int              @id @default(autoincrement())
+  teamId             Int
+  ownerId            Int
+  title              String
+  summary            String?
+  skillUrl           String
+  skillUrlNormalized String?
+  supportUrl         String?
+  visibility         PromptVisibility @default(PUBLIC)
+  status             PromptStatus     @default(DRAFT)
+  tools              String[]         @default([])
+  thumbnailUrl       String?
+  thumbnailStatus    ThumbnailStatus  @default(PENDING)
+  thumbnailError     String?
+  isSmartPick        Boolean          @default(false)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  team               Team             @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  owner              User             @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  favorites          SkillFavorite[]
+  usageEvents        SkillUsageEvent[]
+  ratings            SkillRating[]
+  collections        CollectionSkill[]
+  versions           SkillVersion[]
+
+  @@unique([skillUrlNormalized])
   @@index([teamId, updatedAt])
 }
 
@@ -125,8 +132,10 @@ model ContextDocument {
   teamId          Int
   ownerId         Int
   title           String
+  titleNormalized String?
   summary         String?
   body            String
+  bodyHash        String?
   supportUrl      String?
   visibility      PromptVisibility @default(PUBLIC)
   status          PromptStatus     @default(DRAFT)
@@ -146,33 +155,37 @@ model ContextDocument {
   collections     CollectionContext[]
   versions        ContextVersion[]
 
+  @@unique([bodyHash])
   @@index([teamId, updatedAt])
+  @@index([titleNormalized])
 }
 
 model Build {
-  id              Int              @id @default(autoincrement())
-  teamId          Int
-  ownerId         Int
-  title           String
-  summary         String?
-  buildUrl        String
-  supportUrl      String?
-  visibility      PromptVisibility @default(PUBLIC)
-  status          PromptStatus     @default(DRAFT)
-  thumbnailUrl    String?
-  thumbnailStatus ThumbnailStatus  @default(PENDING)
-  thumbnailError  String?
-  isSmartPick     Boolean          @default(false)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  team            Team             @relation(fields: [teamId], references: [id], onDelete: Restrict)
-  owner           User             @relation(fields: [ownerId], references: [id], onDelete: Restrict)
-  favorites       BuildFavorite[]
-  usageEvents     BuildUsageEvent[]
-  ratings         BuildRating[]
-  collections     CollectionBuild[]
-  versions        BuildVersion[]
+  id                 Int              @id @default(autoincrement())
+  teamId             Int
+  ownerId            Int
+  title              String
+  summary            String?
+  buildUrl           String
+  buildUrlNormalized String?
+  supportUrl         String?
+  visibility         PromptVisibility @default(PUBLIC)
+  status             PromptStatus     @default(DRAFT)
+  thumbnailUrl       String?
+  thumbnailStatus    ThumbnailStatus  @default(PENDING)
+  thumbnailError     String?
+  isSmartPick        Boolean          @default(false)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  team               Team             @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  owner              User             @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  favorites          BuildFavorite[]
+  usageEvents        BuildUsageEvent[]
+  ratings            BuildRating[]
+  collections        CollectionBuild[]
+  versions           BuildVersion[]
 
+  @@unique([buildUrlNormalized])
   @@index([teamId, updatedAt])
 }
 
