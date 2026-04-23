@@ -316,7 +316,7 @@ export function HomePage() {
                 Browse battle-tested AI assets from fellow Salesforce employees, customize them for your work, and launch directly into your favorite AI tool. No more starting from scratch.
               </p>
 
-              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <Link
                   to="/prompts"
                   className="group rounded-xl border border-(--color-border) bg-(--color-surface) p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-(--color-primary)/50 hover:shadow-md motion-reduce:transform-none"
@@ -367,6 +367,25 @@ export function HomePage() {
                     Reference documents that give AI the background it needs—style guides, policies, product docs. The knowledge your AI should have before it starts working.
                   </p>
                   <p className="mt-2 text-xs font-medium text-(--color-primary) group-hover:underline">Explore context →</p>
+                </Link>
+                <Link
+                  to="/builds"
+                  className="group rounded-xl border border-(--color-border) bg-(--color-surface) p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-(--color-primary)/50 hover:shadow-md motion-reduce:transform-none"
+                >
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-(--color-primary)/10">
+                      <svg className="h-5 w-5 text-(--color-text)" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" strokeLinecap="round" strokeLinejoin="round" />
+                        <polyline points="3.27 6.96 12 12.01 20.73 6.96" strokeLinecap="round" strokeLinejoin="round" />
+                        <line x1="12" y1="22.08" x2="12" y2="12" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </span>
+                    <h3 className="font-semibold">Builds</h3>
+                  </div>
+                  <p className="text-sm text-(--color-text-muted)">
+                    Pre-configured AI projects and templates ready to deploy. Get started faster with battle-tested setups for common workflows.
+                  </p>
+                  <p className="mt-2 text-xs font-medium text-(--color-primary) group-hover:underline">Explore builds →</p>
                 </Link>
               </div>
             </div>

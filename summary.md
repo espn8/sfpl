@@ -1,9 +1,13 @@
 # AI Library - Technical Summary
 
-Last Updated: Thursday, April 23, 2026 — 17:30 CDT
-Build Version: 1.1
+Last Updated: Thursday, April 23, 2026 — 18:15 CDT
+Build Version: 1.2
 
 ## Recent Changes
+
+- **Build card in homepage hero**: Added a fourth navigation card for "Builds" in the homepage hero section alongside Prompts, Skills, and Context. Updated grid layout from 3 columns to responsive 2/4 columns (`sm:grid-cols-2 lg:grid-cols-4`) for better display of all four asset types. Build card includes cube/package icon and links to `/builds`.
+
+### Previous Session Changes (April 23, 2026 — 17:30 CDT)
 
 - **Compliance Modal**: Added `ComplianceModal` component that displays a compliance notice requiring users to acknowledge Salesforce SAM Team policies and Data Classification Policy:
   - Modal appears on app load and requires acknowledgment every 96 hours
