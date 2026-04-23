@@ -4,6 +4,7 @@ import { trackPageView } from "./analytics";
 import { AppShell } from "../components/AppShell";
 import { AdminRoute } from "../components/AdminRoute";
 import { ProtectedRoute } from "../components/ProtectedRoute";
+import { WriterRoute } from "../components/WriterRoute";
 import { ToolRequestsPage } from "../features/admin/ToolRequestsPage";
 import { AnalyticsPage } from "../features/analytics/AnalyticsPage";
 import { LoginPage } from "../features/auth/LoginPage";
@@ -78,11 +79,11 @@ export function AppRouter() {
         <Route
           path="/prompts/new"
           element={
-            <ProtectedRoute>
+            <WriterRoute>
               <AppShell>
                 <PromptEditorPage />
               </AppShell>
-            </ProtectedRoute>
+            </WriterRoute>
           }
         />
         <Route
@@ -98,11 +99,11 @@ export function AppRouter() {
         <Route
           path="/prompts/:id/edit"
           element={
-            <ProtectedRoute>
+            <WriterRoute>
               <AppShell>
                 <PromptEditPage />
               </AppShell>
-            </ProtectedRoute>
+            </WriterRoute>
           }
         />
         <Route
@@ -118,11 +119,11 @@ export function AppRouter() {
         <Route
           path="/skills/new"
           element={
-            <ProtectedRoute>
+            <WriterRoute>
               <AppShell>
                 <SkillEditorPage />
               </AppShell>
-            </ProtectedRoute>
+            </WriterRoute>
           }
         />
         <Route
@@ -138,11 +139,11 @@ export function AppRouter() {
         <Route
           path="/skills/:id/edit"
           element={
-            <ProtectedRoute>
+            <WriterRoute>
               <AppShell>
                 <SkillEditPage />
               </AppShell>
-            </ProtectedRoute>
+            </WriterRoute>
           }
         />
         <Route
@@ -158,11 +159,11 @@ export function AppRouter() {
         <Route
           path="/context/new"
           element={
-            <ProtectedRoute>
+            <WriterRoute>
               <AppShell>
                 <ContextEditorPage />
               </AppShell>
-            </ProtectedRoute>
+            </WriterRoute>
           }
         />
         <Route
@@ -178,11 +179,11 @@ export function AppRouter() {
         <Route
           path="/context/:id/edit"
           element={
-            <ProtectedRoute>
+            <WriterRoute>
               <AppShell>
                 <ContextEditPage />
               </AppShell>
-            </ProtectedRoute>
+            </WriterRoute>
           }
         />
         <Route

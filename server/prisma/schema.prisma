@@ -30,6 +30,7 @@ model User {
   versions   PromptVersion[]
   usage      UsageEvent[]
   collections Collection[] @relation("CollectionCreator")
+  collectionMemberships CollectionUser[] @relation("CollectionMembership")
   skillFavorites    SkillFavorite[]
   skillUsageEvents  SkillUsageEvent[]
   skillRatings      SkillRating[]
@@ -183,6 +184,7 @@ model Collection {
   prompts     CollectionPrompt[]
   skills      CollectionSkill[]
   contexts    CollectionContext[]
+  users       CollectionUser[]
 
   @@unique([teamId, name])
 }
@@ -218,6 +220,17 @@ model CollectionContext {
   context      ContextDocument @relation(fields: [contextId], references: [id], onDelete: Cascade)
 
   @@unique([collectionId, contextId])
+}
+
+model CollectionUser {
+  id           Int        @id @default(autoincrement())
+  collectionId Int
+  userId       Int
+  sortOrder    Int        @default(0)
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  user         User       @relation("CollectionMembership", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, userId])
 }
 
 model Favorite {

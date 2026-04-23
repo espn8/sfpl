@@ -8,6 +8,7 @@ import { VariableInputs } from "../../components/VariableInputs";
 import { interpolateBody } from "../../lib/interpolate";
 import { buildShareUrl, copyToClipboard, downloadAsMarkdown, shareOrCopyLink } from "../../lib/shareOrCopyLink";
 import { fetchMe } from "../auth/api";
+import { canCreateContent } from "../auth/roles";
 import { archiveSkill, deleteSkillPermanently, getSkill, logSkillUsage, rateSkill, regenerateSkillThumbnail, toggleSkillFavorite, getSkillToolLabel } from "./api";
 import { CopyIcon, DownloadIcon, HeartIcon, ShareIcon } from "../prompts/promptActionIcons";
 import { PromptThumbnail } from "../prompts/PromptThumbnail";
@@ -127,8 +128,9 @@ export function SkillDetailPage() {
 
   const canEdit =
     meQuery.data &&
+    canCreateContent(meQuery.data.role) &&
     (meQuery.data.id === skill.owner.id || meQuery.data.role === "ADMIN" || meQuery.data.role === "OWNER");
-  const canDelete = meQuery.data && meQuery.data.id === skill.owner.id;
+  const canDelete = meQuery.data && canCreateContent(meQuery.data.role) && meQuery.data.id === skill.owner.id;
   const viewCount = skill.viewCount ?? 0;
   const copyCount = skill.copyCount ?? 0;
   const favoriteCount = skill.favoriteCount ?? 0;

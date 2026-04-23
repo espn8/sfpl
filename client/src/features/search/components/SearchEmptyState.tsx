@@ -11,6 +11,7 @@ type SearchEmptyStateProps = {
   onClearFilters?: () => void;
   onRetry?: () => void;
   error?: Error | null;
+  canCreate?: boolean;
 };
 
 export function SearchEmptyState({
@@ -21,6 +22,7 @@ export function SearchEmptyState({
   onClearFilters,
   onRetry,
   error,
+  canCreate = true,
 }: SearchEmptyStateProps) {
   if (variant === "error") {
     return (
@@ -105,15 +107,17 @@ export function SearchEmptyState({
         <p className="mt-2 max-w-md text-sm text-(--color-text-muted)">
           {description}
         </p>
-        <Link
-          to={createLink}
-          className="mt-5 inline-flex items-center gap-2 rounded-lg bg-(--color-primary) px-4 py-2 text-sm font-medium text-white hover:bg-(--color-primary)/90"
-        >
-          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M12 5v14M5 12h14" strokeLinecap="round" />
-          </svg>
-          {buttonText}
-        </Link>
+        {canCreate && (
+          <Link
+            to={createLink}
+            className="mt-5 inline-flex items-center gap-2 rounded-lg bg-(--color-primary) px-4 py-2 text-sm font-medium text-white hover:bg-(--color-primary)/90"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+            </svg>
+            {buttonText}
+          </Link>
+        )}
       </div>
     );
   }

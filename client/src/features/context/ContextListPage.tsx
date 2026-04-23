@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
+import { fetchMe } from "../auth/api";
+import { canCreateContent } from "../auth/roles";
 import { SearchBar, SearchEmptyState, useSearchState } from "../search";
 import { listContext, type ListContextFilters } from "./api";
 import { ContextListCard } from "./ContextListCard";
@@ -25,6 +27,7 @@ export function ContextListPage() {
     isParsing,
   } = useSearchState();
 
+  const meQuery = useQuery({ queryKey: ["auth", "me"], queryFn: fetchMe });
   const pageSize = 20;
 
   const apiFilters = useMemo<ListContextFilters>(
@@ -96,6 +99,7 @@ export function ContextListPage() {
               activeFilters={activeFilters}
               assetType="context"
               onClearFilters={clearAllFilters}
+              canCreate={canCreateContent(meQuery.data?.role)}
             />
           ) : null}
           {query.data.meta.totalPages > 1 ? (

@@ -6,6 +6,7 @@ import { trackEvent } from "../../app/analytics";
 import { useToast } from "../../app/providers/ToastProvider";
 import { ConfirmDeleteModal } from "../../components/ConfirmDeleteModal";
 import { fetchMe } from "../auth/api";
+import { canCreateContent } from "../auth/roles";
 import { listCollections } from "../collections/api";
 import {
   deletePromptPermanently,
@@ -213,9 +214,11 @@ export function PromptDetailPage() {
   const me = meQuery.data;
   const canEdit =
     me !== undefined &&
+    canCreateContent(me.role) &&
     (me.role === "OWNER" || me.role === "ADMIN" || (typeof promptData.ownerId === "number" && me.id === promptData.ownerId));
   const canDelete =
     me !== undefined &&
+    canCreateContent(me.role) &&
     typeof promptData.ownerId === "number" &&
     me.id === promptData.ownerId;
   const canRestoreVersions = canEdit;

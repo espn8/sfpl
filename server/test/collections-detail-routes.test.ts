@@ -12,6 +12,7 @@ const mockGetAuthContext = vi.fn();
 vi.mock("../src/middleware/auth", () => ({
   requireAuth: (_req: unknown, _res: unknown, next: () => void) => next(),
   requireRole: () => (_req: unknown, _res: unknown, next: () => void) => next(),
+  requireWriteAccess: (_req: unknown, _res: unknown, next: () => void) => next(),
   getAuthContext: () => mockGetAuthContext(),
 }));
 

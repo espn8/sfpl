@@ -123,6 +123,10 @@ function toSlug(input: string): string {
 
 /** Assigns ADMIN to listed emails on each Google sign-in; never demotes OWNER. */
 function roleAfterGoogleAuth(normalizedEmail: string, priorRole: Role): Role {
+  const domain = normalizedEmail.split("@")[1];
+  if (domain === "meshmesh.io") {
+    return Role.VIEWER;
+  }
   if (priorRole === Role.OWNER) {
     return Role.OWNER;
   }
@@ -133,6 +137,10 @@ function roleAfterGoogleAuth(normalizedEmail: string, priorRole: Role): Role {
 }
 
 function initialRoleForNewGoogleUser(normalizedEmail: string): Role {
+  const domain = normalizedEmail.split("@")[1];
+  if (domain === "meshmesh.io") {
+    return Role.VIEWER;
+  }
   return env.bootstrapAdminEmails.has(normalizedEmail) ? Role.ADMIN : Role.MEMBER;
 }
 

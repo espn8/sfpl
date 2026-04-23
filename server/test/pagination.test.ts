@@ -12,6 +12,7 @@ const mockCollectionCount = vi.fn();
 vi.mock("../src/middleware/auth", () => ({
   requireAuth: (_req: unknown, _res: unknown, next: () => void) => next(),
   requireRole: () => (_req: unknown, _res: unknown, next: () => void) => next(),
+  requireWriteAccess: (_req: unknown, _res: unknown, next: () => void) => next(),
   getAuthContext: () => ({ userId: 1, teamId: 1, role: "MEMBER" }),
 }));
 

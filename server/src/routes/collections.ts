@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { z } from "zod";
-import { getAuthContext, requireAuth } from "../middleware/auth";
+import { getAuthContext, requireAuth, requireWriteAccess } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 import {
   refreshAllToolCollections,
@@ -20,6 +20,11 @@ const collectionIdParamsSchema = z.object({
 const collectionPromptParamsSchema = z.object({
   id: z.coerce.number().int().positive(),
   promptId: z.coerce.number().int().positive(),
+});
+
+const collectionUserParamsSchema = z.object({
+  id: z.coerce.number().int().positive(),
+  userId: z.coerce.number().int().positive(),
 });
 
 const createCollectionBodySchema = z.object({
@@ -80,6 +85,7 @@ collectionsRouter.get("/", async (req: Request, res: Response) => {
         prompts: { include: { prompt: true }, orderBy: { sortOrder: "asc" } },
         skills: { include: { skill: true }, orderBy: { sortOrder: "asc" } },
         contexts: { include: { context: true }, orderBy: { sortOrder: "asc" } },
+        users: { include: { user: { select: { id: true, name: true, email: true, avatarUrl: true, title: true } } }, orderBy: { sortOrder: "asc" } },
       },
       orderBy: { createdAt: "desc" },
       skip,
@@ -101,7 +107,7 @@ collectionsRouter.get("/", async (req: Request, res: Response) => {
   });
 });
 
-collectionsRouter.post("/", async (req: Request, res: Response) => {
+collectionsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) => {
   const auth = getAuthContext(req);
   if (!auth) {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
@@ -150,6 +156,7 @@ collectionsRouter.get("/:id", async (req: Request, res: Response) => {
       prompts: { include: { prompt: true }, orderBy: { sortOrder: "asc" } },
       skills: { include: { skill: true }, orderBy: { sortOrder: "asc" } },
       contexts: { include: { context: true }, orderBy: { sortOrder: "asc" } },
+      users: { include: { user: { select: { id: true, name: true, email: true, avatarUrl: true, title: true } } }, orderBy: { sortOrder: "asc" } },
     },
   });
   if (!collection) {
@@ -158,7 +165,7 @@ collectionsRouter.get("/:id", async (req: Request, res: Response) => {
   return res.status(200).json({ data: collection });
 });
 
-collectionsRouter.patch("/:id", async (req: Request, res: Response) => {
+collectionsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Response) => {
   const auth = getAuthContext(req);
   if (!auth) {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
@@ -212,7 +219,7 @@ collectionsRouter.patch("/:id", async (req: Request, res: Response) => {
   }
 });
 
-collectionsRouter.delete("/:id", async (req: Request, res: Response) => {
+collectionsRouter.delete("/:id", requireWriteAccess, async (req: Request, res: Response) => {
   const auth = getAuthContext(req);
   if (!auth) {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
@@ -243,7 +250,7 @@ collectionsRouter.delete("/:id", async (req: Request, res: Response) => {
   return res.status(200).json({ data: { ok: true } });
 });
 
-collectionsRouter.post("/:id/prompts/:promptId", async (req: Request, res: Response) => {
+collectionsRouter.post("/:id/prompts/:promptId", requireWriteAccess, async (req: Request, res: Response) => {
   const auth = getAuthContext(req);
   if (!auth) {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
@@ -282,7 +289,7 @@ collectionsRouter.post("/:id/prompts/:promptId", async (req: Request, res: Respo
   return res.status(200).json({ data: linked });
 });
 
-collectionsRouter.delete("/:id/prompts/:promptId", async (req: Request, res: Response) => {
+collectionsRouter.delete("/:id/prompts/:promptId", requireWriteAccess, async (req: Request, res: Response) => {
   const auth = getAuthContext(req);
   if (!auth) {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
@@ -306,6 +313,72 @@ collectionsRouter.delete("/:id/prompts/:promptId", async (req: Request, res: Res
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt membership not found." } });
   }
   await prisma.collectionPrompt.delete({ where: { collectionId_promptId: { collectionId, promptId } } });
+  return res.status(200).json({ data: { ok: true } });
+});
+
+collectionsRouter.post("/:id/users/:userId", requireWriteAccess, async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+  const parsedParams = collectionUserParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+  const collectionId = parsedParams.data.id;
+  const userId = parsedParams.data.userId;
+
+  const [collection, user] = await Promise.all([
+    prisma.collection.findFirst({ where: { id: collectionId, teamId: auth.teamId }, select: { id: true } }),
+    prisma.user.findFirst({ where: { id: userId, teamId: auth.teamId }, select: { id: true } }),
+  ]);
+
+  if (!collection || !user) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Collection or user not found." } });
+  }
+
+  const maxSort = await prisma.collectionUser.aggregate({
+    where: { collectionId },
+    _max: { sortOrder: true },
+  });
+
+  const linked = await prisma.collectionUser.upsert({
+    where: { collectionId_userId: { collectionId, userId } },
+    create: {
+      collectionId,
+      userId,
+      sortOrder: (maxSort._max.sortOrder ?? -1) + 1,
+    },
+    update: {},
+  });
+
+  return res.status(200).json({ data: linked });
+});
+
+collectionsRouter.delete("/:id/users/:userId", requireWriteAccess, async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+  const parsedParams = collectionUserParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+  const collectionId = parsedParams.data.id;
+  const userId = parsedParams.data.userId;
+
+  const existing = await prisma.collectionUser.findFirst({
+    where: {
+      collectionId,
+      userId,
+      collection: { teamId: auth.teamId },
+    },
+  });
+
+  if (!existing) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "User membership not found." } });
+  }
+  await prisma.collectionUser.delete({ where: { collectionId_userId: { collectionId, userId } } });
   return res.status(200).json({ data: { ok: true } });
 });
 

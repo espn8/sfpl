@@ -3,6 +3,13 @@ import { env } from "../config/env";
 const NANO_BANANA_MODEL = "gemini-2.5-flash-image";
 const NANO_BANANA_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${NANO_BANANA_MODEL}:generateContent`;
 
+const MAX_RETRIES = 5;
+const INITIAL_RETRY_DELAY_MS = 1000;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function buildThumbnailPrompt(title: string, summary: string | null, body: string): string {
   return [
     "Create a fun, quirky thumbnail illustration in Salesforce brand colors.",
@@ -21,15 +28,7 @@ type GenerateThumbnailInput = {
   body: string;
 };
 
-export async function generatePromptThumbnail(input: GenerateThumbnailInput): Promise<string> {
-  const apiKey = env.nanoBananaApiKey;
-  if (!apiKey) {
-    console.error("[NanoBanana] API key not configured - set NANO_BANANA_API_KEY environment variable");
-    throw new Error("NANO_BANANA_API_KEY is not configured.");
-  }
-
-  console.log(`[NanoBanana] Requesting image generation for: "${input.title}"`);
-
+async function attemptGeneration(input: GenerateThumbnailInput, apiKey: string): Promise<string> {
   const response = await fetch(`${NANO_BANANA_ENDPOINT}?key=${encodeURIComponent(apiKey)}`, {
     method: "POST",
     headers: {
@@ -54,8 +53,7 @@ export async function generatePromptThumbnail(input: GenerateThumbnailInput): Pr
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error(`[NanoBanana] API request failed (${response.status}):`, errorText.slice(0, 300));
-    throw new Error(`Nano Banana request failed (${response.status}): ${errorText.slice(0, 300)}`);
+    throw new Error(`API request failed (${response.status}): ${errorText.slice(0, 300)}`);
   }
 
   type ResponsePart = {
@@ -78,17 +76,50 @@ export async function generatePromptThumbnail(input: GenerateThumbnailInput): Pr
     const inline = part.inlineData;
     if (inline?.data) {
       const mimeType = inline.mimeType ?? "image/png";
-      console.log(`[NanoBanana] Successfully received inline image (${mimeType}, ${inline.data.length} bytes base64)`);
       return `data:${mimeType};base64,${inline.data}`;
     }
 
     const fileUri = part.fileData?.fileUri;
     if (fileUri) {
-      console.log(`[NanoBanana] Successfully received file URI: ${fileUri}`);
       return fileUri;
     }
   }
 
-  console.error("[NanoBanana] Response did not contain expected image data. Parts count:", parts.length, "Payload:", JSON.stringify(payload, null, 2).slice(0, 500));
-  throw new Error("Nano Banana response did not contain image data.");
+  throw new Error(`Response did not contain image data (parts: ${parts.length})`);
+}
+
+export async function generatePromptThumbnail(input: GenerateThumbnailInput): Promise<string> {
+  const apiKey = env.nanoBananaApiKey;
+  if (!apiKey) {
+    console.error("[NanoBanana] API key not configured - set NANO_BANANA_API_KEY environment variable");
+    throw new Error("NANO_BANANA_API_KEY is not configured.");
+  }
+
+  console.log(`[NanoBanana] Requesting image generation for: "${input.title}"`);
+
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const result = await attemptGeneration(input, apiKey);
+      if (attempt > 1) {
+        console.log(`[NanoBanana] Succeeded on attempt ${attempt} for: "${input.title}"`);
+      } else {
+        console.log(`[NanoBanana] Successfully generated image for: "${input.title}"`);
+      }
+      return result;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      console.warn(`[NanoBanana] Attempt ${attempt}/${MAX_RETRIES} failed for "${input.title}": ${lastError.message}`);
+
+      if (attempt < MAX_RETRIES) {
+        const delayMs = INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt - 1);
+        console.log(`[NanoBanana] Retrying in ${delayMs}ms...`);
+        await sleep(delayMs);
+      }
+    }
+  }
+
+  console.error(`[NanoBanana] All ${MAX_RETRIES} attempts failed for: "${input.title}"`);
+  throw lastError ?? new Error("Image generation failed after all retries");
 }

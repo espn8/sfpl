@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { fetchMe, updateMyProfile, uploadProfilePhoto } from "../features/auth/api";
-import { canAccessAdminUi } from "../features/auth/roles";
+import { canAccessAdminUi, canCreateContent } from "../features/auth/roles";
 import { ThemeModeToggle } from "./ui/ThemeModeToggle";
 
 const SALESFORCE_LOGO = "/salesforce-logo.png";
@@ -167,51 +167,53 @@ export function AppShell({ children }: AppShellProps) {
             </nav>
           </div>
           <div className="flex items-center gap-3">
-            <div className="relative" ref={createMenuRef}>
-              <button
-                type="button"
-                onClick={() => setCreateMenuOpen(!createMenuOpen)}
-                className="inline-flex items-center justify-center gap-1.5 rounded-full bg-(--color-launch) px-4 py-2 text-sm font-semibold text-white shadow-sm transition-[background-color,box-shadow,transform] hover:bg-(--color-launch-hover) hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--color-launch) focus-visible:ring-offset-2 focus-visible:ring-offset-(--color-surface) active:scale-[0.98]"
-                aria-haspopup="true"
-                aria-expanded={createMenuOpen}
-              >
-                <PlusIcon className="h-4 w-4" />
-                <span>Create</span>
-                <ChevronDownIcon className="h-4 w-4" />
-              </button>
-              {createMenuOpen && (
-                <div
-                  className="absolute right-0 z-50 mt-2 w-44 rounded-lg border border-(--color-border) bg-(--color-surface) py-1 shadow-lg"
-                  role="menu"
-                  aria-orientation="vertical"
+            {canCreateContent(meQuery.data?.role) && (
+              <div className="relative" ref={createMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setCreateMenuOpen(!createMenuOpen)}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-full bg-(--color-launch) px-4 py-2 text-sm font-semibold text-white shadow-sm transition-[background-color,box-shadow,transform] hover:bg-(--color-launch-hover) hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--color-launch) focus-visible:ring-offset-2 focus-visible:ring-offset-(--color-surface) active:scale-[0.98]"
+                  aria-haspopup="true"
+                  aria-expanded={createMenuOpen}
                 >
-                  <Link
-                    to="/prompts/new"
-                    className="block px-4 py-2 text-sm text-(--color-text) hover:bg-(--color-surface-muted) focus-visible:bg-(--color-surface-muted) focus-visible:outline-none"
-                    role="menuitem"
-                    onClick={() => setCreateMenuOpen(false)}
+                  <PlusIcon className="h-4 w-4" />
+                  <span>Create</span>
+                  <ChevronDownIcon className="h-4 w-4" />
+                </button>
+                {createMenuOpen && (
+                  <div
+                    className="absolute right-0 z-50 mt-2 w-44 rounded-lg border border-(--color-border) bg-(--color-surface) py-1 shadow-lg"
+                    role="menu"
+                    aria-orientation="vertical"
                   >
-                    New Prompt
-                  </Link>
-                  <Link
-                    to="/skills/new"
-                    className="block px-4 py-2 text-sm text-(--color-text) hover:bg-(--color-surface-muted) focus-visible:bg-(--color-surface-muted) focus-visible:outline-none"
-                    role="menuitem"
-                    onClick={() => setCreateMenuOpen(false)}
-                  >
-                    New Skill
-                  </Link>
-                  <Link
-                    to="/context/new"
-                    className="block px-4 py-2 text-sm text-(--color-text) hover:bg-(--color-surface-muted) focus-visible:bg-(--color-surface-muted) focus-visible:outline-none"
-                    role="menuitem"
-                    onClick={() => setCreateMenuOpen(false)}
-                  >
-                    New Context
-                  </Link>
-                </div>
-              )}
-            </div>
+                    <Link
+                      to="/prompts/new"
+                      className="block px-4 py-2 text-sm text-(--color-text) hover:bg-(--color-surface-muted) focus-visible:bg-(--color-surface-muted) focus-visible:outline-none"
+                      role="menuitem"
+                      onClick={() => setCreateMenuOpen(false)}
+                    >
+                      New Prompt
+                    </Link>
+                    <Link
+                      to="/skills/new"
+                      className="block px-4 py-2 text-sm text-(--color-text) hover:bg-(--color-surface-muted) focus-visible:bg-(--color-surface-muted) focus-visible:outline-none"
+                      role="menuitem"
+                      onClick={() => setCreateMenuOpen(false)}
+                    >
+                      New Skill
+                    </Link>
+                    <Link
+                      to="/context/new"
+                      className="block px-4 py-2 text-sm text-(--color-text) hover:bg-(--color-surface-muted) focus-visible:bg-(--color-surface-muted) focus-visible:outline-none"
+                      role="menuitem"
+                      onClick={() => setCreateMenuOpen(false)}
+                    >
+                      New Context
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
             {meQuery.data ? (
               <Link
                 to="/settings"

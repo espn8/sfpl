@@ -8,6 +8,7 @@ import { VariableInputs } from "../../components/VariableInputs";
 import { interpolateBody } from "../../lib/interpolate";
 import { buildShareUrl, copyToClipboard, downloadAsMarkdown, shareOrCopyLink } from "../../lib/shareOrCopyLink";
 import { fetchMe } from "../auth/api";
+import { canCreateContent } from "../auth/roles";
 import {
   archiveContextDocument,
   deleteContextDocumentPermanently,
@@ -136,8 +137,9 @@ export function ContextDetailPage() {
 
   const canEdit =
     meQuery.data &&
+    canCreateContent(meQuery.data.role) &&
     (meQuery.data.id === doc.owner.id || meQuery.data.role === "ADMIN" || meQuery.data.role === "OWNER");
-  const canDelete = meQuery.data && meQuery.data.id === doc.owner.id;
+  const canDelete = meQuery.data && canCreateContent(meQuery.data.role) && meQuery.data.id === doc.owner.id;
   const viewCount = doc.viewCount ?? 0;
   const copyCount = doc.copyCount ?? 0;
   const favoriteCount = doc.favoriteCount ?? 0;

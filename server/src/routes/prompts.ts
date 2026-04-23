@@ -2,7 +2,7 @@ import { Prisma, PromptModality, UsageAction } from "@prisma/client";
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { z } from "zod";
-import { getAuthContext, requireAuth } from "../middleware/auth";
+import { getAuthContext, requireAuth, requireWriteAccess } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 import { generatePromptThumbnail } from "../services/nanoBanana";
 import { refreshBestOfCollection, refreshToolCollection } from "../services/systemCollections";
@@ -650,7 +650,7 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
   });
 });
 
-promptsRouter.post("/", async (req: Request, res: Response) => {
+promptsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) => {
   const auth = getAuthContext(req);
   if (!auth) {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
@@ -824,7 +824,7 @@ promptsRouter.get("/:id", async (req: Request, res: Response) => {
   });
 });
 
-promptsRouter.patch("/:id", async (req: Request, res: Response) => {
+promptsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Response) => {
   const auth = getAuthContext(req);
   if (!auth) {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
@@ -954,7 +954,7 @@ promptsRouter.patch("/:id", async (req: Request, res: Response) => {
   });
 });
 
-promptsRouter.post("/:id/regenerate-thumbnail", async (req: Request, res: Response) => {
+promptsRouter.post("/:id/regenerate-thumbnail", requireWriteAccess, async (req: Request, res: Response) => {
   const auth = getAuthContext(req);
   if (!auth) {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
@@ -993,7 +993,7 @@ promptsRouter.post("/:id/regenerate-thumbnail", async (req: Request, res: Respon
   });
 });
 
-promptsRouter.delete("/:id", async (req: Request, res: Response) => {
+promptsRouter.delete("/:id", requireWriteAccess, async (req: Request, res: Response) => {
   const auth = getAuthContext(req);
   if (!auth) {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
@@ -1025,7 +1025,7 @@ promptsRouter.delete("/:id", async (req: Request, res: Response) => {
   return res.status(200).json({ data: archived });
 });
 
-promptsRouter.delete("/:id/permanent", async (req: Request, res: Response) => {
+promptsRouter.delete("/:id/permanent", requireWriteAccess, async (req: Request, res: Response) => {
   const auth = getAuthContext(req);
   if (!auth) {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
@@ -1087,7 +1087,7 @@ promptsRouter.get("/:id/versions", async (req: Request, res: Response) => {
   return res.status(200).json({ data: versions });
 });
 
-promptsRouter.post("/:id/versions", async (req: Request, res: Response) => {
+promptsRouter.post("/:id/versions", requireWriteAccess, async (req: Request, res: Response) => {
   const auth = getAuthContext(req);
   if (!auth) {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
@@ -1141,7 +1141,7 @@ promptsRouter.post("/:id/versions", async (req: Request, res: Response) => {
   });
 });
 
-promptsRouter.post("/:id/restore/:version", async (req: Request, res: Response) => {
+promptsRouter.post("/:id/restore/:version", requireWriteAccess, async (req: Request, res: Response) => {
   const auth = getAuthContext(req);
   if (!auth) {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });

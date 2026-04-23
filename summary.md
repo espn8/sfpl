@@ -1,9 +1,31 @@
 # AI Library - Technical Summary
 
-Last Updated: Thursday, April 23, 2026 — 10:32 CDT
-Build Version: acc30d5
+Last Updated: Thursday, April 23, 2026 — 14:45 CDT
+Build Version: 8c08540
 
 ## Recent Changes
+
+- **VIEWER role access control**: Introduced read-only VIEWER role with comprehensive access restrictions:
+  - Added `canCreateContent()` role helper that allows ADMIN, OWNER, and MEMBER but excludes VIEWER
+  - Created `WriterRoute` component that redirects VIEWER users away from create/edit routes
+  - Added `requireWriteAccess` server middleware that blocks write operations for VIEWER role
+  - Protected all create, update, delete, and regenerate endpoints with write access middleware
+  - Hide "Create" button in header navigation for VIEWER users
+  - Hide create/edit CTAs in empty states and list pages for VIEWER users
+  - Domain-based automatic VIEWER assignment for `@meshmesh.io` users on sign-in
+  - Updated 6 test files to mock `requireWriteAccess` middleware
+
+- **Collection user membership**: Added ability to add users to collections:
+  - New `CollectionUser` Prisma model with collectionId/userId unique constraint and sortOrder
+  - New API endpoints: `POST /api/collections/:id/users/:userId` and `DELETE /api/collections/:id/users/:userId`
+  - Collections API returns `users` array with member details in list and detail responses
+
+- **Thumbnail generation retry with exponential backoff**: Enhanced `nanoBanana.ts` with automatic retry logic:
+  - Up to 5 retry attempts with exponential backoff (1s, 2s, 4s, 8s, 16s delays)
+  - Cleaner logging that reports success/failure per attempt
+  - Refactored into `attemptGeneration()` helper for cleaner retry loop
+
+### Previous Session Changes (April 23, 2026 — earlier)
 
 - **Expanded Slack Skills seed script**: Significantly expanded `seed-slack-skills.ts` with 7 new authors (Ilya Pevzner, Chandrahas Aroori, Daniel Morrison, Viktor Sperling, Daniel Martin, David O Dowd, Jonathan Arteaga) and many new skill seeds including SE/AE SFR prompts, Gemini prompts, and other Slackbot skills. Added optional `tools` field to skill seeds for specifying target tools (e.g., `slackbot`).
 
@@ -383,7 +405,7 @@ The application has achieved **substantial completion** of the core implementati
 
 ### Prisma Data Model Summary
 
-**Models (28):**
+**Models (29):**
 - `User` - with `avatarUrl`, `region`, `ou`, `title`, `onboardingCompleted`, `googleSub`
 - `Team` - multi-tenant team container
 - `Prompt` - with `tools[]`, `modality`, `thumbnailUrl`, `thumbnailStatus`, `thumbnailError`
@@ -400,7 +422,7 @@ The application has achieved **substantial completion** of the core implementati
 - `ContextRating` - user ratings for context documents (1-5 stars)
 - `ContextUsageEvent` - VIEW/COPY/SHARE tracking (context documents)
 - `Tag`, `PromptTag` - tagging system (prompts only currently)
-- `Collection`, `CollectionPrompt`, `CollectionSkill`, `CollectionContext` - curated collections for all asset types with `isSystem` flag for protected system collections
+- `Collection`, `CollectionPrompt`, `CollectionSkill`, `CollectionContext`, `CollectionUser` - curated collections for all asset types with `isSystem` flag for protected system collections and user membership
 - `Favorite`, `Rating` - user engagement (prompts)
 - `UsageEvent` - VIEW/COPY/LAUNCH tracking (prompts)
 - `ToolRequest` - tool submission requests with review workflow
@@ -430,7 +452,7 @@ The application has achieved **substantial completion** of the core implementati
 | `prompts.ts` | Full CRUD, `DELETE /:id/permanent`, `/versions`, `/restore/:version`, `/favorite`, `/rating`, `/usage`, `/regenerate-thumbnail` |
 | `skills.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `DELETE /:id/permanent`, `POST /:id/usage`, `POST /:id/favorite`, `POST /:id/rating`, `PUT /:id/variables`, `POST /:id/collections/:collectionId`, `DELETE /:id/collections/:collectionId` |
 | `context.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `DELETE /:id/permanent`, `POST /:id/usage`, `POST /:id/favorite`, `POST /:id/rating`, `PUT /:id/variables`, `POST /:id/collections/:collectionId`, `DELETE /:id/collections/:collectionId` |
-| `collections.ts` | CRUD + `/prompts/:promptId` membership + `POST /system/refresh` (admin-only system collection refresh) |
+| `collections.ts` | CRUD + `/prompts/:promptId` membership + `/users/:userId` membership + `POST /system/refresh` (admin-only system collection refresh) |
 | `tags.ts` | `GET /`, `POST /` |
 | `analytics.ts` | `GET /overview` (team-scoped aggregates) |
 | `help.ts` | `POST /search` (AI-powered help search) |

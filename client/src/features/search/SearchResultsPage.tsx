@@ -3,6 +3,8 @@ import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { listAssets, type ListAssetsFilters } from "../assets/api";
 import { AssetCard } from "../assets/AssetCard";
+import { fetchMe } from "../auth/api";
+import { canCreateContent } from "../auth/roles";
 import { type PromptTool } from "../prompts/api";
 import { FacetedFilters, SearchBar, SearchEmptyState, useSearchState, type AssetTypeFilter } from "../search";
 
@@ -22,6 +24,7 @@ export function SearchResultsPage() {
     isParsing,
   } = useSearchState();
 
+  const meQuery = useQuery({ queryKey: ["auth", "me"], queryFn: fetchMe });
   const pageSize = 20;
 
   const apiFilters = useMemo<ListAssetsFilters>(() => {
@@ -110,6 +113,7 @@ export function SearchResultsPage() {
           query={debouncedFilters.q}
           activeFilters={activeFilters}
           onClearFilters={clearAllFilters}
+          canCreate={canCreateContent(meQuery.data?.role)}
         />
       ) : (
         <>

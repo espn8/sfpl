@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { fetchMe } from "../auth/api";
+import { canCreateContent } from "../auth/roles";
 import { SearchBar, SearchEmptyState, useSearchState } from "../search";
 import { listCollections } from "../collections/api";
 import { listPrompts, type ListPromptsFilters, type PromptModality, type PromptTool } from "./api";
@@ -26,6 +28,7 @@ export function PromptsListPage() {
     isParsing,
   } = useSearchState();
 
+  const meQuery = useQuery({ queryKey: ["auth", "me"], queryFn: fetchMe });
   const pageSize = 20;
 
   const apiFilters = useMemo<ListPromptsFilters>(() => {
@@ -91,12 +94,14 @@ export function PromptsListPage() {
                 : "Ready-to-use AI prompts you can customize and launch in your favorite tools."}
           </p>
         </div>
-        <Link
-          to="/prompts/new"
-          className="inline-flex items-center justify-center rounded-full bg-linear-to-r from-indigo-500 via-fuchsia-500 to-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-md hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400"
-        >
-          Create Prompt
-        </Link>
+        {canCreateContent(meQuery.data?.role) && (
+          <Link
+            to="/prompts/new"
+            className="inline-flex items-center justify-center rounded-full bg-linear-to-r from-indigo-500 via-fuchsia-500 to-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-md hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400"
+          >
+            Create Prompt
+          </Link>
+        )}
       </div>
 
       <SearchBar
@@ -133,6 +138,7 @@ export function PromptsListPage() {
           activeFilters={activeFilters}
           assetType="prompt"
           onClearFilters={clearAllFilters}
+          canCreate={canCreateContent(meQuery.data?.role)}
         />
       ) : null}
       {promptsQuery.data && promptsQuery.data.meta.totalPages > 1 ? (

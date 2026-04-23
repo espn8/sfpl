@@ -2,7 +2,7 @@ import type { Prisma } from "@prisma/client";
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { z } from "zod";
-import { getAuthContext, requireAuth } from "../middleware/auth";
+import { getAuthContext, requireAuth, requireWriteAccess } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 import { generatePromptThumbnail } from "../services/nanoBanana";
 
@@ -346,7 +346,7 @@ contextRouter.get("/", async (req: Request, res: Response) => {
   });
 });
 
-contextRouter.post("/", async (req: Request, res: Response) => {
+contextRouter.post("/", requireWriteAccess, async (req: Request, res: Response) => {
   const auth = getAuthContext(req);
   if (!auth) {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
@@ -469,7 +469,7 @@ contextRouter.get("/:id", async (req: Request, res: Response) => {
   });
 });
 
-contextRouter.patch("/:id", async (req: Request, res: Response) => {
+contextRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Response) => {
   const auth = getAuthContext(req);
   if (!auth) {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
@@ -571,7 +571,7 @@ contextRouter.put("/:id/variables", async (req: Request, res: Response) => {
   return res.status(200).json({ data: serializeContextDoc(doc) });
 });
 
-contextRouter.delete("/:id", async (req: Request, res: Response) => {
+contextRouter.delete("/:id", requireWriteAccess, async (req: Request, res: Response) => {
   const auth = getAuthContext(req);
   if (!auth) {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
@@ -600,7 +600,7 @@ contextRouter.delete("/:id", async (req: Request, res: Response) => {
   return res.status(200).json({ data: archived });
 });
 
-contextRouter.delete("/:id/permanent", async (req: Request, res: Response) => {
+contextRouter.delete("/:id/permanent", requireWriteAccess, async (req: Request, res: Response) => {
   const auth = getAuthContext(req);
   if (!auth) {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
@@ -727,7 +727,7 @@ contextRouter.post("/:id/rating", async (req: Request, res: Response) => {
   return res.status(200).json({ data: { ok: true, value } });
 });
 
-contextRouter.post("/:id/regenerate-thumbnail", async (req: Request, res: Response) => {
+contextRouter.post("/:id/regenerate-thumbnail", requireWriteAccess, async (req: Request, res: Response) => {
   const auth = getAuthContext(req);
   if (!auth) {
     return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });

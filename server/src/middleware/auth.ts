@@ -112,3 +112,34 @@ export function getAuthContext(req: Request): AuthContext | null {
     userOu: req.session.auth.userOu,
   };
 }
+
+export function requireWriteAccess(req: Request, res: Response, next: NextFunction): void {
+  const proceed = async () => {
+    if (!req.session.auth) {
+      const whitelisted = await checkWhitelistBypass(req);
+      if (!whitelisted) {
+        res.status(401).json({
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Authentication required.",
+          },
+        });
+        return;
+      }
+    }
+
+    if (req.session.auth?.role === "VIEWER") {
+      res.status(403).json({
+        error: {
+          code: "FORBIDDEN",
+          message: "Viewer accounts cannot create or modify content.",
+        },
+      });
+      return;
+    }
+
+    next();
+  };
+
+  proceed();
+}

@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { fetchMe } from "../auth/api";
-import { canAccessAdminUi } from "../auth/roles";
+import { canAccessAdminUi, canCreateContent } from "../auth/roles";
 import { getAnalyticsOverview } from "../analytics/api";
 import { listAssets, type ListAssetsFilters } from "../assets/api";
 import { AssetCard } from "../assets/AssetCard";
@@ -621,7 +621,7 @@ export function HomePage() {
                   ? "No assets match your filters. Try adjusting your search."
                   : "You haven't created any assets yet. Start by creating a prompt, skill, or context document!"}
               </p>
-              {!debouncedFilters.q && debouncedFilters.assetType === "all" && !debouncedFilters.status && (
+              {!debouncedFilters.q && debouncedFilters.assetType === "all" && !debouncedFilters.status && canCreateContent(meQuery.data?.role) && (
                 <div className="mt-4 flex justify-center gap-3">
                   <Link
                     to="/prompts/new"
