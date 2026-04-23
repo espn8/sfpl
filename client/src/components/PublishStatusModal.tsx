@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 
 type PublishStatusModalProps = {
   isOpen: boolean;
-  assetType: "prompt" | "skill" | "context";
+  assetType: "prompt" | "skill" | "context" | "build";
   onConfirm: (status: "DRAFT" | "PUBLISHED") => void;
   onClose: () => void;
 };
@@ -43,7 +43,9 @@ export function PublishStatusModal({
       ? "prompt"
       : assetType === "skill"
         ? "skill"
-        : "context file";
+        : assetType === "build"
+          ? "build"
+          : "context file";
 
   return (
     <div

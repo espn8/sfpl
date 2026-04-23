@@ -115,6 +115,7 @@ type UnifiedAsset = {
   averageRating?: number | null;
   myRating?: number | null;
   variables?: Array<{ key: string; label: string | null; defaultValue: string | null; required: boolean }>;
+  isSmartPick?: boolean;
 };
 
 assetsRouter.use(requireAuth);
@@ -218,6 +219,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         modality: true,
         thumbnailUrl: true,
         thumbnailStatus: true,
+        isSmartPick: true,
         createdAt: true,
         updatedAt: true,
         owner: { select: { id: true, name: true, avatarUrl: true } },
@@ -297,6 +299,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
             : prompt.ratings.reduce((sum, r) => sum + r.value, 0) / prompt.ratings.length,
         myRating: myRatingByPrompt.get(prompt.id) ?? null,
         variables: prompt.variables,
+        isSmartPick: prompt.isSmartPick,
       });
     }
   }
@@ -357,6 +360,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         tools: true,
         thumbnailUrl: true,
         thumbnailStatus: true,
+        isSmartPick: true,
         createdAt: true,
         updatedAt: true,
         owner: { select: { id: true, name: true, avatarUrl: true } },
@@ -438,6 +442,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         averageRating: ratingInfo?.avg ?? null,
         myRating: myRatingBySkill.get(skill.id) ?? null,
         variables: skill.variables,
+        isSmartPick: skill.isSmartPick,
       });
     }
   }
@@ -498,6 +503,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         tools: true,
         thumbnailUrl: true,
         thumbnailStatus: true,
+        isSmartPick: true,
         createdAt: true,
         updatedAt: true,
         owner: { select: { id: true, name: true, avatarUrl: true } },
@@ -579,6 +585,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         averageRating: ratingInfo?.avg ?? null,
         myRating: myRatingByContext.get(doc.id) ?? null,
         variables: doc.variables,
+        isSmartPick: doc.isSmartPick,
       });
     }
   }

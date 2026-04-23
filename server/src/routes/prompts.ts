@@ -471,6 +471,7 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
         modality: true,
         thumbnailUrl: true,
         thumbnailStatus: true,
+        isSmartPick: true,
         createdAt: true,
         updatedAt: true,
         owner: { select: { id: true, name: true, avatarUrl: true } },
@@ -630,6 +631,7 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
     viewCount: viewCountByPrompt.get(prompt.id) ?? 0,
     favorited: favoritedPromptIds.has(prompt.id),
     myRating: myRatingByPrompt.get(prompt.id) ?? null,
+    isSmartPick: "isSmartPick" in prompt ? prompt.isSmartPick : false,
   }));
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));

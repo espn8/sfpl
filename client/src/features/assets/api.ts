@@ -40,6 +40,7 @@ export type UnifiedAsset = {
   averageRating?: number | null;
   myRating?: number | null;
   variables?: AssetVariable[];
+  isSmartPick?: boolean;
 };
 
 export type ListAssetsFilters = {

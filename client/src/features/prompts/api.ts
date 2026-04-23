@@ -86,6 +86,7 @@ export type PromptSummary = {
   usageCount: number;
   viewCount: number;
   favorited: boolean;
+  favoriteCount?: number;
   myRating: number | null;
   owner: PromptOwnerInfo;
   tags: string[];
@@ -93,6 +94,7 @@ export type PromptSummary = {
   thumbnailUrl?: string | null;
   thumbnailStatus: "PENDING" | "READY" | "FAILED";
   variables?: PromptSummaryVariable[];
+  isSmartPick?: boolean;
 };
 
 export type PromptVariable = {
@@ -151,10 +153,12 @@ export type Prompt = {
   };
   viewCount?: number;
   favorited?: boolean;
+  favoriteCount?: number;
   myRating?: number | null;
   thumbnailUrl?: string | null;
   thumbnailStatus: "PENDING" | "READY" | "FAILED";
   thumbnailError?: string | null;
+  isSmartPick?: boolean;
 };
 
 type ApiResponse<T> = {

@@ -60,6 +60,7 @@ export type ContextDocument = {
   ratings?: ContextRating[];
   averageRating?: number | null;
   ratingCount?: number;
+  isSmartPick?: boolean;
 };
 
 export type ListContextFilters = {

@@ -37,6 +37,10 @@ model User {
   contextFavorites  ContextFavorite[]
   contextUsageEvents ContextUsageEvent[]
   contextRatings    ContextRating[]
+  builds            Build[]
+  buildFavorites    BuildFavorite[]
+  buildUsageEvents  BuildUsageEvent[]
+  buildRatings      BuildRating[]
   toolRequestsReviewed ToolRequest[]
 }
 
@@ -48,6 +52,7 @@ model Team {
   prompts     Prompt[]
   skills      Skill[]
   contextDocuments ContextDocument[]
+  builds      Build[]
   tags        Tag[]
   collections Collection[]
   createdAt   DateTime     @default(now())
@@ -69,6 +74,7 @@ model Prompt {
   thumbnailUrl String?
   thumbnailStatus ThumbnailStatus @default(PENDING)
   thumbnailError String?
+  isSmartPick  Boolean           @default(false)
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
   team         Team              @relation(fields: [teamId], references: [id], onDelete: Restrict)
@@ -95,6 +101,7 @@ model Skill {
   thumbnailUrl    String?
   thumbnailStatus ThumbnailStatus  @default(PENDING)
   thumbnailError  String?
+  isSmartPick     Boolean          @default(false)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   team            Team             @relation(fields: [teamId], references: [id], onDelete: Restrict)
@@ -121,6 +128,7 @@ model ContextDocument {
   thumbnailUrl    String?
   thumbnailStatus ThumbnailStatus  @default(PENDING)
   thumbnailError  String?
+  isSmartPick     Boolean          @default(false)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   team            Team             @relation(fields: [teamId], references: [id], onDelete: Restrict)
@@ -130,6 +138,32 @@ model ContextDocument {
   variables       ContextVariable[]
   ratings         ContextRating[]
   collections     CollectionContext[]
+
+  @@index([teamId, updatedAt])
+}
+
+model Build {
+  id              Int              @id @default(autoincrement())
+  teamId          Int
+  ownerId         Int
+  title           String
+  summary         String?
+  buildUrl        String
+  supportUrl      String?
+  visibility      PromptVisibility @default(PUBLIC)
+  status          PromptStatus     @default(DRAFT)
+  thumbnailUrl    String?
+  thumbnailStatus ThumbnailStatus  @default(PENDING)
+  thumbnailError  String?
+  isSmartPick     Boolean          @default(false)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  team            Team             @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  owner           User             @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  favorites       BuildFavorite[]
+  usageEvents     BuildUsageEvent[]
+  ratings         BuildRating[]
+  collections     CollectionBuild[]
 
   @@index([teamId, updatedAt])
 }
@@ -184,6 +218,7 @@ model Collection {
   prompts     CollectionPrompt[]
   skills      CollectionSkill[]
   contexts    CollectionContext[]
+  builds      CollectionBuild[]
   users       CollectionUser[]
 
   @@unique([teamId, name])
@@ -220,6 +255,17 @@ model CollectionContext {
   context      ContextDocument @relation(fields: [contextId], references: [id], onDelete: Cascade)
 
   @@unique([collectionId, contextId])
+}
+
+model CollectionBuild {
+  id           Int        @id @default(autoincrement())
+  collectionId Int
+  buildId      Int
+  sortOrder    Int        @default(0)
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  build        Build      @relation(fields: [buildId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, buildId])
 }
 
 model CollectionUser {
@@ -377,6 +423,43 @@ model ContextRating {
   context   ContextDocument @relation(fields: [contextId], references: [id], onDelete: Cascade)
 
   @@unique([userId, contextId])
+}
+
+model BuildFavorite {
+  id        Int      @id @default(autoincrement())
+  buildId   Int
+  userId    Int
+  createdAt DateTime @default(now())
+  build     Build    @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([buildId, userId])
+}
+
+model BuildUsageEvent {
+  id        Int      @id @default(autoincrement())
+  buildId   Int
+  userId    Int
+  eventType String   @default("VIEW")
+  createdAt DateTime @default(now())
+  build     Build    @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([buildId])
+  @@index([userId])
+}
+
+model BuildRating {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  buildId   Int
+  value     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  build     Build    @relation(fields: [buildId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, buildId])
 }
 
 enum Role {

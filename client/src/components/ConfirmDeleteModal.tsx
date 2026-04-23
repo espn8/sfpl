@@ -1,7 +1,7 @@
 type ConfirmDeleteModalProps = {
   isOpen: boolean;
   title: string;
-  assetType: "prompt" | "skill" | "context";
+  assetType: "prompt" | "skill" | "context" | "build";
   assetName: string;
   isDeleting: boolean;
   onConfirm: () => void;
@@ -26,7 +26,9 @@ export function ConfirmDeleteModal({
       ? "prompt"
       : assetType === "skill"
         ? "skill"
-        : "context file";
+        : assetType === "build"
+          ? "build"
+          : "context file";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">

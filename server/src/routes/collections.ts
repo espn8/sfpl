@@ -85,6 +85,7 @@ collectionsRouter.get("/", async (req: Request, res: Response) => {
         prompts: { include: { prompt: true }, orderBy: { sortOrder: "asc" } },
         skills: { include: { skill: true }, orderBy: { sortOrder: "asc" } },
         contexts: { include: { context: true }, orderBy: { sortOrder: "asc" } },
+        builds: { include: { build: true }, orderBy: { sortOrder: "asc" } },
         users: { include: { user: { select: { id: true, name: true, email: true, avatarUrl: true, title: true } } }, orderBy: { sortOrder: "asc" } },
       },
       orderBy: { createdAt: "desc" },
@@ -156,6 +157,7 @@ collectionsRouter.get("/:id", async (req: Request, res: Response) => {
       prompts: { include: { prompt: true }, orderBy: { sortOrder: "asc" } },
       skills: { include: { skill: true }, orderBy: { sortOrder: "asc" } },
       contexts: { include: { context: true }, orderBy: { sortOrder: "asc" } },
+      builds: { include: { build: true }, orderBy: { sortOrder: "asc" } },
       users: { include: { user: { select: { id: true, name: true, email: true, avatarUrl: true, title: true } } }, orderBy: { sortOrder: "asc" } },
     },
   });

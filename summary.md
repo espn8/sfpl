@@ -1,9 +1,28 @@
 # AI Library - Technical Summary
 
-Last Updated: Thursday, April 23, 2026 — 14:52 CDT
-Build Version: a97f654
+Last Updated: Thursday, April 23, 2026 — 16:15 CDT
+Build Version: a6371ee
 
 ## Recent Changes
+
+- **Builds asset type**: Introduced a new "Build" asset type for sharing pre-built solutions and tools:
+  - New `Build` Prisma model with `title`, `summary`, `buildUrl`, `supportUrl`, visibility, status, thumbnails, and engagement tracking
+  - Complete API routes: CRUD, favorites, ratings, usage events, collection membership, thumbnail regeneration
+  - Frontend pages: `BuildListPage`, `BuildDetailPage`, `BuildEditorPage`, `BuildEditPage`, `BuildListCard`
+  - Added `/builds`, `/builds/new`, `/builds/:id`, `/builds/:id/edit` routes to router
+  - Navigation updated: "Builds" link in header, "New Build" in create dropdown
+  - Related models: `BuildFavorite`, `BuildUsageEvent`, `BuildRating`, `CollectionBuild`
+  - Database migration `20260423144128_add_builds` creates all Build-related tables
+
+- **isSmartPick field for featured assets**: Added `isSmartPick` boolean field to Prompt, Skill, ContextDocument, and Build models:
+  - Enables curated "Smart Picks" feature for highlighting recommended assets
+  - Database migration `20260423150018_add_is_smart_pick_field` adds the column to all asset tables
+
+- **Help icon in header**: Added a help circle icon button in the header navigation that links to `/help` page for quick access to documentation
+
+- **AssetCollectionMenu enhancement**: Extended to support Builds in collection management
+
+### Previous Session Changes (April 23, 2026 — earlier)
 
 - **VIEWER role access control**: Introduced read-only VIEWER role with comprehensive access restrictions:
   - Added `canCreateContent()` role helper that allows ADMIN, OWNER, and MEMBER but excludes VIEWER
@@ -355,6 +374,7 @@ The application has achieved **substantial completion** of the core implementati
 │   │   │   ├── prompts/                        # Discovery/detail/create/edit, cards, filters, interpolation, external launch, share, ToolRequestModal
 │   │   │   ├── skills/                         # Skill list/detail/create/edit (markdown body, copy, share, usage tracking)
 │   │   │   ├── context/                        # Context (markdown) list/detail/create/edit (copy, share, usage tracking)
+│   │   │   ├── builds/                         # Build list/detail/create/edit (buildUrl, supportUrl, share, usage tracking)
 │   │   │   ├── search/                         # Smart AI search (SearchBar, FilterChip, SearchSuggestions, FacetedFilters, SearchEmptyState, useSearchState hook, highlight utils)
 │   │   │   ├── analytics/                      # Admin analytics dashboard (top used/rated, contributors, user engagement)
 │   │   │   ├── collections/                    # Collection CRUD + membership surfaces + share
@@ -366,7 +386,7 @@ The application has achieved **substantial completion** of the core implementati
 │   │   └── main.tsx                            # Bootstrap + providers
 ├── server/                                     # Express + Prisma backend
 │   ├── prisma/
-│   │   ├── schema.prisma                       # Canonical data model (17 models, 7 enums)
+│   │   ├── schema.prisma                       # Canonical data model (33 models, 10 enums)
 │   │   ├── migrations/                         # Applied schema migrations
 │   │   └── seed.ts                             # Demo data generation/reset
 │   ├── src/
@@ -379,6 +399,7 @@ The application has achieved **substantial completion** of the core implementati
 │   │   │   ├── prompts.ts                      # Prompt CRUD/search/rating/usage/favorites/thumbnail orchestration
 │   │   │   ├── skills.ts                       # Skill CRUD + list search + usage tracking (team-scoped)
 │   │   │   ├── context.ts                      # Context document CRUD + list search + usage tracking (team-scoped)
+│   │   │   ├── builds.ts                       # Build CRUD + favorites + ratings + usage + collections (team-scoped)
 │   │   │   ├── search.ts                       # Smart search: suggestions endpoint and NL query parsing
 │   │   │   ├── analytics.ts                    # Top-used/stale/contributors/user-engagement scoreboard
 │   │   │   ├── collections.ts                  # Collection operations
@@ -405,10 +426,11 @@ The application has achieved **substantial completion** of the core implementati
 
 ### Prisma Data Model Summary
 
-**Models (29):**
+**Models (33):**
 - `User` - with `avatarUrl`, `region`, `ou`, `title`, `onboardingCompleted`, `googleSub`
 - `Team` - multi-tenant team container
-- `Prompt` - with `tools[]`, `modality`, `thumbnailUrl`, `thumbnailStatus`, `thumbnailError`
+- `Prompt` - with `tools[]`, `modality`, `thumbnailUrl`, `thumbnailStatus`, `thumbnailError`, `isSmartPick`
+- `Build` - pre-built solutions with `buildUrl`, `supportUrl`, thumbnails, and engagement tracking
 - `PromptVersion` - version history for prompts
 - `PromptVariable` - dynamic variable definitions for prompts
 - `Skill` - markdown body skill documents (team-scoped)
@@ -422,12 +444,13 @@ The application has achieved **substantial completion** of the core implementati
 - `ContextRating` - user ratings for context documents (1-5 stars)
 - `ContextUsageEvent` - VIEW/COPY/SHARE tracking (context documents)
 - `Tag`, `PromptTag` - tagging system (prompts only currently)
-- `Collection`, `CollectionPrompt`, `CollectionSkill`, `CollectionContext`, `CollectionUser` - curated collections for all asset types with `isSystem` flag for protected system collections and user membership
+- `BuildFavorite`, `BuildUsageEvent`, `BuildRating` - user engagement for builds
+- `Collection`, `CollectionPrompt`, `CollectionSkill`, `CollectionContext`, `CollectionBuild`, `CollectionUser` - curated collections for all asset types with `isSystem` flag for protected system collections and user membership
 - `Favorite`, `Rating` - user engagement (prompts)
 - `UsageEvent` - VIEW/COPY/LAUNCH tracking (prompts)
 - `ToolRequest` - tool submission requests with review workflow
 
-**Enums (10):** `Role`, `PromptVisibility` (PUBLIC, TEAM, PRIVATE), `PromptStatus`, `UsageAction`, `PromptModality`, `ThumbnailStatus`, `SkillUsageAction`, `ContextUsageAction`, `ToolRequestStatus`
+**Enums (10):** `Role`, `PromptVisibility` (PUBLIC, TEAM, PRIVATE), `PromptStatus`, `UsageAction`, `PromptModality`, `ThumbnailStatus`, `SkillUsageAction`, `ContextUsageAction`, `ToolRequestStatus`, `BuildUsageAction`
 
 ### Primary Data Flow / Lifecycle
 
@@ -452,6 +475,7 @@ The application has achieved **substantial completion** of the core implementati
 | `prompts.ts` | Full CRUD, `DELETE /:id/permanent`, `/versions`, `/restore/:version`, `/favorite`, `/rating`, `/usage`, `/regenerate-thumbnail` |
 | `skills.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `DELETE /:id/permanent`, `POST /:id/usage`, `POST /:id/favorite`, `POST /:id/rating`, `PUT /:id/variables`, `POST /:id/collections/:collectionId`, `DELETE /:id/collections/:collectionId` |
 | `context.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `DELETE /:id/permanent`, `POST /:id/usage`, `POST /:id/favorite`, `POST /:id/rating`, `PUT /:id/variables`, `POST /:id/collections/:collectionId`, `DELETE /:id/collections/:collectionId` |
+| `builds.ts` | `GET /`, `POST /`, `GET /:id`, `PATCH /:id`, `DELETE /:id` (archive), `DELETE /:id/permanent`, `POST /:id/usage`, `POST /:id/favorite`, `POST /:id/rating`, `POST /:id/regenerate-thumbnail`, `POST /:id/collections/:collectionId`, `DELETE /:id/collections/:collectionId` |
 | `collections.ts` | CRUD + `/prompts/:promptId` membership + `/users/:userId` membership + `POST /system/refresh` (admin-only system collection refresh) |
 | `tags.ts` | `GET /`, `POST /` |
 | `analytics.ts` | `GET /overview` (team-scoped aggregates) |
@@ -479,6 +503,10 @@ The application has achieved **substantial completion** of the core implementati
 | `/context/new` | `ContextEditorPage` | Protected |
 | `/context/:id` | `ContextDetailPage` | Protected |
 | `/context/:id/edit` | `ContextEditPage` | Protected |
+| `/builds` | `BuildListPage` | Protected |
+| `/builds/new` | `BuildEditorPage` | Writer only |
+| `/builds/:id` | `BuildDetailPage` | Protected |
+| `/builds/:id/edit` | `BuildEditPage` | Writer only |
 | `/collections` | `CollectionsPage` | Protected |
 | `/collections/:id` | `CollectionDetailPage` | Protected |
 | `/analytics` | `AnalyticsPage` | Admin only |
@@ -491,6 +519,7 @@ The application has achieved **substantial completion** of the core implementati
 - `server/src/routes/prompts.ts`: primary prompt API with filtering, sorting, pagination, CRUD, versions, and engagement.
 - `server/src/routes/skills.ts`: skill CRUD with team scoping, search, archive (soft delete), and usage tracking.
 - `server/src/routes/context.ts`: context document CRUD with team scoping, search, archive, and usage tracking.
+- `server/src/routes/builds.ts`: build CRUD with team scoping, visibility control, favorites, ratings, usage events, collection membership, and thumbnail generation.
 - `server/src/routes/search.ts`: smart search API with asset/filter suggestions and natural language query parsing.
 - `server/src/routes/analytics.ts`: consolidated overview payload consumed by homepage dashboards and leaderboards.
 - `server/src/routes/help.ts`: help content search endpoint for the searchable help page.
@@ -539,6 +568,12 @@ The application has achieved **substantial completion** of the core implementati
 - `client/src/features/settings/SettingsPage.tsx`: dedicated settings page with profile editing, my content links, and my analytics links.
 - `client/src/features/skills/SkillDetailPage.tsx`: skill detail view with copy button, markdown preview toggle, and share.
 - `client/src/features/context/ContextDetailPage.tsx`: context detail view with copy button, markdown preview toggle, and share.
+- `client/src/features/builds/BuildListPage.tsx`: build list page with search, status filters, and pagination.
+- `client/src/features/builds/BuildDetailPage.tsx`: build detail view with engagement actions (favorite, rate, share).
+- `client/src/features/builds/BuildEditorPage.tsx`: create new build form with URL inputs.
+- `client/src/features/builds/BuildEditPage.tsx`: edit existing build form.
+- `client/src/features/builds/BuildListCard.tsx`: build card component for list display.
+- `client/src/features/builds/api.ts`: builds API client with CRUD, favorites, ratings, and collection operations.
 - `client/src/features/admin/ToolRequestsPage.tsx`: admin page for reviewing tool submission requests with status filtering and review modal.
 - `client/src/features/prompts/ToolRequestModal.tsx`: modal form for submitting new tool requests with validation.
 - `server/src/routes/toolRequests.ts`: tool request submission and admin review API endpoints.

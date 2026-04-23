@@ -60,6 +60,7 @@ export type Skill = {
   ratings?: SkillRating[];
   averageRating?: number | null;
   ratingCount?: number;
+  isSmartPick?: boolean;
 };
 
 export type ListSkillsFilters = {

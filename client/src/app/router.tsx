@@ -24,6 +24,10 @@ import { SkillDetailPage } from "../features/skills/SkillDetailPage";
 import { SkillEditPage } from "../features/skills/SkillEditPage";
 import { SkillEditorPage } from "../features/skills/SkillEditorPage";
 import { SkillListPage } from "../features/skills/SkillListPage";
+import { BuildDetailPage } from "../features/builds/BuildDetailPage";
+import { BuildEditPage } from "../features/builds/BuildEditPage";
+import { BuildEditorPage } from "../features/builds/BuildEditorPage";
+import { BuildListPage } from "../features/builds/BuildListPage";
 import { HelpPage } from "../features/help/HelpPage";
 import { SettingsPage } from "../features/settings/SettingsPage";
 import { ChangelogPage } from "../pages/ChangelogPage";
@@ -182,6 +186,46 @@ export function AppRouter() {
             <WriterRoute>
               <AppShell>
                 <ContextEditPage />
+              </AppShell>
+            </WriterRoute>
+          }
+        />
+        <Route
+          path="/builds"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <BuildListPage />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/builds/new"
+          element={
+            <WriterRoute>
+              <AppShell>
+                <BuildEditorPage />
+              </AppShell>
+            </WriterRoute>
+          }
+        />
+        <Route
+          path="/builds/:id"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <BuildDetailPage />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/builds/:id/edit"
+          element={
+            <WriterRoute>
+              <AppShell>
+                <BuildEditPage />
               </AppShell>
             </WriterRoute>
           }

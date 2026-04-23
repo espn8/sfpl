@@ -3,8 +3,9 @@ import { listCollections, type Collection } from "../features/collections/api";
 import { addPromptToCollection, removePromptFromCollection } from "../features/collections/api";
 import { addSkillToCollection, removeSkillFromCollection } from "../features/skills/api";
 import { addContextToCollection, removeContextFromCollection } from "../features/context/api";
+import { addBuildToCollection, removeBuildFromCollection } from "../features/builds/api";
 
-export type AssetType = "prompt" | "skill" | "context";
+export type AssetType = "prompt" | "skill" | "context" | "build";
 
 type AssetCollectionMenuProps = {
   assetId: number;
@@ -28,6 +29,8 @@ function hasAssetInCollection(collection: Collection, assetType: AssetType, asse
       return collection.skills?.some((entry) => entry.skill.id === assetId) ?? false;
     case "context":
       return collection.contexts?.some((entry) => entry.context.id === assetId) ?? false;
+    case "build":
+      return collection.builds?.some((entry) => entry.build.id === assetId) ?? false;
     default:
       return false;
   }
@@ -55,6 +58,9 @@ function useAssetCollectionMutations({
           break;
         case "context":
           await addContextToCollection(assetId, collectionId);
+          break;
+        case "build":
+          await addBuildToCollection(assetId, collectionId);
           break;
       }
     },
@@ -91,6 +97,14 @@ function useAssetCollectionMutations({
                   { context: { id: assetId, title: assetTitle } },
                 ],
               };
+            case "build":
+              return {
+                ...collection,
+                builds: [
+                  ...(collection.builds ?? []),
+                  { build: { id: assetId, title: assetTitle } },
+                ],
+              };
             default:
               return collection;
           }
@@ -120,6 +134,9 @@ function useAssetCollectionMutations({
         case "context":
           await removeContextFromCollection(assetId, collectionId);
           break;
+        case "build":
+          await removeBuildFromCollection(assetId, collectionId);
+          break;
       }
     },
     onMutate: async (collectionId: number) => {
@@ -145,6 +162,11 @@ function useAssetCollectionMutations({
               return {
                 ...collection,
                 contexts: (collection.contexts ?? []).filter((entry) => entry.context.id !== assetId),
+              };
+            case "build":
+              return {
+                ...collection,
+                builds: (collection.builds ?? []).filter((entry) => entry.build.id !== assetId),
               };
             default:
               return collection;

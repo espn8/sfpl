@@ -23,6 +23,16 @@ function ChevronDownIcon({ className }: { className?: string }) {
   );
 }
 
+function HelpCircleIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 17h.01" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 type AppShellProps = {
   children: React.ReactNode;
 };
@@ -151,6 +161,9 @@ export function AppShell({ children }: AppShellProps) {
               <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/context">
                 Context
               </Link>
+              <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/builds">
+                Builds
+              </Link>
               <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/collections">
                 Collections
               </Link>
@@ -210,6 +223,14 @@ export function AppShell({ children }: AppShellProps) {
                     >
                       New Context
                     </Link>
+                    <Link
+                      to="/builds/new"
+                      className="block px-4 py-2 text-sm text-(--color-text) hover:bg-(--color-surface-muted) focus-visible:bg-(--color-surface-muted) focus-visible:outline-none"
+                      role="menuitem"
+                      onClick={() => setCreateMenuOpen(false)}
+                    >
+                      New Build
+                    </Link>
                   </div>
                 )}
               </div>
@@ -227,6 +248,13 @@ export function AppShell({ children }: AppShellProps) {
                 />
               </Link>
             ) : null}
+            <Link
+              to="/help"
+              className="rounded-full border border-(--color-border) p-1.5 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text) focus-visible:outline-none"
+              aria-label="Help"
+            >
+              <HelpCircleIcon className="h-5 w-5" />
+            </Link>
           </div>
         </header>
         {children}

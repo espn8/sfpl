@@ -18,6 +18,7 @@ import helpRouter from "./routes/help";
 import { promptsRouter } from "./routes/prompts";
 import { searchRouter } from "./routes/search";
 import { skillsRouter } from "./routes/skills";
+import { buildsRouter } from "./routes/builds";
 import { tagsRouter } from "./routes/tags";
 import { toolRequestsRouter } from "./routes/toolRequests";
 
@@ -82,6 +83,7 @@ export function createApp(options?: CreateAppOptions): express.Express {
   app.use("/api/prompts", promptsRouter);
   app.use("/api/skills", skillsRouter);
   app.use("/api/context", contextRouter);
+  app.use("/api/builds", buildsRouter);
   app.use("/api/collections", collectionsRouter);
   app.use("/api/analytics", analyticsRouter);
   app.use("/api/tags", tagsRouter);

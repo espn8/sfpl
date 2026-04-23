@@ -28,6 +28,14 @@ export type Collection = {
       thumbnailStatus?: "PENDING" | "READY" | "FAILED";
     };
   }>;
+  builds?: Array<{
+    build: {
+      id: number;
+      title: string;
+      thumbnailUrl?: string | null;
+      thumbnailStatus?: "PENDING" | "READY" | "FAILED";
+    };
+  }>;
 };
 
 export type CollectionListResponse = {

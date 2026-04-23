@@ -7,7 +7,7 @@ type SearchEmptyStateProps = {
   variant: SearchEmptyStateVariant;
   query?: string;
   activeFilters?: ActiveFilter[];
-  assetType?: "prompt" | "skill" | "context" | "all";
+  assetType?: "prompt" | "skill" | "context" | "build" | "all";
   onClearFilters?: () => void;
   onRetry?: () => void;
   error?: Error | null;
@@ -78,6 +78,13 @@ export function SearchEmptyState({
         title: "No prompts yet",
         description: "Prompts are ready-to-use templates that help you get consistent, high-quality results from AI tools. Share yours with the team.",
         buttonText: "Create the first prompt",
+      },
+      build: {
+        createLink: "/builds/new",
+        label: "build",
+        title: "No builds yet",
+        description: "Builds are reusable AI tools, apps, and demo assets built by the team. Custom GPTs, web apps, dashboards, and more.",
+        buttonText: "Create the first build",
       },
       all: {
         createLink: "/prompts/new",
