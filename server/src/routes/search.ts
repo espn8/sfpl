@@ -9,6 +9,7 @@ import { parseSearchQuery } from "../services/searchParser";
 const searchRouter = Router();
 
 const ASSET_TOOLS = [
+  "agentforce_vibes",
   "chatgpt",
   "claude_code",
   "claude_cowork",
@@ -22,6 +23,7 @@ const ASSET_TOOLS = [
 ] as const;
 
 const TOOL_LABELS: Record<string, string> = {
+  agentforce_vibes: "Agentforce Vibes",
   chatgpt: "ChatGPT",
   claude_code: "Claude Code",
   claude_cowork: "Claude Cowork",

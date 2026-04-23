@@ -4,6 +4,7 @@ const GEMINI_MODEL = "gemini-2.0-flash";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 const VALID_TOOLS = [
+  "agentforce_vibes",
   "chatgpt",
   "claude_code",
   "claude_cowork",
@@ -31,6 +32,11 @@ export type ParsedSearchQuery = {
 };
 
 const TOOL_ALIASES: Record<string, Tool> = {
+  "agentforce vibes": "agentforce_vibes",
+  agentforce_vibes: "agentforce_vibes",
+  agentforcevibes: "agentforce_vibes",
+  agentforce: "agentforce_vibes",
+  vibes: "agentforce_vibes",
   chatgpt: "chatgpt",
   "chat gpt": "chatgpt",
   gpt: "chatgpt",
@@ -170,7 +176,7 @@ function buildParsePrompt(query: string): string {
 Parse the user's natural language search query and extract structured filters.
 
 Available filters:
-- tool: One of: chatgpt, claude_code, claude_cowork, cursor, gemini, meshmesh, notebooklm, saleo, slackbot
+- tool: One of: agentforce_vibes, chatgpt, claude_code, claude_cowork, cursor, gemini, meshmesh, notebooklm, saleo, slackbot
 - assetType: One of: prompt, skill, context
 - modality: One of: text, code, image, video, audio, multimodal
 

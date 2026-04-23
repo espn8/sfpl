@@ -1,9 +1,10 @@
 import { apiClient } from "../../api/client";
 
-export const PROMPT_TOOL_OPTIONS = ["chatgpt", "claude_code", "claude_cowork", "cursor", "gemini", "meshmesh", "notebooklm", "other", "saleo", "slackbot"] as const;
+export const PROMPT_TOOL_OPTIONS = ["agentforce_vibes", "chatgpt", "claude_code", "claude_cowork", "cursor", "gemini", "meshmesh", "notebooklm", "other", "saleo", "slackbot"] as const;
 export type PromptTool = (typeof PROMPT_TOOL_OPTIONS)[number];
 
 export const PROMPT_TOOL_LABELS: Record<PromptTool, string> = {
+  agentforce_vibes: "Agentforce Vibes",
   chatgpt: "ChatGPT",
   claude_code: "Claude Code",
   claude_cowork: "Claude Cowork",

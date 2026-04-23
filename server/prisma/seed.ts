@@ -434,6 +434,7 @@ async function main() {
 
   // System collections - one per tool + Best of AI Library
   const TOOL_COLLECTION_MAP: Record<string, { name: string; description: string }> = {
+    agentforce_vibes: { name: "Agentforce Vibes Collection", description: "AI assets optimized for Agentforce Vibes" },
     claude_code: { name: "Claude Code Collection", description: "AI assets optimized for Claude Code" },
     cursor: { name: "Cursor Collection", description: "AI assets optimized for Cursor" },
     gemini: { name: "Gemini Collection", description: "AI assets optimized for Gemini" },

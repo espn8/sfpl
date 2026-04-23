@@ -218,6 +218,7 @@ export function useSearchState(options: UseSearchStateOptions = {}): UseSearchSt
 
     if (filters.tool) {
       const toolLabels: Record<string, string> = {
+        agentforce_vibes: "Agentforce Vibes",
         chatgpt: "ChatGPT",
         claude_code: "Claude Code",
         claude_cowork: "Claude Cowork",

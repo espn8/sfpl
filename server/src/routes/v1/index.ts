@@ -90,7 +90,7 @@ async function requireApiKey(req: Request, res: Response, next: NextFunction): P
 
 v1Router.use(requireApiKey);
 
-const PROMPT_TOOLS = ["chatgpt", "claude_code", "claude_cowork", "cursor", "gemini", "meshmesh", "notebooklm", "other", "saleo", "slackbot"] as const;
+const PROMPT_TOOLS = ["agentforce_vibes", "chatgpt", "claude_code", "claude_cowork", "cursor", "gemini", "meshmesh", "notebooklm", "other", "saleo", "slackbot"] as const;
 const promptToolSchema = z.enum(PROMPT_TOOLS);
 const API_MODALITIES = ["text", "code", "image", "video", "audio", "multimodal"] as const;
 const apiModalitySchema = z.enum(API_MODALITIES);

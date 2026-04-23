@@ -7,7 +7,7 @@ import { prisma } from "../lib/prisma";
 
 const assetsRouter = Router();
 
-const ASSET_TOOLS = ["chatgpt", "claude_code", "claude_cowork", "cursor", "gemini", "meshmesh", "notebooklm", "other", "saleo", "slackbot"] as const;
+const ASSET_TOOLS = ["agentforce_vibes", "chatgpt", "claude_code", "claude_cowork", "cursor", "gemini", "meshmesh", "notebooklm", "other", "saleo", "slackbot"] as const;
 const assetToolSchema = z.enum(ASSET_TOOLS);
 
 const API_MODALITIES = ["text", "code", "image", "video", "audio", "multimodal"] as const;
