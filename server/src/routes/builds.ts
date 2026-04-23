@@ -79,6 +79,7 @@ const updateBuildBodySchema = z
     supportUrl: z.string().url("supportUrl must be a valid URL.").optional().or(z.literal("")),
     visibility: promptVisibilitySchema.optional(),
     status: promptStatusSchema.optional(),
+    changelog: z.string().trim().optional(),
   })
   .refine(
     (value) => Object.values(value).some((item) => item !== undefined),
@@ -307,6 +308,17 @@ buildsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
       status: status ?? "DRAFT",
       thumbnailStatus: "PENDING",
       thumbnailError: null,
+      versions: {
+        create: {
+          version: 1,
+          title: title.trim(),
+          summary: summary?.trim() || null,
+          buildUrl,
+          supportUrl: supportUrl || null,
+          createdById: auth.userId,
+          changelog: "Initial version",
+        },
+      },
     },
     include: {
       owner: { select: { id: true, name: true, avatarUrl: true } },
@@ -419,13 +431,44 @@ buildsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respons
   }
 
   const u = parsedBody.data;
+  const nextTitle = typeof u.title === "string" ? u.title.trim() : existing.title;
+  const nextSummary = typeof u.summary === "string" ? u.summary.trim() || null : existing.summary;
+  const nextBuildUrl = u.buildUrl ?? existing.buildUrl;
+  const nextSupportUrl = typeof u.supportUrl === "string" ? u.supportUrl || null : existing.supportUrl;
+
+  const hasContentChange =
+    nextTitle !== existing.title ||
+    nextSummary !== existing.summary ||
+    nextBuildUrl !== existing.buildUrl ||
+    nextSupportUrl !== existing.supportUrl;
+
+  if (hasContentChange) {
+    const latest = await prisma.buildVersion.findFirst({
+      where: { buildId },
+      orderBy: { version: "desc" },
+      select: { version: true },
+    });
+    await prisma.buildVersion.create({
+      data: {
+        buildId,
+        version: (latest?.version ?? 0) + 1,
+        title: nextTitle,
+        summary: nextSummary,
+        buildUrl: nextBuildUrl,
+        supportUrl: nextSupportUrl,
+        createdById: auth.userId,
+        changelog: typeof u.changelog === "string" ? u.changelog : null,
+      },
+    });
+  }
+
   const updated = await prisma.build.update({
     where: { id: buildId },
     data: {
-      title: typeof u.title === "string" ? u.title.trim() : undefined,
-      summary: typeof u.summary === "string" ? u.summary.trim() || null : undefined,
-      buildUrl: typeof u.buildUrl === "string" ? u.buildUrl : undefined,
-      supportUrl: typeof u.supportUrl === "string" ? u.supportUrl || null : undefined,
+      title: nextTitle,
+      summary: nextSummary,
+      buildUrl: nextBuildUrl,
+      supportUrl: nextSupportUrl,
       visibility: u.visibility,
       status: u.status,
     },
@@ -706,6 +749,77 @@ buildsRouter.delete("/:id/collections/:collectionId", async (req: Request, res: 
 
   await prisma.collectionBuild.delete({ where: { collectionId_buildId: { collectionId, buildId } } });
   return res.status(200).json({ data: { ok: true } });
+});
+
+buildsRouter.get("/:id/versions", async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+
+  const parsedParams = buildIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+
+  const buildId = parsedParams.data.id;
+  const build = await prisma.build.findFirst({ where: { id: buildId, teamId: auth.teamId } });
+  if (!build) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Build not found." } });
+  }
+
+  const versions = await prisma.buildVersion.findMany({
+    where: { buildId },
+    orderBy: { version: "desc" },
+  });
+
+  return res.status(200).json({ data: versions });
+});
+
+const buildRestoreParamsSchema = z.object({
+  id: z.coerce.number().int().positive(),
+  version: z.coerce.number().int().positive(),
+});
+
+buildsRouter.post("/:id/restore/:version", requireWriteAccess, async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+
+  const parsedParams = buildRestoreParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+
+  const buildId = parsedParams.data.id;
+  const targetVersion = parsedParams.data.version;
+
+  const build = await prisma.build.findFirst({ where: { id: buildId, teamId: auth.teamId } });
+  if (!build) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Build not found." } });
+  }
+
+  if (build.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can restore this build." } });
+  }
+
+  const version = await prisma.buildVersion.findFirst({ where: { buildId, version: targetVersion } });
+  if (!version) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Build version not found." } });
+  }
+
+  const updated = await prisma.build.update({
+    where: { id: buildId },
+    data: {
+      title: version.title,
+      summary: version.summary,
+      buildUrl: version.buildUrl,
+      supportUrl: version.supportUrl,
+    },
+  });
+
+  return res.status(200).json({ data: updated });
 });
 
 export { buildsRouter };

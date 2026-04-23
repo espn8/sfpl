@@ -222,6 +222,25 @@ export function HomePage() {
     queryFn: () => listAssets(apiFilters),
   });
 
+  const topPerformersQueries = useQuery({
+    queryKey: ["assets", "topPerformers"],
+    queryFn: async () => {
+      const assetTypes = ["prompt", "skill", "context", "build"] as const;
+      const results = await Promise.all(
+        assetTypes.map((assetType) =>
+          listAssets({
+            assetType,
+            sort: "mostUsed",
+            pageSize: 3,
+            page: 1,
+          })
+        )
+      );
+      return results.flatMap((r) => r.data);
+    },
+    enabled: !mineFilter,
+  });
+
   const analyticsQuery = useQuery({
     queryKey: ["analytics", "overview"],
     queryFn: getAnalyticsOverview,
@@ -262,9 +281,23 @@ export function HomePage() {
     },
   ] as const;
 
-  const featuredAssets = (assetsQuery.data?.data ?? [])
-    .filter((a) => a.assetType !== "prompt" || a.thumbnailStatus !== "FAILED")
-    .slice(0, 6);
+  const featuredAssets = useMemo(() => {
+    const allTopPerformers = topPerformersQueries.data ?? [];
+    const filtered = allTopPerformers.filter(
+      (a) => a.assetType !== "prompt" || a.thumbnailStatus !== "FAILED"
+    );
+    const sorted = [...filtered].sort((a, b) => b.usageCount - a.usageCount);
+    const seen = new Set<string>();
+    const deduped: typeof sorted = [];
+    for (const asset of sorted) {
+      const key = `${asset.assetType}-${asset.id}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        deduped.push(asset);
+      }
+    }
+    return deduped.slice(0, 6);
+  }, [topPerformersQueries.data]);
 
 
   const contributorLeaderboard = (analyticsQuery.data?.contributors ?? []).slice(0, 5);

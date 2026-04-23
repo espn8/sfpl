@@ -1,9 +1,20 @@
 # AI Library - Technical Summary
 
-Last Updated: Thursday, April 23, 2026 — 13:20 CDT
-Build Version: 6ae1c9e
+Last Updated: Thursday, April 23, 2026 — 14:45 CDT
+Build Version: 07155d0
 
 ## Recent Changes
+
+- **Versioning support for Builds**: Added version tracking to Builds asset type (matching existing Prompt versioning pattern):
+  - New `BuildVersion` Prisma model with version number, title, summary, buildUrl, supportUrl, changelog, and creator tracking
+  - Database migration `20260423182733_add_versioning_to_skills_context_builds` adds the versioning schema
+  - Initial version automatically created when a Build is created (version 1 with "Initial version" changelog)
+  - Update endpoint accepts optional `changelog` field for version notes
+  - Skills and Context also received versioning schema in the same migration
+
+- **Build type added to search types**: Extended `AssetTypeFilter`, `SearchSuggestion.assetType`, and `ParsedSearchQuery.assetType` to include `"build"` for complete search integration
+
+### Previous Session Changes (April 23, 2026 — 13:20 CDT)
 
 - **Builds integrated into unified assets API**: Extended the `/api/assets` endpoint and search system to include Builds as a fourth asset type:
   - Server-side: Added `includeBuilds` logic to assets route, fetches builds with visibility/status filtering, includes in facets and snapshot counts
@@ -482,12 +493,13 @@ The application has achieved **substantial completion** of the core implementati
 
 ### Prisma Data Model Summary
 
-**Models (34):**
+**Models (35):**
 - `User` - with `avatarUrl`, `region`, `ou`, `title`, `onboardingCompleted`, `googleSub`, `apiKeys[]`
 - `ApiKey` - secure API key storage with SHA-256 hash, expiration, scopes, and revocation tracking
 - `Team` - multi-tenant team container
 - `Prompt` - with `tools[]`, `modality`, `thumbnailUrl`, `thumbnailStatus`, `thumbnailError`, `isSmartPick`
 - `Build` - pre-built solutions with `buildUrl`, `supportUrl`, thumbnails, and engagement tracking
+- `BuildVersion` - version history for builds with title, summary, buildUrl, supportUrl, changelog
 - `PromptVersion` - version history for prompts
 - `PromptVariable` - dynamic variable definitions for prompts
 - `Skill` - URL-based skill documents with `skillUrl` and `supportUrl` (team-scoped)
