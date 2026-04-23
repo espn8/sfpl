@@ -404,7 +404,7 @@ export function HomePage() {
                     <h3 className="font-semibold">Builds</h3>
                   </div>
                   <p className="text-sm text-(--color-text-muted)">
-                    Reusable AI tools, apps, and demos built by the team. Open a finished build, try it out, and put it to work—no setup required.
+                    Reusable AI tools, apps, and solutions built by the team. Open a finished build, try it out, and put it to work—no setup required.
                   </p>
                   <p className="mt-2 text-xs font-medium text-(--color-primary) group-hover:underline">Explore builds →</p>
                 </Link>
