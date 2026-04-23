@@ -222,6 +222,10 @@ export function PromptDetailPage() {
     typeof promptData.ownerId === "number" &&
     me.id === promptData.ownerId;
   const canRestoreVersions = canEdit;
+  const isOwnAsset =
+    me !== undefined &&
+    typeof promptData.ownerId === "number" &&
+    me.id === promptData.ownerId;
 
   const latestVersionNumber =
     versionsQuery.data && versionsQuery.data.length > 0 ? versionsQuery.data[0].version : null;
@@ -309,16 +313,24 @@ export function PromptDetailPage() {
             </div>
           ) : null}
           <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-(--color-border) pt-3">
-            <span className="text-sm text-(--color-text-muted)">How helpful was this prompt?</span>
-            <PromptRateStars
-              value={myRating}
-              disabled={rateMutation.isPending}
-              size="md"
-              onChange={(value) => {
-                rateMutation.mutate(value);
-                trackEvent("prompt_rate", { prompt_id: promptId, value });
-              }}
-            />
+            {isOwnAsset ? (
+              <span className="text-sm italic text-(--color-text-muted)">
+                You can't rate your own prompt.
+              </span>
+            ) : (
+              <>
+                <span className="text-sm text-(--color-text-muted)">How helpful was this prompt?</span>
+                <PromptRateStars
+                  value={myRating}
+                  disabled={rateMutation.isPending}
+                  size="md"
+                  onChange={(value) => {
+                    rateMutation.mutate(value);
+                    trackEvent("prompt_rate", { prompt_id: promptId, value });
+                  }}
+                />
+              </>
+            )}
           </div>
         </div>
       </div>

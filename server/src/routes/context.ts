@@ -779,9 +779,17 @@ contextRouter.post("/:id/rating", async (req: Request, res: Response) => {
   const contextId = parsedParams.data.id;
   const { value } = parsedBody.data;
 
-  const doc = await prisma.contextDocument.findFirst({ where: { id: contextId, teamId: auth.teamId } });
+  const doc = await prisma.contextDocument.findFirst({
+    where: { id: contextId, teamId: auth.teamId },
+    select: { id: true, ownerId: true },
+  });
   if (!doc) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Context document not found." } });
+  }
+  if (doc.ownerId === auth.userId) {
+    return res
+      .status(403)
+      .json({ error: { code: "FORBIDDEN", message: "You can't rate your own context document." } });
   }
 
   await prisma.contextRating.upsert({

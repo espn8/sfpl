@@ -644,9 +644,17 @@ buildsRouter.post("/:id/rating", async (req: Request, res: Response) => {
   const buildId = parsedParams.data.id;
   const { value } = parsedBody.data;
 
-  const build = await prisma.build.findFirst({ where: { id: buildId, teamId: auth.teamId } });
+  const build = await prisma.build.findFirst({
+    where: { id: buildId, teamId: auth.teamId },
+    select: { id: true, ownerId: true },
+  });
   if (!build) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Build not found." } });
+  }
+  if (build.ownerId === auth.userId) {
+    return res
+      .status(403)
+      .json({ error: { code: "FORBIDDEN", message: "You can't rate your own build." } });
   }
 
   await prisma.buildRating.upsert({

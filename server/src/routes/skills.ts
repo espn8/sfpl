@@ -677,9 +677,17 @@ skillsRouter.post("/:id/rating", async (req: Request, res: Response) => {
   const skillId = parsedParams.data.id;
   const { value } = parsedBody.data;
 
-  const skill = await prisma.skill.findFirst({ where: { id: skillId, teamId: auth.teamId } });
+  const skill = await prisma.skill.findFirst({
+    where: { id: skillId, teamId: auth.teamId },
+    select: { id: true, ownerId: true },
+  });
   if (!skill) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not found." } });
+  }
+  if (skill.ownerId === auth.userId) {
+    return res
+      .status(403)
+      .json({ error: { code: "FORBIDDEN", message: "You can't rate your own skill." } });
   }
 
   await prisma.skillRating.upsert({

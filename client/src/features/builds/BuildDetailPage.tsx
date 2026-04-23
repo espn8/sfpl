@@ -130,6 +130,7 @@ export function BuildDetailPage() {
     canCreateContent(meQuery.data.role) &&
     (meQuery.data.id === build.owner.id || meQuery.data.role === "ADMIN" || meQuery.data.role === "OWNER");
   const canDelete = meQuery.data && canCreateContent(meQuery.data.role) && meQuery.data.id === build.owner.id;
+  const isOwnAsset = Boolean(meQuery.data && meQuery.data.id === build.owner.id);
   const viewCount = build.viewCount ?? 0;
   const copyCount = build.copyCount ?? 0;
   const favoriteCount = build.favoriteCount ?? 0;
@@ -227,16 +228,24 @@ export function BuildDetailPage() {
         </p>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2 rounded border border-(--color-border) bg-(--color-surface) px-3 py-2">
-        <span className="text-sm text-(--color-text-muted)">How helpful was this build?</span>
-        <PromptRateStars
-          value={myRating}
-          disabled={rateMutation.isPending}
-          size="md"
-          onChange={(value) => {
-            rateMutation.mutate(value);
-            trackEvent("build_rate", { build_id: buildId, value });
-          }}
-        />
+        {isOwnAsset ? (
+          <span className="text-sm italic text-(--color-text-muted)">
+            You can't rate your own build.
+          </span>
+        ) : (
+          <>
+            <span className="text-sm text-(--color-text-muted)">How helpful was this build?</span>
+            <PromptRateStars
+              value={myRating}
+              disabled={rateMutation.isPending}
+              size="md"
+              onChange={(value) => {
+                rateMutation.mutate(value);
+                trackEvent("build_rate", { build_id: buildId, value });
+              }}
+            />
+          </>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-1 rounded-lg border border-(--color-border) bg-(--color-surface) p-2">

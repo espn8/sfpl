@@ -131,6 +131,7 @@ export function SkillDetailPage() {
     canCreateContent(meQuery.data.role) &&
     (meQuery.data.id === skill.owner.id || meQuery.data.role === "ADMIN" || meQuery.data.role === "OWNER");
   const canDelete = meQuery.data && canCreateContent(meQuery.data.role) && meQuery.data.id === skill.owner.id;
+  const isOwnAsset = Boolean(meQuery.data && meQuery.data.id === skill.owner.id);
   const viewCount = skill.viewCount ?? 0;
   const copyCount = skill.copyCount ?? 0;
   const favoriteCount = skill.favoriteCount ?? 0;
@@ -248,16 +249,24 @@ export function SkillDetailPage() {
         </p>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2 rounded border border-(--color-border) bg-(--color-surface) px-3 py-2">
-        <span className="text-sm text-(--color-text-muted)">How helpful was this skill?</span>
-        <PromptRateStars
-          value={myRating}
-          disabled={rateMutation.isPending}
-          size="md"
-          onChange={(value) => {
-            rateMutation.mutate(value);
-            trackEvent("skill_rate", { skill_id: skillId, value });
-          }}
-        />
+        {isOwnAsset ? (
+          <span className="text-sm italic text-(--color-text-muted)">
+            You can't rate your own skill.
+          </span>
+        ) : (
+          <>
+            <span className="text-sm text-(--color-text-muted)">How helpful was this skill?</span>
+            <PromptRateStars
+              value={myRating}
+              disabled={rateMutation.isPending}
+              size="md"
+              onChange={(value) => {
+                rateMutation.mutate(value);
+                trackEvent("skill_rate", { skill_id: skillId, value });
+              }}
+            />
+          </>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-1 rounded-lg border border-(--color-border) bg-(--color-surface) p-2">

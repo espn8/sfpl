@@ -1239,9 +1239,17 @@ promptsRouter.post("/:id/rating", async (req: Request, res: Response) => {
   }
   const promptId = parsedParams.data.id;
   const value = parsedBody.data.value;
-  const prompt = await prisma.prompt.findFirst({ where: { id: promptId, teamId: auth.teamId }, select: { id: true } });
+  const prompt = await prisma.prompt.findFirst({
+    where: { id: promptId, teamId: auth.teamId },
+    select: { id: true, ownerId: true },
+  });
   if (!prompt) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
+  }
+  if (prompt.ownerId === auth.userId) {
+    return res
+      .status(403)
+      .json({ error: { code: "FORBIDDEN", message: "You can't rate your own prompt." } });
   }
   const rating = await prisma.rating.upsert({
     where: { userId_promptId: { userId: auth.userId, promptId } },
