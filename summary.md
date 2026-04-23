@@ -1,8 +1,8 @@
 # AI Library - Technical Summary
 
 Last Updated: Thursday, April 23, 2026 — 16:45 CDT
-Build Version: pending (post-commit; Heroku release to be assigned on deploy)
-App Version: 1.3.0 (package.json 1.3.0 — auto-bumped to 1.3.1 by `scripts/version-bump.js` on Heroku postbuild)
+Build Version: 7ef741f (Heroku release v167)
+App Version: 1.3.1 (root package.json 1.3.0 auto-bumped to 1.3.1 by `scripts/version-bump.js` on Heroku postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
