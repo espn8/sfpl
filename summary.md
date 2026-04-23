@@ -1,8 +1,8 @@
 # AI Library - Technical Summary
 
-Last Updated: Thursday, April 23, 2026 — 14:03 CDT
-Build Version: pending (1.2.0 release)
-App Version: 1.2.0
+Last Updated: Thursday, April 23, 2026 — 14:10 CDT
+Build Version: b9fbc5b (Heroku release v155)
+App Version: 1.2.1 (package.json 1.2.0 auto-bumped on deploy)
 
 ## Recent Changes
 
