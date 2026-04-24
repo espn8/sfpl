@@ -1,11 +1,19 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 24, 2026 — 13:45 CDT
-Build Version: 3971541 (Heroku release will increment on push)
-App Version: 1.3.5 (root package.json 1.3.3 auto-bumped to 1.3.5 by `scripts/version-bump.js` on Heroku postbuild)
+Last Updated: Friday, April 24, 2026 — 13:46 CDT
+Build Version: 5347871 (Heroku release will increment on push)
+App Version: 1.3.6 (root package.json 1.3.3 auto-bumped to 1.3.6 by `scripts/version-bump.js` on Heroku postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Release: v1.3.6 (April 24, 2026 — 13:46 CDT) — Fix broken logout flow
+
+- **Logout no longer leaves the user on a broken page** (`client/src/features/settings/SettingsPage.tsx`). The previous implementation called `await queryClient.invalidateQueries({ queryKey: ["auth", "me"] })` immediately after `logout()` and before `navigate("/login")`. Because `invalidateQueries` triggers an eager refetch of all active subscribers to that query key, both `AppShell` and `SettingsPage` (each of which mount `useQuery({ queryKey: ["auth", "me"], queryFn: fetchMe })`) would refetch `/api/auth/me`, which now returned `401 Unauthorized` since the session cookie had just been cleared server-side. The 401 response propagated into `meQuery.error` / `meQuery.data === undefined` in both components, causing them to render error/empty states in the middle of the logout handler — before React Router's `navigate("/login")` could transition the route — producing the "broken page" flash the user reported.
+- **New `handleLogout` implementation**: (1) calls `await logout()` inside a `try/catch` so a flaky server still logs the user out locally, (2) calls `queryClient.clear()` which drops every cached query without triggering any refetches (unlike `invalidateQueries`, which eagerly refetches active queries), and (3) does a hard redirect via `window.location.replace("/login")` instead of `navigate("/login")`. `window.location.replace` unmounts the entire React tree, guaranteeing no stale component using `["auth", "me"]` can render against a dead session, and it also replaces the current history entry so the back button does not return the user to the authenticated Settings page.
+- **Cleanup**: removed the now-unused `useNavigate` import and the `const navigate = useNavigate();` local from `SettingsPage.tsx` since navigation is handled via `window.location.replace`.
+- **No server-side change, no schema change, no other client code changed**. The existing `POST /api/auth/logout` endpoint (which clears the session cookie) is unchanged. The `ProtectedRoute` guard (`client/src/components/ProtectedRoute.tsx`) continues to redirect to `/login` on `AxiosError.response?.status === 401`, and the hard redirect means that path is taken cleanly on the very next render in the fresh React tree rather than mid-transition.
+- **Version bump**: root, client, server `package.json` remain `1.3.3` locally; `heroku-postbuild` / `scripts/version-bump.js` will bump on deploy, so the production footer will display `v1.3.6` after this release.
 
 ### Release: v1.3.5 (April 24, 2026 — 13:45 CDT) — Homepage performance + route-level code splitting
 
