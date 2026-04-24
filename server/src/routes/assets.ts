@@ -798,25 +798,21 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         prisma.user.count({ where: { teamId: auth.teamId } }),
         prisma.usageEvent.count({
           where: {
-            action: { in: [UsageAction.COPY, UsageAction.LAUNCH] },
             prompt: { AND: [visibilityFragment as Prisma.PromptWhereInput] },
           },
         }),
         prisma.skillUsageEvent.count({
           where: {
-            eventType: "COPY",
             skill: { AND: [visibilityFragment as Prisma.SkillWhereInput] },
           },
         }),
         prisma.contextUsageEvent.count({
           where: {
-            eventType: "COPY",
             context: { AND: [visibilityFragment as Prisma.ContextDocumentWhereInput] },
           },
         }),
         prisma.buildUsageEvent.count({
           where: {
-            eventType: "COPY",
             build: { AND: [visibilityFragment as Prisma.BuildWhereInput] },
           },
         }),
