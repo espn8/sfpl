@@ -151,15 +151,15 @@ export function SettingsPage() {
     <div className="mx-auto max-w-2xl">
       <h1 className="mb-6 text-2xl font-semibold">Settings</h1>
 
-      <div className="space-y-6">
-        <section className="rounded-lg border border-(--color-border) bg-(--color-surface) p-6">
+      <div className="grid gap-6 sm:grid-cols-2">
+        <section className="flex flex-col rounded-lg border border-(--color-border) bg-(--color-surface) p-6">
           <h2 className="mb-4 text-lg font-medium">Your Content</h2>
           <p className="mb-4 text-sm text-(--color-text-muted)">
             View and manage the prompts, skills, and context documents you've created.
           </p>
           <Link
             to="/?mine=true"
-            className="flex items-center justify-between rounded-lg border border-(--color-border) bg-(--color-surface-muted) px-4 py-3 transition-colors hover:bg-(--color-surface)"
+            className="mt-auto flex items-center justify-between rounded-lg border border-(--color-border) bg-(--color-surface-muted) px-4 py-3 transition-colors hover:bg-(--color-surface)"
           >
             <div className="flex items-center gap-3">
               <DocumentIcon className="h-5 w-5 text-(--color-text-muted)" />
@@ -172,14 +172,14 @@ export function SettingsPage() {
           </Link>
         </section>
 
-        <section className="rounded-lg border border-(--color-border) bg-(--color-surface) p-6">
+        <section className="flex flex-col rounded-lg border border-(--color-border) bg-(--color-surface) p-6">
           <h2 className="mb-4 text-lg font-medium">Your Analytics</h2>
           <p className="mb-4 text-sm text-(--color-text-muted)">
             See how your created content is performing with views, uses, ratings, and favorites.
           </p>
           <Link
             to="/?mine=true&showAnalytics=true"
-            className="flex items-center justify-between rounded-lg border border-(--color-border) bg-(--color-surface-muted) px-4 py-3 transition-colors hover:bg-(--color-surface)"
+            className="mt-auto flex items-center justify-between rounded-lg border border-(--color-border) bg-(--color-surface-muted) px-4 py-3 transition-colors hover:bg-(--color-surface)"
           >
             <div className="flex items-center gap-3">
               <ChartIcon className="h-5 w-5 text-(--color-text-muted)" />
