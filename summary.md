@@ -1,11 +1,21 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 24, 2026 — 13:46 CDT
-Build Version: 5347871 (Heroku release will increment on push)
-App Version: 1.3.6 (root package.json 1.3.3 auto-bumped to 1.3.6 by `scripts/version-bump.js` on Heroku postbuild)
+Last Updated: Friday, April 24, 2026 — 14:09 CDT
+Build Version: 3336c95 (Heroku release will increment on push)
+App Version: 1.3.7 (root package.json 1.3.3 auto-bumped to 1.3.7 by `scripts/version-bump.js` on Heroku postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Release: v1.3.7 (April 24, 2026 — 14:09 CDT) — List card thumbnails on Prompts, Skills, Context, and Builds
+
+- **Homepage-style thumbnail now renders at the top of every list card** on the Prompts, Skills, Context, and Builds index pages. Previously, only the homepage [`AssetCard`](client/src/features/assets/AssetCard.tsx) displayed a thumbnail; the four per-type list cards (`PromptListCard`, `SkillListCard`, `ContextListCard`, `BuildListCard`) rendered title/metadata only. This closes the visual gap so the browse experience on each asset type mirrors the homepage "Top Performers" grid.
+- **Responsive visibility**: the thumbnail is wrapped in a `<div className="hidden md:block">` wrapper so it appears on medium (`md`, ≥768px) and large (`xl`, ≥1280px) screens — where the grid is 2- and 3-wide respectively — and is entirely omitted on small screens where the grid collapses to a single column. This keeps the mobile card dense and text-first while giving desktop users the richer preview they already see on the homepage.
+- **Rendering pattern** (same in all four cards): `<PromptThumbnail title={...} thumbnailUrl={...} thumbnailStatus={...} className="h-40 w-full object-cover" />` is inserted as the first child of the shell `<div className={shellClass}>`, directly before the existing `<div className="p-4">` text block. Because the shell already uses `overflow-hidden rounded-xl ... p-0`, the image flows cleanly to the rounded edges, matching the homepage layout.
+- **Fallback behavior is unchanged**: `PromptThumbnail` ([client/src/features/prompts/PromptThumbnail.tsx](client/src/features/prompts/PromptThumbnail.tsx)) renders the `<img>` when `thumbnailUrl` is present, and otherwise shows the gradient placeholder with its status text ("Generating…", "Failed", or the "Regenerate" button when provided). The list cards do not pass `onRegenerate`, so pending/failed states simply display the status pill — regeneration remains handled on the detail pages.
+- **No API, schema, or type changes**: all four summary shapes (`PromptSummary`, `Skill`, `ContextDocument`, `Build`) already expose `thumbnailUrl` and `thumbnailStatus` (verified in each feature's `api.ts`). The responsive grid on the four list pages (`grid gap-3 md:grid-cols-2 xl:grid-cols-3`) was not modified — it already matches the requested 1/2/3 column layout.
+- **Files changed**: [client/src/features/prompts/PromptListCard.tsx](client/src/features/prompts/PromptListCard.tsx), [client/src/features/skills/SkillListCard.tsx](client/src/features/skills/SkillListCard.tsx), [client/src/features/context/ContextListCard.tsx](client/src/features/context/ContextListCard.tsx), [client/src/features/builds/BuildListCard.tsx](client/src/features/builds/BuildListCard.tsx) — each adds a single `import { PromptThumbnail } from "…/PromptThumbnail"` and a 7-line `<div className="hidden md:block">…</div>` block. `+36 / -0` lines total across the four files. No lint errors.
+- **Version bump**: root, client, server `package.json` remain `1.3.3` locally; `heroku-postbuild` / `scripts/version-bump.js` will bump on deploy, so the production footer will display `v1.3.7` after this release.
 
 ### Release: v1.3.6 (April 24, 2026 — 13:46 CDT) — Fix broken logout flow
 

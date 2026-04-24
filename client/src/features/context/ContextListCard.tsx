@@ -16,6 +16,7 @@ import {
 import { formatPromptActivityLabel } from "../prompts/promptActivityLabel";
 import { promptOwnerAvatarUrl } from "../prompts/promptTagChips";
 import { PromptAverageStars, PromptRateStars } from "../prompts/PromptStars";
+import { PromptThumbnail } from "../prompts/PromptThumbnail";
 import { AssetBadges } from "../assets/badges";
 
 type ContextListCardProps = {
@@ -93,6 +94,14 @@ export function ContextListCard({ context, variant = "default", showAnalytics = 
 
   return (
     <div className={shellClass}>
+      <div className="hidden md:block">
+        <PromptThumbnail
+          title={context.title}
+          thumbnailUrl={context.thumbnailUrl}
+          thumbnailStatus={context.thumbnailStatus}
+          className="h-40 w-full object-cover"
+        />
+      </div>
       <div className="p-4">
         <Link to={`/context/${context.id}`} className="block">
           <div className="flex min-w-0 items-start gap-2">

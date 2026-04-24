@@ -1,0 +1,64 @@
+---
+description: Throttle batch email sends to stay under Mailgun's per-hour recipient cap on mail.mysalesforcedemo.com
+globs: server/scripts/**
+alwaysApply: false
+---
+
+# Batch Email Throttling (Mailgun)
+
+The sending domain `mail.mysalesforcedemo.com` has a **hard cap of 300 recipients/hour** from Mailgun. Any batch-email script MUST self-throttle and schedule sends so the cap is never exceeded. Exceeding the cap causes 429s, dropped messages, and domain reputation damage.
+
+Until Mailgun approves a higher limit, treat **300/hour** as the ceiling for every script in `server/scripts/**` that calls `sendBrandedEmail` in a loop.
+
+## Required
+
+- **Cap per window**: send at most **300 recipients in any rolling 60-minute window** per script run. Use a safety margin of **290/hour** to account for retries and concurrent senders.
+- **Paced sends**: space sends evenly across the hour — `300 / 3600s ≈ 1 send every 12s` (use `~12400ms` with jitter, not a burst + sleep).
+- **Multi-hour schedules**: if the recipient list exceeds the hourly cap, schedule subsequent batches into later hours until the queue is drained. A 1,200-recipient run must span **≥ 4 hours**.
+- **Resumable**: persist per-recipient send status (DB column, local JSON file, or `--resume-from` arg) so a crash or Ctrl-C doesn't force a restart that re-hits the cap.
+- **Dry-run default**: scripts must default to dry-run and require an explicit `--send` flag to actually call Mailgun (see `resendSlackbotDigests.ts`).
+- **Log progress**: print `[sent N/TOTAL — M remaining this hour, next batch at HH:MM]` every send or every N sends so long runs are observable.
+- **Respect 429s**: on a Mailgun 429 or `rate limit` error, pause the loop for the remainder of the current hour window before resuming. Do not retry immediately.
+
+## Forbidden
+
+- Do NOT `Promise.all` or `p-map` a list of `sendBrandedEmail` calls without a per-hour rate limiter.
+- Do NOT use `await sleep(3600_000)` between bursts of 300 — that's a burst-and-wait pattern that still triggers Mailgun's rolling-window limit if the previous hour overlapped.
+- Do NOT hardcode a higher cap than 300 without first confirming Mailgun has raised the domain limit (check dashboard → Sending → Domains → mail.mysalesforcedemo.com → Limits).
+
+## Canonical Pattern
+
+Use a rolling-window limiter keyed on actual send timestamps, not a fixed interval:
+
+```typescript
+const HOURLY_CAP = 290; // 300 - 10 safety margin
+const WINDOW_MS = 60 * 60 * 1000;
+const PACE_MS = Math.ceil(WINDOW_MS / HOURLY_CAP); // ~12414ms
+
+const sentTimestamps: number[] = [];
+
+async function throttledSend(to: string, payload: BrandedEmail) {
+  const now = Date.now();
+  while (sentTimestamps.length && now - sentTimestamps[0] > WINDOW_MS) {
+    sentTimestamps.shift();
+  }
+  if (sentTimestamps.length >= HOURLY_CAP) {
+    const waitMs = WINDOW_MS - (now - sentTimestamps[0]) + 500;
+    console.log(`[rate-limit] cap reached; sleeping ${Math.round(waitMs / 1000)}s until ${new Date(Date.now() + waitMs).toISOString()}`);
+    await new Promise((r) => setTimeout(r, waitMs));
+  }
+  const result = await sendBrandedEmail({ to, ...payload });
+  sentTimestamps.push(Date.now());
+  await new Promise((r) => setTimeout(r, PACE_MS)); // even pacing
+  return result;
+}
+```
+
+## Checklist for New Batch Email Scripts
+
+- [ ] Uses `sendBrandedEmail` (per `email-template.mdc`)
+- [ ] Imports or reimplements the `throttledSend` pattern above
+- [ ] Defaults to dry-run; `--send` required to transmit
+- [ ] Persists progress so reruns don't double-send or re-hit the cap
+- [ ] Estimates and logs **total runtime** up front (e.g. `1,200 recipients → ~4h 10m`)
+- [ ] Handles 429 responses by pausing until the window clears

@@ -14,6 +14,7 @@ import {
 import { formatPromptActivityLabel } from "../prompts/promptActivityLabel";
 import { promptOwnerAvatarUrl } from "../prompts/promptTagChips";
 import { PromptAverageStars, PromptRateStars } from "../prompts/PromptStars";
+import { PromptThumbnail } from "../prompts/PromptThumbnail";
 import { AssetBadges } from "../assets/badges";
 
 function ExternalLinkIcon({ className }: { className?: string }) {
@@ -97,6 +98,14 @@ export function BuildListCard({ build, variant = "default", showAnalytics = fals
 
   return (
     <div className={shellClass}>
+      <div className="hidden md:block">
+        <PromptThumbnail
+          title={build.title}
+          thumbnailUrl={build.thumbnailUrl}
+          thumbnailStatus={build.thumbnailStatus}
+          className="h-40 w-full object-cover"
+        />
+      </div>
       <div className="p-4">
         <Link to={`/builds/${build.id}`} className="block">
           <div className="flex min-w-0 items-start gap-2">

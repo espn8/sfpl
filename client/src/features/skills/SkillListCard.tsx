@@ -15,6 +15,7 @@ import {
 import { formatPromptActivityLabel } from "../prompts/promptActivityLabel";
 import { promptOwnerAvatarUrl } from "../prompts/promptTagChips";
 import { PromptAverageStars, PromptRateStars } from "../prompts/PromptStars";
+import { PromptThumbnail } from "../prompts/PromptThumbnail";
 import { AssetBadges } from "../assets/badges";
 import { VisibilityBadge } from "../assets/VisibilityBadge";
 
@@ -102,6 +103,14 @@ export function SkillListCard({ skill, variant = "default", showAnalytics = fals
 
   return (
     <div className={shellClass}>
+      <div className="hidden md:block">
+        <PromptThumbnail
+          title={skill.title}
+          thumbnailUrl={skill.thumbnailUrl}
+          thumbnailStatus={skill.thumbnailStatus}
+          className="h-40 w-full object-cover"
+        />
+      </div>
       <div className="p-4">
         <Link to={`/skills/${skill.id}`} className="block">
           <div className="flex min-w-0 items-start gap-2">

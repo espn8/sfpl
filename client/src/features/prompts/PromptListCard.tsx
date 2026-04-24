@@ -8,6 +8,7 @@ import { highlightMatches, truncateWithHighlight } from "../search";
 import { logUsage, ratePrompt, toggleFavorite, type PromptSummary } from "./api";
 import { interpolatePromptBody } from "./interpolatePrompt";
 import { PromptCollectionMenu } from "./PromptCollectionMenu";
+import { PromptThumbnail } from "./PromptThumbnail";
 import {
   CalendarIcon,
   CopyIcon,
@@ -96,6 +97,14 @@ export function PromptListCard({ prompt, variant = "default", showAnalytics = fa
 
   return (
     <div className={shellClass}>
+      <div className="hidden md:block">
+        <PromptThumbnail
+          title={prompt.title}
+          thumbnailUrl={prompt.thumbnailUrl}
+          thumbnailStatus={prompt.thumbnailStatus}
+          className="h-40 w-full object-cover"
+        />
+      </div>
       <div className="p-4">
         <Link to={`/prompts/${prompt.id}`} className="block">
           <div className="flex min-w-0 items-start gap-2">
