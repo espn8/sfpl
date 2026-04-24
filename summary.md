@@ -1,11 +1,18 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 24, 2026 — 15:55 CDT
+Last Updated: Friday, April 24, 2026 — 16:02 CDT
 Build Version: (see `git log -1 --oneline` on main after pull)
 App Version: see production footer after deploy (root `package.json` 1.3.3 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Release: Homepage Smart Search bar wired to `/search` (April 24, 2026 — 16:02 CDT)
+
+- **Bug**: On the default homepage (not “My Content”), the top **Smart Search** `SearchBar` used **no-op** `onFilterChange` / `onFilterRemove` / `onClearAll` handlers and static `filters` / empty `activeFilters`, so sort, asset type, tool, filter chips, and Clear did nothing useful (only natural-language submit navigated).
+- **Fix** ([client/src/features/home/HomePage.tsx](client/src/features/home/HomePage.tsx)): Local state `homeBrowseFilters` plus `getActiveFilters` for chips; changing facets schedules `navigate(\`/search?${filtersToParams(...)}\`)` with a `setTimeout(0)` so the sequence **filter suggestion → clear input** still serializes the URL with an empty `q`. Input uses `handleHomeSearchInputChange` so refs stay aligned for that deferred navigation.
+- **“Works Where You Work” tool pills**: `onClick` now **`navigate` to `/search?tool=...`** (merged with current `homeBrowseFiltersRef`) instead of `setFilter`, which only updated the homepage URL’s query params and did not open results.
+- **Prerequisite helpers** (already on `main` from prior commit): `filtersToParams` and `getActiveFilters` exported from [client/src/features/search/hooks/useSearchState.ts](client/src/features/search/hooks/useSearchState.ts) and [client/src/features/search/index.ts](client/src/features/search/index.ts).
 
 ### Release: Homepage UX, analytics leaderboard accuracy, Top Assets label (April 24, 2026 — 15:49 CDT)
 

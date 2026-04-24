@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { fetchMe } from "../auth/api";
 import { canAccessAdminUi, canCreateContent } from "../auth/roles";
@@ -9,7 +9,15 @@ import { AssetCard } from "../assets/AssetCard";
 import { AssetAnalyticsTable } from "../assets/AssetAnalyticsTable";
 import { AssetListView } from "../assets/AssetListView";
 import { getToolLabel, getToolsSortedAlphabetically, type PromptTool } from "../prompts/api";
-import { SearchBar, useSearchState, type AssetTypeFilter } from "../search";
+import {
+  DEFAULT_FILTERS,
+  SearchBar,
+  filtersToParams,
+  getActiveFilters,
+  useSearchState,
+  type AssetTypeFilter,
+  type SearchFilters,
+} from "../search";
 import { parseNaturalLanguageQuery } from "../search/api";
 import { useHomePerfMarks } from "./useHomePerfMarks";
 
@@ -178,6 +186,76 @@ export function HomePage() {
 
   const [homeSearchValue, setHomeSearchValue] = useState("");
   const [isSearchParsing, setIsSearchParsing] = useState(false);
+  const [homeBrowseFilters, setHomeBrowseFilters] = useState<SearchFilters>(() => ({ ...DEFAULT_FILTERS }));
+  const homeBrowseFiltersRef = useRef(homeBrowseFilters);
+  const homeSearchInputRef = useRef(homeSearchValue);
+  const navigateToSearchTimerRef = useRef<number | null>(null);
+
+  homeBrowseFiltersRef.current = homeBrowseFilters;
+  homeSearchInputRef.current = homeSearchValue;
+
+  const scheduleNavigateToSearch = useCallback(() => {
+    if (navigateToSearchTimerRef.current !== null) {
+      clearTimeout(navigateToSearchTimerRef.current);
+    }
+    navigateToSearchTimerRef.current = window.setTimeout(() => {
+      navigateToSearchTimerRef.current = null;
+      const params = filtersToParams({
+        ...homeBrowseFiltersRef.current,
+        q: homeSearchInputRef.current.trim(),
+      });
+      const qs = params.toString();
+      navigate(qs ? `/search?${qs}` : "/search");
+    }, 0);
+  }, [navigate]);
+
+  useEffect(
+    () => () => {
+      if (navigateToSearchTimerRef.current !== null) {
+        clearTimeout(navigateToSearchTimerRef.current);
+      }
+    },
+    [],
+  );
+
+  const handleHomeSearchInputChange = useCallback((value: string) => {
+    homeSearchInputRef.current = value;
+    setHomeSearchValue(value);
+  }, []);
+
+  const handleHomeSearchBarFilterChange = useCallback(
+    <K extends keyof SearchFilters>(key: K, value: SearchFilters[K]) => {
+      const next = { ...homeBrowseFiltersRef.current, [key]: value };
+      homeBrowseFiltersRef.current = next;
+      setHomeBrowseFilters(next);
+      scheduleNavigateToSearch();
+    },
+    [scheduleNavigateToSearch],
+  );
+
+  const handleHomeSearchBarFilterRemove = useCallback(
+    (key: keyof SearchFilters) => {
+      const next = { ...homeBrowseFiltersRef.current, [key]: DEFAULT_FILTERS[key] };
+      homeBrowseFiltersRef.current = next;
+      setHomeBrowseFilters(next);
+      if (key === "q") {
+        homeSearchInputRef.current = "";
+        setHomeSearchValue("");
+      }
+      scheduleNavigateToSearch();
+    },
+    [scheduleNavigateToSearch],
+  );
+
+  const handleHomeSearchBarClearAll = useCallback(() => {
+    homeBrowseFiltersRef.current = { ...DEFAULT_FILTERS };
+    homeSearchInputRef.current = "";
+    setHomeBrowseFilters({ ...DEFAULT_FILTERS });
+    setHomeSearchValue("");
+    navigate("/search");
+  }, [navigate]);
+
+  const homeSearchActiveFilters = useMemo(() => getActiveFilters(homeBrowseFilters), [homeBrowseFilters]);
 
   const {
     filters,
@@ -365,12 +443,12 @@ export function HomePage() {
           <section className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-4 shadow-sm">
             <SearchBar
               inputValue={homeSearchValue}
-              onInputChange={setHomeSearchValue}
-              filters={{ q: "", assetType: "all", tool: "", modality: "", sort: "recent", collectionId: "", mine: false, status: "" }}
-              activeFilters={[]}
-              onFilterChange={() => {}}
-              onFilterRemove={() => {}}
-              onClearAll={() => {}}
+              onInputChange={handleHomeSearchInputChange}
+              filters={homeBrowseFilters}
+              activeFilters={homeSearchActiveFilters}
+              onFilterChange={handleHomeSearchBarFilterChange}
+              onFilterRemove={handleHomeSearchBarFilterRemove}
+              onClearAll={handleHomeSearchBarClearAll}
               onSubmit={handleSearchSubmit}
               isParsing={isSearchParsing}
               placeholder="Search prompts, skills, context and builds... (try natural language!)"
@@ -600,7 +678,10 @@ export function HomePage() {
                       <button
                         key={toolOption}
                         type="button"
-                        onClick={() => setFilter("tool", toolOption)}
+                        onClick={() => {
+                          const next = { ...homeBrowseFiltersRef.current, tool: toolOption };
+                          navigate(`/search?${filtersToParams(next).toString()}`);
+                        }}
                         className="rounded-full border border-(--color-border) bg-(--color-surface) px-2 py-1 font-medium transition-colors hover:border-(--color-primary) hover:bg-(--color-primary)/10"
                       >
                         {getToolLabel(toolOption)}
