@@ -326,7 +326,7 @@ export function HomePage() {
               onClearAll={() => {}}
               onSubmit={handleSearchSubmit}
               isParsing={isSearchParsing}
-              placeholder="Search prompts, skills, and context... (try natural language!)"
+              placeholder="Search prompts, skills, context and builds... (try natural language!)"
               showAssetType
             />
           </section>
