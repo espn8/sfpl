@@ -1,13 +1,13 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 24, 2026 — 15:38 CDT
-Build Version: 4685ea3 (Heroku release will increment on push)
-App Version: 1.3.8 (root package.json 1.3.3 auto-bumped by `scripts/version-bump.js` on Heroku postbuild)
+Last Updated: Friday, April 24, 2026 — 15:40 CDT
+Build Version: d2aa4c4 (Heroku v201; release `prisma migrate deploy` applied governance migration)
+App Version: 1.3.4 (root `package.json` 1.3.3 auto-bumped by `scripts/version-bump.js` on Heroku postbuild for this deploy)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
 
-### Release: v1.3.8 (April 24, 2026 — 15:38 CDT) — Asset governance, verification lifecycle, and hybrid rating feedback
+### Release: Asset governance, verification lifecycle, and hybrid rating feedback (April 24, 2026 — 15:40 CDT; Heroku v201, footer 1.3.4)
 
 - **Database (Prisma migration `20260424200000_add_governance_and_rating_flags`)**:
   - **Per-asset lifecycle fields** on `Prompt`, `Skill`, `ContextDocument`, and `Build`: `lastVerifiedAt`, `verificationDueAt`, `warningSentAt`, `archivedAt`, `archiveReason` (enum `ArchiveReason`: MANUAL, UNVERIFIED, INACTIVE, LOW_RATING). Backfill sets `lastVerifiedAt` / `verificationDueAt` from `updatedAt` for published assets so the first nightly sweep does not mass-archive.
@@ -21,7 +21,7 @@ Production URL: https://ail.mysalesforcedemo.com (canonical live site — never 
 - **Client — assets & ratings**: [client/src/features/assets/VerificationControls.tsx](client/src/features/assets/VerificationControls.tsx), [client/src/features/assets/governance.ts](client/src/features/assets/governance.ts), [AssetCard](client/src/features/assets/AssetCard.tsx) updates; star controls ([PromptStars](client/src/features/prompts/PromptStars.tsx), parallel patterns on skills/context/builds) support optional feedback flags/comment. Feature `api.ts` files updated for new list/detail fields.
 - **Config**: [.env.example](.env.example) and [server/src/config/env.ts](server/src/config/env.ts) document governance-related env. [server/package.json](server/package.json) adds `governance:sweep` and `governance:sweep:dry` (run compiled `runGovernance.js` after build).
 - **Tests**: New/updated server tests: `governance-ops`, `governance-scoring`, `governance-sweep`, plus [server/test/context-flow.test.ts](server/test/context-flow.test.ts) adjustments.
-- **Version bump**: Root `package.json` remains `1.3.3` locally; Heroku `heroku-postbuild` will bump; production footer expected **v1.3.8** after this release.
+- **Version bump**: Root `package.json` remains `1.3.3` in git; each Heroku deploy runs `version-bump.js` so the **production footer** reflects the new patch (this release: **v1.3.4** on Heroku v201).
 - **Migrations on deploy**: Root [Procfile](Procfile) `release:` runs `npm --prefix server run prisma:deploy`, so Heroku applies new migrations before the web dyno restarts.
 
 ### Release: v1.3.7 (April 24, 2026 — 14:09 CDT) — List card thumbnails on Prompts, Skills, Context, and Builds
