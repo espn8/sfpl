@@ -203,12 +203,12 @@ export function AnalyticsPage() {
         <SectionCard
           title="Top Contributors"
           icon={<UsersIcon className="h-5 w-5 text-(--color-text-muted)" />}
-          isEmpty={contributors.length === 0 || contributors.every((c) => c.promptCount === 0)}
+          isEmpty={contributors.length === 0 || contributors.every((c) => c.assetCount === 0)}
           emptyMessage="No contributors yet."
         >
           <div className="space-y-2">
             {contributors
-              .filter((item) => item.promptCount > 0)
+              .filter((item) => item.assetCount > 0)
               .map((item, index) => (
                 <div
                   key={item.id}
@@ -234,7 +234,7 @@ export function AnalyticsPage() {
                     </div>
                   </div>
                   <span className="shrink-0 rounded-full bg-(--color-surface) px-2 py-0.5 text-xs text-(--color-text-muted)">
-                    {pluralize(item.promptCount, "AI asset")}
+                    {pluralize(item.assetCount, "AI asset")}
                   </span>
                 </div>
               ))}
@@ -280,7 +280,7 @@ export function AnalyticsPage() {
                 <div className="mt-2 flex flex-wrap gap-2 text-xs text-(--color-text-muted)">
                   <span className="rounded bg-(--color-surface) px-1.5 py-0.5">{item.usedCount} uses</span>
                   <span className="rounded bg-(--color-surface) px-1.5 py-0.5">{item.favoritedCount} favorites</span>
-                  <span className="rounded bg-(--color-surface) px-1.5 py-0.5">{item.feedbackCount} ratings</span>
+                  <span className="rounded bg-(--color-surface) px-1.5 py-0.5">{item.ratingCount} ratings</span>
                 </div>
               </div>
             ))}

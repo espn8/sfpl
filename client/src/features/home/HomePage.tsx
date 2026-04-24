@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { fetchMe } from "../auth/api";
 import { canAccessAdminUi, canCreateContent } from "../auth/roles";
@@ -51,6 +51,39 @@ function pluralize(count: number, singular: string, plural = `${singular}s`): st
   return `${count.toLocaleString()} ${count === 1 ? singular : plural}`;
 }
 
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
+const HOW_IT_WORKS_IO: IntersectionObserverInit = {
+  threshold: 0.14,
+  rootMargin: "0px 0px -8% 0px",
+};
+
+function useRevealWhenInView<E extends HTMLElement>(): { ref: RefObject<E | null>; revealed: boolean } {
+  const ref = useRef<E | null>(null);
+  const [revealed, setRevealed] = useState(prefersReducedMotion);
+
+  useEffect(() => {
+    if (revealed) return;
+    const el = ref.current;
+    if (!el) return;
+    const ob = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) {
+        setRevealed(true);
+      }
+    }, HOW_IT_WORKS_IO);
+    ob.observe(el);
+    return () => ob.disconnect();
+  }, [revealed]);
+
+  return { ref, revealed };
+}
+
 type HeroStatIconVariant = "published" | "people" | "usage";
 
 function HeroStatIcon({ variant }: { variant: HeroStatIconVariant }) {
@@ -84,7 +117,7 @@ type StatCounterProps = { end: number; active: boolean; delayMs?: number };
 
 function StatCounter({ end, active, delayMs = 0 }: StatCounterProps) {
   const [display, setDisplay] = useState(0);
-  const durationMs = 1200;
+  const durationMs = 1300;
 
   useEffect(() => {
     if (!active) {
@@ -92,11 +125,7 @@ function StatCounter({ end, active, delayMs = 0 }: StatCounterProps) {
       return;
     }
 
-    const prefersReduced =
-      typeof window !== "undefined" &&
-      typeof window.matchMedia === "function" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (prefersReduced) {
+    if (prefersReducedMotion()) {
       setDisplay(end);
       return;
     }
@@ -107,8 +136,9 @@ function StatCounter({ end, active, delayMs = 0 }: StatCounterProps) {
       const start = performance.now();
       const tick = (now: number) => {
         const t = Math.min(1, (now - start) / durationMs);
-        const eased = 1 - (1 - t) ** 3;
-        setDisplay(Math.round(end * eased));
+        const eased = 1 - (1 - t) ** 4;
+        const next = t >= 1 ? end : Math.round(end * eased);
+        setDisplay(next);
         if (t < 1) {
           frameId = requestAnimationFrame(tick);
         }
@@ -122,7 +152,22 @@ function StatCounter({ end, active, delayMs = 0 }: StatCounterProps) {
     };
   }, [end, active, durationMs, delayMs]);
 
-  return <span className="text-3xl font-bold tabular-nums tracking-tight md:text-4xl">{display.toLocaleString()}</span>;
+  const progress = end <= 0 ? 1 : Math.min(1, display / end);
+  const motionStyle: CSSProperties | undefined = prefersReducedMotion()
+    ? undefined
+    : {
+        opacity: 0.78 + 0.22 * progress,
+        transform: `translateY(${(1 - progress) * 2.5}px)`,
+      };
+
+  return (
+    <span
+      className="inline-block text-3xl font-bold tabular-nums tracking-tight motion-safe:transition-[opacity,transform] motion-safe:duration-150 motion-safe:ease-out motion-reduce:transition-none md:text-4xl"
+      style={motionStyle}
+    >
+      {display.toLocaleString()}
+    </span>
+  );
 }
 
 export function HomePage() {
@@ -311,6 +356,8 @@ export function HomePage() {
     { step: "4", title: "Scale", description: "Save your favorites, build collections, and share what works." },
   ] as const;
 
+  const howItWorksReveal = useRevealWhenInView<HTMLElement>();
+
   return (
     <div className="space-y-7">
       {!mineFilter ? (
@@ -442,7 +489,7 @@ export function HomePage() {
 
           <section className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-xl font-semibold">Top Performers This Week</h3>
+              <h3 className="text-xl font-semibold">Top Assets This Week</h3>
               <span className="text-sm font-medium text-(--color-text-muted)">The AI assets people can't stop using</span>
             </div>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -496,14 +543,18 @@ export function HomePage() {
             )}
           </section>
 
-          <section className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-sm transition-all duration-300 hover:shadow motion-reduce:transition-none">
-            <h3 className="text-xl font-semibold">How AI Library Works</h3>
+          <section
+            ref={howItWorksReveal.ref}
+            data-revealed={howItWorksReveal.revealed ? "" : undefined}
+            className="home-how-it-works-section rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-sm transition-all duration-300 hover:shadow motion-reduce:transition-none"
+          >
+            <h3 className="home-how-it-works-title text-xl font-semibold">How AI Library Works</h3>
             <ol className="mt-6 flex list-none flex-col gap-0 p-0 md:mt-8 md:flex-row md:items-stretch">
               {howItWorksSteps.map((item, index) => {
                 const isFirst = index === 0;
                 const isLast = index === howItWorksSteps.length - 1;
                 return (
-                  <li key={item.step} className="flex flex-1 flex-col md:min-w-0">
+                  <li key={item.step} className="home-how-it-works-step flex flex-1 flex-col md:min-w-0">
                     <div className="mb-3 hidden items-center md:flex" aria-hidden>
                       <div className={`h-0.5 min-w-2 flex-1 rounded-full ${isFirst ? "bg-transparent" : "bg-(--color-primary)/40"}`} />
                       <div className="mx-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-(--color-primary) bg-(--color-surface) text-sm font-bold text-(--color-primary) shadow-sm ring-4 ring-(--color-surface)">
@@ -585,7 +636,7 @@ export function HomePage() {
                       </span>
                       {contributor.name ?? contributor.email}
                     </p>
-                    <p className="text-sm text-(--color-text-muted)">{pluralize(contributor.promptCount, "AI asset")}</p>
+                    <p className="text-sm text-(--color-text-muted)">{pluralize(contributor.assetCount, "AI asset")}</p>
                   </div>
                 ))}
                 {contributorLeaderboard.length === 0 ? (
@@ -610,7 +661,7 @@ export function HomePage() {
                     </p>
                     <p className="text-sm text-(--color-text-muted)">
                       Score {user.score} ({pluralize(user.usedCount, "use")}, {pluralize(user.favoritedCount, "favorite")},{" "}
-                      {pluralize(user.feedbackCount, "feedback", "feedback")})
+                      {pluralize(user.ratingCount, "rating")})
                     </p>
                   </div>
                 ))}

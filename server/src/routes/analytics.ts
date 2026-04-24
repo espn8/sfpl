@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { Router } from "express";
-import { Role, UsageAction, type FeedbackFlag } from "@prisma/client";
+import { PromptStatus, Role, UsageAction, type FeedbackFlag } from "@prisma/client";
 import { z } from "zod";
 import { getAuthContext, requireAuth, requireRole } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
@@ -22,7 +22,7 @@ type RatedPrompt = {
 type UserActivityCounts = {
   usedCount: number;
   favoritedCount: number;
-  feedbackCount: number;
+  ratingCount: number;
 };
 
 analyticsRouter.get("/overview", async (req: Request, res: Response) => {
@@ -34,7 +34,29 @@ analyticsRouter.get("/overview", async (req: Request, res: Response) => {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  const [topUsedGroups, topRated, stalePrompts, contributors, usageByUser, favoritesByUser, feedbackByUser] = await Promise.all([
+  const publishedAssetWhere = { teamId: auth.teamId, status: PromptStatus.PUBLISHED };
+
+  const [
+    topUsedGroups,
+    topRated,
+    stalePrompts,
+    promptUsesByUser,
+    skillCopiesByUser,
+    contextCopiesByUser,
+    buildCopiesByUser,
+    promptFavoritesByUser,
+    skillFavoritesByUser,
+    contextFavoritesByUser,
+    buildFavoritesByUser,
+    promptRatingsByUser,
+    skillRatingsByUser,
+    contextRatingsByUser,
+    buildRatingsByUser,
+    publishedPromptsByOwner,
+    publishedSkillsByOwner,
+    publishedContextByOwner,
+    publishedBuildsByOwner,
+  ] = await Promise.all([
     prisma.usageEvent.groupBy({
       by: ["promptId"],
       where: {
@@ -70,49 +92,88 @@ analyticsRouter.get("/overview", async (req: Request, res: Response) => {
       take: 10,
       orderBy: { updatedAt: "asc" },
     }),
-    prisma.user.findMany({
-      where: { teamId: auth.teamId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        _count: { select: { prompts: true } },
-      },
-      orderBy: { prompts: { _count: "desc" } },
-      take: 10,
-    }),
     prisma.usageEvent.groupBy({
       by: ["userId"],
       where: {
-        user: {
-          teamId: auth.teamId,
-        },
+        user: { teamId: auth.teamId },
+        action: { in: [UsageAction.COPY, UsageAction.LAUNCH] },
       },
-      _count: {
-        _all: true,
-      },
+      _count: { _all: true },
+    }),
+    prisma.skillUsageEvent.groupBy({
+      by: ["userId"],
+      where: { user: { teamId: auth.teamId }, eventType: "COPY" },
+      _count: { _all: true },
+    }),
+    prisma.contextUsageEvent.groupBy({
+      by: ["userId"],
+      where: { user: { teamId: auth.teamId }, eventType: "COPY" },
+      _count: { _all: true },
+    }),
+    prisma.buildUsageEvent.groupBy({
+      by: ["userId"],
+      where: { user: { teamId: auth.teamId }, eventType: "COPY" },
+      _count: { _all: true },
     }),
     prisma.favorite.groupBy({
       by: ["userId"],
-      where: {
-        user: {
-          teamId: auth.teamId,
-        },
-      },
-      _count: {
-        _all: true,
-      },
+      where: { user: { teamId: auth.teamId } },
+      _count: { _all: true },
+    }),
+    prisma.skillFavorite.groupBy({
+      by: ["userId"],
+      where: { user: { teamId: auth.teamId } },
+      _count: { _all: true },
+    }),
+    prisma.contextFavorite.groupBy({
+      by: ["userId"],
+      where: { user: { teamId: auth.teamId } },
+      _count: { _all: true },
+    }),
+    prisma.buildFavorite.groupBy({
+      by: ["userId"],
+      where: { user: { teamId: auth.teamId } },
+      _count: { _all: true },
     }),
     prisma.rating.groupBy({
       by: ["userId"],
-      where: {
-        user: {
-          teamId: auth.teamId,
-        },
-      },
-      _count: {
-        _all: true,
-      },
+      where: { user: { teamId: auth.teamId } },
+      _count: { _all: true },
+    }),
+    prisma.skillRating.groupBy({
+      by: ["userId"],
+      where: { user: { teamId: auth.teamId } },
+      _count: { _all: true },
+    }),
+    prisma.contextRating.groupBy({
+      by: ["userId"],
+      where: { user: { teamId: auth.teamId } },
+      _count: { _all: true },
+    }),
+    prisma.buildRating.groupBy({
+      by: ["userId"],
+      where: { user: { teamId: auth.teamId } },
+      _count: { _all: true },
+    }),
+    prisma.prompt.groupBy({
+      by: ["ownerId"],
+      where: publishedAssetWhere,
+      _count: { _all: true },
+    }),
+    prisma.skill.groupBy({
+      by: ["ownerId"],
+      where: publishedAssetWhere,
+      _count: { _all: true },
+    }),
+    prisma.contextDocument.groupBy({
+      by: ["ownerId"],
+      where: publishedAssetWhere,
+      _count: { _all: true },
+    }),
+    prisma.build.groupBy({
+      by: ["ownerId"],
+      where: publishedAssetWhere,
+      _count: { _all: true },
     }),
   ]);
 
@@ -154,29 +215,68 @@ analyticsRouter.get("/overview", async (req: Request, res: Response) => {
     .slice(0, 10);
 
   const userActivityMap = new Map<number, UserActivityCounts>();
-  for (const row of usageByUser) {
-    userActivityMap.set(row.userId, {
-      usedCount: row._count._all,
-      favoritedCount: 0,
-      feedbackCount: 0,
-    });
+
+  const bumpUsed = (userId: number, delta: number) => {
+    const cur = userActivityMap.get(userId) ?? { usedCount: 0, favoritedCount: 0, ratingCount: 0 };
+    cur.usedCount += delta;
+    userActivityMap.set(userId, cur);
+  };
+  const bumpFavorited = (userId: number, delta: number) => {
+    const cur = userActivityMap.get(userId) ?? { usedCount: 0, favoritedCount: 0, ratingCount: 0 };
+    cur.favoritedCount += delta;
+    userActivityMap.set(userId, cur);
+  };
+  const bumpRating = (userId: number, delta: number) => {
+    const cur = userActivityMap.get(userId) ?? { usedCount: 0, favoritedCount: 0, ratingCount: 0 };
+    cur.ratingCount += delta;
+    userActivityMap.set(userId, cur);
+  };
+
+  for (const row of promptUsesByUser) bumpUsed(row.userId, row._count._all);
+  for (const row of skillCopiesByUser) bumpUsed(row.userId, row._count._all);
+  for (const row of contextCopiesByUser) bumpUsed(row.userId, row._count._all);
+  for (const row of buildCopiesByUser) bumpUsed(row.userId, row._count._all);
+
+  for (const row of promptFavoritesByUser) bumpFavorited(row.userId, row._count._all);
+  for (const row of skillFavoritesByUser) bumpFavorited(row.userId, row._count._all);
+  for (const row of contextFavoritesByUser) bumpFavorited(row.userId, row._count._all);
+  for (const row of buildFavoritesByUser) bumpFavorited(row.userId, row._count._all);
+
+  for (const row of promptRatingsByUser) bumpRating(row.userId, row._count._all);
+  for (const row of skillRatingsByUser) bumpRating(row.userId, row._count._all);
+  for (const row of contextRatingsByUser) bumpRating(row.userId, row._count._all);
+  for (const row of buildRatingsByUser) bumpRating(row.userId, row._count._all);
+
+  const assetCountByOwner = new Map<number, number>();
+  for (const row of publishedPromptsByOwner) {
+    assetCountByOwner.set(row.ownerId, (assetCountByOwner.get(row.ownerId) ?? 0) + row._count._all);
   }
-  for (const row of favoritesByUser) {
-    const existing = userActivityMap.get(row.userId);
-    userActivityMap.set(row.userId, {
-      usedCount: existing?.usedCount ?? 0,
-      favoritedCount: row._count._all,
-      feedbackCount: existing?.feedbackCount ?? 0,
-    });
+  for (const row of publishedSkillsByOwner) {
+    assetCountByOwner.set(row.ownerId, (assetCountByOwner.get(row.ownerId) ?? 0) + row._count._all);
   }
-  for (const row of feedbackByUser) {
-    const existing = userActivityMap.get(row.userId);
-    userActivityMap.set(row.userId, {
-      usedCount: existing?.usedCount ?? 0,
-      favoritedCount: existing?.favoritedCount ?? 0,
-      feedbackCount: row._count._all,
-    });
+  for (const row of publishedContextByOwner) {
+    assetCountByOwner.set(row.ownerId, (assetCountByOwner.get(row.ownerId) ?? 0) + row._count._all);
   }
+  for (const row of publishedBuildsByOwner) {
+    assetCountByOwner.set(row.ownerId, (assetCountByOwner.get(row.ownerId) ?? 0) + row._count._all);
+  }
+
+  const contributorsSorted = [...assetCountByOwner.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const contributorUsers =
+    contributorsSorted.length > 0
+      ? await prisma.user.findMany({
+          where: { teamId: auth.teamId, id: { in: contributorsSorted.map(([id]) => id) } },
+          select: { id: true, email: true, name: true },
+        })
+      : [];
+  const contributorUserMap = new Map(contributorUsers.map((u) => [u.id, u]));
+  const contributors = contributorsSorted
+    .map(([ownerId, assetCount]) => {
+      const u = contributorUserMap.get(ownerId);
+      if (!u) return null;
+      return { id: u.id, email: u.email, name: u.name, assetCount };
+    })
+    .filter((row): row is NonNullable<typeof row> => row !== null);
 
   const leaderboardUserIds = Array.from(userActivityMap.keys());
   const leaderboardUsers =
@@ -202,7 +302,7 @@ analyticsRouter.get("/overview", async (req: Request, res: Response) => {
       if (!activity || !user) {
         return null;
       }
-      const score = activity.usedCount + activity.favoritedCount + activity.feedbackCount;
+      const score = activity.usedCount + activity.favoritedCount + activity.ratingCount;
       return {
         id: user.id,
         email: user.email,
@@ -210,11 +310,11 @@ analyticsRouter.get("/overview", async (req: Request, res: Response) => {
         score,
         usedCount: activity.usedCount,
         favoritedCount: activity.favoritedCount,
-        feedbackCount: activity.feedbackCount,
+        ratingCount: activity.ratingCount,
       };
     })
     .filter((item): item is NonNullable<typeof item> => item !== null)
-    .sort((a, b) => b.score - a.score || b.usedCount - a.usedCount || b.feedbackCount - a.feedbackCount)
+    .sort((a, b) => b.score - a.score || b.usedCount - a.usedCount || b.ratingCount - a.ratingCount)
     .slice(0, 10);
 
   return res.status(200).json({
@@ -226,12 +326,7 @@ analyticsRouter.get("/overview", async (req: Request, res: Response) => {
         title: prompt.title,
         updatedAt: prompt.updatedAt,
       })),
-      contributors: contributors.map((user: { id: number; email: string; name: string | null; _count: { prompts: number } }) => ({
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        promptCount: user._count.prompts,
-      })),
+      contributors,
       userEngagementLeaderboard,
     },
   });

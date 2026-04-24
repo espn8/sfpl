@@ -92,7 +92,7 @@ describe("HomePage", () => {
         name: /Find the AI assets that get results/i,
       }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /Top Performers This Week/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Top Assets This Week/i })).toBeInTheDocument();
     expect(screen.getAllByTestId("top-performer-skeleton").length).toBeGreaterThan(0);
 
     resolveAssets?.({

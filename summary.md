@@ -1,11 +1,21 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 24, 2026 — 15:40 CDT
-Build Version: d2aa4c4 (Heroku v201; release `prisma migrate deploy` applied governance migration)
-App Version: 1.3.4 (root `package.json` 1.3.3 auto-bumped by `scripts/version-bump.js` on Heroku postbuild for this deploy)
+Last Updated: Friday, April 24, 2026 — 15:49 CDT
+Build Version: b0f69c4 (release bundle; verify with git log -1 --format=%h)
+App Version: see production footer after deploy (root `package.json` 1.3.3 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Release: Homepage UX, analytics leaderboard accuracy, Top Assets label (April 24, 2026 — 15:49 CDT)
+
+- **Top Assets branding**: Homepage featured grid heading renamed from "Top Performers This Week" to **"Top Assets This Week"** ([client/src/features/home/HomePage.tsx](client/src/features/home/HomePage.tsx), [client/src/features/home/HomePage.test.tsx](client/src/features/home/HomePage.test.tsx)).
+- **Stat counters**: Hero snapshot numbers use ease-out quart, subtle opacity/`translateY` tied to count progress, shared `prefersReducedMotion()` helper, and `CSSProperties` typing on the animated span ([HomePage.tsx](client/src/features/home/HomePage.tsx)).
+- **How AI Library Works**: Scroll-triggered staggered reveal (LTR on desktop, sequential on mobile) via `data-revealed`, `useRevealWhenInView` + `IntersectionObserver`, and `@keyframes` in [client/src/index.css](client/src/index.css); respects `prefers-reduced-motion`; `@media print` keeps step content visible.
+- **`GET /api/analytics/overview` correctness** ([server/src/routes/analytics.ts](server/src/routes/analytics.ts)):
+  - **Contributors** (`contributors`): ranks owners by total **published** prompts, skills, context documents, and builds. Response field **`assetCount`** replaces **`promptCount`**.
+  - **User engagement** (`userEngagementLeaderboard`): **uses** = prompt COPY+LAUNCH plus skill/context/build **COPY** only (no VIEW inflation); **favorites** and **ratings** aggregated across all four asset types. Response field **`ratingCount`** replaces **`feedbackCount`** (these are star ratings submitted, not generic “feedback”). [client/src/features/analytics/api.ts](client/src/features/analytics/api.ts), [AnalyticsPage.tsx](client/src/features/analytics/AnalyticsPage.tsx), [HomePage.tsx](client/src/features/home/HomePage.tsx); admin help copy in [adminHelpContent.ts](client/src/features/admin/adminHelpContent.ts).
+- **Vitest / jsdom**: [client/src/test/setup.ts](client/src/test/setup.ts) provides an `IntersectionObserver` stub (fires `isIntersecting` on a microtask) and avoids TypeScript constructor parameter properties so `pnpm run build` (`erasableSyntaxOnly`) stays green.
 
 ### Release: Asset governance, verification lifecycle, and hybrid rating feedback (April 24, 2026 — 15:40 CDT; Heroku v201, footer 1.3.4)
 
