@@ -213,8 +213,6 @@ export function SettingsPage() {
           <ThemeModeToggle />
         </section>
 
-        <ApiKeysSection />
-
         <section className="rounded-lg border border-(--color-border) bg-(--color-surface) p-6">
           <h2 className="mb-4 text-lg font-medium">Profile</h2>
           <div className="space-y-4">
@@ -332,6 +330,10 @@ export function SettingsPage() {
           </button>
         </div>
       </form>
+
+      <div className="mt-6">
+        <ApiKeysSection />
+      </div>
     </div>
   );
 }
