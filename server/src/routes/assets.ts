@@ -779,22 +779,49 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
       AND: [visibilityFragment as Prisma.BuildWhereInput],
     };
 
-    const [promptsPublished, skillsPublished, contextPublished, buildsPublished, activeUsers, promptsUsed] =
-      await timeSection("snapshot", () =>
-        Promise.all([
-          prisma.prompt.count({ where: promptSnapshotWhere }),
-          prisma.skill.count({ where: skillSnapshotWhere }),
-          prisma.contextDocument.count({ where: contextSnapshotWhere }),
-          prisma.build.count({ where: buildSnapshotWhere }),
-          prisma.user.count({ where: { teamId: auth.teamId } }),
-          prisma.usageEvent.count({
-            where: {
-              action: { in: [UsageAction.COPY, UsageAction.LAUNCH] },
-              prompt: { teamId: auth.teamId },
-            },
-          }),
-        ]),
-      );
+    const [
+      promptsPublished,
+      skillsPublished,
+      contextPublished,
+      buildsPublished,
+      activeUsers,
+      promptUsageCount,
+      skillUsageCount,
+      contextUsageCount,
+      buildUsageCount,
+    ] = await timeSection("snapshot", () =>
+      Promise.all([
+        prisma.prompt.count({ where: promptSnapshotWhere }),
+        prisma.skill.count({ where: skillSnapshotWhere }),
+        prisma.contextDocument.count({ where: contextSnapshotWhere }),
+        prisma.build.count({ where: buildSnapshotWhere }),
+        prisma.user.count({ where: { teamId: auth.teamId } }),
+        prisma.usageEvent.count({
+          where: {
+            action: { in: [UsageAction.COPY, UsageAction.LAUNCH] },
+            prompt: { AND: [visibilityFragment as Prisma.PromptWhereInput] },
+          },
+        }),
+        prisma.skillUsageEvent.count({
+          where: {
+            eventType: "COPY",
+            skill: { AND: [visibilityFragment as Prisma.SkillWhereInput] },
+          },
+        }),
+        prisma.contextUsageEvent.count({
+          where: {
+            eventType: "COPY",
+            context: { AND: [visibilityFragment as Prisma.ContextDocumentWhereInput] },
+          },
+        }),
+        prisma.buildUsageEvent.count({
+          where: {
+            eventType: "COPY",
+            build: { AND: [visibilityFragment as Prisma.BuildWhereInput] },
+          },
+        }),
+      ]),
+    );
 
     snapshot = {
       assetsPublished: promptsPublished + skillsPublished + contextPublished + buildsPublished,
@@ -803,7 +830,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
       contextPublished,
       buildsPublished,
       activeUsers,
-      promptsUsed,
+      promptsUsed: promptUsageCount + skillUsageCount + contextUsageCount + buildUsageCount,
     };
   }
 
