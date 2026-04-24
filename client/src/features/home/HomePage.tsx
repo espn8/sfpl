@@ -258,14 +258,6 @@ export function HomePage() {
     analyticsEnabled: canViewAnalytics,
   });
 
-  if (assetsQuery.isLoading) {
-    return <p>Loading AI assets...</p>;
-  }
-
-  if (assetsQuery.error) {
-    return <p className="text-red-700">We couldn't load AI assets right now. Try refreshing.</p>;
-  }
-
   const snapshot = assetsQuery.data?.meta.snapshot;
   const assetsPublished = snapshot?.assetsPublished ?? 0;
   const activeUsers = snapshot?.activeUsers ?? 0;
@@ -449,15 +441,29 @@ export function HomePage() {
               <span className="text-sm font-medium text-(--color-text-muted)">The AI assets people can't stop using</span>
             </div>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {visibleTopPerformers.map((asset) => (
-                <AssetCard
-                  key={`${asset.assetType}-${asset.id}`}
-                  asset={asset}
-                  variant="featured"
-                  highlightQuery={debouncedFilters.q}
-                />
-              ))}
+              {topPerformersQuery.isLoading && visibleTopPerformers.length === 0
+                ? Array.from({ length: 6 }).map((_, index) => (
+                    <div
+                      key={`top-performer-skeleton-${index}`}
+                      data-testid="top-performer-skeleton"
+                      aria-hidden
+                      className="h-56 animate-pulse rounded-2xl border border-(--color-border) bg-(--color-surface-muted)"
+                    />
+                  ))
+                : visibleTopPerformers.map((asset) => (
+                    <AssetCard
+                      key={`${asset.assetType}-${asset.id}`}
+                      asset={asset}
+                      variant="featured"
+                      highlightQuery={debouncedFilters.q}
+                    />
+                  ))}
             </div>
+            {topPerformersQuery.isError && visibleTopPerformers.length === 0 ? (
+              <p className="text-sm text-(--color-text-muted)">
+                We couldn't load top performers right now. Try refreshing.
+              </p>
+            ) : null}
             {topPerformers.length > 6 && (
               <div className="flex justify-center pt-2">
                 <button
@@ -652,7 +658,21 @@ export function HomePage() {
             />
           </section>
 
-          {assetsQuery.data?.data && assetsQuery.data.data.length > 0 ? (
+          {assetsQuery.isLoading && !assetsQuery.data ? (
+            <section className="space-y-3" data-testid="mine-assets-skeleton">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div
+                  key={`mine-skeleton-${index}`}
+                  aria-hidden
+                  className="h-20 animate-pulse rounded-xl border border-(--color-border) bg-(--color-surface-muted)"
+                />
+              ))}
+            </section>
+          ) : assetsQuery.isError && !assetsQuery.data ? (
+            <section className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-8 text-center">
+              <p className="text-red-700">We couldn't load your assets right now. Try refreshing.</p>
+            </section>
+          ) : assetsQuery.data?.data && assetsQuery.data.data.length > 0 ? (
             <section className="space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-(--color-text-muted)">
