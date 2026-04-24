@@ -1,7 +1,7 @@
 # AI Library - Technical Summary
 
 Last Updated: Friday, April 24, 2026 — 17:22 CDT
-Build Version: `046ad2e`
+Build Version: `06444e0`
 App Version: see production footer after deploy (root `package.json` 1.3.3 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
