@@ -1,11 +1,33 @@
 # AI Library - Technical Summary
 
-Last Updated: Thursday, April 23, 2026 — 16:45 CDT
-Build Version: 7ef741f (Heroku release v167)
+Last Updated: Friday, April 24, 2026 — 11:11 CDT
+Build Version: b39c2f5 (pre-deploy; Heroku release will increment on push)
 App Version: 1.3.1 (root package.json 1.3.0 auto-bumped to 1.3.1 by `scripts/version-bump.js` on Heroku postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Release: v1.3.2 (April 24, 2026 — 11:11 CDT) — OU taxonomy refresh
+
+- **Canonical OU list updated** to the 2026 taxonomy. The dropdown values, previously hard-coded in two places, now live in a single shared constant at `client/src/constants/ous.ts` exporting `OU_OPTIONS` (and an `OuOption` type). The 15 canonical OUs, in display order, are: `AMER TMT & CBS`, `AMER REG`, `AMER PACE & AFD360 OU`, `Global SMB (incl. EBOU)`, `UKI (incl. PE)`, `EMEA Central`, `EMEA North`, `EMEA South`, `France`, `LATAM`, `ANZ`, `North Asia`, `South Asia`, `GPS .Org`, `Data Foundation`.
+- **UI consumers refactored** to map over `OU_OPTIONS`:
+  - `client/src/components/AppShell.tsx` — first-sign-in onboarding modal OU `<select>`.
+  - `client/src/features/settings/SettingsPage.tsx` — Settings page OU `<select>`.
+- **One-time Prisma data migration** (`server/prisma/migrations/20260424120000_rename_ou_values/migration.sql`) remaps legacy `User.ou` values to the new canonical list. Confirmed mapping:
+  - `AMER ACC` → `AMER TMT & CBS`
+  - `AMER PACE` → `AMER PACE & AFD360 OU`
+  - `EMEA CENTRAL` → `EMEA Central`
+  - `EMEA NORTH` → `EMEA North`
+  - `EMEA SOUTH` → `EMEA South`
+  - `FRANCE` → `France`
+  - `GLOBAL PUBSEC` → `GPS .Org`
+  - `GLOBAL SMB` → `Global SMB (incl. EBOU)`
+  - `NEXTGEN PLATFORM` → `Data Foundation`
+  - `SOUTH ASIA` → `South Asia`
+  - `JAPAN / KOREA / TAIWAN` → `NULL` (affected users hit the existing `OU_REQUIRED` gate on next action and are re-prompted to pick an OU)
+  - `AMER REG`, `ANZ`, `LATAM` already match the new list exactly — untouched.
+- **Regions dropdown unchanged** (still `AMER | JAPAC | LATAM | EMEA`). Regions have a 1:many relationship with OUs per product requirement, so no coupling was added.
+- **Session-cached `userOu`** refreshes naturally from the DB on the next `/auth/me` request via the existing auth flow in `server/src/routes/auth.ts` — no session migration required.
 
 ### Release: v1.3.0 (April 23, 2026 — 16:45 CDT)
 

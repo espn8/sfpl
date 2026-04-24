@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { fetchMe, logout, updateMyProfile, uploadProfilePhoto } from "../auth/api";
 import { ThemeModeToggle } from "../../components/ui/ThemeModeToggle";
 import { ApiKeysSection } from "./ApiKeysSection";
+import { OU_OPTIONS } from "../../constants/ous";
 
 function ChevronRightIcon({ className }: { className?: string }) {
   return (
@@ -291,20 +292,11 @@ export function SettingsPage() {
                   onChange={(e) => setOu(e.target.value)}
                 >
                   <option value="">Select OU</option>
-                  <option value="AMER ACC">AMER ACC</option>
-                  <option value="AMER PACE">AMER PACE</option>
-                  <option value="AMER REG">AMER REG</option>
-                  <option value="ANZ">ANZ</option>
-                  <option value="EMEA CENTRAL">EMEA CENTRAL</option>
-                  <option value="EMEA NORTH">EMEA NORTH</option>
-                  <option value="EMEA SOUTH">EMEA SOUTH</option>
-                  <option value="FRANCE">FRANCE</option>
-                  <option value="GLOBAL PUBSEC">GLOBAL PUBSEC</option>
-                  <option value="GLOBAL SMB">GLOBAL SMB</option>
-                  <option value="JAPAN / KOREA / TAIWAN">JAPAN / KOREA / TAIWAN</option>
-                  <option value="LATAM">LATAM</option>
-                  <option value="NEXTGEN PLATFORM">NEXTGEN PLATFORM</option>
-                  <option value="SOUTH ASIA">SOUTH ASIA</option>
+                  {OU_OPTIONS.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
                 </select>
               </label>
             </div>

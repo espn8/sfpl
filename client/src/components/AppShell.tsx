@@ -6,6 +6,7 @@ import { fetchMe, updateMyProfile, uploadProfilePhoto } from "../features/auth/a
 import { canAccessAdminUi, canCreateContent } from "../features/auth/roles";
 import { ThemeModeToggle } from "./ui/ThemeModeToggle";
 import { ComplianceModal } from "./ComplianceModal";
+import { OU_OPTIONS } from "../constants/ous";
 
 const SALESFORCE_LOGO = "/salesforce-logo.png";
 
@@ -544,20 +545,11 @@ export function AppShell({ children }: AppShellProps) {
                     required
                   >
                     <option value="">Select OU</option>
-                    <option value="AMER ACC">AMER ACC</option>
-                    <option value="AMER PACE">AMER PACE</option>
-                    <option value="AMER REG">AMER REG</option>
-                    <option value="ANZ">ANZ</option>
-                    <option value="EMEA CENTRAL">EMEA CENTRAL</option>
-                    <option value="EMEA NORTH">EMEA NORTH</option>
-                    <option value="EMEA SOUTH">EMEA SOUTH</option>
-                    <option value="FRANCE">FRANCE</option>
-                    <option value="GLOBAL PUBSEC">GLOBAL PUBSEC</option>
-                    <option value="GLOBAL SMB">GLOBAL SMB</option>
-                    <option value="JAPAN / KOREA / TAIWAN">JAPAN / KOREA / TAIWAN</option>
-                    <option value="LATAM">LATAM</option>
-                    <option value="NEXTGEN PLATFORM">NEXTGEN PLATFORM</option>
-                    <option value="SOUTH ASIA">SOUTH ASIA</option>
+                    {OU_OPTIONS.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
                   </select>
                   <span className="mt-1 block text-xs text-(--color-text-muted)">
                     Your OU determines who sees assets you share with My Team.
