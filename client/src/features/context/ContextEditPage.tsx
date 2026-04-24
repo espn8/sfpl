@@ -1,11 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { trackEvent } from "../../app/analytics";
+import { ConfirmDeleteModal } from "../../components/ConfirmDeleteModal";
 import { VariableEditor, type VariableRow } from "../../components/VariableEditor";
 import { sanitizeTitle } from "../../lib/sanitizeTitle";
 import { SummaryField } from "../assets/SummaryField";
+import { fetchMe } from "../auth/api";
+import { canPermanentlyDeleteAsset } from "../auth/roles";
 import { ToolRequestModal } from "../prompts/ToolRequestModal";
 import {
+  deleteContextDocumentPermanently,
   getContextDocument,
   getContextToolsSortedAlphabetically,
   getContextToolLabel,
@@ -24,6 +29,7 @@ export function ContextEditPage() {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [variableRows, setVariableRows] = useState<VariableRow[]>([]);
   const [bodyText, setBodyText] = useState("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   const insertVariable = (key: string) => {
@@ -48,6 +54,10 @@ export function ContextEditPage() {
     queryKey: ["context", docId],
     queryFn: () => getContextDocument(docId),
     enabled: Number.isInteger(docId) && docId > 0,
+  });
+  const meQuery = useQuery({
+    queryKey: ["auth", "me"],
+    queryFn: fetchMe,
   });
 
   useEffect(() => {
@@ -74,6 +84,14 @@ export function ContextEditPage() {
       navigate(`/context/${docId}`);
     },
   });
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteContextDocumentPermanently(docId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["context"] });
+      trackEvent("context_delete", { context_id: docId });
+      navigate("/");
+    },
+  });
 
   if (!Number.isInteger(docId) || docId <= 0) {
     return <p className="text-sm text-(--color-text-muted)">Invalid document.</p>;
@@ -88,6 +106,8 @@ export function ContextEditPage() {
   }
 
   const doc = docQuery.data;
+  const me = meQuery.data;
+  const canDeleteAsset = me != null && canPermanentlyDeleteAsset(me.role, me.id, doc.owner.id);
 
   return (
     <form
@@ -240,13 +260,39 @@ export function ContextEditPage() {
           Could not save changes.
         </p>
       ) : null}
-      <button
-        type="submit"
-        disabled={updateMutation.isPending}
-        className="rounded bg-(--color-primary) px-4 py-2 text-white hover:bg-(--color-primary-active) disabled:opacity-50"
-      >
-        {updateMutation.isPending ? "Saving…" : "Save"}
-      </button>
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="submit"
+          disabled={updateMutation.isPending}
+          className="rounded bg-(--color-primary) px-4 py-2 text-white hover:bg-(--color-primary-active) disabled:opacity-50"
+        >
+          {updateMutation.isPending ? "Saving…" : "Save"}
+        </button>
+        {canDeleteAsset ? (
+          <button
+            type="button"
+            className="rounded border border-red-200 px-4 py-2 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/40"
+            disabled={deleteMutation.isPending || updateMutation.isPending}
+            onClick={() => setShowDeleteModal(true)}
+          >
+            Delete
+          </button>
+        ) : null}
+      </div>
+      {deleteMutation.isError ? (
+        <p className="text-sm text-red-600" role="alert">
+          Could not delete this context file. Please try again.
+        </p>
+      ) : null}
+      <ConfirmDeleteModal
+        isOpen={showDeleteModal}
+        title="Delete context file"
+        assetType="context"
+        assetName={doc.title}
+        isDeleting={deleteMutation.isPending}
+        onConfirm={() => deleteMutation.mutate()}
+        onCancel={() => setShowDeleteModal(false)}
+      />
     </form>
   );
 }

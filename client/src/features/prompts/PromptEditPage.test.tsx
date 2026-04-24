@@ -3,9 +3,14 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fetchMe } from "../auth/api";
 import { listTags } from "../tags/api";
 import { PromptEditPage } from "./PromptEditPage";
 import { getPrompt, regeneratePromptThumbnail, updatePrompt } from "./api";
+
+vi.mock("../auth/api", () => ({
+  fetchMe: vi.fn(),
+}));
 
 vi.mock("../tags/api", () => ({
   listTags: vi.fn(),
@@ -14,6 +19,7 @@ vi.mock("../tags/api", () => ({
 vi.mock("./api", () => ({
   getPrompt: vi.fn(),
   updatePrompt: vi.fn(),
+  deletePromptPermanently: vi.fn(),
   regeneratePromptThumbnail: vi.fn(),
   PROMPT_TOOL_OPTIONS: ["cursor", "claude_code", "meshmesh", "slackbot", "gemini", "notebooklm"],
   PROMPT_MODALITY_OPTIONS: ["text", "code", "image", "video", "audio", "multimodal"],
@@ -46,10 +52,23 @@ function renderPromptEditPage() {
 describe("PromptEditPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(fetchMe).mockResolvedValue({
+      id: 1,
+      email: "u@test",
+      name: "User",
+      avatarUrl: null,
+      region: null,
+      ou: null,
+      title: null,
+      onboardingCompleted: true,
+      role: "MEMBER",
+      teamId: 1,
+    });
     vi.mocked(listTags).mockResolvedValue([]);
     vi.mocked(getPrompt).mockResolvedValue({
       ...mockPromptTimestamps,
       id: 44,
+      owner: { id: 1, name: "User", avatarUrl: null },
       title: "Pipeline helper",
       summary: "Summarize stage risk",
       body: "Prompt body",

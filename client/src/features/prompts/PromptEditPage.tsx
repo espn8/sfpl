@@ -1,16 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { trackEvent } from "../../app/analytics";
+import { ConfirmDeleteModal } from "../../components/ConfirmDeleteModal";
 import {
   DuplicateWarningModal,
   isDuplicateError,
   type DuplicateMatch,
 } from "../../components/DuplicateWarningModal";
 import { sanitizeTitle } from "../../lib/sanitizeTitle";
+import { fetchMe } from "../auth/api";
+import { canPermanentlyDeleteAsset } from "../auth/roles";
 import { SummaryField } from "../assets/SummaryField";
 import { listTags } from "../tags/api";
 import {
   getPrompt,
+  deletePromptPermanently,
   getToolLabel,
   getToolsSortedAlphabetically,
   PROMPT_MODALITY_OPTIONS,
@@ -64,11 +69,16 @@ export function PromptEditPage() {
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const [duplicateMatches, setDuplicateMatches] = useState<DuplicateMatch[]>([]);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const promptQuery = useQuery({
     queryKey: ["prompt", promptId],
     queryFn: () => getPrompt(promptId),
     enabled: Number.isInteger(promptId) && promptId > 0,
+  });
+  const meQuery = useQuery({
+    queryKey: ["auth", "me"],
+    queryFn: fetchMe,
   });
 
   const tagsQuery = useQuery({
@@ -115,6 +125,14 @@ export function PromptEditPage() {
           setShowDuplicateModal(true);
         }
       }
+    },
+  });
+  const deleteMutation = useMutation({
+    mutationFn: () => deletePromptPermanently(promptId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["prompts"] });
+      trackEvent("prompt_delete", { prompt_id: promptId });
+      navigate("/");
     },
   });
   const regenerateMutation = useMutation({
@@ -166,6 +184,14 @@ export function PromptEditPage() {
   }
 
   const prompt = promptQuery.data;
+  const me = meQuery.data;
+  const ownerUserId =
+    typeof prompt.owner?.id === "number"
+      ? prompt.owner.id
+      : typeof prompt.ownerId === "number"
+        ? prompt.ownerId
+        : undefined;
+  const canDeleteAsset = me != null && canPermanentlyDeleteAsset(me.role, me.id, ownerUserId);
 
   return (
     <form
@@ -503,12 +529,29 @@ export function PromptEditPage() {
           </ul>
         )}
       </section>
-      <button
-        type="submit"
-        className="rounded bg-(--color-primary) px-4 py-2 text-(--color-text-inverse) hover:bg-(--color-primary-active) active:bg-(--color-primary-active)"
-      >
-        Save Changes
-      </button>
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="submit"
+          className="rounded bg-(--color-primary) px-4 py-2 text-(--color-text-inverse) hover:bg-(--color-primary-active) active:bg-(--color-primary-active)"
+        >
+          Save Changes
+        </button>
+        {canDeleteAsset ? (
+          <button
+            type="button"
+            className="rounded border border-red-200 px-4 py-2 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/40"
+            disabled={deleteMutation.isPending || updateMutation.isPending}
+            onClick={() => setShowDeleteModal(true)}
+          >
+            Delete
+          </button>
+        ) : null}
+      </div>
+      {deleteMutation.isError ? (
+        <p className="text-sm text-red-600" role="alert">
+          Could not delete this prompt. Please try again.
+        </p>
+      ) : null}
       <DuplicateWarningModal
         isOpen={showDuplicateModal}
         assetType="prompt"
@@ -517,6 +560,15 @@ export function PromptEditPage() {
           setShowDuplicateModal(false);
           setDuplicateMatches([]);
         }}
+      />
+      <ConfirmDeleteModal
+        isOpen={showDeleteModal}
+        title="Delete prompt"
+        assetType="prompt"
+        assetName={prompt.title}
+        isDeleting={deleteMutation.isPending}
+        onConfirm={() => deleteMutation.mutate()}
+        onCancel={() => setShowDeleteModal(false)}
       />
     </form>
   );

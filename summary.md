@@ -1,11 +1,20 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 24, 2026 — 18:32 CDT
-Build Version: `82cf5fe`
+Last Updated: Friday, April 24, 2026 — 18:47 CDT
+Build Version: `a3a5a36`
 App Version: see production footer after deploy (root `package.json` 1.3.3 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Session: client permanent-delete UI aligned with server ACLs (April 24, 2026 — 18:47 CDT)
+
+- **Roles** ([client/src/features/auth/roles.ts](client/src/features/auth/roles.ts)): New **`canPermanentlyDeleteAsset`** — workspace **ADMIN** / **OWNER** may permanently delete any asset in the UI; other roles only when they are the **owner** and **`canCreateContent`** applies (matches server **`isOwnerOrWorkspaceAdmin`** for `DELETE`/`/permanent` routes).
+- **Confirm delete copy** ([client/src/components/ConfirmDeleteModal.tsx](client/src/components/ConfirmDeleteModal.tsx)): Warning states that **all** data for the asset is removed—content, version history, metadata, and analytics—and cannot be restored.
+- **Detail pages** ([BuildDetailPage.tsx](client/src/features/builds/BuildDetailPage.tsx), [ContextDetailPage.tsx](client/src/features/context/ContextDetailPage.tsx), [SkillDetailPage.tsx](client/src/features/skills/SkillDetailPage.tsx), [PromptDetailPage.tsx](client/src/features/prompts/PromptDetailPage.tsx)): Permanent-delete affordance uses **`canPermanentlyDeleteAsset`**; shared **`me`** local; TypeScript-safe checks use **`me != null &&`** before reading **`me.role` / `me.id`**.
+- **Edit pages** ([BuildEditPage.tsx](client/src/features/builds/BuildEditPage.tsx), [ContextEditPage.tsx](client/src/features/context/ContextEditPage.tsx), [PromptEditPage.tsx](client/src/features/prompts/PromptEditPage.tsx), [SkillEditPage.tsx](client/src/features/skills/SkillEditPage.tsx)): **Delete** button + **`ConfirmDeleteModal`**, permanent-delete API mutations, list query invalidation, analytics **`trackEvent`** (`build_delete`, `context_delete`, `prompt_delete`, `skill_delete`), **`navigate("/")`** on success; prompt edit resolves owner via **`prompt.owner?.id`** or **`prompt.ownerId`** for permission parity.
+- **Tests** ([PromptEditPage.test.tsx](client/src/features/prompts/PromptEditPage.test.tsx)): **`vi.mock`** includes **`deletePromptPermanently`**; direct import removed (was unused).
+- **Prisma / server:** none in this changeset (client-only). **Deploy:** `npm --prefix client run build`, **`git push origin main`**, **`git push heroku main:master`**.
 
 ### Session: workspace ADMIN/OWNER full asset mutations (April 24, 2026 — 18:32 CDT)
 

@@ -7,7 +7,7 @@ import { ConfirmDeleteModal } from "../../components/ConfirmDeleteModal";
 import { normalizeUrl } from "../../lib/normalizeUrl";
 import { buildShareUrl, shareOrCopyLink } from "../../lib/shareOrCopyLink";
 import { fetchMe } from "../auth/api";
-import { canCreateContent } from "../auth/roles";
+import { canCreateContent, canPermanentlyDeleteAsset } from "../auth/roles";
 import { archiveSkill, deleteSkillPermanently, getSkill, logSkillUsage, rateSkill, regenerateSkillThumbnail, toggleSkillFavorite, getSkillToolLabel } from "./api";
 import { ExternalLinkIcon, HeartIcon, ShareIcon } from "../prompts/promptActionIcons";
 import { PromptThumbnail } from "../prompts/PromptThumbnail";
@@ -107,12 +107,13 @@ export function SkillDetailPage() {
     return <p className="text-sm text-red-600">Skill not found or inaccessible.</p>;
   }
 
+  const me = meQuery.data;
   const canEdit =
-    meQuery.data &&
-    canCreateContent(meQuery.data.role) &&
-    (meQuery.data.id === skill.owner.id || meQuery.data.role === "ADMIN" || meQuery.data.role === "OWNER");
-  const canDelete = meQuery.data && canCreateContent(meQuery.data.role) && meQuery.data.id === skill.owner.id;
-  const isOwnAsset = Boolean(meQuery.data && meQuery.data.id === skill.owner.id);
+    me &&
+    canCreateContent(me.role) &&
+    (me.id === skill.owner.id || me.role === "ADMIN" || me.role === "OWNER");
+  const canDelete = me != null && canPermanentlyDeleteAsset(me.role, me.id, skill.owner.id);
+  const isOwnAsset = Boolean(me && me.id === skill.owner.id);
   const averageRating = skill.averageRating ?? null;
 
   const shareUrl = buildShareUrl(`/skills/${skillId}`);

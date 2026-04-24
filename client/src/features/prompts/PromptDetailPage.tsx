@@ -9,7 +9,7 @@ import { AssetDetailActionBar } from "../../components/AssetDetailActionBar";
 import { ConfirmDeleteModal } from "../../components/ConfirmDeleteModal";
 import { buildShareUrl, shareOrCopyLink } from "../../lib/shareOrCopyLink";
 import { fetchMe } from "../auth/api";
-import { canCreateContent } from "../auth/roles";
+import { canCreateContent, canPermanentlyDeleteAsset } from "../auth/roles";
 import {
   archivePrompt,
   deletePromptPermanently,
@@ -214,7 +214,7 @@ export function PromptDetailPage() {
     me &&
     canCreateContent(me.role) &&
     (me.role === "OWNER" || me.role === "ADMIN" || (typeof ownerUserId === "number" && me.id === ownerUserId));
-  const canDelete = me && canCreateContent(me.role) && typeof ownerUserId === "number" && me.id === ownerUserId;
+  const canDelete = me != null && canPermanentlyDeleteAsset(me.role, me.id, ownerUserId);
   const canRestoreVersions = canEdit;
   const isOwnAsset = Boolean(me && typeof ownerUserId === "number" && me.id === ownerUserId);
 

@@ -75,8 +75,9 @@ export function ConfirmDeleteModal({
               This action cannot be undone.
             </p>
             <p className="mt-1 text-sm text-red-700 dark:text-red-300">
-              All analytics data (views, copies, ratings, favorites) associated
-              with this {assetLabel} will be permanently lost.
+              All data and information about this {assetLabel} will be permanently removed and cannot be
+              restored—including content, version history, metadata, and analytics (views, copies, ratings,
+              favorites).
             </p>
           </div>
         </div>

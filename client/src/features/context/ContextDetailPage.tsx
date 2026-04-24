@@ -10,7 +10,7 @@ import { VariableInputs } from "../../components/VariableInputs";
 import { interpolateBody } from "../../lib/interpolate";
 import { buildShareUrl, copyToClipboard, downloadAsMarkdown, shareOrCopyLink } from "../../lib/shareOrCopyLink";
 import { fetchMe } from "../auth/api";
-import { canCreateContent } from "../auth/roles";
+import { canCreateContent, canPermanentlyDeleteAsset } from "../auth/roles";
 import {
   archiveContextDocument,
   deleteContextDocumentPermanently,
@@ -152,12 +152,13 @@ export function ContextDetailPage() {
     return <p className="text-sm text-red-600">Document not found or inaccessible.</p>;
   }
 
+  const me = meQuery.data;
   const canEdit =
-    meQuery.data &&
-    canCreateContent(meQuery.data.role) &&
-    (meQuery.data.id === doc.owner.id || meQuery.data.role === "ADMIN" || meQuery.data.role === "OWNER");
-  const canDelete = meQuery.data && canCreateContent(meQuery.data.role) && meQuery.data.id === doc.owner.id;
-  const isOwnAsset = Boolean(meQuery.data && meQuery.data.id === doc.owner.id);
+    me &&
+    canCreateContent(me.role) &&
+    (me.id === doc.owner.id || me.role === "ADMIN" || me.role === "OWNER");
+  const canDelete = me != null && canPermanentlyDeleteAsset(me.role, me.id, doc.owner.id);
+  const isOwnAsset = Boolean(me && me.id === doc.owner.id);
   const averageRating = doc.averageRating ?? null;
   const hasVariables = (doc.variables?.length ?? 0) > 0;
 

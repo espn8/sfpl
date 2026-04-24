@@ -7,7 +7,7 @@ import { ConfirmDeleteModal } from "../../components/ConfirmDeleteModal";
 import { normalizeUrl } from "../../lib/normalizeUrl";
 import { buildShareUrl, shareOrCopyLink } from "../../lib/shareOrCopyLink";
 import { fetchMe } from "../auth/api";
-import { canCreateContent } from "../auth/roles";
+import { canCreateContent, canPermanentlyDeleteAsset } from "../auth/roles";
 import { archiveBuild, deleteBuildPermanently, getBuild, logBuildUsage, rateBuild, regenerateBuildThumbnail, toggleBuildFavorite } from "./api";
 import { ExternalLinkIcon, HeartIcon, ShareIcon } from "../prompts/promptActionIcons";
 import { PromptThumbnail } from "../prompts/PromptThumbnail";
@@ -106,12 +106,13 @@ export function BuildDetailPage() {
     return <p className="text-sm text-red-600">Build not found or inaccessible.</p>;
   }
 
+  const me = meQuery.data;
   const canEdit =
-    meQuery.data &&
-    canCreateContent(meQuery.data.role) &&
-    (meQuery.data.id === build.owner.id || meQuery.data.role === "ADMIN" || meQuery.data.role === "OWNER");
-  const canDelete = meQuery.data && canCreateContent(meQuery.data.role) && meQuery.data.id === build.owner.id;
-  const isOwnAsset = Boolean(meQuery.data && meQuery.data.id === build.owner.id);
+    me &&
+    canCreateContent(me.role) &&
+    (me.id === build.owner.id || me.role === "ADMIN" || me.role === "OWNER");
+  const canDelete = me != null && canPermanentlyDeleteAsset(me.role, me.id, build.owner.id);
+  const isOwnAsset = Boolean(me && me.id === build.owner.id);
   const averageRating = build.averageRating ?? null;
 
   const shareUrl = buildShareUrl(`/builds/${buildId}`);

@@ -1,10 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { trackEvent } from "../../app/analytics";
+import { ConfirmDeleteModal } from "../../components/ConfirmDeleteModal";
 import { sanitizeTitle } from "../../lib/sanitizeTitle";
 import { SummaryField } from "../assets/SummaryField";
+import { fetchMe } from "../auth/api";
+import { canPermanentlyDeleteAsset } from "../auth/roles";
 import { ToolRequestModal } from "../prompts/ToolRequestModal";
 import {
+  deleteSkillPermanently,
   getSkill,
   getSkillToolsSortedAlphabetically,
   getSkillToolLabel,
@@ -25,6 +30,7 @@ export function SkillEditPage() {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [skillUrl, setSkillUrl] = useState("");
   const [supportUrl, setSupportUrl] = useState("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const isValidUrl = (url: string): boolean => {
     try {
@@ -39,6 +45,10 @@ export function SkillEditPage() {
     queryKey: ["skill", skillId],
     queryFn: () => getSkill(skillId),
     enabled: Number.isInteger(skillId) && skillId > 0,
+  });
+  const meQuery = useQuery({
+    queryKey: ["auth", "me"],
+    queryFn: fetchMe,
   });
 
   useEffect(() => {
@@ -57,6 +67,14 @@ export function SkillEditPage() {
       navigate(`/skills/${skillId}`);
     },
   });
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteSkillPermanently(skillId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["skills"] });
+      trackEvent("skill_delete", { skill_id: skillId });
+      navigate("/");
+    },
+  });
 
   if (!Number.isInteger(skillId) || skillId <= 0) {
     return <p className="text-sm text-(--color-text-muted)">Invalid skill.</p>;
@@ -71,6 +89,8 @@ export function SkillEditPage() {
   }
 
   const skill = skillQuery.data;
+  const me = meQuery.data;
+  const canDeleteAsset = me != null && canPermanentlyDeleteAsset(me.role, me.id, skill.owner.id);
 
   return (
     <form
@@ -261,13 +281,39 @@ export function SkillEditPage() {
           Could not save changes.
         </p>
       ) : null}
-      <button
-        type="submit"
-        disabled={updateMutation.isPending}
-        className="rounded bg-(--color-primary) px-4 py-2 text-white hover:bg-(--color-primary-active) disabled:opacity-50"
-      >
-        {updateMutation.isPending ? "Saving…" : "Save"}
-      </button>
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="submit"
+          disabled={updateMutation.isPending}
+          className="rounded bg-(--color-primary) px-4 py-2 text-white hover:bg-(--color-primary-active) disabled:opacity-50"
+        >
+          {updateMutation.isPending ? "Saving…" : "Save"}
+        </button>
+        {canDeleteAsset ? (
+          <button
+            type="button"
+            className="rounded border border-red-200 px-4 py-2 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/40"
+            disabled={deleteMutation.isPending || updateMutation.isPending}
+            onClick={() => setShowDeleteModal(true)}
+          >
+            Delete
+          </button>
+        ) : null}
+      </div>
+      {deleteMutation.isError ? (
+        <p className="text-sm text-red-600" role="alert">
+          Could not delete this skill. Please try again.
+        </p>
+      ) : null}
+      <ConfirmDeleteModal
+        isOpen={showDeleteModal}
+        title="Delete skill"
+        assetType="skill"
+        assetName={skill.title}
+        isDeleting={deleteMutation.isPending}
+        onConfirm={() => deleteMutation.mutate()}
+        onCancel={() => setShowDeleteModal(false)}
+      />
     </form>
   );
 }
