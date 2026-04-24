@@ -78,7 +78,7 @@ Every edit to a Prompt, Skill, Context doc, or Build creates a new version (with
 Users rate 1-5 stars. You can't rate your own assets, and the star widget is hidden on cards you own. Click the heart icon to favorite; favorite counts drive the Popular badge.
 
 ### How do I request a new tool?
-In any prompt editor, click "Request a new tool" and fill the modal (name, Salesforce-approved status, details URL, description). Admins review at /admin/tool-requests.
+In any prompt editor, click "Request a new tool" and fill the modal (name, Salesforce-approved status, details URL, description). Admins review submitted requests and approved tools show up in the picker automatically.
 
 ## Skills (URL-based)
 
@@ -166,7 +166,7 @@ Slackbot, Agentforce Vibes, Claude, Claude Cowork, ChatGPT, Gemini, Cursor, Note
 Admins see all assets regardless of visibility.
 
 ### Roles
-- ADMIN — full access including /analytics, tool requests, system collection refresh, all assets
+- ADMIN — full access, including admin tools and all assets
 - OWNER — team owner, full write
 - MEMBER — default writer; create/edit/favorite/rate/use
 - VIEWER — read-only. @meshmesh.io accounts auto-become VIEWER. Contact an admin to be promoted to MEMBER.
@@ -250,17 +250,6 @@ Links to the SAM Policy and Data Classification Policy on Basecamp live in the m
 
 ### What never to upload
 Confidential customer data, regulated data (PII, PHI, payment), restricted content. Keep sensitive assets Private or ask in #help-ailibrary before publishing.
-
-## For Admins
-
-### Analytics dashboard
-/analytics — Top Used, Top Rated, Stale, Contributors, User Engagement.
-
-### Tool request review
-/admin/tool-requests — approve, decline, or hold tool submissions. Approved tools appear in the picker.
-
-### System collection refresh
-POST /api/collections/system/refresh (admin only) forces a rebuild of tool and Best-of collections.
 
 ## Tips & Best Practices
 

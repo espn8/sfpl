@@ -242,14 +242,9 @@ export function AppShell({ children }: AppShellProps) {
                   Collections
                 </Link>
                 {isAdmin ? (
-                  <>
-                    <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/analytics">
-                      Analytics
-                    </Link>
-                    <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/admin/tool-requests">
-                      Tool Requests
-                    </Link>
-                  </>
+                  <Link className="rounded px-1 py-0.5 hover:underline focus-visible:outline-none" to="/admin">
+                    Admin
+                  </Link>
                 ) : null}
               </nav>
             </div>
@@ -367,14 +362,9 @@ export function AppShell({ children }: AppShellProps) {
                   Collections
                 </Link>
                 {isAdmin ? (
-                  <>
-                    <Link to="/analytics" role="menuitem" className={panelItemClass} onClick={closeMenu}>
-                      Analytics
-                    </Link>
-                    <Link to="/admin/tool-requests" role="menuitem" className={panelItemClass} onClick={closeMenu}>
-                      Tool Requests
-                    </Link>
-                  </>
+                  <Link to="/admin" role="menuitem" className={panelItemClass} onClick={closeMenu}>
+                    Admin
+                  </Link>
                 ) : null}
               </div>
               {canCreate && (

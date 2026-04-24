@@ -5,6 +5,8 @@ import { AppShell } from "../components/AppShell";
 import { AdminRoute } from "../components/AdminRoute";
 import { ProtectedRoute } from "../components/ProtectedRoute";
 import { WriterRoute } from "../components/WriterRoute";
+import { AdminDashboardPage } from "../features/admin/AdminDashboardPage";
+import { AdminHelpPage } from "../features/admin/AdminHelpPage";
 import { ToolRequestsPage } from "../features/admin/ToolRequestsPage";
 import { AnalyticsPage } from "../features/analytics/AnalyticsPage";
 import { LoginPage } from "../features/auth/LoginPage";
@@ -257,6 +259,30 @@ export function AppRouter() {
               <AppShell>
                 <AdminRoute>
                   <AnalyticsPage />
+                </AdminRoute>
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <AdminRoute>
+                  <AdminDashboardPage />
+                </AdminRoute>
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/help"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <AdminRoute>
+                  <AdminHelpPage />
                 </AdminRoute>
               </AppShell>
             </ProtectedRoute>

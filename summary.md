@@ -1,11 +1,22 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 24, 2026 — 11:17 CDT
-Build Version: 0a64cfb (pre-deploy; Heroku release will increment on push)
-App Version: 1.3.2 (root package.json 1.3.1 auto-bumped to 1.3.2 by `scripts/version-bump.js` on Heroku postbuild)
+Last Updated: Friday, April 24, 2026 — 11:45 CDT
+Build Version: 1184f76 (Heroku release will increment on push)
+App Version: 1.3.3 (root package.json 1.3.2 auto-bumped to 1.3.3 by `scripts/version-bump.js` on Heroku postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Release: v1.3.3 (April 24, 2026 — 11:45 CDT) — Admin Dashboard and admin-only Help
+
+- **New Admin Dashboard** (`client/src/features/admin/AdminDashboardPage.tsx`): Central hub for every admin surface, mounted at `/admin` and gated by `AdminRoute`. Renders a grid of tool cards (Analytics, Tool Requests, Asset Governance, Ownership Transfer, System Collections) with "Ready" / "Coming soon" badges, a live pending-tool-requests count fetched via `listToolRequests({ status: "pending" })` (using `select: (result) => result.meta.total` to extract the count from the paginated response), and a "Refresh System Collections" quick action backed by a `useMutation` against `POST /api/collections/system/refresh` with toast feedback. Icons are inline SVGs to keep the page dependency-free; tool cards render as `<Link>` when `to` is set and as plain cards when the feature is still flagged `coming_soon` (Governance, Ownership Transfer).
+- **Admin-only Help page** (`client/src/features/admin/AdminHelpPage.tsx` + `client/src/features/admin/adminHelpContent.ts`): Dedicated admin knowledge base at `/admin/help`, also gated by `AdminRoute`. Content lives in a typed `adminHelpContent` array (`AdminHelpSection` / `AdminHelpArticle`) covering the Analytics dashboard, Tool Request review workflow, System Collections refresh, and Admin roles & access. The page reuses the visual pattern from the user Help page (filter input, sticky sidebar nav, expandable articles) and includes a "← Admin Dashboard" back link.
+- **Router wiring** (`client/src/app/router.tsx`): Added two new routes — `/admin` → `AdminDashboardPage` and `/admin/help` → `AdminHelpPage` — both wrapped in `AdminRoute` so only admins can reach them. Existing admin-only routes (`/analytics`, `/admin/tool-requests`) stay in place and are now linked from the dashboard.
+- **Nav consolidation** (`client/src/components/AppShell.tsx`): Replaced the two separate "Analytics" and "Tool Requests" top-nav links (and their mobile menu equivalents) with a single "Admin" link that points to `/admin`. Cleans up the top bar and makes the dashboard the canonical entry point for admin work.
+- **Back-links from admin surfaces**: `client/src/features/analytics/AnalyticsPage.tsx` and `client/src/features/admin/ToolRequestsPage.tsx` each gain a "← Admin Dashboard" `<Link>` at the top of the page for fast return navigation.
+- **User Help scrubbed of admin content** (`client/src/features/help/HelpPage.tsx`): Removed the entire `id: "admin"` section (admin analytics, `/admin/tool-requests` URL, system collection refresh endpoint) so general users no longer see admin-only URLs or workflows. The "What user roles exist?" article now describes `ADMIN` as "full access, including admin tools and visibility into all assets" without enumerating admin-specific endpoints.
+- **Ask-AI knowledge base scrubbed** (`server/src/services/helpSearch.ts`): The `HELP_CONTENT` string fed to Gemini for the Ask-AI beta no longer contains a `## For Admins` block, and the "How do I request a new tool?" answer no longer exposes the `/admin/tool-requests` URL to general users. The `ADMIN` role description in the Roles section was updated to match the Help page copy.
+- **Version bump**: root, client, server `package.json` now `1.3.2`; `heroku-postbuild` / `scripts/version-bump.js` increments the patch on deploy, so the production footer will display `v1.3.3` after this release.
 
 ### Release: v1.3.2 (April 24, 2026 — 11:17 CDT) — Branded email template and slackbot skills import
 

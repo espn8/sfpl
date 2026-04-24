@@ -275,7 +275,7 @@ const helpContent: HelpSection[] = [
       {
         question: "What user roles exist?",
         answer:
-          '• ADMIN — full access including analytics dashboard, system collections refresh, tool request review, and visibility into all assets\n• OWNER — team owner; full write access\n• MEMBER — standard writer; can create, edit, favorite, rate, and use all published assets\n• VIEWER — read-only; can browse, favorite, rate, and use assets but cannot create or edit anything. VIEWER is assigned automatically to @meshmesh.io accounts and can be set by an admin for any user.',
+          '• ADMIN — full access, including admin tools and visibility into all assets\n• OWNER — team owner; full write access\n• MEMBER — standard writer; can create, edit, favorite, rate, and use all published assets\n• VIEWER — read-only; can browse, favorite, rate, and use assets but cannot create or edit anything. VIEWER is assigned automatically to @meshmesh.io accounts and can be set by an admin for any user.',
       },
       {
         question: 'Why don\'t I see a "Create" button?',
@@ -427,27 +427,6 @@ const helpContent: HelpSection[] = [
         question: "What should I never upload?",
         answer:
           "Do not paste confidential customer data, regulated data (PII, PHI, payment data), or other restricted content into prompts, skills, context, or builds. If in doubt, keep it Private or ask in #help-ailibrary before publishing.",
-      },
-    ],
-  },
-  {
-    id: "admin",
-    title: "For Admins",
-    articles: [
-      {
-        question: "Where is the admin analytics dashboard?",
-        answer:
-          "Admins see an Analytics link in the navigation that goes to /analytics. It shows Top Used, Top Rated, Stale, Contributors, and User Engagement leaderboards team-wide.",
-      },
-      {
-        question: "How do I review tool requests?",
-        answer:
-          'Go to /admin/tool-requests. Each request includes name, Salesforce-approved status, details URL, description, submitter, and current review status. Approve, decline, or put on hold — approved tools show up in the tool picker automatically.',
-      },
-      {
-        question: "How do I refresh system collections?",
-        answer:
-          "System collections (per-tool and Best-of) auto-refresh when prompts change status or tags, but you can force a refresh with POST /api/collections/system/refresh (admin-only). This is useful after a bulk seed or a schema migration.",
       },
     ],
   },

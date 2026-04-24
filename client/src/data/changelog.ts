@@ -6,6 +6,17 @@ export type ChangelogEntry = {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.3.3",
+    date: "2026-04-24",
+    changes: [
+      "New Admin Dashboard (/admin) consolidates all admin tools (Analytics, Tool Requests, System Collections) behind a single entry point with a live pending-tool-requests badge",
+      "Admin-only Help page (/admin/help) with a dedicated knowledge base covering analytics, tool request review, system collections, and admin roles — separate from the user-facing Help",
+      "Top-nav consolidated: the old Analytics and Tool Requests nav links are replaced by a single Admin link",
+      "Placeholders on the dashboard for upcoming Asset Governance and Ownership Transfer tools so admins know what is coming",
+      "Admin-specific content scrubbed from the user-facing Help page and the Ask AI knowledge base so general users no longer see admin URLs or workflows",
+    ],
+  },
+  {
     version: "1.3.2",
     date: "2026-04-24",
     changes: [

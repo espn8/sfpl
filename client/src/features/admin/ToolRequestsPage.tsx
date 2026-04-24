@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { listToolRequests, reviewToolRequest, type ToolRequest, type ToolRequestStatus } from "./api";
 
 const STATUS_LABELS: Record<ToolRequestStatus, string> = {
@@ -185,6 +186,12 @@ export function ToolRequestsPage() {
 
   return (
     <div className="space-y-6">
+      <Link
+        to="/admin"
+        className="inline-flex items-center gap-1 text-sm text-(--color-text-muted) hover:text-(--color-primary) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--color-primary) rounded"
+      >
+        ← Admin Dashboard
+      </Link>
       <div>
         <h1 className="text-2xl font-semibold">Tool Requests</h1>
         <p className="mt-1 text-sm text-(--color-text-muted)">Review and manage tool submission requests from users.</p>

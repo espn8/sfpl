@@ -122,6 +122,12 @@ export function AnalyticsPage() {
 
   return (
     <div className="space-y-6">
+      <Link
+        to="/admin"
+        className="inline-flex items-center gap-1 text-sm text-(--color-text-muted) hover:text-(--color-primary) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--color-primary) rounded"
+      >
+        ← Admin Dashboard
+      </Link>
       <div>
         <h2 className="text-2xl font-semibold">Insights</h2>
         <p className="mt-1 text-sm text-(--color-text-muted)">Usage metrics and engagement insights</p>
