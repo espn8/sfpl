@@ -1,11 +1,16 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 24, 2026 — 17:30 CDT
+Last Updated: Friday, April 24, 2026 — 17:33 CDT
 Build Version: `e4a6a3a`
 App Version: see production footer after deploy (root `package.json` 1.3.3 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Session: commit, deploy, summary (April 24, 2026 — 17:33 CDT)
+
+- **Workflow:** [.cursor/rules/commit-deploy-update-summary.mdc](.cursor/rules/commit-deploy-update-summary.mdc) — update this file, `git add`, `git commit`, `git push origin main`, **`git push heroku main:master`**. **Build Version** above points at feature commit **e4a6a3a** (unified [AssetDetailActionBar](client/src/components/AssetDetailActionBar.tsx) + card/collection work); documentation commits (e.g. `4f3330f`) stack on top without changing that anchor.
+- **Pre-push:** `npm --prefix client run build` (no local dev server). **Prisma:** no new migration. **Align Heroku** with `main` if `heroku/HEAD` lags behind local `main`.
 
 ### Release: Asset card CTAs, collections index, shared detail action bar (April 24, 2026 — 17:28 CDT)
 
