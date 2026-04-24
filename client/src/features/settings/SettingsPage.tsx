@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { fetchMe, logout, updateMyProfile, uploadProfilePhoto } from "../auth/api";
 import { ThemeModeToggle } from "../../components/ui/ThemeModeToggle";
 import { ApiKeysSection } from "./ApiKeysSection";
@@ -34,7 +34,6 @@ function ChartIcon({ className }: { className?: string }) {
 
 export function SettingsPage() {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const meQuery = useQuery({
     queryKey: ["auth", "me"],
@@ -110,9 +109,13 @@ export function SettingsPage() {
 
   const handleLogout = () => {
     void (async () => {
-      await logout();
-      await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
-      navigate("/login");
+      try {
+        await logout();
+      } catch {
+        // Even if the server call fails, still clear local state and redirect.
+      }
+      queryClient.clear();
+      window.location.replace("/login");
     })();
   };
 

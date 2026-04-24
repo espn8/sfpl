@@ -1,11 +1,20 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 24, 2026 — 12:12 CDT
-Build Version: f4a807c (Heroku release will increment on push)
-App Version: 1.3.4 (root package.json 1.3.3 auto-bumped to 1.3.4 by `scripts/version-bump.js` on Heroku postbuild)
+Last Updated: Friday, April 24, 2026 — 13:45 CDT
+Build Version: 3971541 (Heroku release will increment on push)
+App Version: 1.3.5 (root package.json 1.3.3 auto-bumped to 1.3.5 by `scripts/version-bump.js` on Heroku postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Release: v1.3.5 (April 24, 2026 — 13:45 CDT) — Homepage performance + route-level code splitting
+
+- **Route-level code splitting** (`client/src/app/router.tsx`): All major feature pages are now lazy-loaded via `React.lazy()` with dynamic imports. This dramatically reduces the initial bundle size and speeds up first load. Lazy routes include: HomePage, PromptsListPage, PromptDetailPage, PromptEditorPage, PromptEditPage, SkillListPage, SkillDetailPage, SkillEditorPage, SkillEditPage, ContextListPage, ContextDetailPage, ContextEditorPage, ContextEditPage, BuildListPage, BuildDetailPage, BuildEditorPage, BuildEditPage, CollectionsPage, CollectionDetailPage, SearchResultsPage, AnalyticsPage, AdminDashboardPage, AdminHelpPage, ToolRequestsPage, HelpPage, SettingsPage, ChangelogPage. Static/public pages (LoginPage, TermsPage, PrivacyPage) remain eagerly loaded.
+- **Lazy thumbnail loading** (`server/src/routes/thumbnails.ts`): New `/api/thumbnails/:assetType/:id` endpoint returns thumbnail URL, status, and error for any asset type (prompt, skill, context, build). The assets list API now omits `thumbnailUrl` from responses, and clients fetch thumbnails on-demand via `PromptThumbnail`'s new `lazyLoad` mode. This shaves significant payload from list responses and parallelizes image fetching.
+- **QueryClient caching tuning** (`client/src/app/queryClient.ts`): Centralized QueryClient config with `staleTime: 30_000` (30s) and `gcTime: 5 * 60_000` (5 min) to reduce redundant API calls during navigation.
+- **Non-blocking homepage render**: Homepage now renders shell immediately with loading skeletons while data fetches in background. `useHomePerfMarks.ts` adds opt-in performance instrumentation via `VITE_ENABLE_PERF_MARKS` env var.
+- **Assets list API body omission**: The unified `/api/assets` endpoint no longer returns `body` field in list responses (only in single-asset detail responses), reducing payload size.
+- **Settings page layout refinement**: Appearance card placed to the right of Profile; Account Information card removed; API Keys moved to last position; Your Content and Your Analytics cards placed side by side.
 
 ### Release: v1.3.4 (April 24, 2026 — 12:12 CDT) — Custom Build thumbnail upload
 
