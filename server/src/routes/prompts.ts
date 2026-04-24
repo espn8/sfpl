@@ -1289,7 +1289,14 @@ promptsRouter.post("/:id/usage", async (req: Request, res: Response) => {
   if (!canAccessPromptByVisibility(prompt, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this prompt." } });
   }
-  await prisma.usageEvent.create({ data: { promptId, userId: auth.userId, action } });
+  if (action === UsageAction.COPY || action === UsageAction.LAUNCH) {
+    await prisma.$transaction([
+      prisma.usageEvent.create({ data: { promptId, userId: auth.userId, action } }),
+      prisma.prompt.update({ where: { id: promptId }, data: { usageCount: { increment: 1 } } }),
+    ]);
+  } else {
+    await prisma.usageEvent.create({ data: { promptId, userId: auth.userId, action } });
+  }
   return res.status(200).json({ data: { ok: true } });
 });
 

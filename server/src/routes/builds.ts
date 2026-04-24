@@ -658,7 +658,14 @@ buildsRouter.post("/:id/usage", async (req: Request, res: Response) => {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this build." } });
   }
 
-  await prisma.buildUsageEvent.create({ data: { buildId, userId: auth.userId, eventType } });
+  if (eventType === "COPY") {
+    await prisma.$transaction([
+      prisma.buildUsageEvent.create({ data: { buildId, userId: auth.userId, eventType } }),
+      prisma.build.update({ where: { id: buildId }, data: { usageCount: { increment: 1 } } }),
+    ]);
+  } else {
+    await prisma.buildUsageEvent.create({ data: { buildId, userId: auth.userId, eventType } });
+  }
   return res.status(200).json({ data: { ok: true } });
 });
 

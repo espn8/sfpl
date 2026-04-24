@@ -78,6 +78,7 @@ const basePrompt = {
   thumbnailUrl: null,
   thumbnailStatus: "READY",
   isSmartPick: false,
+  usageCount: 7,
   createdAt: new Date("2026-01-01T00:00:00Z"),
   updatedAt: new Date("2026-02-01T00:00:00Z"),
   owner: { id: 1, name: "A", avatarUrl: null },
@@ -95,6 +96,7 @@ const baseContext = {
   thumbnailUrl: null,
   thumbnailStatus: "READY",
   isSmartPick: false,
+  usageCount: 3,
   createdAt: new Date("2026-01-01T00:00:00Z"),
   updatedAt: new Date("2026-02-01T00:00:00Z"),
   owner: { id: 1, name: "A", avatarUrl: null },
@@ -112,6 +114,7 @@ const baseBuild = {
   thumbnailUrl: null,
   thumbnailStatus: "READY",
   isSmartPick: false,
+  usageCount: 5,
   createdAt: new Date("2026-01-01T00:00:00Z"),
   updatedAt: new Date("2026-02-01T00:00:00Z"),
   owner: { id: 1, name: "A", avatarUrl: null },
@@ -245,6 +248,123 @@ describe("GET /api/assets payload shape", () => {
     const contextEntry = response.body.data.find((a: { assetType: string }) => a.assetType === "context");
     expect(promptEntry.thumbnailUrl).toBeNull();
     expect(contextEntry.thumbnailUrl).toBeNull();
+  });
+
+  // --- Phase 3: denormalized usageCount + accurate total + snapshot flag ---
+
+  it("selects the denormalized usageCount column for every asset type (Phase 3)", async () => {
+    const { createApp } = await import("../src/app");
+    const app = createApp({ sessionStore: new session.MemoryStore() });
+
+    const response = await request(app).get("/api/assets?sort=recent");
+    expect(response.status).toBe(200);
+
+    const promptSelect = mockPromptFindMany.mock.calls[0]?.[0]?.select as Record<string, unknown> | undefined;
+    const skillSelect = mockSkillFindMany.mock.calls[0]?.[0]?.select as Record<string, unknown> | undefined;
+    const contextSelect = mockContextFindMany.mock.calls[0]?.[0]?.select as Record<string, unknown> | undefined;
+    const buildSelect = mockBuildFindMany.mock.calls[0]?.[0]?.select as Record<string, unknown> | undefined;
+
+    expect(promptSelect?.usageCount).toBe(true);
+    expect(skillSelect?.usageCount).toBe(true);
+    expect(contextSelect?.usageCount).toBe(true);
+    expect(buildSelect?.usageCount).toBe(true);
+  });
+
+  it("uses orderBy: { usageCount: 'desc' } for sort=mostUsed on every type (Phase 3)", async () => {
+    const { createApp } = await import("../src/app");
+    const app = createApp({ sessionStore: new session.MemoryStore() });
+
+    const response = await request(app).get("/api/assets?sort=mostUsed");
+    expect(response.status).toBe(200);
+
+    const promptOrderBy = mockPromptFindMany.mock.calls[0]?.[0]?.orderBy;
+    const skillOrderBy = mockSkillFindMany.mock.calls[0]?.[0]?.orderBy;
+    const contextOrderBy = mockContextFindMany.mock.calls[0]?.[0]?.orderBy;
+    const buildOrderBy = mockBuildFindMany.mock.calls[0]?.[0]?.orderBy;
+
+    expect(promptOrderBy).toEqual({ usageCount: "desc" });
+    expect(skillOrderBy).toEqual({ usageCount: "desc" });
+    expect(contextOrderBy).toEqual({ usageCount: "desc" });
+    expect(buildOrderBy).toEqual({ usageCount: "desc" });
+  });
+
+  it("echoes the denormalized usageCount from each row (no groupBy inferred)", async () => {
+    const { createApp } = await import("../src/app");
+    const app = createApp({ sessionStore: new session.MemoryStore() });
+
+    const response = await request(app).get("/api/assets?sort=recent");
+    expect(response.status).toBe(200);
+
+    const promptEntry = response.body.data.find((a: { assetType: string }) => a.assetType === "prompt");
+    const contextEntry = response.body.data.find((a: { assetType: string }) => a.assetType === "context");
+    const buildEntry = response.body.data.find((a: { assetType: string }) => a.assetType === "build");
+
+    expect(promptEntry.usageCount).toBe(7);
+    expect(contextEntry.usageCount).toBe(3);
+    expect(buildEntry.usageCount).toBe(5);
+  });
+
+  it("returns meta.total as the sum of per-type counts, not the overfetched window", async () => {
+    mockPromptCount.mockResolvedValue(41);
+    mockSkillCount.mockResolvedValue(0);
+    mockContextCount.mockResolvedValue(12);
+    mockBuildCount.mockResolvedValue(7);
+
+    const { createApp } = await import("../src/app");
+    const app = createApp({ sessionStore: new session.MemoryStore() });
+
+    const response = await request(app).get("/api/assets?sort=recent&pageSize=10");
+    expect(response.status).toBe(200);
+
+    expect(response.body.meta.total).toBe(60);
+    expect(response.body.meta.totalPages).toBe(6);
+    expect(response.body.meta.facets.assetType).toEqual({
+      prompt: 41,
+      skill: 0,
+      context: 12,
+      build: 7,
+    });
+  });
+
+  it("omits meta.snapshot and skips the snapshot queries when snapshot=false", async () => {
+    const { createApp } = await import("../src/app");
+    const app = createApp({ sessionStore: new session.MemoryStore() });
+
+    const response = await request(app).get("/api/assets?sort=mostUsed&snapshot=false");
+    expect(response.status).toBe(200);
+
+    expect(response.body.meta.snapshot).toBeUndefined();
+    expect(mockUserCount).not.toHaveBeenCalled();
+    expect(mockUsageEventCount).not.toHaveBeenCalled();
+  });
+
+  it("includes meta.snapshot by default (no snapshot param)", async () => {
+    const { createApp } = await import("../src/app");
+    const app = createApp({ sessionStore: new session.MemoryStore() });
+
+    const response = await request(app).get("/api/assets?sort=recent");
+    expect(response.status).toBe(200);
+
+    expect(response.body.meta.snapshot).toBeDefined();
+    expect(mockUserCount).toHaveBeenCalledTimes(1);
+  });
+
+  it("sets Cache-Control to private+max-age=30 for non-mine list responses", async () => {
+    const { createApp } = await import("../src/app");
+    const app = createApp({ sessionStore: new session.MemoryStore() });
+
+    const response = await request(app).get("/api/assets?sort=recent");
+    expect(response.status).toBe(200);
+    expect(response.headers["cache-control"]).toBe("private, max-age=30, must-revalidate");
+  });
+
+  it("sets Cache-Control to private+no-store for mine=true list responses", async () => {
+    const { createApp } = await import("../src/app");
+    const app = createApp({ sessionStore: new session.MemoryStore() });
+
+    const response = await request(app).get("/api/assets?sort=recent&mine=true");
+    expect(response.status).toBe(200);
+    expect(response.headers["cache-control"]).toBe("private, no-store");
   });
 
   it("keeps response payload under 50 KB for a handful of heavy entries", async () => {

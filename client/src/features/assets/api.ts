@@ -58,6 +58,7 @@ export type ListAssetsFilters = {
   includeAnalytics?: boolean;
   page?: number;
   pageSize?: number;
+  snapshot?: boolean;
 };
 
 export type ListAssetsSnapshot = {
@@ -88,7 +89,7 @@ export type ListAssetsResponse = {
     total: number;
     totalPages: number;
     facets?: ListAssetsFacets;
-    snapshot: ListAssetsSnapshot;
+    snapshot?: ListAssetsSnapshot;
   };
 };
 

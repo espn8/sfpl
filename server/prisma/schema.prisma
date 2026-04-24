@@ -81,6 +81,7 @@ model Prompt {
   thumbnailStatus ThumbnailStatus   @default(PENDING)
   thumbnailError  String?
   isSmartPick     Boolean           @default(false)
+  usageCount      Int               @default(0)
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
   team            Team              @relation(fields: [teamId], references: [id], onDelete: Restrict)
@@ -95,6 +96,7 @@ model Prompt {
 
   @@unique([bodyHash])
   @@index([titleNormalized])
+  @@index([teamId, usageCount])
 }
 
 model Skill {
@@ -113,6 +115,7 @@ model Skill {
   thumbnailStatus    ThumbnailStatus  @default(PENDING)
   thumbnailError     String?
   isSmartPick        Boolean          @default(false)
+  usageCount         Int              @default(0)
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
   team               Team             @relation(fields: [teamId], references: [id], onDelete: Restrict)
@@ -125,6 +128,7 @@ model Skill {
 
   @@unique([skillUrlNormalized])
   @@index([teamId, updatedAt])
+  @@index([teamId, usageCount])
 }
 
 model ContextDocument {
@@ -144,6 +148,7 @@ model ContextDocument {
   thumbnailStatus ThumbnailStatus  @default(PENDING)
   thumbnailError  String?
   isSmartPick     Boolean          @default(false)
+  usageCount      Int              @default(0)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   team            Team             @relation(fields: [teamId], references: [id], onDelete: Restrict)
@@ -158,6 +163,7 @@ model ContextDocument {
   @@unique([bodyHash])
   @@index([teamId, updatedAt])
   @@index([titleNormalized])
+  @@index([teamId, usageCount])
 }
 
 model Build {
@@ -175,6 +181,7 @@ model Build {
   thumbnailStatus    ThumbnailStatus  @default(PENDING)
   thumbnailError     String?
   isSmartPick        Boolean          @default(false)
+  usageCount         Int              @default(0)
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
   team               Team             @relation(fields: [teamId], references: [id], onDelete: Restrict)
@@ -187,6 +194,7 @@ model Build {
 
   @@unique([buildUrlNormalized])
   @@index([teamId, updatedAt])
+  @@index([teamId, usageCount])
 }
 
 model PromptVersion {

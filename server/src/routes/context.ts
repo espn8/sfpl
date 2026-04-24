@@ -755,7 +755,14 @@ contextRouter.post("/:id/usage", async (req: Request, res: Response) => {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this document." } });
   }
 
-  await prisma.contextUsageEvent.create({ data: { contextId, userId: auth.userId, eventType } });
+  if (eventType === "COPY") {
+    await prisma.$transaction([
+      prisma.contextUsageEvent.create({ data: { contextId, userId: auth.userId, eventType } }),
+      prisma.contextDocument.update({ where: { id: contextId }, data: { usageCount: { increment: 1 } } }),
+    ]);
+  } else {
+    await prisma.contextUsageEvent.create({ data: { contextId, userId: auth.userId, eventType } });
+  }
   return res.status(200).json({ data: { ok: true } });
 });
 

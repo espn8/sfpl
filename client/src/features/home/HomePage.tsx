@@ -231,6 +231,11 @@ export function HomePage() {
         sort: "mostUsed",
         pageSize: 12,
         page: 1,
+        // The primary /api/assets call above already delivers meta.snapshot
+        // for the hero stats. The top-performers call doesn't use snapshot
+        // anywhere in the UI, so skip the 6 team-wide count queries on the
+        // server (saves ~200-400ms on the homepage critical path).
+        snapshot: false,
       }),
     enabled: !mineFilter,
   });

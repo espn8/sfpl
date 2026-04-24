@@ -87,6 +87,14 @@ const listAssetsQuerySchema = z.object({
   includeAnalytics: z.coerce.boolean().optional(),
   page: z.coerce.number().int().positive().optional(),
   pageSize: z.coerce.number().int().positive().max(100).optional(),
+  // NOTE: z.coerce.boolean() uses JS truthy semantics, which means the
+  // string "false" coerces to true (any non-empty string is truthy). The
+  // snapshot flag is meaningful only as an explicit opt-out ("false"), so
+  // parse it ourselves and keep the semantics unambiguous.
+  snapshot: z
+    .union([z.boolean(), z.enum(["true", "false"])])
+    .transform((v) => (typeof v === "boolean" ? v : v === "true"))
+    .optional(),
 });
 
 type AssetType = "prompt" | "skill" | "context" | "build";
@@ -142,11 +150,17 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
   const includeAnalytics = parsedQuery.data.includeAnalytics ?? false;
   const page = parsedQuery.data.page ?? 1;
   const pageSize = parsedQuery.data.pageSize ?? 20;
+  // snapshot defaults to true so existing callers keep getting meta.snapshot;
+  // HomePage's secondary (top-performers) call opts out with snapshot=false to
+  // skip 6 team-wide count queries that don't vary between requests.
+  const includeSnapshot = parsedQuery.data.snapshot ?? true;
 
   const includePrompts = assetType === "all" || assetType === "prompt";
   const includeSkills = assetType === "all" || assetType === "skill";
   const includeContext = assetType === "all" || assetType === "context";
   const includeBuilds = assetType === "all" || assetType === "build";
+
+  const typeTotals = { prompt: 0, skill: 0, context: 0, build: 0 };
 
   const buildPromptVisibilityWhere = (): Prisma.PromptWhereInput => {
     const where: Prisma.PromptWhereInput = {};
@@ -193,7 +207,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
 
     const promptOrderBy: Prisma.PromptOrderByWithRelationInput =
       sort === "mostUsed"
-        ? { usageEvents: { _count: "desc" as const } }
+        ? { usageCount: "desc" as const }
         : sort === "name"
         ? { title: "asc" as const }
         : sort === "updatedAt"
@@ -214,6 +228,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
           modality: true,
           thumbnailStatus: true,
           isSmartPick: true,
+          usageCount: true,
           createdAt: true,
           updatedAt: true,
           owner: { select: { id: true, name: true, avatarUrl: true } },
@@ -224,27 +239,22 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         take: pageSize * 3,
       }),
     );
+    typeTotals.prompt = await timeSection("prompts.count", () => prisma.prompt.count({ where: promptWhere }));
 
     const promptIds = prompts.map((p) => p.id);
     let viewCountByPrompt = new Map<number, number>();
-    let usageCountByPrompt = new Map<number, number>();
     let favoritedPromptIds = new Set<number>();
     let favoriteCountByPrompt = new Map<number, number>();
     let myRatingByPrompt = new Map<number, number>();
 
     if (promptIds.length > 0) {
-      const [viewGroups, usageGroups, favoriteRows, favoriteCountGroups, ratingRows] = await timeSection(
+      const [viewGroups, favoriteRows, favoriteCountGroups, ratingRows] = await timeSection(
         "prompts.agg",
         () =>
           Promise.all([
             prisma.usageEvent.groupBy({
               by: ["promptId"],
               where: { promptId: { in: promptIds }, action: UsageAction.VIEW },
-              _count: { _all: true },
-            }),
-            prisma.usageEvent.groupBy({
-              by: ["promptId"],
-              where: { promptId: { in: promptIds }, action: { in: [UsageAction.COPY, UsageAction.LAUNCH] } },
               _count: { _all: true },
             }),
             prisma.favorite.findMany({
@@ -263,7 +273,6 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
           ]),
       );
       viewCountByPrompt = new Map(viewGroups.map((g) => [g.promptId, g._count._all]));
-      usageCountByPrompt = new Map(usageGroups.map((g) => [g.promptId, g._count._all]));
       favoritedPromptIds = new Set(favoriteRows.map((r) => r.promptId));
       favoriteCountByPrompt = new Map(favoriteCountGroups.map((g) => [g.promptId, g._count._all]));
       myRatingByPrompt = new Map(ratingRows.map((r) => [r.promptId, r.value]));
@@ -283,7 +292,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         updatedAt: prompt.updatedAt,
         owner: prompt.owner,
         viewCount: viewCountByPrompt.get(prompt.id) ?? 0,
-        usageCount: usageCountByPrompt.get(prompt.id) ?? 0,
+        usageCount: prompt.usageCount,
         favorited: favoritedPromptIds.has(prompt.id),
         favoriteCount: favoriteCountByPrompt.get(prompt.id) ?? 0,
         ratingCount: prompt.ratings.length,
@@ -330,7 +339,9 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
     }
 
     const skillOrderBy: Prisma.SkillOrderByWithRelationInput =
-      sort === "name"
+      sort === "mostUsed"
+        ? { usageCount: "desc" as const }
+        : sort === "name"
         ? { title: "asc" as const }
         : sort === "updatedAt"
         ? { updatedAt: "desc" as const }
@@ -350,6 +361,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
           tools: true,
           thumbnailStatus: true,
           isSmartPick: true,
+          usageCount: true,
           createdAt: true,
           updatedAt: true,
           owner: { select: { id: true, name: true, avatarUrl: true } },
@@ -358,28 +370,23 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         take: pageSize * 3,
       }),
     );
+    typeTotals.skill = await timeSection("skills.count", () => prisma.skill.count({ where: skillWhere }));
 
     const skillIds = skills.map((s) => s.id);
     let viewCountBySkill = new Map<number, number>();
-    let copyCountBySkill = new Map<number, number>();
     let favoritedSkillIds = new Set<number>();
     let favoriteCountBySkill = new Map<number, number>();
     let myRatingBySkill = new Map<number, number>();
     let ratingDataBySkill = new Map<number, { count: number; avg: number | null }>();
 
     if (skillIds.length > 0) {
-      const [viewGroups, copyGroups, favoriteRows, favoriteCountGroups, ratingRows, ratingGroups] = await timeSection(
+      const [viewGroups, favoriteRows, favoriteCountGroups, ratingRows, ratingGroups] = await timeSection(
         "skills.agg",
         () =>
           Promise.all([
             prisma.skillUsageEvent.groupBy({
               by: ["skillId"],
               where: { skillId: { in: skillIds }, eventType: "VIEW" },
-              _count: { skillId: true },
-            }),
-            prisma.skillUsageEvent.groupBy({
-              by: ["skillId"],
-              where: { skillId: { in: skillIds }, eventType: "COPY" },
               _count: { skillId: true },
             }),
             prisma.skillFavorite.findMany({
@@ -404,7 +411,6 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
           ]),
       );
       viewCountBySkill = new Map(viewGroups.map((g) => [g.skillId, g._count.skillId]));
-      copyCountBySkill = new Map(copyGroups.map((g) => [g.skillId, g._count.skillId]));
       favoritedSkillIds = new Set(favoriteRows.map((r) => r.skillId));
       favoriteCountBySkill = new Map(favoriteCountGroups.map((g) => [g.skillId, g._count._all]));
       myRatingBySkill = new Map(ratingRows.map((r) => [r.skillId, r.value]));
@@ -429,7 +435,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         updatedAt: skill.updatedAt,
         owner: skill.owner,
         viewCount: viewCountBySkill.get(skill.id) ?? 0,
-        usageCount: copyCountBySkill.get(skill.id) ?? 0,
+        usageCount: skill.usageCount,
         favorited: favoritedSkillIds.has(skill.id),
         favoriteCount: favoriteCountBySkill.get(skill.id) ?? 0,
         ratingCount: ratingInfo?.count ?? 0,
@@ -469,7 +475,9 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
     }
 
     const contextOrderBy: Prisma.ContextDocumentOrderByWithRelationInput =
-      sort === "name"
+      sort === "mostUsed"
+        ? { usageCount: "desc" as const }
+        : sort === "name"
         ? { title: "asc" as const }
         : sort === "updatedAt"
         ? { updatedAt: "desc" as const }
@@ -487,6 +495,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
           tools: true,
           thumbnailStatus: true,
           isSmartPick: true,
+          usageCount: true,
           createdAt: true,
           updatedAt: true,
           owner: { select: { id: true, name: true, avatarUrl: true } },
@@ -496,28 +505,23 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         take: pageSize * 3,
       }),
     );
+    typeTotals.context = await timeSection("context.count", () => prisma.contextDocument.count({ where: contextWhere }));
 
     const contextIds = contextDocs.map((c) => c.id);
     let viewCountByContext = new Map<number, number>();
-    let copyCountByContext = new Map<number, number>();
     let favoritedContextIds = new Set<number>();
     let favoriteCountByContext = new Map<number, number>();
     let myRatingByContext = new Map<number, number>();
     let ratingDataByContext = new Map<number, { count: number; avg: number | null }>();
 
     if (contextIds.length > 0) {
-      const [viewGroups, copyGroups, favoriteRows, favoriteCountGroups, ratingRows, ratingGroups] = await timeSection(
+      const [viewGroups, favoriteRows, favoriteCountGroups, ratingRows, ratingGroups] = await timeSection(
         "context.agg",
         () =>
           Promise.all([
             prisma.contextUsageEvent.groupBy({
               by: ["contextId"],
               where: { contextId: { in: contextIds }, eventType: "VIEW" },
-              _count: { contextId: true },
-            }),
-            prisma.contextUsageEvent.groupBy({
-              by: ["contextId"],
-              where: { contextId: { in: contextIds }, eventType: "COPY" },
               _count: { contextId: true },
             }),
             prisma.contextFavorite.findMany({
@@ -542,7 +546,6 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
           ]),
       );
       viewCountByContext = new Map(viewGroups.map((g) => [g.contextId, g._count.contextId]));
-      copyCountByContext = new Map(copyGroups.map((g) => [g.contextId, g._count.contextId]));
       favoritedContextIds = new Set(favoriteRows.map((r) => r.contextId));
       favoriteCountByContext = new Map(favoriteCountGroups.map((g) => [g.contextId, g._count._all]));
       myRatingByContext = new Map(ratingRows.map((r) => [r.contextId, r.value]));
@@ -565,7 +568,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         updatedAt: doc.updatedAt,
         owner: doc.owner,
         viewCount: viewCountByContext.get(doc.id) ?? 0,
-        usageCount: copyCountByContext.get(doc.id) ?? 0,
+        usageCount: doc.usageCount,
         favorited: favoritedContextIds.has(doc.id),
         favoriteCount: favoriteCountByContext.get(doc.id) ?? 0,
         ratingCount: ratingInfo?.count ?? 0,
@@ -602,7 +605,9 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
     }
 
     const buildOrderBy: Prisma.BuildOrderByWithRelationInput =
-      sort === "name"
+      sort === "mostUsed"
+        ? { usageCount: "desc" as const }
+        : sort === "name"
         ? { title: "asc" as const }
         : sort === "updatedAt"
         ? { updatedAt: "desc" as const }
@@ -621,6 +626,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
           visibility: true,
           thumbnailStatus: true,
           isSmartPick: true,
+          usageCount: true,
           createdAt: true,
           updatedAt: true,
           owner: { select: { id: true, name: true, avatarUrl: true } },
@@ -629,28 +635,23 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         take: pageSize * 3,
       }),
     );
+    typeTotals.build = await timeSection("builds.count", () => prisma.build.count({ where: buildWhere }));
 
     const buildIds = builds.map((b) => b.id);
     let viewCountByBuild = new Map<number, number>();
-    let copyCountByBuild = new Map<number, number>();
     let favoritedBuildIds = new Set<number>();
     let favoriteCountByBuild = new Map<number, number>();
     let myRatingByBuild = new Map<number, number>();
     let ratingDataByBuild = new Map<number, { count: number; avg: number | null }>();
 
     if (buildIds.length > 0) {
-      const [viewGroups, copyGroups, favoriteRows, favoriteCountGroups, ratingRows, ratingGroups] = await timeSection(
+      const [viewGroups, favoriteRows, favoriteCountGroups, ratingRows, ratingGroups] = await timeSection(
         "builds.agg",
         () =>
           Promise.all([
             prisma.buildUsageEvent.groupBy({
               by: ["buildId"],
               where: { buildId: { in: buildIds }, eventType: "VIEW" },
-              _count: { buildId: true },
-            }),
-            prisma.buildUsageEvent.groupBy({
-              by: ["buildId"],
-              where: { buildId: { in: buildIds }, eventType: "COPY" },
               _count: { buildId: true },
             }),
             prisma.buildFavorite.findMany({
@@ -675,7 +676,6 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
           ]),
       );
       viewCountByBuild = new Map(viewGroups.map((g) => [g.buildId, g._count.buildId]));
-      copyCountByBuild = new Map(copyGroups.map((g) => [g.buildId, g._count.buildId]));
       favoritedBuildIds = new Set(favoriteRows.map((r) => r.buildId));
       favoriteCountByBuild = new Map(favoriteCountGroups.map((g) => [g.buildId, g._count._all]));
       myRatingByBuild = new Map(ratingRows.map((r) => [r.buildId, r.value]));
@@ -701,7 +701,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         updatedAt: build.updatedAt,
         owner: build.owner,
         viewCount: viewCountByBuild.get(build.id) ?? 0,
-        usageCount: copyCountByBuild.get(build.id) ?? 0,
+        usageCount: build.usageCount,
         favorited: favoritedBuildIds.has(build.id),
         favoriteCount: favoriteCountByBuild.get(build.id) ?? 0,
         ratingCount: ratingInfo?.count ?? 0,
@@ -723,17 +723,22 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
     allAssets.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
-  const total = allAssets.length;
+  // Accurate total from per-type counts (these are scoped to the same
+  // visibility + search + tool + status filters as the findMany calls), not
+  // from the overfetched in-memory slice. totalPages therefore reflects the
+  // true dataset size, which fixes the pager UI once the team grows past the
+  // overfetch window (pageSize * 3 per type).
+  const total = typeTotals.prompt + typeTotals.skill + typeTotals.context + typeTotals.build;
   const skip = (page - 1) * pageSize;
   const paginatedAssets = allAssets.slice(skip, skip + pageSize);
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   const facets = {
     assetType: {
-      prompt: allAssets.filter((a) => a.assetType === "prompt").length,
-      skill: allAssets.filter((a) => a.assetType === "skill").length,
-      context: allAssets.filter((a) => a.assetType === "context").length,
-      build: allAssets.filter((a) => a.assetType === "build").length,
+      prompt: typeTotals.prompt,
+      skill: typeTotals.skill,
+      context: typeTotals.context,
+      build: typeTotals.build,
     },
     tool: {} as Record<string, number>,
   };
@@ -745,47 +750,87 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
   }
   recordTiming("assemble", performance.now() - assembleStart);
 
-  const publishedSnapshotWhere: Prisma.PromptWhereInput = {
-    status: "PUBLISHED",
-    AND: [buildVisibilityWhereFragment(auth) as Prisma.PromptWhereInput],
+  type SnapshotMeta = {
+    assetsPublished: number;
+    promptsPublished: number;
+    skillsPublished: number;
+    contextPublished: number;
+    buildsPublished: number;
+    activeUsers: number;
+    promptsUsed: number;
   };
+  let snapshot: SnapshotMeta | undefined;
+  if (includeSnapshot) {
+    const visibilityFragment = buildVisibilityWhereFragment(auth);
+    const promptSnapshotWhere: Prisma.PromptWhereInput = {
+      status: "PUBLISHED",
+      AND: [visibilityFragment as Prisma.PromptWhereInput],
+    };
+    const skillSnapshotWhere: Prisma.SkillWhereInput = {
+      status: "PUBLISHED",
+      AND: [visibilityFragment as Prisma.SkillWhereInput],
+    };
+    const contextSnapshotWhere: Prisma.ContextDocumentWhereInput = {
+      status: "PUBLISHED",
+      AND: [visibilityFragment as Prisma.ContextDocumentWhereInput],
+    };
+    const buildSnapshotWhere: Prisma.BuildWhereInput = {
+      status: "PUBLISHED",
+      AND: [visibilityFragment as Prisma.BuildWhereInput],
+    };
 
-  const [promptsPublished, skillsPublished, contextPublished, buildsPublished, activeUsers, promptsUsed] = await timeSection(
-    "snapshot",
-    () =>
-      Promise.all([
-        prisma.prompt.count({ where: publishedSnapshotWhere }),
-        prisma.skill.count({ where: { teamId: auth.teamId, status: "PUBLISHED" } }),
-        prisma.contextDocument.count({ where: { teamId: auth.teamId, status: "PUBLISHED" } }),
-        prisma.build.count({ where: { teamId: auth.teamId, status: "PUBLISHED" } }),
-        prisma.user.count({ where: { teamId: auth.teamId } }),
-        prisma.usageEvent.count({
-          where: {
-            action: { in: [UsageAction.COPY, UsageAction.LAUNCH] },
-            prompt: { teamId: auth.teamId },
-          },
-        }),
-      ]),
-  );
+    const [promptsPublished, skillsPublished, contextPublished, buildsPublished, activeUsers, promptsUsed] =
+      await timeSection("snapshot", () =>
+        Promise.all([
+          prisma.prompt.count({ where: promptSnapshotWhere }),
+          prisma.skill.count({ where: skillSnapshotWhere }),
+          prisma.contextDocument.count({ where: contextSnapshotWhere }),
+          prisma.build.count({ where: buildSnapshotWhere }),
+          prisma.user.count({ where: { teamId: auth.teamId } }),
+          prisma.usageEvent.count({
+            where: {
+              action: { in: [UsageAction.COPY, UsageAction.LAUNCH] },
+              prompt: { teamId: auth.teamId },
+            },
+          }),
+        ]),
+      );
+
+    snapshot = {
+      assetsPublished: promptsPublished + skillsPublished + contextPublished + buildsPublished,
+      promptsPublished,
+      skillsPublished,
+      contextPublished,
+      buildsPublished,
+      activeUsers,
+      promptsUsed,
+    };
+  }
+
+  // Team-wide (non-mine) list responses are identical across users on the same
+  // team for the same filter tuple, so browsers and intermediate caches can
+  // safely reuse them for a short window. "mine" and personalized responses
+  // (favorites, myRating) stay no-cache to avoid user-to-user bleed.
+  if (!mine) {
+    res.set("Cache-Control", "private, max-age=30, must-revalidate");
+  } else {
+    res.set("Cache-Control", "private, no-store");
+  }
+
+  const meta: Record<string, unknown> = {
+    page,
+    pageSize,
+    total,
+    totalPages,
+    facets,
+  };
+  if (snapshot) {
+    meta.snapshot = snapshot;
+  }
 
   return res.status(200).json({
     data: paginatedAssets,
-    meta: {
-      page,
-      pageSize,
-      total,
-      totalPages,
-      facets,
-      snapshot: {
-        assetsPublished: promptsPublished + skillsPublished + contextPublished + buildsPublished,
-        promptsPublished,
-        skillsPublished,
-        contextPublished,
-        buildsPublished,
-        activeUsers,
-        promptsUsed,
-      },
-    },
+    meta,
   });
 });
 
