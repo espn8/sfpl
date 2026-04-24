@@ -5,6 +5,7 @@ import { z } from "zod";
 import { getAuthContext, requireAuth, requireWriteAccess } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 import {
+  ensureSystemCollections,
   refreshAllToolCollections,
   refreshBestOfCollection,
   refreshToolCollection,
@@ -411,6 +412,7 @@ collectionsRouter.post("/system/refresh", async (req: Request, res: Response) =>
   const refreshType = parsedBody.data?.type ?? "all";
 
   try {
+    await ensureSystemCollections(auth.teamId, auth.userId);
     if (refreshType === "best_of") {
       await refreshBestOfCollection(auth.teamId);
     } else if (refreshType === "tool" && parsedBody.data?.tool) {

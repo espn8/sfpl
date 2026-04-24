@@ -1,4 +1,9 @@
 import { PrismaClient } from "@prisma/client";
+import {
+  ensureSystemCollections,
+  refreshAllToolCollections,
+  refreshBestOfCollection,
+} from "../src/services/systemCollections";
 
 const prisma = new PrismaClient();
 
@@ -432,118 +437,10 @@ async function main() {
   }
   console.log(`Ensured ${collectionSeeds.length} collections`);
 
-  // System collections - one per tool + Best of AI Library
-  const TOOL_COLLECTION_MAP: Record<string, { name: string; description: string }> = {
-    agentforce_vibes: { name: "Agentforce Vibes Collection", description: "AI assets optimized for Agentforce Vibes" },
-    claude_code: { name: "Claude Code Collection", description: "AI assets optimized for Claude Code" },
-    cursor: { name: "Cursor Collection", description: "AI assets optimized for Cursor" },
-    gemini: { name: "Gemini Collection", description: "AI assets optimized for Gemini" },
-    meshmesh: { name: "MeshMesh Collection", description: "AI assets optimized for MeshMesh" },
-    notebooklm: { name: "NotebookLM Collection", description: "AI assets optimized for NotebookLM" },
-    saleo: { name: "Saleo Collection", description: "AI assets optimized for Saleo" },
-    slackbot: { name: "Slackbot Collection", description: "AI assets optimized for Slackbot" },
-  };
-
-  // Create tool-based system collections and populate with matching prompts
-  for (const [toolKey, collectionInfo] of Object.entries(TOOL_COLLECTION_MAP)) {
-    const collection = await prisma.collection.upsert({
-      where: {
-        teamId_name: {
-          teamId: team.id,
-          name: collectionInfo.name,
-        },
-      },
-      create: {
-        teamId: team.id,
-        createdById: admin.id,
-        name: collectionInfo.name,
-        description: collectionInfo.description,
-        isSystem: true,
-      },
-      update: {
-        description: collectionInfo.description,
-        isSystem: true,
-      },
-    });
-
-    // Find all prompts that use this tool
-    const matchingPrompts = await prisma.prompt.findMany({
-      where: {
-        teamId: team.id,
-        tools: { has: toolKey },
-        status: "PUBLISHED",
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    // Clear existing prompts in the collection and repopulate
-    await prisma.collectionPrompt.deleteMany({
-      where: { collectionId: collection.id },
-    });
-
-    for (let index = 0; index < matchingPrompts.length; index += 1) {
-      await prisma.collectionPrompt.create({
-        data: {
-          collectionId: collection.id,
-          promptId: matchingPrompts[index].id,
-          sortOrder: index,
-        },
-      });
-    }
-  }
-  console.log(`Ensured ${Object.keys(TOOL_COLLECTION_MAP).length} tool-based system collections`);
-
-  // Create/update "Best of AI Library" collection with top 20 prompts
-  const bestOfCollection = await prisma.collection.upsert({
-    where: {
-      teamId_name: {
-        teamId: team.id,
-        name: "Best of AI Library",
-      },
-    },
-    create: {
-      teamId: team.id,
-      createdById: admin.id,
-      name: "Best of AI Library",
-      description: "The top 20 highest-rated and most-used AI assets in the library",
-      isSystem: true,
-    },
-    update: {
-      description: "The top 20 highest-rated and most-used AI assets in the library",
-      isSystem: true,
-    },
-  });
-
-  // Get top 20 prompts by combined score (ratings + usage)
-  const topPrompts = await prisma.$queryRaw<Array<{ id: number; score: number }>>`
-    SELECT 
-      p.id,
-      (COALESCE(AVG(r.value), 0) * 2 + COALESCE(COUNT(DISTINCT u.id), 0) * 0.1) as score
-    FROM "Prompt" p
-    LEFT JOIN "Rating" r ON r."promptId" = p.id
-    LEFT JOIN "UsageEvent" u ON u."promptId" = p.id
-    WHERE p."teamId" = ${team.id}
-      AND p.status = 'PUBLISHED'
-    GROUP BY p.id
-    ORDER BY score DESC
-    LIMIT 20
-  `;
-
-  // Clear and repopulate Best of AI Library
-  await prisma.collectionPrompt.deleteMany({
-    where: { collectionId: bestOfCollection.id },
-  });
-
-  for (let index = 0; index < topPrompts.length; index += 1) {
-    await prisma.collectionPrompt.create({
-      data: {
-        collectionId: bestOfCollection.id,
-        promptId: topPrompts[index].id,
-        sortOrder: index,
-      },
-    });
-  }
-  console.log(`Ensured "Best of AI Library" collection with ${topPrompts.length} top prompts`);
+  await ensureSystemCollections(team.id, admin.id);
+  await refreshAllToolCollections(team.id);
+  await refreshBestOfCollection(team.id);
+  console.log("Ensured system tool collections and Best of AI Library");
 
   const sampleSkillTitle = "Sample Team Skill";
   if (!(await prisma.skill.findFirst({ where: { teamId: team.id, title: sampleSkillTitle } }))) {
