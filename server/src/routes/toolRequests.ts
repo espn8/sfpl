@@ -3,7 +3,13 @@ import type { Request, Response } from "express";
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
-import { getAuthContext, requireAuth, requireRole, requireWriteAccess } from "../middleware/auth";
+import {
+  getAuthContext,
+  requireAuth,
+  requireOnboardingComplete,
+  requireRole,
+  requireWriteAccess,
+} from "../middleware/auth";
 import { sendToolRequestNotification } from "../services/email";
 
 const toolRequestsRouter = Router();
@@ -52,6 +58,7 @@ toolRequestsRouter.get("/approved-tools", async (_req: Request, res: Response) =
 });
 
 toolRequestsRouter.use(requireAuth);
+toolRequestsRouter.use(requireOnboardingComplete);
 
 toolRequestsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) => {
   const authContext = getAuthContext(req);

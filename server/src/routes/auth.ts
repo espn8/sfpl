@@ -10,6 +10,7 @@ import { z } from "zod";
 import { env } from "../config/env";
 import { prisma } from "../lib/prisma";
 import { authRateLimit } from "../middleware/rateLimit";
+import { archivePublishedAssetsForProfileGate } from "../services/profileGateArchive";
 
 const uploadsDir = path.resolve(__dirname, "../../public/uploads");
 if (!fs.existsSync(uploadsDir)) {
@@ -104,7 +105,7 @@ async function checkWhitelistBypass(req: Request): Promise<boolean> {
   try {
     const user = await prisma.user.findUnique({
       where: { id: env.devWhitelistUserId },
-      select: { id: true, teamId: true, role: true, ou: true },
+      select: { id: true, teamId: true, role: true, ou: true, onboardingCompleted: true },
     });
 
     if (user) {
@@ -113,6 +114,7 @@ async function checkWhitelistBypass(req: Request): Promise<boolean> {
         teamId: user.teamId,
         role: user.role,
         userOu: user.ou,
+        onboardingCompleted: user.onboardingCompleted,
       };
     }
   } catch {
@@ -371,6 +373,7 @@ authRouter.get("/google/callback", authRateLimit, async (req: Request, res: Resp
       teamId: user.teamId,
       role: user.role,
       userOu: user.ou,
+      onboardingCompleted: user.onboardingCompleted,
     };
     delete req.session.oauth;
 
@@ -547,6 +550,19 @@ authRouter.get("/me", async (req: Request, res: Response) => {
     req.session.auth.userOu = user.ou;
   }
 
+  if (req.session.auth) {
+    req.session.auth.onboardingCompleted = user.onboardingCompleted;
+  }
+
+  if (!user.onboardingCompleted && !req.session.profileGateArchiveDone) {
+    try {
+      await archivePublishedAssetsForProfileGate(user.id);
+      req.session.profileGateArchiveDone = true;
+    } catch (_archiveError) {
+      // Non-fatal: user still sees profile form; archive can be retried on next /me
+    }
+  }
+
   return res.status(200).json({ data: user });
 });
 
@@ -625,6 +641,8 @@ authRouter.patch("/me", async (req: Request, res: Response) => {
 
   if (req.session.auth) {
     req.session.auth.userOu = updatedUser.ou;
+    req.session.auth.onboardingCompleted = updatedUser.onboardingCompleted;
+    delete req.session.profileGateArchiveDone;
   }
 
   return res.status(200).json({ data: updatedUser });

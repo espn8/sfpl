@@ -3,7 +3,8 @@ import { Prisma, PromptModality, UsageAction } from "@prisma/client";
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { z } from "zod";
-import { getAuthContext, requireAuth } from "../middleware/auth";
+import { getAuthContext, requireAuth, requireOnboardingComplete } from "../middleware/auth";
+import { ownerNameSearchClause } from "../lib/assetSearch";
 import { prisma } from "../lib/prisma";
 import { timeSection, recordTiming } from "../middleware/requestTiming";
 import { buildVisibilityWhereFragment } from "../lib/visibility";
@@ -129,6 +130,7 @@ type UnifiedAsset = {
 };
 
 assetsRouter.use(requireAuth);
+assetsRouter.use(requireOnboardingComplete);
 
 assetsRouter.get("/", async (req: Request, res: Response) => {
   const auth = getAuthContext(req);
@@ -186,6 +188,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
             { title: { contains: q, mode: "insensitive" } },
             { summary: { contains: q, mode: "insensitive" } },
             { body: { contains: q, mode: "insensitive" } },
+            ownerNameSearchClause(q),
           ],
         },
       ];
@@ -325,6 +328,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         OR: [
           { title: { contains: q, mode: "insensitive" } },
           { summary: { contains: q, mode: "insensitive" } },
+          ownerNameSearchClause(q),
         ],
       });
     }
@@ -461,6 +465,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
           { title: { contains: q, mode: "insensitive" } },
           { summary: { contains: q, mode: "insensitive" } },
           { body: { contains: q, mode: "insensitive" } },
+          ownerNameSearchClause(q),
         ],
       });
     }
@@ -594,6 +599,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         OR: [
           { title: { contains: q, mode: "insensitive" } },
           { summary: { contains: q, mode: "insensitive" } },
+          ownerNameSearchClause(q),
         ],
       });
     }

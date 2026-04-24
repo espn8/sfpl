@@ -6,7 +6,14 @@ import fs from "node:fs";
 import path from "node:path";
 import multer from "multer";
 import { z } from "zod";
-import { getAuthContext, requireAuth, requireWriteAccess, type AuthContext } from "../middleware/auth";
+import {
+  getAuthContext,
+  requireAuth,
+  requireOnboardingComplete,
+  requireWriteAccess,
+  type AuthContext,
+} from "../middleware/auth";
+import { ownerNameSearchClause } from "../lib/assetSearch";
 import { prisma } from "../lib/prisma";
 import {
   logManualArchive,
@@ -18,6 +25,7 @@ import { countFlags, didNotWorkRate } from "../services/scoring";
 import {
   buildVisibilityWhereFragment,
   canAccessByVisibility as sharedCanAccessByVisibility,
+  canMutateTeamScopedAsset,
 } from "../lib/visibility";
 import { generatePromptThumbnail } from "../services/nanoBanana";
 import {
@@ -189,6 +197,7 @@ async function queueBuildThumbnailGeneration(buildId: number) {
 }
 
 buildsRouter.use(requireAuth);
+buildsRouter.use(requireOnboardingComplete);
 
 buildsRouter.get("/", async (req: Request, res: Response) => {
   const auth = getAuthContext(req);
@@ -226,6 +235,7 @@ buildsRouter.get("/", async (req: Request, res: Response) => {
       OR: [
         { title: { contains: q, mode: "insensitive" } },
         { summary: { contains: q, mode: "insensitive" } },
+        ownerNameSearchClause(q),
       ],
     });
   }
@@ -482,12 +492,12 @@ buildsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respons
   }
 
   const buildId = parsedParams.data.id;
-  const existing = await prisma.build.findFirst({ where: { id: buildId, teamId: auth.teamId } });
+  const existing = await prisma.build.findUnique({ where: { id: buildId } });
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Build not found." } });
   }
 
-  if (existing.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
+  if (!canMutateTeamScopedAsset(existing, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can modify this build." } });
   }
 
@@ -570,12 +580,12 @@ buildsRouter.delete("/:id", requireWriteAccess, async (req: Request, res: Respon
   }
 
   const buildId = parsedParams.data.id;
-  const existing = await prisma.build.findFirst({ where: { id: buildId, teamId: auth.teamId } });
+  const existing = await prisma.build.findUnique({ where: { id: buildId } });
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Build not found." } });
   }
 
-  if (existing.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
+  if (!canMutateTeamScopedAsset(existing, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can archive this build." } });
   }
 
@@ -599,7 +609,7 @@ buildsRouter.delete("/:id/permanent", requireWriteAccess, async (req: Request, r
   }
 
   const buildId = parsedParams.data.id;
-  const existing = await prisma.build.findFirst({ where: { id: buildId, teamId: auth.teamId } });
+  const existing = await prisma.build.findUnique({ where: { id: buildId } });
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Build not found." } });
   }
@@ -777,12 +787,12 @@ buildsRouter.post("/:id/regenerate-thumbnail", requireWriteAccess, async (req: R
   }
 
   const buildId = parsedParams.data.id;
-  const existing = await prisma.build.findFirst({ where: { id: buildId, teamId: auth.teamId } });
+  const existing = await prisma.build.findUnique({ where: { id: buildId } });
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Build not found." } });
   }
 
-  if (existing.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
+  if (!canMutateTeamScopedAsset(existing, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can modify this build." } });
   }
 
@@ -820,7 +830,7 @@ buildsRouter.post(
     }
 
     const buildId = parsedParams.data.id;
-    const existing = await prisma.build.findFirst({ where: { id: buildId, teamId: auth.teamId } });
+    const existing = await prisma.build.findUnique({ where: { id: buildId } });
     if (!existing) {
       if (req.file) {
         fs.promises.unlink(req.file.path).catch(() => undefined);
@@ -828,7 +838,7 @@ buildsRouter.post(
       return res.status(404).json({ error: { code: "NOT_FOUND", message: "Build not found." } });
     }
 
-    if (existing.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
+    if (!canMutateTeamScopedAsset(existing, auth)) {
       if (req.file) {
         fs.promises.unlink(req.file.path).catch(() => undefined);
       }
@@ -1005,12 +1015,12 @@ buildsRouter.post("/:id/restore/:version", requireWriteAccess, async (req: Reque
   const buildId = parsedParams.data.id;
   const targetVersion = parsedParams.data.version;
 
-  const build = await prisma.build.findFirst({ where: { id: buildId, teamId: auth.teamId } });
+  const build = await prisma.build.findUnique({ where: { id: buildId } });
   if (!build) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Build not found." } });
   }
 
-  if (build.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
+  if (!canMutateTeamScopedAsset(build, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can restore this build." } });
   }
 

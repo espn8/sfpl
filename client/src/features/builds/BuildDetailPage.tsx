@@ -126,6 +126,11 @@ export function BuildDetailPage() {
     trackEvent("build_open", { build_id: buildId, source: "detail" });
   };
 
+  const handleOpenDocumentation = () => {
+    void logBuildUsage(buildId, "COPY");
+    trackEvent("build_documentation_open", { build_id: buildId, source: "detail" });
+  };
+
   const distinctHelpUrl =
     build.supportUrl && normalizeUrl(build.supportUrl) !== normalizeUrl(build.buildUrl) ? build.supportUrl : null;
 
@@ -268,6 +273,7 @@ export function BuildDetailPage() {
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors bg-[#5A1BA9] text-white hover:bg-[#4A1589]"
+              onClick={handleOpenDocumentation}
             >
               <ExternalLinkIcon className="h-4 w-4 shrink-0" />
               Open Link

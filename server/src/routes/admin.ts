@@ -16,13 +16,14 @@
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { z } from "zod";
-import { getAuthContext, requireAuth, requireRole } from "../middleware/auth";
+import { getAuthContext, requireAuth, requireOnboardingComplete, requireRole } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 import { runGovernanceSweepWithGate } from "../jobs/governance";
 import { transferOwner } from "../services/governanceOps";
 
 const adminRouter = Router();
 adminRouter.use(requireAuth);
+adminRouter.use(requireOnboardingComplete);
 adminRouter.use(requireRole(["OWNER", "ADMIN"]));
 
 const userIdParamsSchema = z.object({

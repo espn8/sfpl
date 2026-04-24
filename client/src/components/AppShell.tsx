@@ -78,6 +78,8 @@ export function AppShell({ children }: AppShellProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const hamburgerRef = useRef<HTMLButtonElement>(null);
+  const welcomeDialogRef = useRef<HTMLDivElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!meQuery.data) {
@@ -199,6 +201,49 @@ export function AppShell({ children }: AppShellProps) {
 
   const showWelcomeModal = Boolean(meQuery.data && !meQuery.data.onboardingCompleted);
 
+  useEffect(() => {
+    if (!showWelcomeModal) {
+      return;
+    }
+    const t = window.setTimeout(() => nameInputRef.current?.focus(), 0);
+    const getFocusable = (): HTMLElement[] => {
+      const root = welcomeDialogRef.current;
+      if (!root) {
+        return [];
+      }
+      return Array.from(
+        root.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => el.offsetParent !== null || el.getClientRects().length > 0);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") {
+        return;
+      }
+      const nodes = getFocusable();
+      if (nodes.length === 0) {
+        return;
+      }
+      const first = nodes[0];
+      const last = nodes[nodes.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else if (document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.clearTimeout(t);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [showWelcomeModal]);
+
   const panelItemClass =
     "block rounded px-4 py-2 text-sm text-(--color-text) hover:bg-(--color-surface-muted) focus-visible:bg-(--color-surface-muted) focus-visible:outline-none";
   const isAdmin = Boolean(meQuery.data && canAccessAdminUi(meQuery.data.role));
@@ -207,7 +252,11 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <main className="min-h-screen bg-(--color-bg) text-(--color-text)">
-      <div className="mx-auto max-w-5xl px-6 py-8">
+      <div
+        className={`mx-auto max-w-5xl px-6 py-8${showWelcomeModal ? " pointer-events-none select-none" : ""}`}
+        aria-hidden={showWelcomeModal ? true : undefined}
+        inert={showWelcomeModal ? true : undefined}
+      >
         <div ref={menuRef}>
           <header className="mb-6 flex items-center justify-between gap-3 rounded-lg border border-(--color-border) bg-(--color-surface) px-4 py-3">
             <div className="flex min-w-0 items-center gap-6">
@@ -436,9 +485,20 @@ export function AppShell({ children }: AppShellProps) {
       </div>
       <ComplianceModal />
       {showWelcomeModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-2xl rounded-lg border border-(--color-border) bg-(--color-surface) p-6 shadow-lg">
-            <h2 className="text-xl font-semibold">Welcome to Your AI Toolkit</h2>
+        <div
+          className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 p-4"
+          role="presentation"
+        >
+          <div
+            ref={welcomeDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="welcome-dialog-title"
+            className="w-full max-w-2xl rounded-lg border border-(--color-border) bg-(--color-surface) p-6 shadow-lg"
+          >
+            <h2 id="welcome-dialog-title" className="text-xl font-semibold">
+              Welcome to Your AI Toolkit
+            </h2>
             <p className="mt-1 text-sm text-(--color-text-muted)">
               Complete your profile to get started. It only takes a moment.
             </p>
@@ -472,6 +532,7 @@ export function AppShell({ children }: AppShellProps) {
               <label className="block text-sm">
                 <span className="mb-1 block">Display name</span>
                 <input
+                  ref={nameInputRef}
                   type="text"
                   className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
                   value={name}

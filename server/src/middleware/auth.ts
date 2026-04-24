@@ -20,7 +20,7 @@ async function checkWhitelistBypass(req: Request): Promise<boolean> {
   try {
     const user = await prisma.user.findUnique({
       where: { id: env.devWhitelistUserId },
-      select: { id: true, teamId: true, role: true, ou: true },
+      select: { id: true, teamId: true, role: true, ou: true, onboardingCompleted: true },
     });
 
     if (user) {
@@ -29,6 +29,7 @@ async function checkWhitelistBypass(req: Request): Promise<boolean> {
         teamId: user.teamId,
         role: user.role,
         userOu: user.ou,
+        onboardingCompleted: user.onboardingCompleted,
       };
     }
   } catch {
@@ -115,7 +116,7 @@ async function refreshSessionRoleFromDb(req: Request): Promise<Role | null> {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.session.auth.userId },
-      select: { role: true, teamId: true, ou: true },
+      select: { role: true, teamId: true, ou: true, onboardingCompleted: true },
     });
 
     if (!user) {
@@ -125,11 +126,13 @@ async function refreshSessionRoleFromDb(req: Request): Promise<Role | null> {
     if (
       req.session.auth.role !== user.role ||
       req.session.auth.teamId !== user.teamId ||
-      req.session.auth.userOu !== user.ou
+      req.session.auth.userOu !== user.ou ||
+      req.session.auth.onboardingCompleted !== user.onboardingCompleted
     ) {
       req.session.auth.role = user.role;
       req.session.auth.teamId = user.teamId;
       req.session.auth.userOu = user.ou;
+      req.session.auth.onboardingCompleted = user.onboardingCompleted;
     }
 
     return user.role;
@@ -156,6 +159,39 @@ export function getAuthContext(req: Request): AuthContext | null {
     role: req.session.auth.role,
     userOu: req.session.auth.userOu,
   };
+}
+
+export function requireOnboardingComplete(req: Request, res: Response, next: NextFunction): void {
+  const proceed = async () => {
+    if (!req.session.auth) {
+      res.status(401).json({
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Authentication required.",
+        },
+      });
+      return;
+    }
+
+    const whitelisted = await checkWhitelistBypass(req);
+    if (whitelisted) {
+      return next();
+    }
+
+    if (req.session.auth.onboardingCompleted !== true) {
+      res.status(403).json({
+        error: {
+          code: "PROFILE_SETUP_REQUIRED",
+          message: "Complete your profile before using the library.",
+        },
+      });
+      return;
+    }
+
+    next();
+  };
+
+  void proceed();
 }
 
 export function requireWriteAccess(req: Request, res: Response, next: NextFunction): void {

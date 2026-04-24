@@ -3,7 +3,7 @@ import { Router } from "express";
 import { createHash, randomBytes } from "node:crypto";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
-import { requireAuth, requireWriteAccess } from "../middleware/auth";
+import { requireAuth, requireOnboardingComplete, requireWriteAccess } from "../middleware/auth";
 
 const apiKeysRouter = Router();
 
@@ -20,7 +20,7 @@ function generateApiKey(): { plainKey: string; keyHash: string; keyPrefix: strin
   return { plainKey, keyHash, keyPrefix };
 }
 
-apiKeysRouter.get("/", requireAuth, async (req: Request, res: Response) => {
+apiKeysRouter.get("/", requireAuth, requireOnboardingComplete, async (req: Request, res: Response) => {
   const auth = req.session.auth;
   if (!auth) {
     return res.status(401).json({
@@ -48,7 +48,7 @@ apiKeysRouter.get("/", requireAuth, async (req: Request, res: Response) => {
   return res.status(200).json({ data: keys });
 });
 
-apiKeysRouter.post("/", requireAuth, requireWriteAccess, async (req: Request, res: Response) => {
+apiKeysRouter.post("/", requireAuth, requireOnboardingComplete, requireWriteAccess, async (req: Request, res: Response) => {
   const auth = req.session.auth;
   if (!auth) {
     return res.status(401).json({
@@ -101,7 +101,7 @@ apiKeysRouter.post("/", requireAuth, requireWriteAccess, async (req: Request, re
   });
 });
 
-apiKeysRouter.delete("/:id", requireAuth, async (req: Request, res: Response) => {
+apiKeysRouter.delete("/:id", requireAuth, requireOnboardingComplete, async (req: Request, res: Response) => {
   const auth = req.session.auth;
   if (!auth) {
     return res.status(401).json({

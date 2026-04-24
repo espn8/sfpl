@@ -1,13 +1,14 @@
 import { createHash } from "node:crypto";
 import type { Request, Response } from "express";
 import { Router } from "express";
-import { getAuthContext, requireAuth } from "../middleware/auth";
+import { getAuthContext, requireAuth, requireOnboardingComplete } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 import { canAccessByVisibility } from "../lib/visibility";
 
 const thumbnailsRouter = Router();
 
 thumbnailsRouter.use(requireAuth);
+thumbnailsRouter.use(requireOnboardingComplete);
 
 const ASSET_TYPES = ["prompt", "context", "build", "skill"] as const;
 type AssetType = (typeof ASSET_TYPES)[number];

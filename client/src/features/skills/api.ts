@@ -57,7 +57,7 @@ export type Skill = {
   lastVerifiedAt?: string | null;
   verificationDueAt?: string | null;
   archivedAt?: string | null;
-  archiveReason?: "MANUAL" | "UNVERIFIED" | "INACTIVE" | "LOW_RATING" | null;
+  archiveReason?: "MANUAL" | "UNVERIFIED" | "INACTIVE" | "LOW_RATING" | "PROFILE_INCOMPLETE" | null;
 };
 
 export type ListSkillsFilters = {
@@ -163,6 +163,8 @@ export async function removeSkillFromCollection(skillId: number, collectionId: n
 
 export const ARCHIVE_EXTENSIONS = [".zip", ".tar", ".tar.gz", ".tgz", ".tar.bz2", ".7z", ".rar"];
 
+export const SLACK_ENTERPRISE_SKILLS_URL_PREFIX = "https://salesforce.enterprise.slack.com/skills/";
+
 export function isValidArchiveUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
@@ -171,4 +173,22 @@ export function isValidArchiveUrl(url: string): boolean {
   } catch {
     return false;
   }
+}
+
+export function isValidSlackEnterpriseSkillUrl(url: string): boolean {
+  const trimmed = url.trim();
+  if (!trimmed.startsWith(SLACK_ENTERPRISE_SKILLS_URL_PREFIX)) {
+    return false;
+  }
+  try {
+    new URL(trimmed);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Skill URL: compressed package or Salesforce enterprise Slack Skill link. */
+export function isValidSkillPackageUrl(url: string): boolean {
+  return isValidArchiveUrl(url) || isValidSlackEnterpriseSkillUrl(url);
 }

@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { z } from "zod";
-import { getAuthContext, requireAuth, requireWriteAccess } from "../middleware/auth";
+import { getAuthContext, requireAuth, requireOnboardingComplete, requireWriteAccess } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 import {
   ensureSystemCollections,
@@ -13,6 +13,7 @@ import {
 
 const collectionsRouter = Router();
 collectionsRouter.use(requireAuth);
+collectionsRouter.use(requireOnboardingComplete);
 
 const collectionIdParamsSchema = z.object({
   id: z.coerce.number().int().positive(),

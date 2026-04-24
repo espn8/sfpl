@@ -102,7 +102,7 @@ export type PromptSummary = {
   lastVerifiedAt?: string | null;
   verificationDueAt?: string | null;
   archivedAt?: string | null;
-  archiveReason?: "MANUAL" | "UNVERIFIED" | "INACTIVE" | "LOW_RATING" | null;
+  archiveReason?: "MANUAL" | "UNVERIFIED" | "INACTIVE" | "LOW_RATING" | "PROFILE_INCOMPLETE" | null;
 };
 
 export type PromptVariable = {
@@ -171,7 +171,7 @@ export type Prompt = {
   lastVerifiedAt?: string | null;
   verificationDueAt?: string | null;
   archivedAt?: string | null;
-  archiveReason?: "MANUAL" | "UNVERIFIED" | "INACTIVE" | "LOW_RATING" | null;
+  archiveReason?: "MANUAL" | "UNVERIFIED" | "INACTIVE" | "LOW_RATING" | "PROFILE_INCOMPLETE" | null;
 };
 
 type ApiResponse<T> = {
@@ -305,6 +305,11 @@ export async function ratePrompt(
 
 export async function logUsage(promptId: number, action: "VIEW" | "COPY" | "LAUNCH"): Promise<void> {
   await apiClient.post(`/api/prompts/${promptId}/usage`, { action });
+}
+
+export async function archivePrompt(promptId: number): Promise<Prompt> {
+  const response = await apiClient.delete<ApiResponse<Prompt>>(`/api/prompts/${promptId}`);
+  return response.data.data;
 }
 
 export async function deletePromptPermanently(promptId: number): Promise<void> {

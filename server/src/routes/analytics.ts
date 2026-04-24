@@ -2,13 +2,14 @@ import type { Request, Response } from "express";
 import { Router } from "express";
 import { PromptStatus, Role, UsageAction, type FeedbackFlag } from "@prisma/client";
 import { z } from "zod";
-import { getAuthContext, requireAuth, requireRole } from "../middleware/auth";
+import { getAuthContext, requireAuth, requireOnboardingComplete, requireRole } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 import { buildAggregate, computeFinalScore, DEFAULT_GLOBAL_MEAN } from "../services/scoring";
 import { countFlags } from "../lib/flagCounts";
 
 const analyticsRouter = Router();
 analyticsRouter.use(requireAuth);
+analyticsRouter.use(requireOnboardingComplete);
 analyticsRouter.use(requireRole([Role.ADMIN, Role.OWNER]));
 
 const ouQuerySchema = z.object({

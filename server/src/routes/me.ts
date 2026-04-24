@@ -12,11 +12,12 @@
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { z } from "zod";
-import { getAuthContext, requireAuth } from "../middleware/auth";
+import { getAuthContext, requireAuth, requireOnboardingComplete } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 
 const meRouter = Router();
 meRouter.use(requireAuth);
+meRouter.use(requireOnboardingComplete);
 
 const needsVerificationQuerySchema = z.object({
   window: z.coerce.number().int().positive().max(60).optional(),

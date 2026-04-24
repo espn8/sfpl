@@ -1,11 +1,27 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 24, 2026 — 17:45 CDT
-Build Version: `e4a6a3a`
+Last Updated: Friday, April 24, 2026 — 18:06 CDT
+Build Version: `f2f5759`
 App Version: see production footer after deploy (root `package.json` 1.3.3 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Session: profile onboarding gate, skill Slack URLs, mutate ACLs, prompt detail (April 24, 2026 — 18:06 CDT)
+
+- **Prisma migration** ([server/prisma/migrations/20260425120000_archive_reason_profile_incomplete/migration.sql](server/prisma/migrations/20260425120000_archive_reason_profile_incomplete/migration.sql)): Adds `ArchiveReason.PROFILE_INCOMPLETE`; backfills archive of all **PUBLISHED** prompts, skills, context documents, and builds owned by users with `onboardingCompleted = false`, plus `AssetVerification` audit rows.
+- **Profile gate service** ([server/src/services/profileGateArchive.ts](server/src/services/profileGateArchive.ts)): `archivePublishedAssetsForProfileGate(ownerId)` performs the same archive pattern at runtime (transaction per asset type).
+- **Auth & session** ([server/src/routes/auth.ts](server/src/routes/auth.ts), [server/src/middleware/auth.ts](server/src/middleware/auth.ts), [server/src/types/express-session.d.ts](server/src/types/express-session.d.ts)): Session carries `onboardingCompleted`; DB refresh keeps it in sync; `requireOnboardingComplete` returns **403** `PROFILE_SETUP_REQUIRED` when the user has not finished profile setup (dev whitelist bypass unchanged). `GET /api/auth/me` runs the profile-gate archiver once per session (`profileGateArchiveDone`) for incomplete users so stray published rows are not left live.
+- **Authenticated API routes**: Routers that previously stopped at `requireAuth` now chain **`requireOnboardingComplete`** after it (prompts, skills, context, builds, collections, assets, search, tags, thumbnails, tool-requests, help, me, AI, analytics, admin, API keys, v1 surface as applicable). Vitest route mocks set `onboardingCompleted: true` on `req.session.auth` where needed ([server/test/auth-session.test.ts](server/test/auth-session.test.ts), flow tests).
+- **Visibility / mutations** ([server/src/lib/visibility.ts](server/src/lib/visibility.ts)): New **`canMutateTeamScopedAsset`** — asset **owner** may always mutate; **ADMIN** / **OWNER** only when the asset’s `teamId` matches the caller’s (avoids cross-team updates when using `findUnique` by id). Adopted on prompt/skill/context/build mutation handlers (replacing loose owner-or-admin checks and `findFirst` scoped only by team).
+- **Client — AppShell** ([client/src/components/AppShell.tsx](client/src/components/AppShell.tsx)): Blocks the shell with a **welcome / complete profile** modal when `onboardingCompleted` is false; [AppShell.test.tsx](client/src/components/AppShell.test.tsx) covers the gate.
+- **Client — Prompt detail** ([client/src/features/prompts/PromptDetailPage.tsx](client/src/features/prompts/PromptDetailPage.tsx)): Validates `promptId > 0`; clearer loading vs missing/error states; **archive** mutation + navigation; **`AssetCollectionMenu`** instead of prompt-only collection menu; share uses shared **`buildShareUrl` / `shareOrCopyLink`**; edit/delete eligibility uses `me` + owner id alignment with **`canCreateContent`**.
+- **Client — usage analytics on secondary actions** ([BuildDetailPage.tsx](client/src/features/builds/BuildDetailPage.tsx), [SkillDetailPage.tsx](client/src/features/skills/SkillDetailPage.tsx), [ContextDetailPage.tsx](client/src/features/context/ContextDetailPage.tsx)): **Open Link** (build docs / skill help) and **Download** (context) now record **COPY** usage plus the existing `trackEvent` names (`build_documentation_open`, `skill_help_open`, `context_download`).
+- **Skill install URLs** ([server/src/lib/skillUrl.ts](server/src/lib/skillUrl.ts), [client/src/features/skills/api.ts](client/src/features/skills/api.ts), [server/src/routes/skills.ts](server/src/routes/skills.ts), [server/src/routes/v1/index.ts](server/src/routes/v1/index.ts), [SkillEditorPage.tsx](client/src/features/skills/SkillEditorPage.tsx), [SkillEditPage.tsx](client/src/features/skills/SkillEditPage.tsx)): `skillUrl` accepts a path ending in a supported archive extension **or** a URL beginning with **`https://salesforce.enterprise.slack.com/skills/`**. Tests: [server/test/skillUrl.test.ts](server/test/skillUrl.test.ts), extended [server/test/skills-flow.test.ts](server/test/skills-flow.test.ts).
+- **Types & governance copy**: `PROFILE_INCOMPLETE` added to archive-reason unions ([client/src/features/assets/api.ts](client/src/features/assets/api.ts), prompts/skills/context/builds/admin APIs, [governance.ts](client/src/features/assets/governance.ts)).
+- **New detail page tests** (client): [BuildDetailPage.test.tsx](client/src/features/builds/BuildDetailPage.test.tsx), [ContextDetailPage.test.tsx](client/src/features/context/ContextDetailPage.test.tsx), [SkillDetailPage.test.tsx](client/src/features/skills/SkillDetailPage.test.tsx).
+- **Docs** ([AUTH_PROTECTION.md](AUTH_PROTECTION.md)): Session shape and onboarding/profile completion flow documented.
+- **Deploy:** `npm --prefix client run build`, `npx vitest run` (server + client as usual for your workflow), **`git push origin main`** and **`git push heroku main:master`**. Heroku **release** runs `prisma migrate deploy` — applies the new enum/backfill migration.
 
 ### Session: detail CTAs — launch green primaries, Open Link for docs only (April 24, 2026 — 17:45 CDT)
 
@@ -77,7 +93,7 @@ Production URL: https://ail.mysalesforcedemo.com (canonical live site — never 
 ### Release: Asset governance, verification lifecycle, and hybrid rating feedback (April 24, 2026 — 15:40 CDT; Heroku v201, footer 1.3.4)
 
 - **Database (Prisma migration `20260424200000_add_governance_and_rating_flags`)**:
-  - **Per-asset lifecycle fields** on `Prompt`, `Skill`, `ContextDocument`, and `Build`: `lastVerifiedAt`, `verificationDueAt`, `warningSentAt`, `archivedAt`, `archiveReason` (enum `ArchiveReason`: MANUAL, UNVERIFIED, INACTIVE, LOW_RATING). Backfill sets `lastVerifiedAt` / `verificationDueAt` from `updatedAt` for published assets so the first nightly sweep does not mass-archive.
+  - **Per-asset lifecycle fields** on `Prompt`, `Skill`, `ContextDocument`, and `Build`: `lastVerifiedAt`, `verificationDueAt`, `warningSentAt`, `archivedAt`, `archiveReason` (enum `ArchiveReason`: MANUAL, UNVERIFIED, INACTIVE, LOW_RATING, PROFILE_INCOMPLETE). Backfill sets `lastVerifiedAt` / `verificationDueAt` from `updatedAt` for published assets so the first nightly sweep does not mass-archive.
   - **Hybrid ratings**: `feedbackFlags` (`FeedbackFlag` enum) and optional `comment` on `Rating`, `SkillRating`, `ContextRating`, and `BuildRating` for structured feedback (e.g. worked well, inaccurate, outdated).
   - **`AssetVerification` audit log** and enums `AssetType`, `VerificationAction`. Composite indexes on `(status, verificationDueAt)` support efficient governance sweeps.
 - **Governance job** ([server/src/jobs/governance.ts](server/src/jobs/governance.ts), [server/src/jobs/runGovernance.ts](server/src/jobs/runGovernance.ts)): scheduled/manual sweep (warnings, due dates, auto-archive per scoring rules in [server/src/services/scoring.ts](server/src/services/scoring.ts)); [server/src/lib/flagCounts.ts](server/src/lib/flagCounts.ts) aggregates low-rating signal. Admin can trigger `POST /api/admin/governance/run` ([server/src/routes/admin.ts](server/src/routes/admin.ts)).

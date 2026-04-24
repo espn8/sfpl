@@ -2,7 +2,14 @@ import type { Prisma } from "@prisma/client";
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { z } from "zod";
-import { getAuthContext, requireAuth, requireWriteAccess, type AuthContext } from "../middleware/auth";
+import {
+  getAuthContext,
+  requireAuth,
+  requireOnboardingComplete,
+  requireWriteAccess,
+  type AuthContext,
+} from "../middleware/auth";
+import { ownerNameSearchClause } from "../lib/assetSearch";
 import { prisma } from "../lib/prisma";
 import {
   logManualArchive,
@@ -14,6 +21,7 @@ import { countFlags, didNotWorkRate } from "../services/scoring";
 import {
   buildVisibilityWhereFragment,
   canAccessByVisibility as sharedCanAccessByVisibility,
+  canMutateTeamScopedAsset,
 } from "../lib/visibility";
 import { generatePromptThumbnail } from "../services/nanoBanana";
 import {
@@ -215,6 +223,7 @@ async function queueContextThumbnailGeneration(contextId: number) {
 }
 
 contextRouter.use(requireAuth);
+contextRouter.use(requireOnboardingComplete);
 
 contextRouter.get("/", async (req: Request, res: Response) => {
   const auth = getAuthContext(req);
@@ -257,6 +266,7 @@ contextRouter.get("/", async (req: Request, res: Response) => {
         { title: { contains: q, mode: "insensitive" } },
         { summary: { contains: q, mode: "insensitive" } },
         { body: { contains: q, mode: "insensitive" } },
+        ownerNameSearchClause(q),
       ],
     });
   }
@@ -525,12 +535,12 @@ contextRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respon
   }
 
   const contextId = parsedParams.data.id;
-  const existing = await prisma.contextDocument.findFirst({ where: { id: contextId, teamId: auth.teamId } });
+  const existing = await prisma.contextDocument.findUnique({ where: { id: contextId } });
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Context document not found." } });
   }
 
-  if (existing.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
+  if (!canMutateTeamScopedAsset(existing, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can modify this document." } });
   }
 
@@ -613,12 +623,12 @@ contextRouter.put("/:id/variables", async (req: Request, res: Response) => {
   }
 
   const contextId = parsedParams.data.id;
-  const existing = await prisma.contextDocument.findFirst({ where: { id: contextId, teamId: auth.teamId } });
+  const existing = await prisma.contextDocument.findUnique({ where: { id: contextId } });
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Context document not found." } });
   }
 
-  if (existing.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
+  if (!canMutateTeamScopedAsset(existing, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can modify this document." } });
   }
 
@@ -636,8 +646,8 @@ contextRouter.put("/:id/variables", async (req: Request, res: Response) => {
   }
   await prisma.$transaction(transactionSteps);
 
-  const doc = await prisma.contextDocument.findFirst({
-    where: { id: contextId, teamId: auth.teamId },
+  const doc = await prisma.contextDocument.findUnique({
+    where: { id: contextId },
     include: {
       owner: { select: { id: true, name: true, avatarUrl: true, ou: true } },
       variables: { select: { id: true, key: true, label: true, defaultValue: true, required: true } },
@@ -666,12 +676,12 @@ contextRouter.delete("/:id", requireWriteAccess, async (req: Request, res: Respo
   }
 
   const docId = parsedParams.data.id;
-  const existing = await prisma.contextDocument.findFirst({ where: { id: docId, teamId: auth.teamId } });
+  const existing = await prisma.contextDocument.findUnique({ where: { id: docId } });
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Context document not found." } });
   }
 
-  if (existing.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
+  if (!canMutateTeamScopedAsset(existing, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can archive this document." } });
   }
 
@@ -695,7 +705,7 @@ contextRouter.post("/:id/verify", requireWriteAccess, async (req: Request, res: 
     return res.status(400).json(badRequestFromZodError(parsedParams.error));
   }
   const docId = parsedParams.data.id;
-  const existing = await prisma.contextDocument.findFirst({ where: { id: docId, teamId: auth.teamId } });
+  const existing = await prisma.contextDocument.findUnique({ where: { id: docId } });
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Context document not found." } });
   }
@@ -717,7 +727,7 @@ contextRouter.post("/:id/unarchive", requireWriteAccess, async (req: Request, re
     return res.status(400).json(badRequestFromZodError(parsedParams.error));
   }
   const docId = parsedParams.data.id;
-  const existing = await prisma.contextDocument.findFirst({ where: { id: docId, teamId: auth.teamId } });
+  const existing = await prisma.contextDocument.findUnique({ where: { id: docId } });
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Context document not found." } });
   }
@@ -747,8 +757,8 @@ contextRouter.post("/:id/transfer-owner", requireWriteAccess, async (req: Reques
   }
   const docId = parsedParams.data.id;
   const { newOwnerId, reason } = parsedBody.data;
-  const existing = await prisma.contextDocument.findFirst({ where: { id: docId, teamId: auth.teamId } });
-  if (!existing) {
+  const existing = await prisma.contextDocument.findUnique({ where: { id: docId } });
+  if (!existing || existing.teamId !== auth.teamId) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Context document not found." } });
   }
   const newOwner = await prisma.user.findUnique({ where: { id: newOwnerId }, select: { id: true, teamId: true } });
@@ -772,7 +782,7 @@ contextRouter.delete("/:id/permanent", requireWriteAccess, async (req: Request, 
   }
 
   const contextId = parsedParams.data.id;
-  const existing = await prisma.contextDocument.findFirst({ where: { id: contextId, teamId: auth.teamId } });
+  const existing = await prisma.contextDocument.findUnique({ where: { id: contextId } });
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Context document not found." } });
   }
@@ -951,12 +961,12 @@ contextRouter.post("/:id/regenerate-thumbnail", requireWriteAccess, async (req: 
   }
 
   const contextId = parsedParams.data.id;
-  const existing = await prisma.contextDocument.findFirst({ where: { id: contextId, teamId: auth.teamId } });
+  const existing = await prisma.contextDocument.findUnique({ where: { id: contextId } });
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Context document not found." } });
   }
 
-  if (existing.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
+  if (!canMutateTeamScopedAsset(existing, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can modify this document." } });
   }
 
@@ -1110,12 +1120,12 @@ contextRouter.post("/:id/restore/:version", requireWriteAccess, async (req: Requ
   const contextId = parsedParams.data.id;
   const targetVersion = parsedParams.data.version;
 
-  const doc = await prisma.contextDocument.findFirst({ where: { id: contextId, teamId: auth.teamId } });
+  const doc = await prisma.contextDocument.findUnique({ where: { id: contextId } });
   if (!doc) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Context document not found." } });
   }
 
-  if (doc.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
+  if (!canMutateTeamScopedAsset(doc, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can restore this document." } });
   }
 

@@ -2,7 +2,14 @@ import { Prisma, PromptModality, UsageAction } from "@prisma/client";
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { z } from "zod";
-import { getAuthContext, requireAuth, requireWriteAccess, type AuthContext } from "../middleware/auth";
+import {
+  getAuthContext,
+  requireAuth,
+  requireOnboardingComplete,
+  requireWriteAccess,
+  type AuthContext,
+} from "../middleware/auth";
+import { ownerNameSearchClause } from "../lib/assetSearch";
 import { prisma } from "../lib/prisma";
 import {
   logManualArchive,
@@ -14,6 +21,7 @@ import { countFlags } from "../lib/flagCounts";
 import {
   buildVisibilityWhereFragment,
   canAccessByVisibility,
+  canMutateTeamScopedAsset,
 } from "../lib/visibility";
 import { generatePromptThumbnail } from "../services/nanoBanana";
 import { refreshBestOfCollection, refreshToolCollection } from "../services/systemCollections";
@@ -356,6 +364,7 @@ async function queuePromptThumbnailGeneration(promptId: number) {
 }
 
 promptsRouter.use(requireAuth);
+promptsRouter.use(requireOnboardingComplete);
 
 promptsRouter.get("/", async (req: Request, res: Response) => {
   const auth = getAuthContext(req);
@@ -402,6 +411,7 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
         { title: { contains: q, mode: "insensitive" } },
         { summary: { contains: q, mode: "insensitive" } },
         { body: { contains: q, mode: "insensitive" } },
+        ownerNameSearchClause(q),
       ],
     });
   }
@@ -740,12 +750,12 @@ promptsRouter.put("/:id/variables", async (req: Request, res: Response) => {
   }
 
   const promptId = parsedParams.data.id;
-  const existing = await prisma.prompt.findFirst({ where: { id: promptId, teamId: auth.teamId } });
+  const existing = await prisma.prompt.findUnique({ where: { id: promptId } });
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
   }
 
-  if (existing.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
+  if (!canMutateTeamScopedAsset(existing, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can modify this prompt." } });
   }
 
@@ -763,8 +773,8 @@ promptsRouter.put("/:id/variables", async (req: Request, res: Response) => {
   }
   await prisma.$transaction(transactionSteps);
 
-  const prompt = await prisma.prompt.findFirst({
-    where: { id: promptId, teamId: auth.teamId },
+  const prompt = await prisma.prompt.findUnique({
+    where: { id: promptId },
     include: {
       owner: { select: { id: true, name: true, avatarUrl: true, ou: true } },
       promptTags: { include: { tag: true } },
@@ -852,12 +862,12 @@ promptsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respon
 
   const promptId = parsedParams.data.id;
   const updateData = parsedBody.data;
-  const existing = await prisma.prompt.findFirst({ where: { id: promptId, teamId: auth.teamId } });
+  const existing = await prisma.prompt.findUnique({ where: { id: promptId } });
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
   }
 
-  if (existing.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
+  if (!canMutateTeamScopedAsset(existing, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can modify this prompt." } });
   }
 
@@ -953,8 +963,8 @@ promptsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respon
       );
     }
     await prisma.$transaction(tagSteps);
-    const refreshed = await prisma.prompt.findFirst({
-      where: { id: promptId, teamId: auth.teamId },
+    const refreshed = await prisma.prompt.findUnique({
+      where: { id: promptId },
       include: {
         variables: true,
         promptTags: { include: { tag: true } },
@@ -976,7 +986,7 @@ promptsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respon
 
   if ((toolsChanged || statusChanged) && isNowPublished) {
     const allTools = new Set([...existing.tools, ...updated.tools]);
-    scheduleSystemCollectionRefresh(auth.teamId, Array.from(allTools));
+    scheduleSystemCollectionRefresh(updated.teamId, Array.from(allTools));
   }
 
   return res.status(200).json({
@@ -999,12 +1009,12 @@ promptsRouter.post("/:id/regenerate-thumbnail", requireWriteAccess, async (req: 
   }
 
   const promptId = parsedParams.data.id;
-  const existing = await prisma.prompt.findFirst({ where: { id: promptId, teamId: auth.teamId } });
+  const existing = await prisma.prompt.findUnique({ where: { id: promptId } });
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
   }
 
-  if (existing.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
+  if (!canMutateTeamScopedAsset(existing, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can modify this prompt." } });
   }
 
@@ -1037,12 +1047,12 @@ promptsRouter.delete("/:id", requireWriteAccess, async (req: Request, res: Respo
     return res.status(400).json(badRequestFromZodError(parsedParams.error));
   }
   const promptId = parsedParams.data.id;
-  const existing = await prisma.prompt.findFirst({ where: { id: promptId, teamId: auth.teamId } });
+  const existing = await prisma.prompt.findUnique({ where: { id: promptId } });
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
   }
 
-  if (existing.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
+  if (!canMutateTeamScopedAsset(existing, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can archive this prompt." } });
   }
 
@@ -1054,7 +1064,7 @@ promptsRouter.delete("/:id", requireWriteAccess, async (req: Request, res: Respo
   const archived = await prisma.prompt.findUnique({ where: { id: promptId } });
 
   if (existing.status === "PUBLISHED") {
-    scheduleSystemCollectionRefresh(auth.teamId, existing.tools);
+    scheduleSystemCollectionRefresh(existing.teamId, existing.tools);
   }
 
   return res.status(200).json({ data: archived });
@@ -1070,7 +1080,7 @@ promptsRouter.post("/:id/verify", requireWriteAccess, async (req: Request, res: 
     return res.status(400).json(badRequestFromZodError(parsedParams.error));
   }
   const promptId = parsedParams.data.id;
-  const existing = await prisma.prompt.findFirst({ where: { id: promptId, teamId: auth.teamId } });
+  const existing = await prisma.prompt.findUnique({ where: { id: promptId } });
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
   }
@@ -1092,7 +1102,7 @@ promptsRouter.post("/:id/unarchive", requireWriteAccess, async (req: Request, re
     return res.status(400).json(badRequestFromZodError(parsedParams.error));
   }
   const promptId = parsedParams.data.id;
-  const existing = await prisma.prompt.findFirst({ where: { id: promptId, teamId: auth.teamId } });
+  const existing = await prisma.prompt.findUnique({ where: { id: promptId } });
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
   }
@@ -1102,7 +1112,7 @@ promptsRouter.post("/:id/unarchive", requireWriteAccess, async (req: Request, re
   await unarchiveAsset("PROMPT", promptId, auth.userId);
   const updated = await prisma.prompt.findUnique({ where: { id: promptId } });
   if (updated?.status === "PUBLISHED") {
-    scheduleSystemCollectionRefresh(auth.teamId, existing.tools);
+    scheduleSystemCollectionRefresh(existing.teamId, existing.tools);
   }
   return res.status(200).json({ data: updated });
 });
@@ -1125,8 +1135,8 @@ promptsRouter.post("/:id/transfer-owner", requireWriteAccess, async (req: Reques
   }
   const promptId = parsedParams.data.id;
   const { newOwnerId, reason } = parsedBody.data;
-  const existing = await prisma.prompt.findFirst({ where: { id: promptId, teamId: auth.teamId } });
-  if (!existing) {
+  const existing = await prisma.prompt.findUnique({ where: { id: promptId } });
+  if (!existing || existing.teamId !== auth.teamId) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
   }
   const newOwner = await prisma.user.findUnique({ where: { id: newOwnerId }, select: { id: true, teamId: true } });
@@ -1150,7 +1160,7 @@ promptsRouter.delete("/:id/permanent", requireWriteAccess, async (req: Request, 
   }
 
   const promptId = parsedParams.data.id;
-  const existing = await prisma.prompt.findFirst({ where: { id: promptId, teamId: auth.teamId } });
+  const existing = await prisma.prompt.findUnique({ where: { id: promptId } });
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
   }
@@ -1173,7 +1183,7 @@ promptsRouter.delete("/:id/permanent", requireWriteAccess, async (req: Request, 
   ]);
 
   if (existing.status === "PUBLISHED") {
-    scheduleSystemCollectionRefresh(auth.teamId, existing.tools);
+    scheduleSystemCollectionRefresh(existing.teamId, existing.tools);
   }
 
   return res.status(200).json({ data: { deleted: true, id: promptId } });
@@ -1227,11 +1237,11 @@ promptsRouter.post("/:id/versions", requireWriteAccess, async (req: Request, res
   }
 
   const promptId = parsedParams.data.id;
-  const existing = await prisma.prompt.findFirst({ where: { id: promptId, teamId: auth.teamId } });
+  const existing = await prisma.prompt.findUnique({ where: { id: promptId } });
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
   }
-  if (existing.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
+  if (!canMutateTeamScopedAsset(existing, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can version this prompt." } });
   }
 
@@ -1277,12 +1287,12 @@ promptsRouter.post("/:id/restore/:version", requireWriteAccess, async (req: Requ
   }
   const promptId = parsedParams.data.id;
   const targetVersion = parsedParams.data.version;
-  const prompt = await prisma.prompt.findFirst({ where: { id: promptId, teamId: auth.teamId } });
+  const prompt = await prisma.prompt.findUnique({ where: { id: promptId } });
   if (!prompt) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
   }
 
-  if (prompt.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
+  if (!canMutateTeamScopedAsset(prompt, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can restore this prompt." } });
   }
 

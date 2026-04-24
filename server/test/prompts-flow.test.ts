@@ -9,6 +9,7 @@ const prismaMock = buildPrismaMock();
 
 vi.mock("../src/middleware/auth", () => ({
   requireAuth: (_req: unknown, _res: unknown, next: () => void) => next(),
+  requireOnboardingComplete: (_req: unknown, _res: unknown, next: () => void) => next(),
   requireRole: () => (_req: unknown, _res: unknown, next: () => void) => next(),
   requireWriteAccess: (_req: unknown, _res: unknown, next: () => void) => next(),
   getAuthContext: () => ({ userId: 1, teamId: 1, role: "MEMBER" }),
@@ -82,7 +83,7 @@ describe("prompts create/update/restore flows", () => {
 
   it("updates prompt and creates a new version when body changes", async () => {
     const app = await buildPromptsApp();
-    prompt.findFirst.mockResolvedValueOnce({
+    prompt.findUnique.mockResolvedValueOnce({
       id: 5,
       teamId: 1,
       ownerId: 1,
@@ -120,7 +121,7 @@ describe("prompts create/update/restore flows", () => {
 
   it("replaces prompt tags when tagIds is sent", async () => {
     const app = await buildPromptsApp();
-    prompt.findFirst
+    prompt.findUnique
       .mockResolvedValueOnce({ id: 12, teamId: 1, ownerId: 1, body: "body" })
       .mockResolvedValueOnce({
         id: 12,
@@ -173,7 +174,7 @@ describe("prompts create/update/restore flows", () => {
 
   it("restores a prompt from target version", async () => {
     const app = await buildPromptsApp();
-    prompt.findFirst.mockResolvedValueOnce({ id: 6, teamId: 1, ownerId: 1, body: "current-body" });
+    prompt.findUnique.mockResolvedValueOnce({ id: 6, teamId: 1, ownerId: 1, body: "current-body" });
     promptVersion.findFirst.mockResolvedValueOnce({ id: 1, promptId: 6, version: 1, body: "restored-body" });
     prompt.update.mockResolvedValue({ id: 6, body: "restored-body" });
 
@@ -188,7 +189,7 @@ describe("prompts create/update/restore flows", () => {
 
   it("creates an explicit prompt version and updates prompt body", async () => {
     const app = await buildPromptsApp();
-    prompt.findFirst.mockResolvedValueOnce({ id: 8, teamId: 1, ownerId: 1, body: "old" });
+    prompt.findUnique.mockResolvedValueOnce({ id: 8, teamId: 1, ownerId: 1, body: "old" });
     promptVersion.findFirst.mockResolvedValueOnce({ version: 4 });
     prompt.update.mockResolvedValueOnce({
       id: 8,
@@ -226,7 +227,7 @@ describe("prompts create/update/restore flows", () => {
 
   it("requeues thumbnail generation from regenerate endpoint", async () => {
     const app = await buildPromptsApp();
-    prompt.findFirst.mockResolvedValueOnce({
+    prompt.findUnique.mockResolvedValueOnce({
       id: 7,
       teamId: 1,
       ownerId: 1,
@@ -244,9 +245,7 @@ describe("prompts create/update/restore flows", () => {
       modelHint: null,
       thumbnailStatus: "PENDING",
     });
-    prompt.findUnique.mockResolvedValueOnce({ id: 7, title: "T", summary: null, body: "body" });
     mockGeneratePromptThumbnail.mockResolvedValueOnce("https://example.com/new.png");
-    prompt.update.mockResolvedValueOnce({ id: 7 });
 
     const response = await request(app).post("/api/prompts/7/regenerate-thumbnail");
 
@@ -263,7 +262,7 @@ describe("prompts create/update/restore flows", () => {
 
   it("replaces prompt variables", async () => {
     const app = await buildPromptsApp();
-    prompt.findFirst
+    prompt.findUnique
       .mockResolvedValueOnce({ id: 9, teamId: 1, ownerId: 1, body: "x", visibility: "PUBLIC" })
       .mockResolvedValueOnce({
         id: 9,

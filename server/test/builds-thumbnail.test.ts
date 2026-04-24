@@ -9,6 +9,7 @@ const prismaMock = buildPrismaMock();
 
 vi.mock("../src/middleware/auth", () => ({
   requireAuth: (_req: unknown, _res: unknown, next: () => void) => next(),
+  requireOnboardingComplete: (_req: unknown, _res: unknown, next: () => void) => next(),
   requireRole: () => (_req: unknown, _res: unknown, next: () => void) => next(),
   requireWriteAccess: (_req: unknown, _res: unknown, next: () => void) => next(),
   getAuthContext: () => ({ userId: 1, teamId: 1, role: "MEMBER" }),
@@ -125,7 +126,7 @@ describe("builds thumbnail upload + AI-skip behavior", () => {
 
   it("uploads a user-provided thumbnail and stores a /uploads URL", async () => {
     const app = await buildBuildsApp();
-    build.findFirst.mockResolvedValue({
+    build.findUnique.mockResolvedValue({
       id: 77,
       teamId: 1,
       ownerId: 1,
@@ -170,7 +171,7 @@ describe("builds thumbnail upload + AI-skip behavior", () => {
 
   it("rejects a non-image upload with a 500-class multer error", async () => {
     const app = await buildBuildsApp();
-    build.findFirst.mockResolvedValue({
+    build.findUnique.mockResolvedValue({
       id: 77,
       teamId: 1,
       ownerId: 1,
@@ -192,7 +193,7 @@ describe("builds thumbnail upload + AI-skip behavior", () => {
 
   it("returns 403 when a non-owner/non-admin tries to upload", async () => {
     const app = await buildBuildsApp();
-    build.findFirst.mockResolvedValue({
+    build.findUnique.mockResolvedValue({
       id: 77,
       teamId: 1,
       ownerId: 999,
@@ -209,7 +210,7 @@ describe("builds thumbnail upload + AI-skip behavior", () => {
 
   it("returns 400 when no file is attached", async () => {
     const app = await buildBuildsApp();
-    build.findFirst.mockResolvedValue({
+    build.findUnique.mockResolvedValue({
       id: 77,
       teamId: 1,
       ownerId: 1,

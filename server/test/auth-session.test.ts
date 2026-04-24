@@ -26,11 +26,11 @@ async function buildAuthTestApp() {
   );
 
   app.post("/test/login", (req, res) => {
-    req.session.auth = { userId: 1, teamId: 1, role: "MEMBER" };
+    req.session.auth = { userId: 1, teamId: 1, role: "MEMBER", userOu: null, onboardingCompleted: true };
     req.session.save(() => res.status(200).json({ ok: true }));
   });
   app.post("/test/login-malformed", (req, res) => {
-    req.session.auth = { userId: Number.NaN, teamId: 1, role: "MEMBER" };
+    req.session.auth = { userId: Number.NaN, teamId: 1, role: "MEMBER", userOu: null, onboardingCompleted: false };
     req.session.save(() => res.status(200).json({ ok: true }));
   });
 
@@ -58,8 +58,13 @@ describe("auth session endpoints", () => {
       id: 1,
       email: "user@example.com",
       name: "User",
+      avatarUrl: null,
+      region: null,
+      ou: null,
+      title: null,
       role: "MEMBER",
       teamId: 1,
+      onboardingCompleted: true,
     });
 
     await agent.post("/test/login").expect(200);

@@ -7,6 +7,7 @@ const prismaMock = buildPrismaMock();
 
 vi.mock("../src/middleware/auth", () => ({
   requireAuth: (_req: unknown, _res: unknown, next: () => void) => next(),
+  requireOnboardingComplete: (_req: unknown, _res: unknown, next: () => void) => next(),
   requireRole: () => (_req: unknown, _res: unknown, next: () => void) => next(),
   requireWriteAccess: (_req: unknown, _res: unknown, next: () => void) => next(),
   getAuthContext: () => ({ userId: 1, teamId: 1, role: "MEMBER" }),
@@ -63,6 +64,48 @@ describe("skills API", () => {
     );
   });
 
+  it("creates a skill with a Salesforce enterprise Slack skill URL", async () => {
+    const app = await buildSkillsApp();
+    const slackSkillUrl = "https://salesforce.enterprise.slack.com/skills/F01234ABCDE";
+    skill.create.mockResolvedValue({
+      id: 4,
+      teamId: 1,
+      ownerId: 1,
+      title: "Slack Skill",
+      summary: null,
+      skillUrl: slackSkillUrl,
+      visibility: "PUBLIC",
+      status: "DRAFT",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      owner: { id: 1, name: "U", avatarUrl: null },
+    });
+
+    const response = await request(app).post("/api/skills").send({
+      title: "Slack Skill",
+      skillUrl: slackSkillUrl,
+    });
+
+    expect(response.status).toBe(201);
+    expect(skill.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ skillUrl: slackSkillUrl }),
+      }),
+    );
+  });
+
+  it("rejects skillUrl that is neither an archive nor a Slack enterprise skill link", async () => {
+    const app = await buildSkillsApp();
+
+    const response = await request(app).post("/api/skills").send({
+      title: "Bad",
+      skillUrl: "https://example.com/readme.md",
+    });
+
+    expect(response.status).toBe(400);
+    expect(skill.create).not.toHaveBeenCalled();
+  });
+
   it("lists skills with pagination meta", async () => {
     const app = await buildSkillsApp();
     skill.findMany.mockResolvedValue([
@@ -90,7 +133,7 @@ describe("skills API", () => {
 
   it("updates a skill with PATCH", async () => {
     const app = await buildSkillsApp();
-    skill.findFirst.mockResolvedValue({
+    skill.findUnique.mockResolvedValue({
       id: 2,
       teamId: 1,
       ownerId: 1,

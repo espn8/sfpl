@@ -4,11 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
 import { useToast } from "../../app/providers/ToastProvider";
+import { AssetCollectionMenu } from "../../components/AssetCollectionMenu";
 import { AssetDetailActionBar } from "../../components/AssetDetailActionBar";
 import { ConfirmDeleteModal } from "../../components/ConfirmDeleteModal";
+import { buildShareUrl, shareOrCopyLink } from "../../lib/shareOrCopyLink";
 import { fetchMe } from "../auth/api";
 import { canCreateContent } from "../auth/roles";
 import {
+  archivePrompt,
   deletePromptPermanently,
   getPrompt,
   listPromptVersions,
@@ -26,20 +29,10 @@ import {
   LAUNCH_PROVIDER_IDS,
   type LaunchProviderId,
 } from "./launchProviders";
-import {
-  CalendarIcon,
-  CopyIcon,
-  EyeIcon,
-  HeartIcon,
-  ShareIcon,
-  SparkleIcon,
-} from "./promptActionIcons";
-import { PromptCollectionMenu } from "./PromptCollectionMenu";
-import { formatPromptActivityLabel } from "./promptActivityLabel";
-import { buildPromptTagChips, promptOwnerAvatarUrl } from "./promptTagChips";
+import { CopyIcon, HeartIcon, ShareIcon, SparkleIcon } from "./promptActionIcons";
+import { buildPromptTagChips } from "./promptTagChips";
 import { PromptAverageStars, PromptRateStars } from "./PromptStars";
 import { PromptThumbnail } from "./PromptThumbnail";
-import { shareOrCopyPromptLink } from "./sharePrompt";
 import { AssetBadges } from "../assets/badges";
 import { VerificationBanner } from "../assets/VerificationControls";
 
@@ -78,7 +71,7 @@ export function PromptDetailPage() {
   const promptQuery = useQuery({
     queryKey: ["prompt", promptId],
     queryFn: () => getPrompt(promptId),
-    enabled: Number.isInteger(promptId),
+    enabled: Number.isInteger(promptId) && promptId > 0,
   });
   const meQuery = useQuery({
     queryKey: ["auth", "me"],
@@ -95,7 +88,7 @@ export function PromptDetailPage() {
   const versionsQuery = useQuery({
     queryKey: ["prompt", promptId, "versions"],
     queryFn: () => listPromptVersions(promptId),
-    enabled: Number.isInteger(promptId) && Boolean(promptQuery.data),
+    enabled: Number.isInteger(promptId) && promptId > 0 && Boolean(promptQuery.data),
   });
   const restoreMutation = useMutation({
     mutationFn: (version: number) => restorePromptVersion(promptId, version),
@@ -119,6 +112,14 @@ export function PromptDetailPage() {
       setFavorited(data.favorited);
       await queryClient.invalidateQueries({ queryKey: ["prompt", promptId] });
       await queryClient.invalidateQueries({ queryKey: ["prompts"] });
+    },
+  });
+  const archiveMutation = useMutation({
+    mutationFn: () => archivePrompt(promptId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["prompts"] });
+      trackEvent("prompt_archive", { prompt_id: promptId });
+      navigate("/");
     },
   });
   const deleteMutation = useMutation({
@@ -179,18 +180,22 @@ export function PromptDetailPage() {
   const canCopyOrLaunch = composed.missingRequiredKeys.length === 0 && composed.text.length > 0;
 
   useEffect(() => {
-    if (Number.isInteger(promptId)) {
+    if (Number.isInteger(promptId) && promptId > 0) {
       void logUsage(promptId, "VIEW");
       trackEvent("prompt_view", { prompt_id: promptId });
     }
   }, [promptId]);
 
-  if (promptQuery.isLoading || meQuery.isLoading) {
-    return <p>Just a moment...</p>;
+  if (!Number.isInteger(promptId) || promptId <= 0) {
+    return <p className="text-sm text-(--color-text-muted)">Invalid prompt.</p>;
   }
 
-  if (!promptData) {
-    return <p className="text-red-700">This prompt doesn't exist or may have been removed.</p>;
+  if (promptQuery.isLoading) {
+    return <p className="text-sm text-(--color-text-muted)">Loading…</p>;
+  }
+
+  if (promptQuery.isError || !promptData) {
+    return <p className="text-sm text-red-600">This prompt doesn't exist or may have been removed.</p>;
   }
 
   const averageRating =
@@ -199,20 +204,19 @@ export function PromptDetailPage() {
       : null;
 
   const me = meQuery.data;
+  const ownerUserId =
+    typeof promptData.owner?.id === "number"
+      ? promptData.owner.id
+      : typeof promptData.ownerId === "number"
+        ? promptData.ownerId
+        : undefined;
   const canEdit =
-    me !== undefined &&
+    me &&
     canCreateContent(me.role) &&
-    (me.role === "OWNER" || me.role === "ADMIN" || (typeof promptData.ownerId === "number" && me.id === promptData.ownerId));
-  const canDelete =
-    me !== undefined &&
-    canCreateContent(me.role) &&
-    typeof promptData.ownerId === "number" &&
-    me.id === promptData.ownerId;
+    (me.role === "OWNER" || me.role === "ADMIN" || (typeof ownerUserId === "number" && me.id === ownerUserId));
+  const canDelete = me && canCreateContent(me.role) && typeof ownerUserId === "number" && me.id === ownerUserId;
   const canRestoreVersions = canEdit;
-  const isOwnAsset =
-    me !== undefined &&
-    typeof promptData.ownerId === "number" &&
-    me.id === promptData.ownerId;
+  const isOwnAsset = Boolean(me && typeof ownerUserId === "number" && me.id === ownerUserId);
 
   const latestVersionNumber =
     versionsQuery.data && versionsQuery.data.length > 0 ? versionsQuery.data[0].version : null;
@@ -228,14 +232,17 @@ export function PromptDetailPage() {
     modality: promptData.modality,
     modelHint: promptData.modelHint,
   });
-  const activityLabel = formatPromptActivityLabel(promptData.createdAt, promptData.updatedAt);
-  const shareUrl =
-    typeof window !== "undefined" ? `${window.location.origin}/prompts/${promptId}` : `/prompts/${promptId}`;
+  const shareUrl = buildShareUrl(`/prompts/${promptId}`);
   const varCount = promptData.variables?.length ?? 0;
   const useLabel = varCount > 0 ? `Use prompt (${varCount})` : "Use prompt";
 
+  const handleShare = async () => {
+    await shareOrCopyLink(promptData.title, shareUrl);
+    trackEvent("prompt_share", { prompt_id: promptId, source: "detail" });
+  };
+
   return (
-    <div className="space-y-4">
+    <article className="space-y-4">
       <VerificationBanner
         assetType="prompt"
         assetId={promptId}
@@ -245,62 +252,29 @@ export function PromptDetailPage() {
         verificationDueAt={promptData.verificationDueAt}
         archiveReason={promptData.archiveReason}
       />
-      <div className="overflow-hidden rounded-xl border border-(--color-border) bg-(--color-surface)">
+      <div className="flex gap-4">
         <PromptThumbnail
           title={promptData.title}
           thumbnailUrl={promptData.thumbnailUrl}
           thumbnailStatus={promptData.thumbnailStatus}
-          className="h-48 w-full object-cover"
+          className="h-28 w-28 shrink-0 rounded object-cover"
           onRegenerate={canEdit ? () => regenerateMutation.mutate() : undefined}
           isRegenerating={regenerateMutation.isPending}
         />
-        <div className="p-4">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <h2 id="prompt-detail-title" className="text-2xl font-semibold">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-medium uppercase tracking-wide text-(--color-text-muted)">Prompt</p>
+          <div className="flex items-start gap-2">
+            <h1 id="prompt-detail-title" className="text-2xl font-semibold">
               {promptData.title} <span className="text-(--color-text-muted)">[Prompt]</span>
-            </h2>
-          <AssetBadges
-            createdAt={promptData.createdAt}
-            updatedAt={promptData.updatedAt}
-            isSmartPick={promptData.isSmartPick}
-            favoriteCount={promptData.favoriteCount}
-          />
-          </div>
-          <div className="mt-2">
-            <PromptAverageStars
-              value={averageRating}
-              size="md"
-              ratingCount={promptData.ratings?.length ?? 0}
-              flagCounts={promptData.flagCounts}
+            </h1>
+            <AssetBadges
+              createdAt={promptData.createdAt}
+              updatedAt={promptData.updatedAt}
+              isSmartPick={promptData.isSmartPick}
+              favoriteCount={promptData.favoriteCount}
             />
           </div>
-          <div className="mt-3 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm text-(--color-text-muted)">
-            <span className="flex min-w-0 items-center gap-2">
-              <img
-                src={promptOwnerAvatarUrl(owner)}
-                alt=""
-                className="h-8 w-8 shrink-0 rounded-full border border-(--color-border) bg-(--color-surface-muted) object-cover"
-              />
-              <span className="truncate font-medium text-(--color-text)">{owner.name ?? "Unknown"}</span>
-            </span>
-            <span className="text-(--color-border)" aria-hidden>
-              ·
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <EyeIcon className="h-4 w-4 shrink-0" aria-hidden />
-              <span>{viewCount.toLocaleString()} views</span>
-            </span>
-            <span className="text-(--color-border)" aria-hidden>
-              ·
-            </span>
-            <span
-              className="inline-flex items-center gap-1"
-              title={`Created ${new Date(promptData.createdAt).toLocaleString()}`}
-            >
-              <CalendarIcon className="h-4 w-4 shrink-0" aria-hidden />
-              <span>{activityLabel || "—"}</span>
-            </span>
-          </div>
+          {promptData.summary ? <p className="mt-1 text-(--color-text-muted)">{promptData.summary}</p> : null}
           {detailTagChips.length > 0 ? (
             <div className="mt-3 flex flex-wrap gap-2">
               {detailTagChips.map((label, index) => (
@@ -313,30 +287,81 @@ export function PromptDetailPage() {
               ))}
             </div>
           ) : null}
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-(--color-border) pt-3">
-            {isOwnAsset ? (
-              <span className="text-sm italic text-(--color-text-muted)">
-                You can't rate your own prompt.
-              </span>
-            ) : (
-              <>
-                <span className="text-sm text-(--color-text-muted)">How helpful was this prompt?</span>
-                <PromptRateStars
-                  value={myRating}
-                  disabled={rateMutation.isPending}
-                  size="md"
-                  showFlags
-                  onChange={(value, extras) => {
-                    rateMutation.mutate({ value, feedbackFlags: extras?.feedbackFlags });
-                    trackEvent("prompt_rate", { prompt_id: promptId, value });
-                  }}
-                />
-              </>
-            )}
-          </div>
         </div>
       </div>
-      {promptData.summary ? <p className="text-(--color-text-muted)">{promptData.summary}</p> : null}
+      {canEdit || canDelete ? (
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div></div>
+          <div className="flex flex-wrap gap-2">
+            {canEdit ? (
+              <Link
+                to={`/prompts/${promptId}/edit`}
+                className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-1.5 text-sm hover:bg-(--color-surface)"
+              >
+                Edit
+              </Link>
+            ) : null}
+            {canEdit ? (
+              <button
+                type="button"
+                className="rounded border border-amber-200 px-3 py-1.5 text-sm text-amber-700 hover:bg-amber-50 disabled:opacity-50 dark:border-amber-900 dark:text-amber-300 dark:hover:bg-amber-950/40"
+                disabled={archiveMutation.isPending || promptData.status === "ARCHIVED"}
+                onClick={() => {
+                  if (window.confirm("Archive this prompt?")) {
+                    archiveMutation.mutate(undefined, {
+                      onError: () => {
+                        showToast("Could not archive this prompt.");
+                      },
+                    });
+                  }
+                }}
+              >
+                Archive
+              </button>
+            ) : null}
+            {canDelete ? (
+              <button
+                type="button"
+                className="rounded border border-red-200 px-3 py-1.5 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/40"
+                onClick={() => setShowDeleteModal(true)}
+              >
+                Delete
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+      <p className="text-sm text-(--color-text-muted)">
+        {promptData.status} · {promptData.visibility} · Owner {owner.name ?? `#${owner.id}`} ·{" "}
+        {viewCount.toLocaleString()} views · Updated {new Date(promptData.updatedAt).toLocaleString()}
+      </p>
+      <div className="mt-2">
+        <PromptAverageStars
+          value={averageRating}
+          size="md"
+          ratingCount={promptData.ratings?.length ?? 0}
+          flagCounts={promptData.flagCounts}
+        />
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded border border-(--color-border) bg-(--color-surface) px-3 py-2">
+        {isOwnAsset ? (
+          <span className="text-sm italic text-(--color-text-muted)">You can't rate your own prompt.</span>
+        ) : (
+          <>
+            <span className="text-sm text-(--color-text-muted)">How helpful was this prompt?</span>
+            <PromptRateStars
+              value={myRating}
+              disabled={rateMutation.isPending}
+              size="md"
+              showFlags
+              onChange={(value, extras) => {
+                rateMutation.mutate({ value, feedbackFlags: extras?.feedbackFlags });
+                trackEvent("prompt_rate", { prompt_id: promptId, value });
+              }}
+            />
+          </>
+        )}
+      </div>
 
       {hasVariables ? (
         <section className="space-y-3 rounded border border-(--color-border) bg-(--color-surface) p-4">
@@ -399,14 +424,11 @@ export function PromptDetailPage() {
               type="button"
               className="rounded-md border border-transparent p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text)"
               aria-label="Share prompt link"
-              onClick={() => {
-                void shareOrCopyPromptLink(promptData.title, shareUrl);
-                trackEvent("prompt_share", { prompt_id: promptId, source: "detail" });
-              }}
+              onClick={() => void handleShare()}
             >
               <ShareIcon className="h-5 w-5" />
             </button>
-            <PromptCollectionMenu promptId={promptId} promptTitle={promptData.title} />
+            <AssetCollectionMenu assetId={promptId} assetTitle={promptData.title} assetType="prompt" />
             <button
               type="button"
               disabled={favoriteMutation.isPending}
@@ -485,28 +507,6 @@ export function PromptDetailPage() {
           </button>
         }
       />
-
-      {canEdit || canDelete ? (
-        <div className="flex flex-wrap gap-2">
-          {canEdit ? (
-            <Link
-              to={`/prompts/${promptId}/edit`}
-              className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-1.5 text-sm hover:bg-(--color-surface)"
-            >
-              Edit
-            </Link>
-          ) : null}
-          {canDelete ? (
-            <button
-              type="button"
-              className="rounded border border-red-200 px-3 py-1.5 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/40"
-              onClick={() => setShowDeleteModal(true)}
-            >
-              Delete
-            </button>
-          ) : null}
-        </div>
-      ) : null}
 
       <details className="rounded border border-(--color-border) bg-(--color-surface) p-4">
         <summary className="cursor-pointer text-sm font-semibold uppercase tracking-wide text-(--color-text-muted)">
@@ -588,6 +588,6 @@ export function PromptDetailPage() {
         onConfirm={() => deleteMutation.mutate()}
         onCancel={() => setShowDeleteModal(false)}
       />
-    </div>
+    </article>
   );
 }

@@ -51,6 +51,8 @@ export function archiveReasonLabel(reason: ArchiveReason | null | undefined): st
       return "Archived: inactive 30+ days";
     case "LOW_RATING":
       return "Archived: low rating";
+    case "PROFILE_INCOMPLETE":
+      return "Archived: profile setup incomplete";
     default:
       return null;
   }

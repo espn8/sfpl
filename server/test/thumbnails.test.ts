@@ -9,6 +9,7 @@ const mockSkillFindUnique = vi.fn();
 
 vi.mock("../src/middleware/auth", () => ({
   requireAuth: (_req: unknown, _res: unknown, next: () => void) => next(),
+  requireOnboardingComplete: (_req: unknown, _res: unknown, next: () => void) => next(),
   getAuthContext: () => ({ userId: 1, teamId: 1, role: "MEMBER", userOu: null }),
 }));
 

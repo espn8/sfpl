@@ -17,7 +17,7 @@ export type AssetVariable = {
 };
 
 export type FeedbackFlag = "WORKED_WELL" | "DID_NOT_WORK" | "INACCURATE" | "OUTDATED" | "OFF_TOPIC";
-export type ArchiveReason = "MANUAL" | "UNVERIFIED" | "INACTIVE" | "LOW_RATING";
+export type ArchiveReason = "MANUAL" | "UNVERIFIED" | "INACTIVE" | "LOW_RATING" | "PROFILE_INCOMPLETE";
 
 export type UnifiedAsset = {
   id: number;

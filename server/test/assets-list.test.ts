@@ -19,6 +19,7 @@ const noopFindMany = vi.fn().mockResolvedValue([]);
 
 vi.mock("../src/middleware/auth", () => ({
   requireAuth: (_req: unknown, _res: unknown, next: () => void) => next(),
+  requireOnboardingComplete: (_req: unknown, _res: unknown, next: () => void) => next(),
   requireRole: () => (_req: unknown, _res: unknown, next: () => void) => next(),
   requireWriteAccess: (_req: unknown, _res: unknown, next: () => void) => next(),
   getAuthContext: () => ({ userId: 1, teamId: 1, role: "MEMBER", userOu: null }),
@@ -347,6 +348,35 @@ describe("GET /api/assets payload shape", () => {
 
     expect(response.body.meta.snapshot).toBeDefined();
     expect(mockUserCount).toHaveBeenCalledTimes(1);
+  });
+
+  it("includes owner display name in text search (q) for every asset type", async () => {
+    const { createApp } = await import("../src/app");
+    const app = createApp({ sessionStore: new session.MemoryStore() });
+
+    const response = await request(app).get("/api/assets?sort=recent&q=SomeName");
+    expect(response.status).toBe(200);
+
+    const expectOwnerInTextOr = (where: unknown) => {
+      const w = where as { AND?: unknown[] };
+      expect(w?.AND).toBeDefined();
+      // Visibility uses AND[0].OR; text search is another AND entry whose OR includes title/summary/body.
+      const textBlock = w!.AND!.find((clause) => {
+        if (typeof clause !== "object" || clause === null || !("OR" in clause)) return false;
+        const or = (clause as { OR: unknown[] }).OR;
+        return or.some((item) => typeof item === "object" && item !== null && "title" in item);
+      });
+      expect(textBlock).toBeDefined();
+      const or = (textBlock as { OR: Array<Record<string, unknown>> }).OR;
+      expect(or).toContainEqual({
+        owner: { name: { contains: "SomeName", mode: "insensitive" } },
+      });
+    };
+
+    expectOwnerInTextOr(mockPromptFindMany.mock.calls[0]?.[0]?.where);
+    expectOwnerInTextOr(mockSkillFindMany.mock.calls[0]?.[0]?.where);
+    expectOwnerInTextOr(mockContextFindMany.mock.calls[0]?.[0]?.where);
+    expectOwnerInTextOr(mockBuildFindMany.mock.calls[0]?.[0]?.where);
   });
 
   it("sets Cache-Control to private+max-age=30 for non-mine list responses", async () => {

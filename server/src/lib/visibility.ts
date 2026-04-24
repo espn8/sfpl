@@ -83,3 +83,20 @@ export function canAccessByVisibility(asset: AccessibleAsset, auth: AuthContext)
   }
   return false;
 }
+
+/**
+ * Who may change an asset's content, status, or metadata (except routes that intentionally
+ * restrict to asset owner only, e.g. permanent delete):
+ * - The asset owner, even when their session `teamId` no longer matches the row (e.g. user
+ *   moved workspaces but the asset row was not backfilled).
+ * - Workspace `ADMIN` / `OWNER` role for assets that belong to their current team.
+ */
+export function canMutateTeamScopedAsset(asset: { ownerId: number; teamId: number }, auth: AuthContext): boolean {
+  if (asset.ownerId === auth.userId) {
+    return true;
+  }
+  if (auth.role === "OWNER" || auth.role === "ADMIN") {
+    return asset.teamId === auth.teamId;
+  }
+  return false;
+}

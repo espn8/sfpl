@@ -8,6 +8,7 @@ const mockContextFindMany = vi.fn();
 
 vi.mock("../src/middleware/auth", () => ({
   requireAuth: (_req: unknown, _res: unknown, next: () => void) => next(),
+  requireOnboardingComplete: (_req: unknown, _res: unknown, next: () => void) => next(),
   getAuthContext: () => ({ userId: 1, teamId: 1, role: "MEMBER", userOu: "engineering" }),
 }));
 
@@ -63,6 +64,27 @@ describe("search suggestions endpoint", () => {
       filterKey: "tool",
       filterValue: "cursor",
       label: "Tool: Cursor",
+    });
+  });
+
+  it("includes owner display name in suggestion search where clause", async () => {
+    const app = await buildSearchApp();
+    mockPromptFindMany.mockResolvedValue([]);
+    mockSkillFindMany.mockResolvedValue([]);
+    mockContextFindMany.mockResolvedValue([]);
+
+    await request(app).get("/api/search/suggestions?q=smith");
+
+    const promptWhere = mockPromptFindMany.mock.calls[0]?.[0]?.where as { AND?: unknown[] } | undefined;
+    expect(promptWhere?.AND).toBeDefined();
+    const textBlock = promptWhere!.AND!.find((clause) => {
+      if (typeof clause !== "object" || clause === null || !("OR" in clause)) return false;
+      const or = (clause as { OR: unknown[] }).OR;
+      return or.some((item) => typeof item === "object" && item !== null && "title" in item);
+    });
+    const or = (textBlock as { OR: Array<Record<string, unknown>> }).OR;
+    expect(or).toContainEqual({
+      owner: { name: { contains: "smith", mode: "insensitive" } },
     });
   });
 

@@ -180,6 +180,7 @@ export function ContextDetailPage() {
   const handleDownload = () => {
     const safeTitle = doc.title.replace(/[^a-zA-Z0-9-_]/g, "_").slice(0, 50);
     downloadAsMarkdown(composed.text, `${safeTitle}.md`);
+    void logContextUsage(docId, "COPY");
     trackEvent("context_download", { context_id: docId, source: "detail" });
   };
 

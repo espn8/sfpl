@@ -5,6 +5,7 @@ import { z } from "zod";
 import { prisma } from "../../lib/prisma";
 import { PromptModality } from "@prisma/client";
 import { env } from "../../config/env";
+import { ARCHIVE_EXTENSIONS, isValidSkillPackageUrl, SLACK_ENTERPRISE_SKILLS_URL_PREFIX } from "../../lib/skillUrl";
 import { generatePromptThumbnail } from "../../services/nanoBanana";
 
 const v1Router = Router();
@@ -37,6 +38,7 @@ async function requireApiKey(req: Request, res: Response, next: NextFunction): P
           teamId: true,
           role: true,
           ou: true,
+          onboardingCompleted: true,
         },
       },
     },
@@ -66,6 +68,16 @@ async function requireApiKey(req: Request, res: Response, next: NextFunction): P
   if (apiKey.user.role === "VIEWER") {
     res.status(403).json({
       error: { code: "FORBIDDEN", message: "Viewer accounts cannot create content via API." },
+    });
+    return;
+  }
+
+  if (!apiKey.user.onboardingCompleted) {
+    res.status(403).json({
+      error: {
+        code: "PROFILE_SETUP_REQUIRED",
+        message: "Complete your profile in the web app before using the API.",
+      },
     });
     return;
   }
@@ -188,22 +200,10 @@ v1Router.post("/prompts", async (req: Request, res: Response) => {
   });
 });
 
-const ARCHIVE_EXTENSIONS = [".zip", ".tar", ".tar.gz", ".tgz", ".tar.bz2", ".7z", ".rar"];
-
-function isValidArchiveUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    const pathname = parsed.pathname.toLowerCase();
-    return ARCHIVE_EXTENSIONS.some((ext) => pathname.endsWith(ext));
-  } catch {
-    return false;
-  }
-}
-
 const createSkillSchema = z.object({
   title: z.string().trim().min(1, "title is required"),
-  skillUrl: z.string().url("skillUrl must be a valid URL").refine(isValidArchiveUrl, {
-    message: "skillUrl must link to a compressed file (.zip, .tar, .tar.gz, .tgz, .tar.bz2, .7z, or .rar)",
+  skillUrl: z.string().url("skillUrl must be a valid URL").refine(isValidSkillPackageUrl, {
+    message: `skillUrl must link to a compressed file (${ARCHIVE_EXTENSIONS.join(", ")}) or a Slack skill URL beginning with ${SLACK_ENTERPRISE_SKILLS_URL_PREFIX}`,
   }),
   summary: z.string().trim().optional(),
   supportUrl: z.string().url().optional().or(z.literal("")),

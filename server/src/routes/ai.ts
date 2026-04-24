@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { z } from "zod";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireOnboardingComplete } from "../middleware/auth";
 import { aiRewriteRateLimit } from "../middleware/rateLimit";
 import { SUMMARY_MAX_CHARS } from "../lib/summaryLimits";
 import { generateSummaryRewrite } from "../services/summaryRewrite";
@@ -22,6 +22,7 @@ const summaryRewriteSchema = z.object({
 });
 
 aiRouter.use(requireAuth);
+aiRouter.use(requireOnboardingComplete);
 aiRouter.use(aiRewriteRateLimit);
 
 aiRouter.post("/summary-rewrite", async (req: Request, res: Response) => {

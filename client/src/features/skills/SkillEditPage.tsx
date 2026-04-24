@@ -9,8 +9,9 @@ import {
   getSkillToolsSortedAlphabetically,
   getSkillToolLabel,
   updateSkill,
-  isValidArchiveUrl,
+  isValidSkillPackageUrl,
   ARCHIVE_EXTENSIONS,
+  SLACK_ENTERPRISE_SKILLS_URL_PREFIX,
 } from "./api";
 
 export function SkillEditPage() {
@@ -97,8 +98,10 @@ export function SkillEditPage() {
           setValidationError("Skill URL must be a valid URL.");
           return;
         }
-        if (!isValidArchiveUrl(skillUrl)) {
-          setValidationError(`Skill URL must link to a compressed file (${ARCHIVE_EXTENSIONS.join(", ")}).`);
+        if (!isValidSkillPackageUrl(skillUrl)) {
+          setValidationError(
+            `Skill URL must be a compressed file (${ARCHIVE_EXTENSIONS.join(", ")}) or a Slack skill URL beginning with ${SLACK_ENTERPRISE_SKILLS_URL_PREFIX}.`,
+          );
           return;
         }
         if (supportUrl && !isValidUrl(supportUrl)) {
@@ -222,12 +225,13 @@ export function SkillEditPage() {
             type="url"
             value={skillUrl}
             onChange={(e) => setSkillUrl(e.target.value)}
-            placeholder="https://example.com/my-skill.zip"
+            placeholder="https://example.com/my-skill.zip or Slack skill URL"
             required
             className="w-full rounded border border-(--color-border) bg-(--color-surface) px-3 py-2"
           />
           <p className="mt-1 text-xs text-(--color-text-muted)">
-            Link to the skill package file. Must be a compressed file ({ARCHIVE_EXTENSIONS.join(", ")}).
+            Link to the skill package file or Slack. Use a compressed file ({ARCHIVE_EXTENSIONS.join(", ")}) or a Slack
+            skill URL that begins with {SLACK_ENTERPRISE_SKILLS_URL_PREFIX}
           </p>
         </div>
         <div>

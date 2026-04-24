@@ -2,9 +2,10 @@ import { Prisma } from "@prisma/client";
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { z } from "zod";
-import { getAuthContext, requireAuth } from "../middleware/auth";
+import { getAuthContext, requireAuth, requireOnboardingComplete } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 import { parseSearchQuery } from "../services/searchParser";
+import { ownerNameSearchClause } from "../lib/assetSearch";
 import { buildVisibilityWhereFragment } from "../lib/visibility";
 
 const searchRouter = Router();
@@ -70,6 +71,7 @@ type SuggestionsResponse = {
 };
 
 searchRouter.use(requireAuth);
+searchRouter.use(requireOnboardingComplete);
 
 searchRouter.get("/suggestions", async (req: Request, res: Response) => {
   const auth = getAuthContext(req);
@@ -123,6 +125,7 @@ searchRouter.get("/suggestions", async (req: Request, res: Response) => {
   const searchTermOr = [
     { title: { contains: q, mode: "insensitive" as const } },
     { summary: { contains: q, mode: "insensitive" as const } },
+    ownerNameSearchClause(q),
   ];
 
   const [prompts, skills, contextDocs] = await Promise.all([

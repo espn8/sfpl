@@ -2,7 +2,7 @@ import type { Prisma } from "@prisma/client";
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { z } from "zod";
-import { getAuthContext, requireAuth } from "../middleware/auth";
+import { getAuthContext, requireAuth, requireOnboardingComplete } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 
 const tagsRouter = Router();
@@ -28,6 +28,7 @@ function badRequestFromZodError(error: z.ZodError) {
 }
 
 tagsRouter.use(requireAuth);
+tagsRouter.use(requireOnboardingComplete);
 
 tagsRouter.get("/", async (req: Request, res: Response) => {
   const auth = getAuthContext(req);

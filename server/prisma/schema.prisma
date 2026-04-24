@@ -681,6 +681,7 @@ enum ArchiveReason {
   UNVERIFIED
   INACTIVE
   LOW_RATING
+  PROFILE_INCOMPLETE
 }
 
 enum FeedbackFlag {

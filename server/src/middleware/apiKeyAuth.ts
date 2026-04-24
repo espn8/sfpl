@@ -29,6 +29,7 @@ export async function authenticateApiKey(req: Request, res: Response, next: Next
             teamId: true,
             role: true,
             ou: true,
+            onboardingCompleted: true,
           },
         },
       },
@@ -60,6 +61,7 @@ export async function authenticateApiKey(req: Request, res: Response, next: Next
       teamId: apiKey.user.teamId,
       role: apiKey.user.role,
       userOu: apiKey.user.ou,
+      onboardingCompleted: apiKey.user.onboardingCompleted,
     };
 
     prisma.apiKey

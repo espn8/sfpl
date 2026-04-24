@@ -66,7 +66,7 @@ export type ContextDocument = {
   lastVerifiedAt?: string | null;
   verificationDueAt?: string | null;
   archivedAt?: string | null;
-  archiveReason?: "MANUAL" | "UNVERIFIED" | "INACTIVE" | "LOW_RATING" | null;
+  archiveReason?: "MANUAL" | "UNVERIFIED" | "INACTIVE" | "LOW_RATING" | "PROFILE_INCOMPLETE" | null;
 };
 
 export type ListContextFilters = {

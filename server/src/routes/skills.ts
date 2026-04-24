@@ -2,7 +2,14 @@ import type { Prisma } from "@prisma/client";
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { z } from "zod";
-import { getAuthContext, requireAuth, requireWriteAccess, type AuthContext } from "../middleware/auth";
+import {
+  getAuthContext,
+  requireAuth,
+  requireOnboardingComplete,
+  requireWriteAccess,
+  type AuthContext,
+} from "../middleware/auth";
+import { ownerNameSearchClause } from "../lib/assetSearch";
 import { prisma } from "../lib/prisma";
 import {
   logManualArchive,
@@ -14,6 +21,7 @@ import { countFlags, didNotWorkRate } from "../services/scoring";
 import {
   buildVisibilityWhereFragment,
   canAccessByVisibility as sharedCanAccessByVisibility,
+  canMutateTeamScopedAsset,
 } from "../lib/visibility";
 import { generatePromptThumbnail } from "../services/nanoBanana";
 import {
@@ -26,6 +34,7 @@ import {
   SUMMARY_TOO_LONG_MESSAGE,
   checkUpdatedSummaryLength,
 } from "../lib/summaryLimits";
+import { ARCHIVE_EXTENSIONS, isValidSkillPackageUrl, SLACK_ENTERPRISE_SKILLS_URL_PREFIX } from "../lib/skillUrl";
 
 const skillsRouter = Router();
 
@@ -35,23 +44,11 @@ const promptStatusSchema = z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]);
 const SKILL_TOOLS = ["agentforce_vibes", "chatgpt", "claude_code", "claude_cowork", "cursor", "gemini", "meshmesh", "notebooklm", "other", "saleo", "slackbot"] as const;
 const skillToolSchema = z.enum(SKILL_TOOLS);
 
-const ARCHIVE_EXTENSIONS = [".zip", ".tar", ".tar.gz", ".tgz", ".tar.bz2", ".7z", ".rar"];
-
-function isValidArchiveUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    const pathname = parsed.pathname.toLowerCase();
-    return ARCHIVE_EXTENSIONS.some((ext) => pathname.endsWith(ext));
-  } catch {
-    return false;
-  }
-}
-
 const skillUrlSchema = z
   .string()
   .url("skillUrl must be a valid URL.")
-  .refine(isValidArchiveUrl, {
-    message: "skillUrl must link to a compressed file (.zip, .tar, .tar.gz, .tgz, .tar.bz2, .7z, or .rar).",
+  .refine(isValidSkillPackageUrl, {
+    message: `skillUrl must link to a compressed file (${ARCHIVE_EXTENSIONS.join(", ")}) or a Slack skill URL beginning with ${SLACK_ENTERPRISE_SKILLS_URL_PREFIX}.`,
   });
 
 function badRequestFromZodError(error: z.ZodError) {
@@ -184,6 +181,7 @@ async function queueSkillThumbnailGeneration(skillId: number) {
 }
 
 skillsRouter.use(requireAuth);
+skillsRouter.use(requireOnboardingComplete);
 
 skillsRouter.get("/", async (req: Request, res: Response) => {
   const auth = getAuthContext(req);
@@ -225,6 +223,7 @@ skillsRouter.get("/", async (req: Request, res: Response) => {
       OR: [
         { title: { contains: q, mode: "insensitive" } },
         { summary: { contains: q, mode: "insensitive" } },
+        ownerNameSearchClause(q),
       ],
     });
   }
@@ -482,12 +481,12 @@ skillsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respons
   }
 
   const skillId = parsedParams.data.id;
-  const existing = await prisma.skill.findFirst({ where: { id: skillId, teamId: auth.teamId } });
+  const existing = await prisma.skill.findUnique({ where: { id: skillId } });
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not found." } });
   }
 
-  if (existing.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
+  if (!canMutateTeamScopedAsset(existing, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can modify this skill." } });
   }
 
@@ -571,12 +570,12 @@ skillsRouter.delete("/:id", requireWriteAccess, async (req: Request, res: Respon
   }
 
   const skillId = parsedParams.data.id;
-  const existing = await prisma.skill.findFirst({ where: { id: skillId, teamId: auth.teamId } });
+  const existing = await prisma.skill.findUnique({ where: { id: skillId } });
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not found." } });
   }
 
-  if (existing.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
+  if (!canMutateTeamScopedAsset(existing, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can archive this skill." } });
   }
 
@@ -600,7 +599,7 @@ skillsRouter.post("/:id/verify", requireWriteAccess, async (req: Request, res: R
     return res.status(400).json(badRequestFromZodError(parsedParams.error));
   }
   const skillId = parsedParams.data.id;
-  const existing = await prisma.skill.findFirst({ where: { id: skillId, teamId: auth.teamId } });
+  const existing = await prisma.skill.findUnique({ where: { id: skillId } });
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not found." } });
   }
@@ -622,7 +621,7 @@ skillsRouter.post("/:id/unarchive", requireWriteAccess, async (req: Request, res
     return res.status(400).json(badRequestFromZodError(parsedParams.error));
   }
   const skillId = parsedParams.data.id;
-  const existing = await prisma.skill.findFirst({ where: { id: skillId, teamId: auth.teamId } });
+  const existing = await prisma.skill.findUnique({ where: { id: skillId } });
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not found." } });
   }
@@ -652,8 +651,8 @@ skillsRouter.post("/:id/transfer-owner", requireWriteAccess, async (req: Request
   }
   const skillId = parsedParams.data.id;
   const { newOwnerId, reason } = parsedBody.data;
-  const existing = await prisma.skill.findFirst({ where: { id: skillId, teamId: auth.teamId } });
-  if (!existing) {
+  const existing = await prisma.skill.findUnique({ where: { id: skillId } });
+  if (!existing || existing.teamId !== auth.teamId) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not found." } });
   }
   const newOwner = await prisma.user.findUnique({ where: { id: newOwnerId }, select: { id: true, teamId: true } });
@@ -677,7 +676,7 @@ skillsRouter.delete("/:id/permanent", requireWriteAccess, async (req: Request, r
   }
 
   const skillId = parsedParams.data.id;
-  const existing = await prisma.skill.findFirst({ where: { id: skillId, teamId: auth.teamId } });
+  const existing = await prisma.skill.findUnique({ where: { id: skillId } });
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not found." } });
   }
@@ -851,12 +850,12 @@ skillsRouter.post("/:id/regenerate-thumbnail", requireWriteAccess, async (req: R
   }
 
   const skillId = parsedParams.data.id;
-  const existing = await prisma.skill.findFirst({ where: { id: skillId, teamId: auth.teamId } });
+  const existing = await prisma.skill.findUnique({ where: { id: skillId } });
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not found." } });
   }
 
-  if (existing.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
+  if (!canMutateTeamScopedAsset(existing, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can modify this skill." } });
   }
 
@@ -1010,12 +1009,12 @@ skillsRouter.post("/:id/restore/:version", requireWriteAccess, async (req: Reque
   const skillId = parsedParams.data.id;
   const targetVersion = parsedParams.data.version;
 
-  const skill = await prisma.skill.findFirst({ where: { id: skillId, teamId: auth.teamId } });
+  const skill = await prisma.skill.findUnique({ where: { id: skillId } });
   if (!skill) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not found." } });
   }
 
-  if (skill.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
+  if (!canMutateTeamScopedAsset(skill, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can restore this skill." } });
   }
 

@@ -7,6 +7,7 @@ const prismaMock = buildPrismaMock();
 
 vi.mock("../src/middleware/auth", () => ({
   requireAuth: (_req: unknown, _res: unknown, next: () => void) => next(),
+  requireOnboardingComplete: (_req: unknown, _res: unknown, next: () => void) => next(),
   requireRole: () => (_req: unknown, _res: unknown, next: () => void) => next(),
   requireWriteAccess: (_req: unknown, _res: unknown, next: () => void) => next(),
   getAuthContext: () => ({ userId: 1, teamId: 1, role: "MEMBER" }),
@@ -75,7 +76,7 @@ describe("context API", () => {
 
   it("archives with DELETE", async () => {
     const app = await buildContextApp();
-    contextDocument.findFirst.mockResolvedValue({ id: 9, teamId: 1, ownerId: 1 });
+    contextDocument.findUnique.mockResolvedValue({ id: 9, teamId: 1, ownerId: 1 });
     const archived = {
       id: 9,
       status: "ARCHIVED",

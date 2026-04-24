@@ -8,7 +8,10 @@ declare module "express-session" {
       teamId: number;
       role: Role;
       userOu: string | null;
+      onboardingCompleted: boolean;
     };
+    /** Set after profile-gate archive runs for this session (user had incomplete onboarding). */
+    profileGateArchiveDone?: boolean;
     oauth?: {
       state: string;
       nonce: string;

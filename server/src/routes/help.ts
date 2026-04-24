@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { searchHelp } from "../services/helpSearch";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireOnboardingComplete } from "../middleware/auth";
 
 const router = Router();
 
@@ -9,7 +9,7 @@ const searchQuerySchema = z.object({
   q: z.string().min(1).max(500),
 });
 
-router.post("/search", requireAuth, async (req, res) => {
+router.post("/search", requireAuth, requireOnboardingComplete, async (req, res) => {
   const parsed = searchQuerySchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({

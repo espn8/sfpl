@@ -66,7 +66,7 @@ The `ProtectedRoute` wrapper in `client/src/app/router.tsx`:
 - Session cookie name: `ailibrary.sid`
 - HttpOnly, secure in production
 - 7-day expiration
-- Contains: `userId`, `teamId`, `role`
+- Contains: `userId`, `teamId`, `role`, `userOu`, `onboardingCompleted` (mirrored from the database for gating)
 
 ### Client Session
 - Managed via TanStack Query
@@ -82,8 +82,13 @@ The `ProtectedRoute` wrapper in `client/src/app/router.tsx`:
 3. No valid session found → redirect to `/login`
 4. User clicks "Continue with Google"
 5. Google OAuth flow completes
-6. Server creates session and redirects to `/`
-7. User can now access all protected content
+6. Server creates session (including `onboardingCompleted` from the database) and redirects to `/`
+7. If `User.onboardingCompleted` is false, the user **must** finish profile setup before using the app:
+   - **Client:** [`AppShell`](client/src/components/AppShell.tsx) shows a blocking welcome dialog (background shell is `inert` / non-interactive until setup completes).
+   - **Server:** All authenticated API routers except profile-related auth routes use `requireOnboardingComplete` after `requireAuth`. Requests receive **403** with `error.code: "PROFILE_SETUP_REQUIRED"` until `PATCH /api/auth/me` succeeds.
+   - **While incomplete:** `GET /api/auth/me` may archive any **PUBLISHED** prompts, skills, context documents, and builds owned by that user (`ArchiveReason.PROFILE_INCOMPLETE`), once per session, so previously published work is not left live without a completed profile.
+8. **Allowed without full onboarding:** `GET /api/auth/me`, `PATCH /api/auth/me`, `POST /api/auth/me/profile-photo`, `POST /api/auth/logout`, and unauthenticated OAuth/health routes. Everything under `/api/prompts`, `/api/skills`, `/api/context`, `/api/builds`, `/api/assets`, `/api/v1/*` (API key), etc. requires completed onboarding.
+9. After profile save, `onboardingCompleted` is true and normal access applies.
 
 ### Subsequent Visits
 1. User visits any route

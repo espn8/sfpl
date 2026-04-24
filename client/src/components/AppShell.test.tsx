@@ -79,5 +79,15 @@ describe("AppShell", () => {
 
     expect(await screen.findByRole("heading", { name: "Welcome to Your AI Toolkit" })).toBeInTheDocument();
     expect(screen.getByText("Complete your profile to get started. It only takes a moment.")).toBeInTheDocument();
+
+    const main = screen.getByRole("main");
+    const gated = main.children[0] as HTMLElement;
+    expect(gated).toHaveAttribute("aria-hidden", "true");
+    expect(gated).toHaveAttribute("inert");
+    expect(gated.className).toContain("pointer-events-none");
+
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+    expect(dialog).toHaveAccessibleName("Welcome to Your AI Toolkit");
   });
 });
