@@ -7,6 +7,7 @@ import { getAuthContext, requireAuth } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 import { timeSection, recordTiming } from "../middleware/requestTiming";
 import { buildVisibilityWhereFragment } from "../lib/visibility";
+import { thumbnailRefFor } from "./thumbnails";
 
 const assetsRouter = Router();
 
@@ -211,7 +212,6 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
           modelHint: true,
           tools: true,
           modality: true,
-          thumbnailUrl: true,
           thumbnailStatus: true,
           isSmartPick: true,
           createdAt: true,
@@ -289,7 +289,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         ratingCount: prompt.ratings.length,
         modality: mapDbModalityToApi(prompt.modality),
         modelHint: prompt.modelHint,
-        thumbnailUrl: prompt.thumbnailUrl,
+        thumbnailUrl: thumbnailRefFor("prompt", prompt.id, prompt.thumbnailStatus, prompt.updatedAt),
         thumbnailStatus: prompt.thumbnailStatus,
         averageRating:
           prompt.ratings.length === 0
@@ -348,7 +348,6 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
           status: true,
           visibility: true,
           tools: true,
-          thumbnailUrl: true,
           thumbnailStatus: true,
           isSmartPick: true,
           createdAt: true,
@@ -424,7 +423,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         status: skill.status,
         visibility: skill.visibility,
         tools: skill.tools,
-        thumbnailUrl: skill.thumbnailUrl,
+        thumbnailUrl: thumbnailRefFor("skill", skill.id, skill.thumbnailStatus, skill.updatedAt),
         thumbnailStatus: skill.thumbnailStatus,
         createdAt: skill.createdAt,
         updatedAt: skill.updatedAt,
@@ -486,7 +485,6 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
           status: true,
           visibility: true,
           tools: true,
-          thumbnailUrl: true,
           thumbnailStatus: true,
           isSmartPick: true,
           createdAt: true,
@@ -561,7 +559,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         status: doc.status,
         visibility: doc.visibility,
         tools: doc.tools,
-        thumbnailUrl: doc.thumbnailUrl,
+        thumbnailUrl: thumbnailRefFor("context", doc.id, doc.thumbnailStatus, doc.updatedAt),
         thumbnailStatus: doc.thumbnailStatus,
         createdAt: doc.createdAt,
         updatedAt: doc.updatedAt,
@@ -621,7 +619,6 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
           supportUrl: true,
           status: true,
           visibility: true,
-          thumbnailUrl: true,
           thumbnailStatus: true,
           isSmartPick: true,
           createdAt: true,
@@ -698,7 +695,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         status: build.status,
         visibility: build.visibility,
         tools: [],
-        thumbnailUrl: build.thumbnailUrl,
+        thumbnailUrl: thumbnailRefFor("build", build.id, build.thumbnailStatus, build.updatedAt),
         thumbnailStatus: build.thumbnailStatus,
         createdAt: build.createdAt,
         updatedAt: build.updatedAt,

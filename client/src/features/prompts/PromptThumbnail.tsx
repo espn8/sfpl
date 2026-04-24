@@ -16,7 +16,15 @@ export function PromptThumbnail({
   isRegenerating,
 }: PromptThumbnailProps) {
   if (thumbnailUrl) {
-    return <img src={thumbnailUrl} alt={`${title} thumbnail`} className={className ?? "h-28 w-28 rounded object-cover"} />;
+    return (
+      <img
+        src={thumbnailUrl}
+        alt={`${title} thumbnail`}
+        loading="lazy"
+        decoding="async"
+        className={className ?? "h-28 w-28 rounded object-cover"}
+      />
+    );
   }
 
   const isFailed = thumbnailStatus === "FAILED";

@@ -21,6 +21,7 @@ import { searchRouter } from "./routes/search";
 import { skillsRouter } from "./routes/skills";
 import { buildsRouter } from "./routes/builds";
 import { tagsRouter } from "./routes/tags";
+import { thumbnailsRouter } from "./routes/thumbnails";
 import { toolRequestsRouter } from "./routes/toolRequests";
 import { apiKeysRouter } from "./routes/apiKeys";
 import { authenticateApiKey } from "./middleware/apiKeyAuth";
@@ -93,6 +94,7 @@ export function createApp(options?: CreateAppOptions): express.Express {
   app.use("/api/collections", collectionsRouter);
   app.use("/api/analytics", analyticsRouter);
   app.use("/api/tags", tagsRouter);
+  app.use("/api/thumbnails", thumbnailsRouter);
   app.use("/api/help", helpRouter);
   app.use("/api/search", searchRouter);
   app.use("/api/tool-requests", toolRequestsRouter);

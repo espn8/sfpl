@@ -189,6 +189,64 @@ describe("GET /api/assets payload shape", () => {
     expect(buildEntry.body).toBe("https://example.com/build");
   });
 
+  it("never selects thumbnailUrl from any table (Phase 2b: lazy thumbnail fetch)", async () => {
+    const { createApp } = await import("../src/app");
+    const app = createApp({ sessionStore: new session.MemoryStore() });
+
+    const response = await request(app).get("/api/assets?sort=recent");
+    expect(response.status).toBe(200);
+
+    const promptSelect = mockPromptFindMany.mock.calls[0]?.[0]?.select as Record<string, unknown> | undefined;
+    const contextSelect = mockContextFindMany.mock.calls[0]?.[0]?.select as Record<string, unknown> | undefined;
+    const buildSelect = mockBuildFindMany.mock.calls[0]?.[0]?.select as Record<string, unknown> | undefined;
+
+    expect(promptSelect?.thumbnailUrl).toBeUndefined();
+    expect(contextSelect?.thumbnailUrl).toBeUndefined();
+    expect(buildSelect?.thumbnailUrl).toBeUndefined();
+    // Status is still selected as the cheap "exists" signal.
+    expect(promptSelect?.thumbnailStatus).toBe(true);
+    expect(contextSelect?.thumbnailStatus).toBe(true);
+    expect(buildSelect?.thumbnailStatus).toBe(true);
+  });
+
+  it("returns a short /api/thumbnails reference URL (never a data: URL) when the row is READY", async () => {
+    const { createApp } = await import("../src/app");
+    const app = createApp({ sessionStore: new session.MemoryStore() });
+
+    const response = await request(app).get("/api/assets?sort=recent");
+    expect(response.status).toBe(200);
+
+    for (const asset of response.body.data as Array<{
+      id: number;
+      assetType: string;
+      thumbnailUrl: string | null;
+    }>) {
+      if (asset.thumbnailUrl === null) continue;
+      expect(asset.thumbnailUrl.startsWith("data:")).toBe(false);
+      expect(asset.thumbnailUrl).toMatch(/^\/api\/thumbnails\/(prompt|context|build|skill)\/\d+\?v=/);
+    }
+
+    const promptEntry = response.body.data.find((a: { assetType: string }) => a.assetType === "prompt");
+    expect(promptEntry.thumbnailUrl).toMatch(/^\/api\/thumbnails\/prompt\/101\?v=/);
+  });
+
+  it("returns null thumbnailUrl when thumbnailStatus is not READY", async () => {
+    mockPromptFindMany.mockResolvedValue([{ ...basePrompt, thumbnailStatus: "PENDING" }]);
+    mockContextFindMany.mockResolvedValue([{ ...baseContext, thumbnailStatus: "FAILED" }]);
+    mockBuildFindMany.mockResolvedValue([]);
+
+    const { createApp } = await import("../src/app");
+    const app = createApp({ sessionStore: new session.MemoryStore() });
+
+    const response = await request(app).get("/api/assets?sort=recent");
+    expect(response.status).toBe(200);
+
+    const promptEntry = response.body.data.find((a: { assetType: string }) => a.assetType === "prompt");
+    const contextEntry = response.body.data.find((a: { assetType: string }) => a.assetType === "context");
+    expect(promptEntry.thumbnailUrl).toBeNull();
+    expect(contextEntry.thumbnailUrl).toBeNull();
+  });
+
   it("keeps response payload under 50 KB for a handful of heavy entries", async () => {
     const bigPrompt = {
       ...basePrompt,
