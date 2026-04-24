@@ -1,11 +1,23 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 24, 2026 — 11:45 CDT
-Build Version: 1184f76 (Heroku release will increment on push)
-App Version: 1.3.3 (root package.json 1.3.2 auto-bumped to 1.3.3 by `scripts/version-bump.js` on Heroku postbuild)
+Last Updated: Friday, April 24, 2026 — 12:12 CDT
+Build Version: f4a807c (Heroku release will increment on push)
+App Version: 1.3.4 (root package.json 1.3.3 auto-bumped to 1.3.4 by `scripts/version-bump.js` on Heroku postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Release: v1.3.4 (April 24, 2026 — 12:12 CDT) — Custom Build thumbnail upload
+
+- **Creators can now upload their own thumbnail image for Builds**, at create time or any time afterwards, instead of (or replacing) the AI-generated image. This feature is scoped only to the `Build` asset type — Prompts, Skills, and Context Documents continue to use AI-generated thumbnails exclusively.
+- **New upload endpoint** `POST /api/builds/:id/thumbnail` ([server/src/routes/builds.ts](server/src/routes/builds.ts)): owner/admin-guarded multipart endpoint that accepts a single `thumbnail` field, enforces a 5 MB cap and `image/jpeg|png|gif|webp` MIME filter, writes the file to `server/public/uploads/` with a `build-<timestamp>-<random><ext>` name, and updates the row with `thumbnailUrl: "/uploads/<filename>"`, `thumbnailStatus: "READY"`, `thumbnailError: null`. On overwrite, best-effort deletes the previous `/uploads/build-*` file so we don't leak disk space. Storage pattern mirrors the existing profile-photo upload in [server/src/routes/auth.ts](server/src/routes/auth.ts).
+- **AI generation skipped when user brings their own image**: `createBuildBodySchema` in `builds.ts` gained an optional `skipThumbnailGeneration: boolean` flag. When true, the create handler does not call `queueBuildThumbnailGeneration`, so no Gemini API call is made and no cost is incurred. The client sets this flag automatically whenever a file is attached to the create form.
+- **BuildEditorPage (create flow)** ([client/src/features/builds/BuildEditorPage.tsx](client/src/features/builds/BuildEditorPage.tsx)): new optional "Thumbnail image" section with a file input, client-side MIME/size validation (JPEG/PNG/GIF/WebP, 5 MB), live `URL.createObjectURL` preview, and a "Remove" button. On submit, if a file is selected, `createBuild` is called with `skipThumbnailGeneration: true` and the upload is chained via `uploadBuildThumbnail(buildId, file)` before navigation. If no file is attached, behavior is unchanged (AI generation runs as before).
+- **BuildEditPage (edit flow)** ([client/src/features/builds/BuildEditPage.tsx](client/src/features/builds/BuildEditPage.tsx)): new independent "Thumbnail image" section shown above the main edit form, decoupled from text-field saves so users can swap an image without re-saving anything else. Includes the current thumbnail preview, file picker, an "Upload image" button wired to `uploadBuildThumbnail`, a "Cancel" button, and a "Use AI-generated image instead" button that calls the existing `regenerateBuildThumbnail` endpoint. All three flows share React Query cache invalidation (`["build", id]`, `["builds"]`) so the UI refreshes immediately.
+- **Client API additions** ([client/src/features/builds/api.ts](client/src/features/builds/api.ts)): `CreateBuildInput.skipThumbnailGeneration?: boolean` and new `uploadBuildThumbnail(id: number, file: File): Promise<Build>` that posts `multipart/form-data` with field name `thumbnail`, following the same pattern as `uploadProfilePhoto` in the auth client.
+- **No Prisma schema change**: the existing `Build.thumbnailUrl String?` column already accepts either an AI-generated data-URI or a `/uploads/...` path, and `ThumbnailStatus.READY` is reused. No migration was run.
+- **Test coverage** (new `server/test/builds-thumbnail.test.ts`, 6 tests, all passing): (1) AI generation is skipped when `skipThumbnailGeneration: true`, (2) AI generation still runs when the flag is omitted, (3) happy-path upload returns 200 and persists `/uploads/build-*` with `thumbnailStatus: READY`, (4) non-image upload is rejected without touching the DB, (5) non-owner, non-admin users get a 403, (6) empty multipart request returns 400. Full server suite: 57/57 passing. Client `tsc --noEmit`: clean.
+- **Version bump**: root, client, server `package.json` now `1.3.3`; `heroku-postbuild` / `scripts/version-bump.js` increments the patch on deploy, so the production footer will display `v1.3.4` after this release.
 
 ### Release: v1.3.3 (April 24, 2026 — 11:45 CDT) — Admin Dashboard and admin-only Help
 

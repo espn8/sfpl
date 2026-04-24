@@ -76,7 +76,18 @@ export function requireRole(roles: Role[]) {
         }
       }
 
-      if (!req.session.auth || !roles.includes(req.session.auth.role)) {
+      if (!req.session.auth) {
+        res.status(403).json({
+          error: {
+            code: "FORBIDDEN",
+            message: "Insufficient permissions.",
+          },
+        });
+        return;
+      }
+
+      const currentRole = await refreshSessionRoleFromDb(req);
+      if (!currentRole || !roles.includes(currentRole)) {
         res.status(403).json({
           error: {
             code: "FORBIDDEN",
@@ -91,6 +102,40 @@ export function requireRole(roles: Role[]) {
 
     proceed();
   };
+}
+
+/** Re-reads role/teamId from the database and updates the session so permission
+ * checks aren't based on a stale snapshot from an earlier login. Returns the
+ * fresh role, or null if the user no longer exists. */
+async function refreshSessionRoleFromDb(req: Request): Promise<Role | null> {
+  if (!req.session.auth) {
+    return null;
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.session.auth.userId },
+      select: { role: true, teamId: true, ou: true },
+    });
+
+    if (!user) {
+      return null;
+    }
+
+    if (
+      req.session.auth.role !== user.role ||
+      req.session.auth.teamId !== user.teamId ||
+      req.session.auth.userOu !== user.ou
+    ) {
+      req.session.auth.role = user.role;
+      req.session.auth.teamId = user.teamId;
+      req.session.auth.userOu = user.ou;
+    }
+
+    return user.role;
+  } catch {
+    return req.session.auth.role;
+  }
 }
 
 export type AuthContext = {
@@ -128,7 +173,8 @@ export function requireWriteAccess(req: Request, res: Response, next: NextFuncti
       }
     }
 
-    if (req.session.auth?.role === "VIEWER") {
+    const currentRole = await refreshSessionRoleFromDb(req);
+    if (currentRole === "VIEWER") {
       res.status(403).json({
         error: {
           code: "FORBIDDEN",

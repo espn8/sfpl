@@ -67,6 +67,7 @@ export type CreateBuildInput = {
   supportUrl?: string;
   visibility?: "PUBLIC" | "TEAM" | "PRIVATE";
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  skipThumbnailGeneration?: boolean;
 };
 
 export async function createBuild(input: CreateBuildInput): Promise<Build> {
@@ -115,6 +116,17 @@ export async function regenerateBuildThumbnail(id: number): Promise<{ id: number
   const { data } = await apiClient.post<{ data: { id: number; thumbnailStatus: string } }>(
     `/api/builds/${id}/regenerate-thumbnail`
   );
+  return data.data;
+}
+
+export async function uploadBuildThumbnail(id: number, file: File): Promise<Build> {
+  const formData = new FormData();
+  formData.append("thumbnail", file);
+  const { data } = await apiClient.post<{ data: Build }>(`/api/builds/${id}/thumbnail`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
   return data.data;
 }
 

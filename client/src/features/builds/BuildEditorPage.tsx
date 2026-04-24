@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   DuplicateWarningModal,
@@ -8,7 +8,7 @@ import {
 } from "../../components/DuplicateWarningModal";
 import { PublishStatusModal } from "../../components/PublishStatusModal";
 import { sanitizeTitle } from "../../lib/sanitizeTitle";
-import { createBuild } from "./api";
+import { createBuild, uploadBuildThumbnail, type CreateBuildInput } from "./api";
 
 type PendingBuildData = {
   title: string;
@@ -18,6 +18,9 @@ type PendingBuildData = {
   visibility: "PUBLIC" | "TEAM" | "PRIVATE";
 };
 
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+
 export function BuildEditorPage() {
   const navigate = useNavigate();
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -25,9 +28,36 @@ export function BuildEditorPage() {
   const [pendingFormData, setPendingFormData] = useState<PendingBuildData | null>(null);
   const [duplicateMatches, setDuplicateMatches] = useState<DuplicateMatch[]>([]);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
+  const [thumbnailError, setThumbnailError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!thumbnailFile) {
+      setThumbnailPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(thumbnailFile);
+    setThumbnailPreview(url);
+    return () => {
+      URL.revokeObjectURL(url);
+    };
+  }, [thumbnailFile]);
 
   const createMutation = useMutation({
-    mutationFn: createBuild,
+    mutationFn: async (input: CreateBuildInput) => {
+      const build = await createBuild(input);
+      if (thumbnailFile) {
+        try {
+          return await uploadBuildThumbnail(build.id, thumbnailFile);
+        } catch (uploadError) {
+          console.error("Upload build thumbnail error:", uploadError);
+          return build;
+        }
+      }
+      return build;
+    },
     onSuccess: (build) => {
       navigate(`/builds/${build.id}`);
     },
@@ -49,8 +79,37 @@ export function BuildEditorPage() {
     createMutation.mutate({
       ...pendingFormData,
       status,
+      skipThumbnailGeneration: Boolean(thumbnailFile),
     });
     setPendingFormData(null);
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setThumbnailError(null);
+    const file = event.target.files?.[0] ?? null;
+    if (!file) {
+      setThumbnailFile(null);
+      return;
+    }
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      setThumbnailError("Image must be JPEG, PNG, GIF, or WebP.");
+      event.target.value = "";
+      return;
+    }
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      setThumbnailError("Image must be smaller than 5 MB.");
+      event.target.value = "";
+      return;
+    }
+    setThumbnailFile(file);
+  };
+
+  const handleRemoveImage = () => {
+    setThumbnailFile(null);
+    setThumbnailError(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const isValidUrl = (url: string): boolean => {
@@ -160,6 +219,46 @@ export function BuildEditorPage() {
           <p className="mt-1 text-xs text-(--color-text-muted)">
             Link to documentation, README, help page, or any supporting resources
           </p>
+        </div>
+      </div>
+
+      <div className="space-y-3 rounded border border-(--color-border) bg-(--color-surface-muted) p-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Thumbnail image <span className="text-(--color-text-muted)">(optional)</span>
+          </label>
+          <input
+            ref={fileInputRef}
+            name="thumbnail"
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp"
+            onChange={handleFileChange}
+            className="block w-full text-sm"
+          />
+          <p className="mt-1 text-xs text-(--color-text-muted)">
+            Upload your own image (JPEG, PNG, GIF, or WebP, up to 5 MB) or leave blank to auto-generate one with AI.
+          </p>
+          {thumbnailError ? (
+            <p className="mt-1 text-xs text-red-600" role="alert">
+              {thumbnailError}
+            </p>
+          ) : null}
+          {thumbnailPreview ? (
+            <div className="mt-3 flex items-start gap-3">
+              <img
+                src={thumbnailPreview}
+                alt="Thumbnail preview"
+                className="h-24 w-24 rounded border border-(--color-border) object-cover"
+              />
+              <button
+                type="button"
+                onClick={handleRemoveImage}
+                className="rounded border border-(--color-border) bg-(--color-surface) px-3 py-1 text-xs hover:bg-(--color-surface-muted)"
+              >
+                Remove
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
 

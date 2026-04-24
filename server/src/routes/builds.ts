@@ -314,7 +314,7 @@ buildsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
     return res.status(400).json(badRequestFromZodError(parsedBody.error));
   }
 
-  const { title, summary, buildUrl, supportUrl, visibility, status } = parsedBody.data;
+  const { title, summary, buildUrl, supportUrl, visibility, status, skipThumbnailGeneration } = parsedBody.data;
 
   const duplicateCheck = await checkBuildDuplicates(title, buildUrl);
   if (duplicateCheck.hasDuplicate) {
@@ -351,7 +351,9 @@ buildsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
     },
   });
 
-  void queueBuildThumbnailGeneration(build.id);
+  if (!skipThumbnailGeneration) {
+    void queueBuildThumbnailGeneration(build.id);
+  }
 
   return res.status(201).json({
     data: {

@@ -6,6 +6,17 @@ export type ChangelogEntry = {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.3.4",
+    date: "2026-04-24",
+    changes: [
+      "Builds: creators can now upload their own thumbnail image at create time or any time later via edit, instead of the AI-generated thumbnail",
+      "Build edit page adds an independent \"Upload image\" section with live preview, plus a \"Use AI-generated image instead\" button that calls the existing regenerate endpoint",
+      "When a custom image is uploaded at creation, AI thumbnail generation is skipped entirely (no Gemini call, no cost)",
+      "New POST /api/builds/:id/thumbnail endpoint (owner/admin only, 5 MB cap, JPEG/PNG/GIF/WebP) writes to server/public/uploads/ and replaces any prior uploaded file on overwrite",
+      "Custom image upload is scoped only to Builds — Prompts, Skills, and Context Documents are unchanged",
+    ],
+  },
+  {
     version: "1.3.3",
     date: "2026-04-24",
     changes: [

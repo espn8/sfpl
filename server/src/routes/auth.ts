@@ -536,6 +536,17 @@ authRouter.get("/me", async (req: Request, res: Response) => {
     });
   }
 
+  if (
+    req.session.auth &&
+    (req.session.auth.role !== user.role ||
+      req.session.auth.teamId !== user.teamId ||
+      req.session.auth.userOu !== user.ou)
+  ) {
+    req.session.auth.role = user.role;
+    req.session.auth.teamId = user.teamId;
+    req.session.auth.userOu = user.ou;
+  }
+
   return res.status(200).json({ data: user });
 });
 
