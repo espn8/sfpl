@@ -9,6 +9,7 @@ import pg from "pg";
 import { env } from "./config/env";
 import { prisma } from "./lib/prisma";
 import { errorHandler } from "./middleware/errorHandler";
+import { requestTimingMiddleware } from "./middleware/requestTiming";
 import { analyticsRouter } from "./routes/analytics";
 import { assetsRouter } from "./routes/assets";
 import { authRouter } from "./routes/auth";
@@ -71,6 +72,7 @@ export function createApp(options?: CreateAppOptions): express.Express {
     }),
   );
   app.use(express.json());
+  app.use(requestTimingMiddleware);
   app.use(authenticateApiKey);
 
   app.get("/api/health", async (_req, res) => {

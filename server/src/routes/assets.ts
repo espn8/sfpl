@@ -1,9 +1,11 @@
+import { performance } from "node:perf_hooks";
 import { Prisma, PromptModality, UsageAction } from "@prisma/client";
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { z } from "zod";
 import { getAuthContext, requireAuth } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
+import { timeSection, recordTiming } from "../middleware/requestTiming";
 import { buildVisibilityWhereFragment } from "../lib/visibility";
 
 const assetsRouter = Router();
@@ -197,30 +199,32 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         ? { updatedAt: "desc" as const }
         : { createdAt: "desc" as const };
 
-    const prompts = await prisma.prompt.findMany({
-      where: promptWhere,
-      select: {
-        id: true,
-        title: true,
-        summary: true,
-        body: true,
-        status: true,
-        visibility: true,
-        modelHint: true,
-        tools: true,
-        modality: true,
-        thumbnailUrl: true,
-        thumbnailStatus: true,
-        isSmartPick: true,
-        createdAt: true,
-        updatedAt: true,
-        owner: { select: { id: true, name: true, avatarUrl: true } },
-        variables: { select: { key: true, label: true, defaultValue: true, required: true } },
-        ratings: { select: { value: true } },
-      },
-      orderBy: promptOrderBy,
-      take: pageSize * 3,
-    });
+    const prompts = await timeSection("prompts.findMany", () =>
+      prisma.prompt.findMany({
+        where: promptWhere,
+        select: {
+          id: true,
+          title: true,
+          summary: true,
+          body: true,
+          status: true,
+          visibility: true,
+          modelHint: true,
+          tools: true,
+          modality: true,
+          thumbnailUrl: true,
+          thumbnailStatus: true,
+          isSmartPick: true,
+          createdAt: true,
+          updatedAt: true,
+          owner: { select: { id: true, name: true, avatarUrl: true } },
+          variables: { select: { key: true, label: true, defaultValue: true, required: true } },
+          ratings: { select: { value: true } },
+        },
+        orderBy: promptOrderBy,
+        take: pageSize * 3,
+      }),
+    );
 
     const promptIds = prompts.map((p) => p.id);
     let viewCountByPrompt = new Map<number, number>();
@@ -230,31 +234,35 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
     let myRatingByPrompt = new Map<number, number>();
 
     if (promptIds.length > 0) {
-      const [viewGroups, usageGroups, favoriteRows, favoriteCountGroups, ratingRows] = await Promise.all([
-        prisma.usageEvent.groupBy({
-          by: ["promptId"],
-          where: { promptId: { in: promptIds }, action: UsageAction.VIEW },
-          _count: { _all: true },
-        }),
-        prisma.usageEvent.groupBy({
-          by: ["promptId"],
-          where: { promptId: { in: promptIds }, action: { in: [UsageAction.COPY, UsageAction.LAUNCH] } },
-          _count: { _all: true },
-        }),
-        prisma.favorite.findMany({
-          where: { userId: auth.userId, promptId: { in: promptIds } },
-          select: { promptId: true },
-        }),
-        prisma.favorite.groupBy({
-          by: ["promptId"],
-          where: { promptId: { in: promptIds } },
-          _count: { _all: true },
-        }),
-        prisma.rating.findMany({
-          where: { userId: auth.userId, promptId: { in: promptIds } },
-          select: { promptId: true, value: true },
-        }),
-      ]);
+      const [viewGroups, usageGroups, favoriteRows, favoriteCountGroups, ratingRows] = await timeSection(
+        "prompts.agg",
+        () =>
+          Promise.all([
+            prisma.usageEvent.groupBy({
+              by: ["promptId"],
+              where: { promptId: { in: promptIds }, action: UsageAction.VIEW },
+              _count: { _all: true },
+            }),
+            prisma.usageEvent.groupBy({
+              by: ["promptId"],
+              where: { promptId: { in: promptIds }, action: { in: [UsageAction.COPY, UsageAction.LAUNCH] } },
+              _count: { _all: true },
+            }),
+            prisma.favorite.findMany({
+              where: { userId: auth.userId, promptId: { in: promptIds } },
+              select: { promptId: true },
+            }),
+            prisma.favorite.groupBy({
+              by: ["promptId"],
+              where: { promptId: { in: promptIds } },
+              _count: { _all: true },
+            }),
+            prisma.rating.findMany({
+              where: { userId: auth.userId, promptId: { in: promptIds } },
+              select: { promptId: true, value: true },
+            }),
+          ]),
+      );
       viewCountByPrompt = new Map(viewGroups.map((g) => [g.promptId, g._count._all]));
       usageCountByPrompt = new Map(usageGroups.map((g) => [g.promptId, g._count._all]));
       favoritedPromptIds = new Set(favoriteRows.map((r) => r.promptId));
@@ -330,27 +338,29 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         ? { updatedAt: "desc" as const }
         : { createdAt: "desc" as const };
 
-    const skills = await prisma.skill.findMany({
-      where: skillWhere,
-      select: {
-        id: true,
-        title: true,
-        summary: true,
-        skillUrl: true,
-        supportUrl: true,
-        status: true,
-        visibility: true,
-        tools: true,
-        thumbnailUrl: true,
-        thumbnailStatus: true,
-        isSmartPick: true,
-        createdAt: true,
-        updatedAt: true,
-        owner: { select: { id: true, name: true, avatarUrl: true } },
-      },
-      orderBy: skillOrderBy,
-      take: pageSize * 3,
-    });
+    const skills = await timeSection("skills.findMany", () =>
+      prisma.skill.findMany({
+        where: skillWhere,
+        select: {
+          id: true,
+          title: true,
+          summary: true,
+          skillUrl: true,
+          supportUrl: true,
+          status: true,
+          visibility: true,
+          tools: true,
+          thumbnailUrl: true,
+          thumbnailStatus: true,
+          isSmartPick: true,
+          createdAt: true,
+          updatedAt: true,
+          owner: { select: { id: true, name: true, avatarUrl: true } },
+        },
+        orderBy: skillOrderBy,
+        take: pageSize * 3,
+      }),
+    );
 
     const skillIds = skills.map((s) => s.id);
     let viewCountBySkill = new Map<number, number>();
@@ -361,37 +371,41 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
     let ratingDataBySkill = new Map<number, { count: number; avg: number | null }>();
 
     if (skillIds.length > 0) {
-      const [viewGroups, copyGroups, favoriteRows, favoriteCountGroups, ratingRows, ratingGroups] = await Promise.all([
-        prisma.skillUsageEvent.groupBy({
-          by: ["skillId"],
-          where: { skillId: { in: skillIds }, eventType: "VIEW" },
-          _count: { skillId: true },
-        }),
-        prisma.skillUsageEvent.groupBy({
-          by: ["skillId"],
-          where: { skillId: { in: skillIds }, eventType: "COPY" },
-          _count: { skillId: true },
-        }),
-        prisma.skillFavorite.findMany({
-          where: { userId: auth.userId, skillId: { in: skillIds } },
-          select: { skillId: true },
-        }),
-        prisma.skillFavorite.groupBy({
-          by: ["skillId"],
-          where: { skillId: { in: skillIds } },
-          _count: { _all: true },
-        }),
-        prisma.skillRating.findMany({
-          where: { userId: auth.userId, skillId: { in: skillIds } },
-          select: { skillId: true, value: true },
-        }),
-        prisma.skillRating.groupBy({
-          by: ["skillId"],
-          where: { skillId: { in: skillIds } },
-          _count: { skillId: true },
-          _avg: { value: true },
-        }),
-      ]);
+      const [viewGroups, copyGroups, favoriteRows, favoriteCountGroups, ratingRows, ratingGroups] = await timeSection(
+        "skills.agg",
+        () =>
+          Promise.all([
+            prisma.skillUsageEvent.groupBy({
+              by: ["skillId"],
+              where: { skillId: { in: skillIds }, eventType: "VIEW" },
+              _count: { skillId: true },
+            }),
+            prisma.skillUsageEvent.groupBy({
+              by: ["skillId"],
+              where: { skillId: { in: skillIds }, eventType: "COPY" },
+              _count: { skillId: true },
+            }),
+            prisma.skillFavorite.findMany({
+              where: { userId: auth.userId, skillId: { in: skillIds } },
+              select: { skillId: true },
+            }),
+            prisma.skillFavorite.groupBy({
+              by: ["skillId"],
+              where: { skillId: { in: skillIds } },
+              _count: { _all: true },
+            }),
+            prisma.skillRating.findMany({
+              where: { userId: auth.userId, skillId: { in: skillIds } },
+              select: { skillId: true, value: true },
+            }),
+            prisma.skillRating.groupBy({
+              by: ["skillId"],
+              where: { skillId: { in: skillIds } },
+              _count: { skillId: true },
+              _avg: { value: true },
+            }),
+          ]),
+      );
       viewCountBySkill = new Map(viewGroups.map((g) => [g.skillId, g._count.skillId]));
       copyCountBySkill = new Map(copyGroups.map((g) => [g.skillId, g._count.skillId]));
       favoritedSkillIds = new Set(favoriteRows.map((r) => r.skillId));
@@ -464,27 +478,29 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         ? { updatedAt: "desc" as const }
         : { createdAt: "desc" as const };
 
-    const contextDocs = await prisma.contextDocument.findMany({
-      where: contextWhere,
-      select: {
-        id: true,
-        title: true,
-        summary: true,
-        body: true,
-        status: true,
-        visibility: true,
-        tools: true,
-        thumbnailUrl: true,
-        thumbnailStatus: true,
-        isSmartPick: true,
-        createdAt: true,
-        updatedAt: true,
-        owner: { select: { id: true, name: true, avatarUrl: true } },
-        variables: { select: { key: true, label: true, defaultValue: true, required: true } },
-      },
-      orderBy: contextOrderBy,
-      take: pageSize * 3,
-    });
+    const contextDocs = await timeSection("context.findMany", () =>
+      prisma.contextDocument.findMany({
+        where: contextWhere,
+        select: {
+          id: true,
+          title: true,
+          summary: true,
+          body: true,
+          status: true,
+          visibility: true,
+          tools: true,
+          thumbnailUrl: true,
+          thumbnailStatus: true,
+          isSmartPick: true,
+          createdAt: true,
+          updatedAt: true,
+          owner: { select: { id: true, name: true, avatarUrl: true } },
+          variables: { select: { key: true, label: true, defaultValue: true, required: true } },
+        },
+        orderBy: contextOrderBy,
+        take: pageSize * 3,
+      }),
+    );
 
     const contextIds = contextDocs.map((c) => c.id);
     let viewCountByContext = new Map<number, number>();
@@ -495,37 +511,41 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
     let ratingDataByContext = new Map<number, { count: number; avg: number | null }>();
 
     if (contextIds.length > 0) {
-      const [viewGroups, copyGroups, favoriteRows, favoriteCountGroups, ratingRows, ratingGroups] = await Promise.all([
-        prisma.contextUsageEvent.groupBy({
-          by: ["contextId"],
-          where: { contextId: { in: contextIds }, eventType: "VIEW" },
-          _count: { contextId: true },
-        }),
-        prisma.contextUsageEvent.groupBy({
-          by: ["contextId"],
-          where: { contextId: { in: contextIds }, eventType: "COPY" },
-          _count: { contextId: true },
-        }),
-        prisma.contextFavorite.findMany({
-          where: { userId: auth.userId, contextId: { in: contextIds } },
-          select: { contextId: true },
-        }),
-        prisma.contextFavorite.groupBy({
-          by: ["contextId"],
-          where: { contextId: { in: contextIds } },
-          _count: { _all: true },
-        }),
-        prisma.contextRating.findMany({
-          where: { userId: auth.userId, contextId: { in: contextIds } },
-          select: { contextId: true, value: true },
-        }),
-        prisma.contextRating.groupBy({
-          by: ["contextId"],
-          where: { contextId: { in: contextIds } },
-          _count: { contextId: true },
-          _avg: { value: true },
-        }),
-      ]);
+      const [viewGroups, copyGroups, favoriteRows, favoriteCountGroups, ratingRows, ratingGroups] = await timeSection(
+        "context.agg",
+        () =>
+          Promise.all([
+            prisma.contextUsageEvent.groupBy({
+              by: ["contextId"],
+              where: { contextId: { in: contextIds }, eventType: "VIEW" },
+              _count: { contextId: true },
+            }),
+            prisma.contextUsageEvent.groupBy({
+              by: ["contextId"],
+              where: { contextId: { in: contextIds }, eventType: "COPY" },
+              _count: { contextId: true },
+            }),
+            prisma.contextFavorite.findMany({
+              where: { userId: auth.userId, contextId: { in: contextIds } },
+              select: { contextId: true },
+            }),
+            prisma.contextFavorite.groupBy({
+              by: ["contextId"],
+              where: { contextId: { in: contextIds } },
+              _count: { _all: true },
+            }),
+            prisma.contextRating.findMany({
+              where: { userId: auth.userId, contextId: { in: contextIds } },
+              select: { contextId: true, value: true },
+            }),
+            prisma.contextRating.groupBy({
+              by: ["contextId"],
+              where: { contextId: { in: contextIds } },
+              _count: { contextId: true },
+              _avg: { value: true },
+            }),
+          ]),
+      );
       viewCountByContext = new Map(viewGroups.map((g) => [g.contextId, g._count.contextId]));
       copyCountByContext = new Map(copyGroups.map((g) => [g.contextId, g._count.contextId]));
       favoritedContextIds = new Set(favoriteRows.map((r) => r.contextId));
@@ -594,26 +614,28 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         ? { updatedAt: "desc" as const }
         : { createdAt: "desc" as const };
 
-    const builds = await prisma.build.findMany({
-      where: buildWhere,
-      select: {
-        id: true,
-        title: true,
-        summary: true,
-        buildUrl: true,
-        supportUrl: true,
-        status: true,
-        visibility: true,
-        thumbnailUrl: true,
-        thumbnailStatus: true,
-        isSmartPick: true,
-        createdAt: true,
-        updatedAt: true,
-        owner: { select: { id: true, name: true, avatarUrl: true } },
-      },
-      orderBy: buildOrderBy,
-      take: pageSize * 3,
-    });
+    const builds = await timeSection("builds.findMany", () =>
+      prisma.build.findMany({
+        where: buildWhere,
+        select: {
+          id: true,
+          title: true,
+          summary: true,
+          buildUrl: true,
+          supportUrl: true,
+          status: true,
+          visibility: true,
+          thumbnailUrl: true,
+          thumbnailStatus: true,
+          isSmartPick: true,
+          createdAt: true,
+          updatedAt: true,
+          owner: { select: { id: true, name: true, avatarUrl: true } },
+        },
+        orderBy: buildOrderBy,
+        take: pageSize * 3,
+      }),
+    );
 
     const buildIds = builds.map((b) => b.id);
     let viewCountByBuild = new Map<number, number>();
@@ -624,37 +646,41 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
     let ratingDataByBuild = new Map<number, { count: number; avg: number | null }>();
 
     if (buildIds.length > 0) {
-      const [viewGroups, copyGroups, favoriteRows, favoriteCountGroups, ratingRows, ratingGroups] = await Promise.all([
-        prisma.buildUsageEvent.groupBy({
-          by: ["buildId"],
-          where: { buildId: { in: buildIds }, eventType: "VIEW" },
-          _count: { buildId: true },
-        }),
-        prisma.buildUsageEvent.groupBy({
-          by: ["buildId"],
-          where: { buildId: { in: buildIds }, eventType: "COPY" },
-          _count: { buildId: true },
-        }),
-        prisma.buildFavorite.findMany({
-          where: { userId: auth.userId, buildId: { in: buildIds } },
-          select: { buildId: true },
-        }),
-        prisma.buildFavorite.groupBy({
-          by: ["buildId"],
-          where: { buildId: { in: buildIds } },
-          _count: { _all: true },
-        }),
-        prisma.buildRating.findMany({
-          where: { userId: auth.userId, buildId: { in: buildIds } },
-          select: { buildId: true, value: true },
-        }),
-        prisma.buildRating.groupBy({
-          by: ["buildId"],
-          where: { buildId: { in: buildIds } },
-          _count: { buildId: true },
-          _avg: { value: true },
-        }),
-      ]);
+      const [viewGroups, copyGroups, favoriteRows, favoriteCountGroups, ratingRows, ratingGroups] = await timeSection(
+        "builds.agg",
+        () =>
+          Promise.all([
+            prisma.buildUsageEvent.groupBy({
+              by: ["buildId"],
+              where: { buildId: { in: buildIds }, eventType: "VIEW" },
+              _count: { buildId: true },
+            }),
+            prisma.buildUsageEvent.groupBy({
+              by: ["buildId"],
+              where: { buildId: { in: buildIds }, eventType: "COPY" },
+              _count: { buildId: true },
+            }),
+            prisma.buildFavorite.findMany({
+              where: { userId: auth.userId, buildId: { in: buildIds } },
+              select: { buildId: true },
+            }),
+            prisma.buildFavorite.groupBy({
+              by: ["buildId"],
+              where: { buildId: { in: buildIds } },
+              _count: { _all: true },
+            }),
+            prisma.buildRating.findMany({
+              where: { userId: auth.userId, buildId: { in: buildIds } },
+              select: { buildId: true, value: true },
+            }),
+            prisma.buildRating.groupBy({
+              by: ["buildId"],
+              where: { buildId: { in: buildIds } },
+              _count: { buildId: true },
+              _avg: { value: true },
+            }),
+          ]),
+      );
       viewCountByBuild = new Map(viewGroups.map((g) => [g.buildId, g._count.buildId]));
       copyCountByBuild = new Map(copyGroups.map((g) => [g.buildId, g._count.buildId]));
       favoritedBuildIds = new Set(favoriteRows.map((r) => r.buildId));
@@ -693,6 +719,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
     }
   }
 
+  const assembleStart = performance.now();
   if (sort === "mostUsed") {
     allAssets.sort((a, b) => b.usageCount - a.usageCount);
   } else if (sort === "name") {
@@ -723,25 +750,30 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
       facets.tool[t] = (facets.tool[t] ?? 0) + 1;
     }
   }
+  recordTiming("assemble", performance.now() - assembleStart);
 
   const publishedSnapshotWhere: Prisma.PromptWhereInput = {
     status: "PUBLISHED",
     AND: [buildVisibilityWhereFragment(auth) as Prisma.PromptWhereInput],
   };
 
-  const [promptsPublished, skillsPublished, contextPublished, buildsPublished, activeUsers, promptsUsed] = await Promise.all([
-    prisma.prompt.count({ where: publishedSnapshotWhere }),
-    prisma.skill.count({ where: { teamId: auth.teamId, status: "PUBLISHED" } }),
-    prisma.contextDocument.count({ where: { teamId: auth.teamId, status: "PUBLISHED" } }),
-    prisma.build.count({ where: { teamId: auth.teamId, status: "PUBLISHED" } }),
-    prisma.user.count({ where: { teamId: auth.teamId } }),
-    prisma.usageEvent.count({
-      where: {
-        action: { in: [UsageAction.COPY, UsageAction.LAUNCH] },
-        prompt: { teamId: auth.teamId },
-      },
-    }),
-  ]);
+  const [promptsPublished, skillsPublished, contextPublished, buildsPublished, activeUsers, promptsUsed] = await timeSection(
+    "snapshot",
+    () =>
+      Promise.all([
+        prisma.prompt.count({ where: publishedSnapshotWhere }),
+        prisma.skill.count({ where: { teamId: auth.teamId, status: "PUBLISHED" } }),
+        prisma.contextDocument.count({ where: { teamId: auth.teamId, status: "PUBLISHED" } }),
+        prisma.build.count({ where: { teamId: auth.teamId, status: "PUBLISHED" } }),
+        prisma.user.count({ where: { teamId: auth.teamId } }),
+        prisma.usageEvent.count({
+          where: {
+            action: { in: [UsageAction.COPY, UsageAction.LAUNCH] },
+            prompt: { teamId: auth.teamId },
+          },
+        }),
+      ]),
+  );
 
   return res.status(200).json({
     data: paginatedAssets,

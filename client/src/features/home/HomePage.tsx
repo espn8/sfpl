@@ -11,6 +11,7 @@ import { AssetListView } from "../assets/AssetListView";
 import { getToolLabel, getToolsSortedAlphabetically, type PromptTool } from "../prompts/api";
 import { SearchBar, useSearchState, type AssetTypeFilter } from "../search";
 import { parseNaturalLanguageQuery } from "../search/api";
+import { useHomePerfMarks } from "./useHomePerfMarks";
 
 const FIRST_VISIT_KEY = "sf-ai-library-first-visit-completed";
 
@@ -248,6 +249,14 @@ export function HomePage() {
       (a) => a.assetType !== "prompt" || a.thumbnailStatus !== "FAILED"
     );
   }, [topPerformersQuery.data]);
+
+  useHomePerfMarks({
+    meReady: meQuery.isSuccess || meQuery.isError,
+    assetsReady: assetsQuery.isSuccess || assetsQuery.isError,
+    topReady: topPerformersQuery.fetchStatus === "idle",
+    analyticsReady: analyticsQuery.fetchStatus === "idle",
+    analyticsEnabled: canViewAnalytics,
+  });
 
   if (assetsQuery.isLoading) {
     return <p>Loading AI assets...</p>;
