@@ -194,11 +194,7 @@ export function SettingsPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-6">
-        <section className="rounded-lg border border-(--color-border) bg-(--color-surface) p-6">
-          <h2 className="mb-4 text-lg font-medium">Appearance</h2>
-          <ThemeModeToggle />
-        </section>
-
+        <div className="grid items-start gap-6 sm:grid-cols-2">
         <section className="rounded-lg border border-(--color-border) bg-(--color-surface) p-6">
           <h2 className="mb-4 text-lg font-medium">Profile</h2>
           <div className="space-y-4">
@@ -286,6 +282,12 @@ export function SettingsPage() {
             </div>
           </div>
         </section>
+
+        <section className="rounded-lg border border-(--color-border) bg-(--color-surface) p-6">
+          <h2 className="mb-4 text-lg font-medium">Appearance</h2>
+          <ThemeModeToggle />
+        </section>
+        </div>
 
         {formError && (
           <div className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-400">
