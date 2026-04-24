@@ -1,7 +1,7 @@
 # AI Library - Technical Summary
 
 Last Updated: Friday, April 24, 2026 — 17:12 CDT
-Build Version: `3f545fa`
+Build Version: (see `git log -1 --oneline` on `main`; production Heroku v210 built from `3f545fa`)
 App Version: see production footer after deploy (root `package.json` 1.3.3 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
@@ -14,7 +14,7 @@ Production URL: https://ail.mysalesforcedemo.com (canonical live site — never 
 - **Skill list & unified cards** ([SkillListCard.tsx](client/src/features/skills/SkillListCard.tsx), [AssetCard.tsx](client/src/features/assets/AssetCard.tsx)): Same **Get the Skill** label and external-link icon; `AssetCard` for `assetType === "skill"` now **opens** `skillUrl` in a new tab via `getSkill` (replacing green **Use** + clipboard copy). [AssetCard.test.tsx](client/src/features/assets/AssetCard.test.tsx) covers the skill path.
 - **Build detail** ([BuildDetailPage.tsx](client/src/features/builds/BuildDetailPage.tsx)): **Open Build** unchanged. **View Documentation** and footer **Help URL:** only when `supportUrl` ≠ normalized `buildUrl`; removed redundant **Build URL:** prose line.
 - **Context detail** ([ContextDetailPage.tsx](client/src/features/context/ContextDetailPage.tsx)): New **Use this context** section with primary **Download Context** and secondary **Copy** (skill-style layout); copy/download icon-only duplicates removed from the bookmark row; successful clipboard copy logs `logContextUsage(…, "COPY")`.
-- **Deploy:** Pushed to `origin/main` and Heroku (`main:master`); pre-push hooks ran server + client tests. Heroku **v210** (summary hash fix **3f545fa**); prior feature commit **91bd26c**. Client-only; `npm --prefix client run build` verified locally before first push.
+- **Deploy:** `git push origin main` and `git push heroku main:master` (pre-push: server + client tests). Production Heroku **v210** ships the feature commits through **3f545fa**. Client build verified before push.
 
 ### Release: Asset detail collections UX — shared collapsible disclosure (April 24, 2026 — 16:55 CDT)
 
