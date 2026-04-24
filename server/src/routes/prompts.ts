@@ -22,6 +22,7 @@ import {
   buildVisibilityWhereFragment,
   canAccessByVisibility,
   canMutateTeamScopedAsset,
+  isOwnerOrWorkspaceAdmin,
 } from "../lib/visibility";
 import { generatePromptThumbnail } from "../services/nanoBanana";
 import { refreshBestOfCollection, refreshToolCollection } from "../services/systemCollections";
@@ -1093,7 +1094,7 @@ promptsRouter.post("/:id/verify", requireWriteAccess, async (req: Request, res: 
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
   }
-  if (existing.ownerId !== auth.userId) {
+  if (!isOwnerOrWorkspaceAdmin(existing.ownerId, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only the owner can verify this prompt." } });
   }
   await verifyAsset("PROMPT", promptId, auth.userId);
@@ -1115,7 +1116,7 @@ promptsRouter.post("/:id/unarchive", requireWriteAccess, async (req: Request, re
   if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
   }
-  if (existing.ownerId !== auth.userId) {
+  if (!isOwnerOrWorkspaceAdmin(existing.ownerId, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only the owner can unarchive this prompt." } });
   }
   await unarchiveAsset("PROMPT", promptId, auth.userId);
@@ -1145,11 +1146,11 @@ promptsRouter.post("/:id/transfer-owner", requireWriteAccess, async (req: Reques
   const promptId = parsedParams.data.id;
   const { newOwnerId, reason } = parsedBody.data;
   const existing = await prisma.prompt.findUnique({ where: { id: promptId } });
-  if (!existing || existing.teamId !== auth.teamId) {
+  if (!existing) {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
   }
   const newOwner = await prisma.user.findUnique({ where: { id: newOwnerId }, select: { id: true, teamId: true } });
-  if (!newOwner || newOwner.teamId !== auth.teamId) {
+  if (!newOwner || newOwner.teamId !== existing.teamId) {
     return res.status(400).json({ error: { code: "BAD_REQUEST", message: "New owner must be a user on the same team." } });
   }
   await transferOwner("PROMPT", promptId, auth.userId, newOwnerId, reason);
@@ -1174,7 +1175,7 @@ promptsRouter.delete("/:id/permanent", requireWriteAccess, async (req: Request, 
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
   }
 
-  if (existing.ownerId !== auth.userId) {
+  if (!isOwnerOrWorkspaceAdmin(existing.ownerId, auth)) {
     return res.status(403).json({
       error: { code: "FORBIDDEN", message: "Only the owner can permanently delete this prompt." },
     });

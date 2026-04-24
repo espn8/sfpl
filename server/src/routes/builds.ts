@@ -26,6 +26,7 @@ import {
   buildVisibilityWhereFragment,
   canAccessByVisibility as sharedCanAccessByVisibility,
   canMutateTeamScopedAsset,
+  isOwnerOrWorkspaceAdmin,
 } from "../lib/visibility";
 import { generatePromptThumbnail } from "../services/nanoBanana";
 import {
@@ -622,7 +623,7 @@ buildsRouter.delete("/:id/permanent", requireWriteAccess, async (req: Request, r
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Build not found." } });
   }
 
-  if (existing.ownerId !== auth.userId) {
+  if (!isOwnerOrWorkspaceAdmin(existing.ownerId, auth)) {
     return res.status(403).json({
       error: { code: "FORBIDDEN", message: "Only the owner can permanently delete this build." },
     });

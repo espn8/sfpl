@@ -4,6 +4,11 @@ export function isAdminOrOwner(role: string): boolean {
   return role === "ADMIN" || role === "OWNER";
 }
 
+/** Asset owner, or workspace ADMIN/OWNER (governance parity with unrestricted reads). */
+export function isOwnerOrWorkspaceAdmin(ownerId: number, auth: AuthContext): boolean {
+  return ownerId === auth.userId || isAdminOrOwner(auth.role);
+}
+
 type VisibilityOrCondition = {
   visibility?: "PUBLIC" | "TEAM" | "PRIVATE";
   ownerId?: number;
@@ -89,14 +94,14 @@ export function canAccessByVisibility(asset: AccessibleAsset, auth: AuthContext)
  * restrict to asset owner only, e.g. permanent delete):
  * - The asset owner, even when their session `teamId` no longer matches the row (e.g. user
  *   moved workspaces but the asset row was not backfilled).
- * - Workspace `ADMIN` / `OWNER` role for assets that belong to their current team.
+ * - Workspace `ADMIN` / `OWNER` role: any asset (same cross-tenant scope as read access).
  */
 export function canMutateTeamScopedAsset(asset: { ownerId: number; teamId: number }, auth: AuthContext): boolean {
   if (asset.ownerId === auth.userId) {
     return true;
   }
-  if (auth.role === "OWNER" || auth.role === "ADMIN") {
-    return asset.teamId === auth.teamId;
+  if (isAdminOrOwner(auth.role)) {
+    return true;
   }
   return false;
 }
