@@ -173,6 +173,7 @@ async function sendArchivedEmail(
     UNVERIFIED: "wasn't verified in time",
     INACTIVE: "had no usage in the last 30 days",
     LOW_RATING: "fell below the team's quality threshold",
+    PROFILE_INCOMPLETE: "was published before profile setup was completed",
   };
 
   const assetUrl = verifyUrlFor(urlSegment, asset.id);
