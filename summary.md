@@ -1,7 +1,7 @@
 # AI Library - Technical Summary
 
 Last Updated: Friday, April 24, 2026 — 18:17 CDT
-Build Version: `9b09c50`
+Build Version: `6a7ff13`
 App Version: see production footer after deploy (root `package.json` 1.3.3 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
@@ -9,6 +9,7 @@ Production URL: https://ail.mysalesforcedemo.com (canonical live site — never 
 
 ### Session: governance sweep clock, Vitest Prisma mocks, Smart Picks system collection (April 24, 2026 — 18:17 CDT)
 
+- **Prisma migrations (PROFILE_INCOMPLETE)**: Split into two transactions — [20260425120000_archive_reason_profile_incomplete/migration.sql](server/prisma/migrations/20260425120000_archive_reason_profile_incomplete/migration.sql) contains only **`ALTER TYPE "ArchiveReason" ADD VALUE`**, and [20260425120001_profile_incomplete_backfill/migration.sql](server/prisma/migrations/20260425120001_profile_incomplete_backfill/migration.sql) runs the archive + **`AssetVerification`** backfill (PostgreSQL **55P04**: new enum values cannot be used in the same transaction as **`ADD VALUE`**). If a deploy previously failed on the combined migration, mark it rolled back then redeploy, e.g. `heroku run -a aosfail -- npx prisma migrate resolve --rolled-back 20260425120000_archive_reason_profile_incomplete` (from `server/` with `DATABASE_URL` set).
 - **Governance job** ([server/src/jobs/governance.ts](server/src/jobs/governance.ts)): Warn-path Prisma filters use a shared **`governanceSweepClock`** set from sweep / `recomputeSmartPicks` options `now` (fixes deterministic tests vs wall-clock `new Date()`). **`findLowRated`** tolerates rows missing `ratings` in tests (`row.ratings ?? []`). Archive email **`reasonLabel`** includes **`PROFILE_INCOMPLETE`** (satisfies `Record<ArchiveReason, string>` after Prisma enum extension).
 - **Vitest** ([server/test/pagination.test.ts](server/test/pagination.test.ts), [server/test/helpers/mockPrisma.ts](server/test/helpers/mockPrisma.ts)): Pagination tests use **`buildPrismaMock`** with `usageEvent` / `*UsageEvent` **`groupBy`** stubs (supports prompt list **week-top** aggregation). Base mock adds **`$queryRaw`** / **`$executeRaw`** for `createApp` health check.
 - **Governance sweep test** ([server/test/governance-sweep.test.ts](server/test/governance-sweep.test.ts)): **`recomputeSmartPicks`** “flips” case calls **`vi.resetModules()`** and **`mockReset`** on prompt `findMany` / `updateMany` so prior `mockResolvedValueOnce` queues do not leak across cases under **`restoreMocks`**.
