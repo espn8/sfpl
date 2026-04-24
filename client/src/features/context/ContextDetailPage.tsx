@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
-import { AssetDetailCollectionsDisclosure } from "../../components/AssetDetailCollectionsDisclosure";
 import { ConfirmDeleteModal } from "../../components/ConfirmDeleteModal";
 import { MarkdownPreview } from "../../components/MarkdownPreview";
 import { VariableInputs } from "../../components/VariableInputs";
@@ -156,10 +155,6 @@ export function ContextDetailPage() {
     (meQuery.data.id === doc.owner.id || meQuery.data.role === "ADMIN" || meQuery.data.role === "OWNER");
   const canDelete = meQuery.data && canCreateContent(meQuery.data.role) && meQuery.data.id === doc.owner.id;
   const isOwnAsset = Boolean(meQuery.data && meQuery.data.id === doc.owner.id);
-  const viewCount = doc.viewCount ?? 0;
-  const copyCount = doc.copyCount ?? 0;
-  const favoriteCount = doc.favoriteCount ?? 0;
-  const ratingCount = doc.ratingCount ?? 0;
   const averageRating = doc.averageRating ?? null;
   const hasVariables = (doc.variables?.length ?? 0) > 0;
 
@@ -277,20 +272,6 @@ export function ContextDetailPage() {
       <div className="mt-2">
         <PromptAverageStars value={averageRating} size="md" />
       </div>
-      <div className="grid gap-2 text-sm md:grid-cols-4">
-        <p className="rounded border border-(--color-border) px-3 py-2">
-          <span className="font-semibold">Views:</span> {viewCount.toLocaleString()}
-        </p>
-        <p className="rounded border border-(--color-border) px-3 py-2">
-          <span className="font-semibold">Copies:</span> {copyCount.toLocaleString()}
-        </p>
-        <p className="rounded border border-(--color-border) px-3 py-2">
-          <span className="font-semibold">Favorites:</span> {favoriteCount.toLocaleString()}
-        </p>
-        <p className="rounded border border-(--color-border) px-3 py-2">
-          <span className="font-semibold">Ratings:</span> {ratingCount.toLocaleString()}
-        </p>
-      </div>
       <div className="flex flex-wrap items-center justify-between gap-2 rounded border border-(--color-border) bg-(--color-surface) px-3 py-2">
         {isOwnAsset ? (
           <span className="text-sm italic text-(--color-text-muted)">
@@ -311,8 +292,6 @@ export function ContextDetailPage() {
           </>
         )}
       </div>
-
-      <AssetDetailCollectionsDisclosure assetId={docId} assetTitle={doc.title} assetType="context" />
 
       <section className="space-y-4 rounded-lg border border-(--color-border) bg-(--color-surface-muted) p-6">
         <h2 className="text-lg font-semibold">Use this context</h2>

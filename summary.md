@@ -1,11 +1,18 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 24, 2026 — 17:12 CDT
-Build Version: (see `git log -1 --oneline` on `main`; production Heroku v210 built from `3f545fa`)
+Last Updated: Friday, April 24, 2026 — 17:22 CDT
+Build Version: `046ad2e`
 App Version: see production footer after deploy (root `package.json` 1.3.3 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Release: Detail page chrome reduction — no Metadata block, no stats strip, no Collections disclosure (April 24, 2026 — 17:22 CDT)
+
+- **Prompt detail** ([PromptDetailPage.tsx](client/src/features/prompts/PromptDetailPage.tsx)): Removed the **Metadata** `<section>` (status, visibility, tools, modality, tags, views, ratings count, usage events) and the **`pluralize`** helper plus unused **`getToolLabel`** import.
+- **Skill, context, build detail** ([SkillDetailPage.tsx](client/src/features/skills/SkillDetailPage.tsx), [ContextDetailPage.tsx](client/src/features/context/ContextDetailPage.tsx), [BuildDetailPage.tsx](client/src/features/builds/BuildDetailPage.tsx)): Removed the four-cell **Views / Downloads|Copies|Opens / Favorites / Ratings** grid and unused count locals. Status line, stars, and rating row unchanged.
+- **Collections UI on detail:** Removed `<AssetDetailCollectionsDisclosure />` from all four detail pages. **[AssetDetailCollectionsDisclosure.tsx](client/src/components/AssetDetailCollectionsDisclosure.tsx)** and **[AssetDetailCollectionsDisclosure.test.tsx](client/src/components/AssetDetailCollectionsDisclosure.test.tsx)** remain in the repo for possible reuse. Per-asset **`AssetCollectionMenu`** in each page’s action toolbar still supports add/remove collections.
+- **Deploy:** `git push origin main` and `git push heroku main:master` (pre-push tests). `npm --prefix client run build` verified before push. Production release recorded in Heroku dashboard after push (see footer version from `version-bump.js`).
 
 ### Release: Skill / build / context detail & card copy — Get the Skill, Help URL dedup, context CTAs (April 24, 2026 — 17:12 CDT)
 
@@ -21,7 +28,7 @@ Production URL: https://ail.mysalesforcedemo.com (canonical live site — never 
 - **Problem:** On prompt detail pages, a full-height inline **Collections** list sat above the template/body and pushed primary content down. Context, Skill, and Build detail pages only had the compact bookmark toolbar menu, so bulk Add/Remove lived in different places per asset type.
 - **Shared component** ([client/src/components/AssetDetailCollectionsDisclosure.tsx](client/src/components/AssetDetailCollectionsDisclosure.tsx)): Default-closed `<details>` (aligned with History-style disclosure), `listCollections` on `["collections"]`, Add/Remove rows using **`hasAssetInCollection`** + **`useAssetCollectionMutations`** (same optimistic cache updates as the toolbar menus). Expanded panel includes `role="region"` `aria-label="Collections"`, a horizontal chip row of **member** collection links to `/collections/:id`, and muted surface styling (`bg-(--color-surface-muted)`) so collections read as organization chrome.
 - **Exports** ([client/src/components/AssetCollectionMenu.tsx](client/src/components/AssetCollectionMenu.tsx)): **`hasAssetInCollection`** and **`useAssetCollectionMutations`** are exported for reuse by the disclosure (no duplicate mutation logic).
-- **Detail pages:** [PromptDetailPage.tsx](client/src/features/prompts/PromptDetailPage.tsx) replaces the bespoke Collections `<section>` with `<AssetDetailCollectionsDisclosure assetType="prompt" />`. [ContextDetailPage.tsx](client/src/features/context/ContextDetailPage.tsx), [SkillDetailPage.tsx](client/src/features/skills/SkillDetailPage.tsx), and [BuildDetailPage.tsx](client/src/features/builds/BuildDetailPage.tsx) mount the same component after stats/rating blocks and before the action toolbar.
+- **Detail pages (historical):** At one point all four detail pages mounted `<AssetDetailCollectionsDisclosure />` after stats/rating and before the toolbar. **As of April 24, 2026 (17:22 CDT release)** that disclosure is **removed** from detail routes again; see **Recent Changes** above.
 - **Prompt toolbar** ([client/src/features/prompts/PromptCollectionMenu.tsx](client/src/features/prompts/PromptCollectionMenu.tsx)): Uses **`useAssetCollectionMutations`** with `assetType: "prompt"` (Phase **3B** dual path: disclosure + menu share one mutation implementation). Removed [client/src/features/prompts/usePromptCollectionMutations.ts](client/src/features/prompts/usePromptCollectionMutations.ts).
 - **Tests:** [client/src/components/AssetDetailCollectionsDisclosure.test.tsx](client/src/components/AssetDetailCollectionsDisclosure.test.tsx) covers summary count, “In N” hint, and expanded region + member link.
 - **Deploy:** Push `main` to origin (and `git push heroku main:master` when you are ready for production smoke on all four asset types).

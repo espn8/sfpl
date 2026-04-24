@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
-import { AssetDetailCollectionsDisclosure } from "../../components/AssetDetailCollectionsDisclosure";
 import { ConfirmDeleteModal } from "../../components/ConfirmDeleteModal";
 import { normalizeUrl } from "../../lib/normalizeUrl";
 import { buildShareUrl, shareOrCopyLink } from "../../lib/shareOrCopyLink";
@@ -124,10 +123,6 @@ export function BuildDetailPage() {
     (meQuery.data.id === build.owner.id || meQuery.data.role === "ADMIN" || meQuery.data.role === "OWNER");
   const canDelete = meQuery.data && canCreateContent(meQuery.data.role) && meQuery.data.id === build.owner.id;
   const isOwnAsset = Boolean(meQuery.data && meQuery.data.id === build.owner.id);
-  const viewCount = build.viewCount ?? 0;
-  const copyCount = build.copyCount ?? 0;
-  const favoriteCount = build.favoriteCount ?? 0;
-  const ratingCount = build.ratingCount ?? 0;
   const averageRating = build.averageRating ?? null;
 
   const shareUrl = buildShareUrl(`/builds/${buildId}`);
@@ -218,20 +213,6 @@ export function BuildDetailPage() {
       <div className="mt-2">
         <PromptAverageStars value={averageRating} size="md" />
       </div>
-      <div className="grid gap-2 text-sm md:grid-cols-4">
-        <p className="rounded border border-(--color-border) px-3 py-2">
-          <span className="font-semibold">Views:</span> {viewCount.toLocaleString()}
-        </p>
-        <p className="rounded border border-(--color-border) px-3 py-2">
-          <span className="font-semibold">Opens:</span> {copyCount.toLocaleString()}
-        </p>
-        <p className="rounded border border-(--color-border) px-3 py-2">
-          <span className="font-semibold">Favorites:</span> {favoriteCount.toLocaleString()}
-        </p>
-        <p className="rounded border border-(--color-border) px-3 py-2">
-          <span className="font-semibold">Ratings:</span> {ratingCount.toLocaleString()}
-        </p>
-      </div>
       <div className="flex flex-wrap items-center justify-between gap-2 rounded border border-(--color-border) bg-(--color-surface) px-3 py-2">
         {isOwnAsset ? (
           <span className="text-sm italic text-(--color-text-muted)">
@@ -252,8 +233,6 @@ export function BuildDetailPage() {
           </>
         )}
       </div>
-
-      <AssetDetailCollectionsDisclosure assetId={buildId} assetTitle={build.title} assetType="build" />
 
       <div className="flex flex-wrap items-center gap-1 rounded-lg border border-(--color-border) bg-(--color-surface) p-2">
         <button

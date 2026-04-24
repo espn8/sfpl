@@ -4,14 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
 import { useToast } from "../../app/providers/ToastProvider";
-import { AssetDetailCollectionsDisclosure } from "../../components/AssetDetailCollectionsDisclosure";
 import { ConfirmDeleteModal } from "../../components/ConfirmDeleteModal";
 import { fetchMe } from "../auth/api";
 import { canCreateContent } from "../auth/roles";
 import {
   deletePromptPermanently,
   getPrompt,
-  getToolLabel,
   listPromptVersions,
   logUsage,
   ratePrompt,
@@ -43,10 +41,6 @@ import { PromptThumbnail } from "./PromptThumbnail";
 import { shareOrCopyPromptLink } from "./sharePrompt";
 import { AssetBadges } from "../assets/badges";
 import { VerificationBanner } from "../assets/VerificationControls";
-
-function pluralize(count: number, singular: string, plural = `${singular}s`): string {
-  return `${count.toLocaleString()} ${count === 1 ? singular : plural}`;
-}
 
 function formatVersionWhen(iso: string): string {
   try {
@@ -342,44 +336,6 @@ export function PromptDetailPage() {
         </div>
       </div>
       {promptData.summary ? <p className="text-(--color-text-muted)">{promptData.summary}</p> : null}
-      <section className="space-y-3 rounded border border-(--color-border) bg-(--color-surface) p-4">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-(--color-text-muted)">Metadata</h3>
-        <div className="flex flex-wrap gap-2 text-sm">
-          <span className="rounded bg-(--color-surface-muted) px-2 py-1">Status: {promptData.status}</span>
-          <span className="rounded bg-(--color-surface-muted) px-2 py-1">Visibility: {promptData.visibility}</span>
-          <span className="rounded bg-(--color-surface-muted) px-2 py-1">
-            Tools: {promptData.tools.length > 0 ? promptData.tools.map((t) => getToolLabel(t)).join(", ") : "Not set"}
-          </span>
-          <span className="rounded bg-(--color-surface-muted) px-2 py-1">Generated output: {promptData.modality}</span>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {promptData.promptTags && promptData.promptTags.length > 0 ? (
-            promptData.promptTags.map((item) => (
-              <span key={item.tag.id} className="rounded-full bg-(--color-surface-muted) px-2 py-1 text-xs">
-                #{item.tag.name}
-              </span>
-            ))
-          ) : (
-            <p className="text-sm text-(--color-text-muted)">No tags assigned.</p>
-          )}
-        </div>
-        <div className="grid gap-2 text-sm md:grid-cols-3">
-          <p className="rounded border border-(--color-border) px-3 py-2">
-            <span className="font-semibold">Views:</span> {viewCount.toLocaleString()}
-          </p>
-          <p className="rounded border border-(--color-border) px-3 py-2">
-            <span className="font-semibold">Total ratings:</span> {pluralize(promptData.ratings?.length ?? 0, "rating")}
-          </p>
-          <p className="rounded border border-(--color-border) px-3 py-2">
-            <span className="font-semibold">Usage events:</span> {pluralize(promptData._count?.usageEvents ?? 0, "event")}
-          </p>
-        </div>
-      </section>
-      <AssetDetailCollectionsDisclosure
-        assetId={promptId}
-        assetTitle={promptData.title}
-        assetType="prompt"
-      />
 
       {hasVariables ? (
         <section className="space-y-3 rounded border border-(--color-border) bg-(--color-surface) p-4">
