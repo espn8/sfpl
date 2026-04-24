@@ -1,7 +1,7 @@
 # AI Library - Technical Summary
 
 Last Updated: Friday, April 24, 2026 — 17:22 CDT
-Build Version: `06444e0`
+Build Version: `8ef846f` (includes feature `06444e0` + summary hash line)
 App Version: see production footer after deploy (root `package.json` 1.3.3 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
@@ -12,7 +12,7 @@ Production URL: https://ail.mysalesforcedemo.com (canonical live site — never 
 - **Prompt detail** ([PromptDetailPage.tsx](client/src/features/prompts/PromptDetailPage.tsx)): Removed the **Metadata** `<section>` (status, visibility, tools, modality, tags, views, ratings count, usage events) and the **`pluralize`** helper plus unused **`getToolLabel`** import.
 - **Skill, context, build detail** ([SkillDetailPage.tsx](client/src/features/skills/SkillDetailPage.tsx), [ContextDetailPage.tsx](client/src/features/context/ContextDetailPage.tsx), [BuildDetailPage.tsx](client/src/features/builds/BuildDetailPage.tsx)): Removed the four-cell **Views / Downloads|Copies|Opens / Favorites / Ratings** grid and unused count locals. Status line, stars, and rating row unchanged.
 - **Collections UI on detail:** Removed `<AssetDetailCollectionsDisclosure />` from all four detail pages. **[AssetDetailCollectionsDisclosure.tsx](client/src/components/AssetDetailCollectionsDisclosure.tsx)** and **[AssetDetailCollectionsDisclosure.test.tsx](client/src/components/AssetDetailCollectionsDisclosure.test.tsx)** remain in the repo for possible reuse. Per-asset **`AssetCollectionMenu`** in each page’s action toolbar still supports add/remove collections.
-- **Deploy:** `git push origin main` and `git push heroku main:master` (pre-push tests). `npm --prefix client run build` verified before push. Production release recorded in Heroku dashboard after push (see footer version from `version-bump.js`).
+- **Deploy:** `git push origin main` and `git push heroku main:master` (pre-push tests). `npm --prefix client run build` verified before push. **Heroku v211**; Prisma release: no pending migrations.
 
 ### Release: Skill / build / context detail & card copy — Get the Skill, Help URL dedup, context CTAs (April 24, 2026 — 17:12 CDT)
 
