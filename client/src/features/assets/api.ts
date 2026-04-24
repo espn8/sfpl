@@ -21,7 +21,12 @@ export type UnifiedAsset = {
   assetType: AssetType;
   title: string;
   summary: string | null;
-  body: string;
+  /**
+   * Populated only for builds (the build URL). For prompts and context documents
+   * this is omitted from the list response to keep the payload small; fetch the
+   * full detail endpoint (getPrompt / getContextDocument) on demand.
+   */
+  body?: string;
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   visibility: "PUBLIC" | "TEAM" | "PRIVATE";
   tools: string[];

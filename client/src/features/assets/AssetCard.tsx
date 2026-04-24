@@ -7,9 +7,9 @@ import { fetchMe } from "../auth/api";
 import { type UnifiedAsset } from "./api";
 import { getToolLabel } from "../prompts/api";
 import { highlightMatches, truncateWithHighlight } from "../search";
-import { logUsage, ratePrompt, toggleFavorite } from "../prompts/api";
-import { toggleSkillFavorite, logSkillUsage } from "../skills/api";
-import { toggleContextFavorite, logContextUsage } from "../context/api";
+import { getPrompt, logUsage, ratePrompt, toggleFavorite } from "../prompts/api";
+import { getSkill, toggleSkillFavorite, logSkillUsage } from "../skills/api";
+import { getContextDocument, toggleContextFavorite, logContextUsage } from "../context/api";
 import {
   CalendarIcon,
   CopyIcon,
@@ -110,17 +110,51 @@ export function AssetCard({ asset, variant = "default", showAnalytics = false, h
     }
   };
 
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(asset.body);
-    if (asset.assetType === "prompt") {
-      void logUsage(asset.id, "COPY");
-    } else if (asset.assetType === "skill") {
-      void logSkillUsage(asset.id, "COPY");
-    } else {
-      void logContextUsage(asset.id, "COPY");
+  const [isCopying, setIsCopying] = useState(false);
+
+  const loadCopyText = async (): Promise<string | null> => {
+    if (asset.body && asset.body.length > 0) {
+      return asset.body;
     }
-    trackEvent(`${asset.assetType}_copy`, { [`${asset.assetType}_id`]: asset.id, source: "list" });
-    showToast("Copied to clipboard");
+    if (asset.assetType === "prompt") {
+      const prompt = await getPrompt(asset.id);
+      return prompt.body ?? null;
+    }
+    if (asset.assetType === "context") {
+      const doc = await getContextDocument(asset.id);
+      return doc.body ?? null;
+    }
+    if (asset.assetType === "skill") {
+      const skill = await getSkill(asset.id);
+      return skill.skillUrl ?? null;
+    }
+    return null;
+  };
+
+  const handleCopy = async () => {
+    if (isCopying) return;
+    setIsCopying(true);
+    try {
+      const text = await loadCopyText();
+      if (!text) {
+        showToast("Nothing to copy");
+        return;
+      }
+      await navigator.clipboard.writeText(text);
+      if (asset.assetType === "prompt") {
+        void logUsage(asset.id, "COPY");
+      } else if (asset.assetType === "skill") {
+        void logSkillUsage(asset.id, "COPY");
+      } else if (asset.assetType === "context") {
+        void logContextUsage(asset.id, "COPY");
+      }
+      trackEvent(`${asset.assetType}_copy`, { [`${asset.assetType}_id`]: asset.id, source: "list" });
+      showToast("Copied to clipboard");
+    } catch {
+      showToast("Couldn't copy right now. Try the detail page.");
+    } finally {
+      setIsCopying(false);
+    }
   };
 
   return (
@@ -290,12 +324,13 @@ export function AssetCard({ asset, variant = "default", showAnalytics = false, h
             </Link>
             <button
               type="button"
-              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors bg-[#04844B] text-white hover:bg-[#036B3E]"
+              disabled={isCopying}
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors bg-[#04844B] text-white hover:bg-[#036B3E] disabled:opacity-70"
               aria-label={`Use ${asset.assetType}`}
               onClick={handleCopy}
             >
               <CopyIcon className="h-4 w-4" />
-              Use
+              {isCopying ? "Copying…" : "Use"}
             </button>
           </div>
         </div>
