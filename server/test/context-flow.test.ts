@@ -1,12 +1,9 @@
 import express from "express";
 import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { buildPrismaMock } from "./helpers/mockPrisma";
 
-const mockContextCreate = vi.fn();
-const mockContextFindMany = vi.fn();
-const mockContextCount = vi.fn();
-const mockContextFindFirst = vi.fn();
-const mockContextUpdate = vi.fn();
+const prismaMock = buildPrismaMock();
 
 vi.mock("../src/middleware/auth", () => ({
   requireAuth: (_req: unknown, _res: unknown, next: () => void) => next(),
@@ -16,15 +13,7 @@ vi.mock("../src/middleware/auth", () => ({
 }));
 
 vi.mock("../src/lib/prisma", () => ({
-  prisma: {
-    contextDocument: {
-      create: mockContextCreate,
-      findMany: mockContextFindMany,
-      count: mockContextCount,
-      findFirst: mockContextFindFirst,
-      update: mockContextUpdate,
-    },
-  },
+  prisma: prismaMock,
 }));
 
 async function buildContextApp() {
@@ -35,6 +24,8 @@ async function buildContextApp() {
   return app;
 }
 
+const contextDocument = prismaMock.contextDocument as Record<string, ReturnType<typeof vi.fn>>;
+
 describe("context API", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -42,7 +33,7 @@ describe("context API", () => {
 
   it("creates a context document", async () => {
     const app = await buildContextApp();
-    mockContextCreate.mockResolvedValue({
+    contextDocument.create.mockResolvedValue({
       id: 5,
       teamId: 1,
       ownerId: 1,
@@ -63,7 +54,7 @@ describe("context API", () => {
 
     expect(response.status).toBe(201);
     expect(response.body.data.title).toBe("Rules");
-    expect(mockContextCreate).toHaveBeenCalledWith(
+    expect(contextDocument.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ teamId: 1, ownerId: 1 }),
       }),
@@ -72,8 +63,8 @@ describe("context API", () => {
 
   it("lists context documents", async () => {
     const app = await buildContextApp();
-    mockContextFindMany.mockResolvedValue([]);
-    mockContextCount.mockResolvedValue(0);
+    contextDocument.findMany.mockResolvedValue([]);
+    contextDocument.count.mockResolvedValue(0);
 
     const response = await request(app).get("/api/context");
 
@@ -84,8 +75,8 @@ describe("context API", () => {
 
   it("archives with DELETE", async () => {
     const app = await buildContextApp();
-    mockContextFindFirst.mockResolvedValue({ id: 9, teamId: 1, ownerId: 1 });
-    mockContextUpdate.mockResolvedValue({
+    contextDocument.findFirst.mockResolvedValue({ id: 9, teamId: 1, ownerId: 1 });
+    contextDocument.update.mockResolvedValue({
       id: 9,
       status: "ARCHIVED",
       teamId: 1,

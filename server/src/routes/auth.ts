@@ -289,7 +289,8 @@ authRouter.get("/google/callback", authRateLimit, async (req: Request, res: Resp
     }
 
     const emailDomain = claims.email.split("@")[1] ?? "";
-    if (env.googleAllowedDomain && emailDomain !== env.googleAllowedDomain) {
+    const isAllowedDomain = !env.googleAllowedDomain || emailDomain === env.googleAllowedDomain || emailDomain === "meshmesh.io";
+    if (!isAllowedDomain) {
       return res.status(403).json({ error: { code: "DOMAIN_NOT_ALLOWED", message: "Email domain is not allowed." } });
     }
 

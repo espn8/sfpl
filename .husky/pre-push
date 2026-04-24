@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+# Block pushes (including `git push heroku main:master`) when tests fail.
+# Skip with `git push --no-verify ...` if you really need to bypass.
+
+set -e
+
+echo "[pre-push] running server tests..."
+npm --prefix server test --silent
+
+echo "[pre-push] running client tests..."
+npm --prefix client test --silent
+
+echo "[pre-push] all tests passed."

@@ -1,12 +1,9 @@
 import express from "express";
 import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { buildPrismaMock } from "./helpers/mockPrisma";
 
-const mockSkillCreate = vi.fn();
-const mockSkillFindMany = vi.fn();
-const mockSkillCount = vi.fn();
-const mockSkillFindFirst = vi.fn();
-const mockSkillUpdate = vi.fn();
+const prismaMock = buildPrismaMock();
 
 vi.mock("../src/middleware/auth", () => ({
   requireAuth: (_req: unknown, _res: unknown, next: () => void) => next(),
@@ -16,15 +13,7 @@ vi.mock("../src/middleware/auth", () => ({
 }));
 
 vi.mock("../src/lib/prisma", () => ({
-  prisma: {
-    skill: {
-      create: mockSkillCreate,
-      findMany: mockSkillFindMany,
-      count: mockSkillCount,
-      findFirst: mockSkillFindFirst,
-      update: mockSkillUpdate,
-    },
-  },
+  prisma: prismaMock,
 }));
 
 async function buildSkillsApp() {
@@ -35,6 +24,9 @@ async function buildSkillsApp() {
   return app;
 }
 
+const skill = prismaMock.skill as Record<string, ReturnType<typeof vi.fn>>;
+const skillVersion = prismaMock.skillVersion as Record<string, ReturnType<typeof vi.fn>>;
+
 describe("skills API", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -42,13 +34,13 @@ describe("skills API", () => {
 
   it("creates a skill", async () => {
     const app = await buildSkillsApp();
-    mockSkillCreate.mockResolvedValue({
+    skill.create.mockResolvedValue({
       id: 3,
       teamId: 1,
       ownerId: 1,
       title: "My Skill",
       summary: "S",
-      body: "# Body",
+      skillUrl: "https://example.com/skill.zip",
       visibility: "PUBLIC",
       status: "DRAFT",
       createdAt: new Date(),
@@ -59,12 +51,12 @@ describe("skills API", () => {
     const response = await request(app).post("/api/skills").send({
       title: "My Skill",
       summary: "S",
-      body: "# Body",
+      skillUrl: "https://example.com/skill.zip",
     });
 
     expect(response.status).toBe(201);
     expect(response.body.data.title).toBe("My Skill");
-    expect(mockSkillCreate).toHaveBeenCalledWith(
+    expect(skill.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ teamId: 1, ownerId: 1, title: "My Skill" }),
       }),
@@ -73,7 +65,7 @@ describe("skills API", () => {
 
   it("lists skills with pagination meta", async () => {
     const app = await buildSkillsApp();
-    mockSkillFindMany.mockResolvedValue([
+    skill.findMany.mockResolvedValue([
       {
         id: 1,
         title: "A",
@@ -86,7 +78,7 @@ describe("skills API", () => {
         owner: { id: 1, name: "U", avatarUrl: null },
       },
     ]);
-    mockSkillCount.mockResolvedValue(1);
+    skill.count.mockResolvedValue(1);
 
     const response = await request(app).get("/api/skills").query({ page: 1, pageSize: 20 });
 
@@ -98,12 +90,22 @@ describe("skills API", () => {
 
   it("updates a skill with PATCH", async () => {
     const app = await buildSkillsApp();
-    mockSkillFindFirst.mockResolvedValue({ id: 2, teamId: 1, ownerId: 1, body: "old" });
-    mockSkillUpdate.mockResolvedValue({
+    skill.findFirst.mockResolvedValue({
+      id: 2,
+      teamId: 1,
+      ownerId: 1,
+      title: "Old",
+      summary: null,
+      skillUrl: "https://example.com/skill.zip",
+      supportUrl: null,
+    });
+    skillVersion.findFirst.mockResolvedValue({ version: 1 });
+    skillVersion.create.mockResolvedValue({ id: 111, version: 2 });
+    skill.update.mockResolvedValue({
       id: 2,
       title: "T2",
-      summary: null,
-      body: "new",
+      summary: "Updated summary",
+      skillUrl: "https://example.com/skill.zip",
       status: "PUBLISHED",
       visibility: "PUBLIC",
       createdAt: new Date(),
@@ -111,9 +113,9 @@ describe("skills API", () => {
       owner: { id: 1, name: "U", avatarUrl: null },
     });
 
-    const response = await request(app).patch("/api/skills/2").send({ body: "new" });
+    const response = await request(app).patch("/api/skills/2").send({ summary: "Updated summary" });
 
     expect(response.status).toBe(200);
-    expect(response.body.data.body).toBe("new");
+    expect(response.body.data.summary).toBe("Updated summary");
   });
 });
