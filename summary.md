@@ -1,11 +1,20 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 24, 2026 — 18:24 CDT
-Build Version: `7a0d0d7`
+Last Updated: Friday, April 24, 2026 — 18:32 CDT
+Build Version: `82cf5fe`
 App Version: see production footer after deploy (root `package.json` 1.3.3 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Session: workspace ADMIN/OWNER full asset mutations (April 24, 2026 — 18:32 CDT)
+
+- **Visibility / mutations** ([server/src/lib/visibility.ts](server/src/lib/visibility.ts)): **`canMutateTeamScopedAsset`** now treats **`ADMIN`** / **`OWNER`** like reads — they may **PATCH** / archive / restore / regenerate thumbnails for **any** asset (`teamId` no longer has to match the session). **`isOwnerOrWorkspaceAdmin`** centralizes “asset owner or workspace admin/owner” for governance-only routes.
+- **Permanent delete** ([server/src/routes/prompts.ts](server/src/routes/prompts.ts), [skills.ts](server/src/routes/skills.ts), [context.ts](server/src/routes/context.ts), [builds.ts](server/src/routes/builds.ts)): Allowed for **`isOwnerOrWorkspaceAdmin`** (admins were previously owner-only).
+- **Verify / unarchive** (prompts, skills, context): Same **`isOwnerOrWorkspaceAdmin`** gate so admins can verify or unarchive cross-team assets.
+- **Transfer ownership** (prompts, skills, context): Drop **`existing.teamId === auth.teamId`** for lookup; require **`newOwner.teamId === existing.teamId`** so the new owner is always on the **asset’s** team when an admin’s session team differs.
+- **Tests**: Server Vitest suite unchanged count (111); no Prisma migration.
+- **Deploy:** `npm --prefix client run build`, **`git push origin main`**, **`git push heroku main:master`**. Production: https://ail.mysalesforcedemo.com
 
 ### Session: governance sweep clock, Vitest Prisma mocks, Smart Picks system collection (April 24, 2026 — 18:17 CDT)
 
@@ -23,7 +32,7 @@ Production URL: https://ail.mysalesforcedemo.com (canonical live site — never 
 - **Profile gate service** ([server/src/services/profileGateArchive.ts](server/src/services/profileGateArchive.ts)): `archivePublishedAssetsForProfileGate(ownerId)` performs the same archive pattern at runtime (transaction per asset type).
 - **Auth & session** ([server/src/routes/auth.ts](server/src/routes/auth.ts), [server/src/middleware/auth.ts](server/src/middleware/auth.ts), [server/src/types/express-session.d.ts](server/src/types/express-session.d.ts)): Session carries `onboardingCompleted`; DB refresh keeps it in sync; `requireOnboardingComplete` returns **403** `PROFILE_SETUP_REQUIRED` when the user has not finished profile setup (dev whitelist bypass unchanged). `GET /api/auth/me` runs the profile-gate archiver once per session (`profileGateArchiveDone`) for incomplete users so stray published rows are not left live.
 - **Authenticated API routes**: Routers that previously stopped at `requireAuth` now chain **`requireOnboardingComplete`** after it (prompts, skills, context, builds, collections, assets, search, tags, thumbnails, tool-requests, help, me, AI, analytics, admin, API keys, v1 surface as applicable). Vitest route mocks set `onboardingCompleted: true` on `req.session.auth` where needed ([server/test/auth-session.test.ts](server/test/auth-session.test.ts), flow tests).
-- **Visibility / mutations** ([server/src/lib/visibility.ts](server/src/lib/visibility.ts)): New **`canMutateTeamScopedAsset`** — asset **owner** may always mutate; **ADMIN** / **OWNER** only when the asset’s `teamId` matches the caller’s (avoids cross-team updates when using `findUnique` by id). Adopted on prompt/skill/context/build mutation handlers (replacing loose owner-or-admin checks and `findFirst` scoped only by team).
+- **Visibility / mutations** ([server/src/lib/visibility.ts](server/src/lib/visibility.ts)): **`canMutateTeamScopedAsset`** — asset **owner** may always mutate; **ADMIN** / **OWNER** may mutate **any** asset (cross-tenant, same as admin read scope). *Earlier iteration restricted admins to `asset.teamId === auth.teamId`; superseded April 24, 2026 — 18:32 CDT.* Adopted on prompt/skill/context/build mutation handlers.
 - **Client — AppShell** ([client/src/components/AppShell.tsx](client/src/components/AppShell.tsx)): Blocks the shell with a **welcome / complete profile** modal when `onboardingCompleted` is false; [AppShell.test.tsx](client/src/components/AppShell.test.tsx) covers the gate.
 - **Client — Prompt detail** ([client/src/features/prompts/PromptDetailPage.tsx](client/src/features/prompts/PromptDetailPage.tsx)): Validates `promptId > 0`; clearer loading vs missing/error states; **archive** mutation + navigation; **`AssetCollectionMenu`** instead of prompt-only collection menu; share uses shared **`buildShareUrl` / `shareOrCopyLink`**; edit/delete eligibility uses `me` + owner id alignment with **`canCreateContent`**.
 - **Client — usage analytics on secondary actions** ([BuildDetailPage.tsx](client/src/features/builds/BuildDetailPage.tsx), [SkillDetailPage.tsx](client/src/features/skills/SkillDetailPage.tsx), [ContextDetailPage.tsx](client/src/features/context/ContextDetailPage.tsx)): **Open Link** (build docs / skill help) and **Download** (context) now record **COPY** usage plus the existing `trackEvent` names (`build_documentation_open`, `skill_help_open`, `context_download`).
