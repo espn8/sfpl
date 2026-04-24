@@ -19,6 +19,10 @@ export const TOOL_COLLECTION_MAP: Record<string, { name: string; description: st
 const BEST_OF_COLLECTION_NAME = "Best of AI Library";
 const BEST_OF_COLLECTION_DESCRIPTION = "The top 20 highest-rated and most-used AI assets in the library";
 
+export const SMART_PICKS_COLLECTION_NAME = "Smart Picks";
+const SMART_PICKS_COLLECTION_DESCRIPTION =
+  "Editor-curated highlights — admins mark assets as Smart Picks; membership syncs automatically.";
+
 async function resolveCollectionCreator(teamId: number, preferredUserId?: number): Promise<number | null> {
   if (preferredUserId) {
     const existing = await prisma.user.findFirst({
@@ -89,6 +93,26 @@ export async function ensureSystemCollections(teamId: number, adminUserId?: numb
     },
     update: {
       description: BEST_OF_COLLECTION_DESCRIPTION,
+      isSystem: true,
+    },
+  });
+
+  await prisma.collection.upsert({
+    where: {
+      teamId_name: {
+        teamId,
+        name: SMART_PICKS_COLLECTION_NAME,
+      },
+    },
+    create: {
+      teamId,
+      createdById,
+      name: SMART_PICKS_COLLECTION_NAME,
+      description: SMART_PICKS_COLLECTION_DESCRIPTION,
+      isSystem: true,
+    },
+    update: {
+      description: SMART_PICKS_COLLECTION_DESCRIPTION,
       isSystem: true,
     },
   });
@@ -199,6 +223,90 @@ export async function refreshAllToolCollections(teamId: number): Promise<void> {
   }
 }
 
+export async function refreshSmartPicksCollection(teamId: number): Promise<void> {
+  await ensureSystemCollections(teamId);
+
+  const collection = await prisma.collection.findUnique({
+    where: {
+      teamId_name: {
+        teamId,
+        name: SMART_PICKS_COLLECTION_NAME,
+      },
+    },
+  });
+
+  if (!collection || !collection.isSystem) {
+    return;
+  }
+
+  const [picksPrompts, picksSkills, picksContexts, picksBuilds] = await Promise.all([
+    prisma.prompt.findMany({
+      where: { teamId, status: "PUBLISHED", isSmartPick: true },
+      orderBy: { updatedAt: "desc" },
+      select: { id: true },
+    }),
+    prisma.skill.findMany({
+      where: { teamId, status: "PUBLISHED", isSmartPick: true },
+      orderBy: { updatedAt: "desc" },
+      select: { id: true },
+    }),
+    prisma.contextDocument.findMany({
+      where: { teamId, status: "PUBLISHED", isSmartPick: true },
+      orderBy: { updatedAt: "desc" },
+      select: { id: true },
+    }),
+    prisma.build.findMany({
+      where: { teamId, status: "PUBLISHED", isSmartPick: true },
+      orderBy: { updatedAt: "desc" },
+      select: { id: true },
+    }),
+  ]);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.collectionPrompt.deleteMany({ where: { collectionId: collection.id } });
+    await tx.collectionSkill.deleteMany({ where: { collectionId: collection.id } });
+    await tx.collectionContext.deleteMany({ where: { collectionId: collection.id } });
+    await tx.collectionBuild.deleteMany({ where: { collectionId: collection.id } });
+
+    if (picksPrompts.length > 0) {
+      await tx.collectionPrompt.createMany({
+        data: picksPrompts.map((row, index) => ({
+          collectionId: collection.id,
+          promptId: row.id,
+          sortOrder: index,
+        })),
+      });
+    }
+    if (picksSkills.length > 0) {
+      await tx.collectionSkill.createMany({
+        data: picksSkills.map((row, index) => ({
+          collectionId: collection.id,
+          skillId: row.id,
+          sortOrder: index,
+        })),
+      });
+    }
+    if (picksContexts.length > 0) {
+      await tx.collectionContext.createMany({
+        data: picksContexts.map((row, index) => ({
+          collectionId: collection.id,
+          contextId: row.id,
+          sortOrder: index,
+        })),
+      });
+    }
+    if (picksBuilds.length > 0) {
+      await tx.collectionBuild.createMany({
+        data: picksBuilds.map((row, index) => ({
+          collectionId: collection.id,
+          buildId: row.id,
+          sortOrder: index,
+        })),
+      });
+    }
+  });
+}
+
 export async function refreshBestOfCollection(teamId: number): Promise<void> {
   await ensureSystemCollections(teamId);
 
@@ -253,6 +361,14 @@ export function getBestOfCollectionName(): string {
   return BEST_OF_COLLECTION_NAME;
 }
 
+export function getSmartPicksCollectionName(): string {
+  return SMART_PICKS_COLLECTION_NAME;
+}
+
 export function isSystemCollectionName(name: string): boolean {
-  return name === BEST_OF_COLLECTION_NAME || getToolCollectionNames().includes(name);
+  return (
+    name === BEST_OF_COLLECTION_NAME ||
+    name === SMART_PICKS_COLLECTION_NAME ||
+    getToolCollectionNames().includes(name)
+  );
 }

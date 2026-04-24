@@ -16,6 +16,13 @@ const LOW_RATING_MIN_COUNT = 10;
 const LOW_RATING_THRESHOLD = 2; // raw average strictly below this triggers archival.
 const SMART_PICK_TOP_N = 12;
 
+/** Set at the start of `runGovernanceSweep` / `recomputeSmartPicks` so warn queries use the same clock as tests. */
+let governanceSweepClock: Date = new Date();
+
+function governanceNow(): Date {
+  return governanceSweepClock;
+}
+
 export type SweepCounts = {
   warningsSent: number;
   archivedUnverified: number;
@@ -215,10 +222,10 @@ const assetConfigs: AssetConfig[] = [
       prisma.prompt.findMany({
         where: {
           status: "PUBLISHED",
-          verificationDueAt: { gte: new Date(), lte: until },
+          verificationDueAt: { gte: governanceNow(), lte: until },
           OR: [
             { warningSentAt: null },
-            { warningSentAt: { lt: new Date(Date.now() - 7 * DAY_MS) } },
+            { warningSentAt: { lt: new Date(governanceNow().getTime() - 7 * DAY_MS) } },
           ],
         },
         select: {
@@ -272,11 +279,10 @@ const assetConfigs: AssetConfig[] = [
         },
       });
       return rows
-        .filter((row) => row.ratings.length >= minCount)
+        .filter((row) => (row.ratings ?? []).length >= minCount)
         .filter((row) => {
-          const avg =
-            row.ratings.reduce((sum, r) => sum + r.value, 0) /
-            row.ratings.length;
+          const ratings = row.ratings ?? [];
+          const avg = ratings.reduce((sum, r) => sum + r.value, 0) / ratings.length;
           return avg < threshold;
         })
         .map(({ ratings: _ratings, ...rest }) => rest);
@@ -316,10 +322,10 @@ const assetConfigs: AssetConfig[] = [
       prisma.skill.findMany({
         where: {
           status: "PUBLISHED",
-          verificationDueAt: { gte: new Date(), lte: until },
+          verificationDueAt: { gte: governanceNow(), lte: until },
           OR: [
             { warningSentAt: null },
-            { warningSentAt: { lt: new Date(Date.now() - 7 * DAY_MS) } },
+            { warningSentAt: { lt: new Date(governanceNow().getTime() - 7 * DAY_MS) } },
           ],
         },
         select: {
@@ -370,11 +376,10 @@ const assetConfigs: AssetConfig[] = [
         },
       });
       return rows
-        .filter((row) => row.ratings.length >= minCount)
+        .filter((row) => (row.ratings ?? []).length >= minCount)
         .filter((row) => {
-          const avg =
-            row.ratings.reduce((sum, r) => sum + r.value, 0) /
-            row.ratings.length;
+          const ratings = row.ratings ?? [];
+          const avg = ratings.reduce((sum, r) => sum + r.value, 0) / ratings.length;
           return avg < threshold;
         })
         .map(({ ratings: _ratings, ...rest }) => rest);
@@ -411,10 +416,10 @@ const assetConfigs: AssetConfig[] = [
       prisma.contextDocument.findMany({
         where: {
           status: "PUBLISHED",
-          verificationDueAt: { gte: new Date(), lte: until },
+          verificationDueAt: { gte: governanceNow(), lte: until },
           OR: [
             { warningSentAt: null },
-            { warningSentAt: { lt: new Date(Date.now() - 7 * DAY_MS) } },
+            { warningSentAt: { lt: new Date(governanceNow().getTime() - 7 * DAY_MS) } },
           ],
         },
         select: {
@@ -465,11 +470,10 @@ const assetConfigs: AssetConfig[] = [
         },
       });
       return rows
-        .filter((row) => row.ratings.length >= minCount)
+        .filter((row) => (row.ratings ?? []).length >= minCount)
         .filter((row) => {
-          const avg =
-            row.ratings.reduce((sum, r) => sum + r.value, 0) /
-            row.ratings.length;
+          const ratings = row.ratings ?? [];
+          const avg = ratings.reduce((sum, r) => sum + r.value, 0) / ratings.length;
           return avg < threshold;
         })
         .map(({ ratings: _ratings, ...rest }) => rest);
@@ -509,10 +513,10 @@ const assetConfigs: AssetConfig[] = [
       prisma.build.findMany({
         where: {
           status: "PUBLISHED",
-          verificationDueAt: { gte: new Date(), lte: until },
+          verificationDueAt: { gte: governanceNow(), lte: until },
           OR: [
             { warningSentAt: null },
-            { warningSentAt: { lt: new Date(Date.now() - 7 * DAY_MS) } },
+            { warningSentAt: { lt: new Date(governanceNow().getTime() - 7 * DAY_MS) } },
           ],
         },
         select: {
@@ -563,11 +567,10 @@ const assetConfigs: AssetConfig[] = [
         },
       });
       return rows
-        .filter((row) => row.ratings.length >= minCount)
+        .filter((row) => (row.ratings ?? []).length >= minCount)
         .filter((row) => {
-          const avg =
-            row.ratings.reduce((sum, r) => sum + r.value, 0) /
-            row.ratings.length;
+          const ratings = row.ratings ?? [];
+          const avg = ratings.reduce((sum, r) => sum + r.value, 0) / ratings.length;
           return avg < threshold;
         })
         .map(({ ratings: _ratings, ...rest }) => rest);
@@ -618,7 +621,7 @@ export type GovernanceSweepOptions = {
  *   2. Archive assets that are already overdue (UNVERIFIED).
  *   3. Archive assets with no usage or rating activity in 30 days (INACTIVE).
  *   4. Archive assets with ≥10 ratings and a raw average below 2 (LOW_RATING).
- *   5. Recompute `isSmartPick` as the top-N highest scoring per type.
+ *   5. Smart Picks are curated by admins only (no automatic recompute here).
  *
  * All state changes write an AssetVerification audit row.
  */
@@ -626,6 +629,7 @@ export async function runGovernanceSweep(
   options: GovernanceSweepOptions = {},
 ): Promise<SweepResult> {
   const now = options.now ?? new Date();
+  governanceSweepClock = now;
   const dryRun = options.dryRun ?? false;
   const warnUntil = new Date(now.getTime() + WARNING_WINDOW_DAYS * DAY_MS);
   const inactivityCutoff = new Date(now.getTime() - INACTIVITY_DAYS * DAY_MS);
@@ -741,12 +745,10 @@ export async function runGovernanceSweep(
     totals.archivedLowRating += result.archivedLowRating;
   }
 
-  const smartPicksRecomputed = await recomputeSmartPicks({ dryRun, now });
-
   return {
     byAssetType,
     totals,
-    smartPicksRecomputed,
+    smartPicksRecomputed: 0,
     startedAt: now,
     finishedAt: new Date(),
     dryRun,
@@ -764,6 +766,7 @@ export async function recomputeSmartPicks(options: {
   now?: Date;
 } = {}): Promise<number> {
   const now = options.now ?? new Date();
+  governanceSweepClock = now;
   const dryRun = options.dryRun ?? false;
   let changed = 0;
 

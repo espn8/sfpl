@@ -74,7 +74,6 @@ describe("runGovernanceSweep", () => {
   it("returns zero counts when no assets match any sweep condition", async () => {
     for (const m of [promptModel(), skillModel(), contextModel(), buildModel()]) {
       wireEmptySweep(m.findMany as FindManyMock);
-      wireSmartPicksEmpty(m);
     }
     const { runGovernanceSweep } = await load();
     const result = await runGovernanceSweep({ now: new Date("2026-05-01T00:00:00Z") });
@@ -110,11 +109,9 @@ describe("runGovernanceSweep", () => {
       .mockResolvedValueOnce([overdue])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([]);
-    wireSmartPicksEmpty(p);
 
     for (const m of [skillModel(), contextModel(), buildModel()]) {
       wireEmptySweep(m.findMany as FindManyMock);
-      wireSmartPicksEmpty(m);
     }
 
     const { runGovernanceSweep } = await load();
@@ -208,10 +205,8 @@ describe("runGovernanceSweepWithGate", () => {
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([]);
-    wireSmartPicksEmpty(p);
     for (const m of [skillModel(), contextModel(), buildModel()]) {
       wireEmptySweep(m.findMany as FindManyMock);
-      wireSmartPicksEmpty(m);
     }
 
     const { runGovernanceSweepWithGate } = await load();
@@ -232,7 +227,10 @@ describe("recomputeSmartPicks", () => {
   });
 
   it("flips isSmartPick on/off based on top-scored IDs", async () => {
+    vi.resetModules();
     const p = promptModel();
+    p.findMany.mockReset();
+    p.updateMany.mockReset();
     // eligiblePromptIds
     (p.findMany as FindManyMock).mockResolvedValueOnce([{ id: 1 }, { id: 2 }]);
     // listCurrentSmartPicks — currently marks id=3 (which is no longer top).

@@ -35,6 +35,7 @@ import {
   SUMMARY_TOO_LONG_MESSAGE,
   checkUpdatedSummaryLength,
 } from "../lib/summaryLimits";
+import { getWeekTopAssetKeySet, weekTopAssetKey } from "../services/weekTopAssets";
 
 const contextRouter = Router();
 
@@ -307,6 +308,7 @@ contextRouter.get("/", async (req: Request, res: Response) => {
   ]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const weekTopKeys = await getWeekTopAssetKeySet(auth.teamId);
 
   if (includeAnalytics && rows.length > 0) {
     const contextIds = rows.map((r) => r.id);
@@ -361,6 +363,7 @@ contextRouter.get("/", async (req: Request, res: Response) => {
         averageRating: ratingInfo?.avg ?? null,
         flagCounts: countFlags(flagRows),
         didNotWorkRate: didNotWorkRate(flagRows),
+        isTopAssetThisWeek: weekTopKeys.has(weekTopAssetKey("context", row.id)),
       };
     });
 
@@ -371,7 +374,10 @@ contextRouter.get("/", async (req: Request, res: Response) => {
   }
 
   return res.status(200).json({
-    data: rows.map((row) => serializeContextDoc(row)),
+    data: rows.map((row) => ({
+      ...serializeContextDoc(row),
+      isTopAssetThisWeek: weekTopKeys.has(weekTopAssetKey("context", row.id)),
+    })),
     meta: { page, pageSize, total, totalPages },
   });
 });
@@ -488,13 +494,14 @@ contextRouter.get("/:id", async (req: Request, res: Response) => {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this document." } });
   }
 
-  const [viewCount, copyCount, favoriteCount, favoriteRow, myRatingRow, ratings] = await Promise.all([
+  const [viewCount, copyCount, favoriteCount, favoriteRow, myRatingRow, ratings, weekTopKeys] = await Promise.all([
     prisma.contextUsageEvent.count({ where: { contextId, eventType: "VIEW" } }),
     prisma.contextUsageEvent.count({ where: { contextId, eventType: "COPY" } }),
     prisma.contextFavorite.count({ where: { contextId } }),
     prisma.contextFavorite.findUnique({ where: { contextId_userId: { contextId, userId: auth.userId } } }),
     prisma.contextRating.findUnique({ where: { userId_contextId: { userId: auth.userId, contextId } } }),
     prisma.contextRating.findMany({ where: { contextId }, select: { value: true, feedbackFlags: true } }),
+    getWeekTopAssetKeySet(doc.teamId),
   ]);
 
   const averageRating = ratings.length > 0
@@ -515,6 +522,7 @@ contextRouter.get("/:id", async (req: Request, res: Response) => {
       ratingCount: ratings.length,
       flagCounts: countFlags(ratings),
       didNotWorkRate: didNotWorkRate(ratings),
+      isTopAssetThisWeek: weekTopKeys.has(weekTopAssetKey("context", doc.id)),
     },
   });
 });

@@ -8,6 +8,7 @@ import {
   ensureSystemCollections,
   refreshAllToolCollections,
   refreshBestOfCollection,
+  refreshSmartPicksCollection,
   refreshToolCollection,
 } from "../services/systemCollections";
 
@@ -395,7 +396,7 @@ collectionsRouter.delete("/:id/users/:userId", requireWriteAccess, async (req: R
 
 const refreshSystemCollectionsBodySchema = z
   .object({
-    type: z.enum(["all", "best_of", "tool"]).optional(),
+    type: z.enum(["all", "best_of", "tool", "smart_picks"]).optional(),
     tool: z.string().optional(),
   })
   .optional();
@@ -423,11 +424,14 @@ collectionsRouter.post("/system/refresh", async (req: Request, res: Response) =>
     await ensureSystemCollections(auth.teamId, auth.userId);
     if (refreshType === "best_of") {
       await refreshBestOfCollection(auth.teamId);
+    } else if (refreshType === "smart_picks") {
+      await refreshSmartPicksCollection(auth.teamId);
     } else if (refreshType === "tool" && parsedBody.data?.tool) {
       await refreshToolCollection(auth.teamId, parsedBody.data.tool);
     } else {
       await refreshAllToolCollections(auth.teamId);
       await refreshBestOfCollection(auth.teamId);
+      await refreshSmartPicksCollection(auth.teamId);
     }
     return res.status(200).json({ data: { ok: true } });
   } catch (error) {

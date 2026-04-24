@@ -109,6 +109,9 @@ export function buildPrismaMock(overrides: PrismaMockOverrides = {}): Record<str
       $transaction: vi.fn().mockResolvedValue([]),
       $connect: vi.fn().mockResolvedValue(undefined),
       $disconnect: vi.fn().mockResolvedValue(undefined),
+      /** Health check in `createApp`; tagged-template calls resolve to `[]`. */
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      $executeRaw: vi.fn().mockResolvedValue(0),
     } as Record<string, unknown>,
     {
       get(target, prop: string) {

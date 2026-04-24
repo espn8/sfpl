@@ -38,6 +38,7 @@ import {
   SUMMARY_TOO_LONG_MESSAGE,
   checkUpdatedSummaryLength,
 } from "../lib/summaryLimits";
+import { getWeekTopAssetKeySet, weekTopAssetKey } from "../services/weekTopAssets";
 
 const buildThumbnailUploadsDir = path.resolve(__dirname, "../../public/uploads");
 if (!fs.existsSync(buildThumbnailUploadsDir)) {
@@ -275,6 +276,7 @@ buildsRouter.get("/", async (req: Request, res: Response) => {
   ]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const weekTopKeys = await getWeekTopAssetKeySet(auth.teamId);
 
   if (includeAnalytics && rows.length > 0) {
     const buildIds = rows.map((r) => r.id);
@@ -329,6 +331,7 @@ buildsRouter.get("/", async (req: Request, res: Response) => {
         averageRating: ratingInfo?.avg ?? null,
         flagCounts: countFlags(flagRows),
         didNotWorkRate: didNotWorkRate(flagRows),
+        isTopAssetThisWeek: weekTopKeys.has(weekTopAssetKey("build", row.id)),
       };
     });
 
@@ -339,7 +342,10 @@ buildsRouter.get("/", async (req: Request, res: Response) => {
   }
 
   return res.status(200).json({
-    data: rows.map((row) => serializeBuild(row)),
+    data: rows.map((row) => ({
+      ...serializeBuild(row),
+      isTopAssetThisWeek: weekTopKeys.has(weekTopAssetKey("build", row.id)),
+    })),
     meta: { page, pageSize, total, totalPages },
   });
 });
@@ -445,13 +451,14 @@ buildsRouter.get("/:id", async (req: Request, res: Response) => {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this build." } });
   }
 
-  const [viewCount, copyCount, favoriteCount, favoriteRow, myRatingRow, ratings] = await Promise.all([
+  const [viewCount, copyCount, favoriteCount, favoriteRow, myRatingRow, ratings, weekTopKeys] = await Promise.all([
     prisma.buildUsageEvent.count({ where: { buildId, eventType: "VIEW" } }),
     prisma.buildUsageEvent.count({ where: { buildId, eventType: "COPY" } }),
     prisma.buildFavorite.count({ where: { buildId } }),
     prisma.buildFavorite.findUnique({ where: { buildId_userId: { buildId, userId: auth.userId } } }),
     prisma.buildRating.findUnique({ where: { userId_buildId: { userId: auth.userId, buildId } } }),
     prisma.buildRating.findMany({ where: { buildId }, select: { value: true, feedbackFlags: true } }),
+    getWeekTopAssetKeySet(build.teamId),
   ]);
 
   const averageRating = ratings.length > 0
@@ -472,6 +479,7 @@ buildsRouter.get("/:id", async (req: Request, res: Response) => {
       ratingCount: ratings.length,
       flagCounts: countFlags(ratings),
       didNotWorkRate: didNotWorkRate(ratings),
+      isTopAssetThisWeek: weekTopKeys.has(weekTopAssetKey("build", build.id)),
     },
   });
 });

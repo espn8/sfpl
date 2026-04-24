@@ -25,6 +25,7 @@ import {
 } from "../lib/visibility";
 import { generatePromptThumbnail } from "../services/nanoBanana";
 import { refreshBestOfCollection, refreshToolCollection } from "../services/systemCollections";
+import { getWeekTopAssetKeySet, weekTopAssetKey } from "../services/weekTopAssets";
 import {
   checkPromptDuplicates,
   computeBodyHash,
@@ -646,10 +647,16 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
     isSmartPick: "isSmartPick" in prompt ? prompt.isSmartPick : false,
   }));
 
+  const weekTopKeys = await getWeekTopAssetKeySet(auth.teamId);
+  const dataWithWeek = data.map((row) => ({
+    ...row,
+    isTopAssetThisWeek: weekTopKeys.has(weekTopAssetKey("prompt", row.id)),
+  }));
+
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return res.status(200).json({
-    data,
+    data: dataWithWeek,
     meta: {
       page,
       pageSize,
@@ -828,10 +835,11 @@ promptsRouter.get("/:id", async (req: Request, res: Response) => {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this prompt." } });
   }
 
-  const [viewCount, favoriteRow, ratingRow] = await Promise.all([
+  const [viewCount, favoriteRow, ratingRow, weekTopKeys] = await Promise.all([
     prisma.usageEvent.count({ where: { promptId, action: UsageAction.VIEW } }),
     prisma.favorite.findUnique({ where: { userId_promptId: { userId: auth.userId, promptId } } }),
     prisma.rating.findUnique({ where: { userId_promptId: { userId: auth.userId, promptId } } }),
+    getWeekTopAssetKeySet(prompt.teamId),
   ]);
 
   return res.status(200).json({
@@ -841,6 +849,7 @@ promptsRouter.get("/:id", async (req: Request, res: Response) => {
       viewCount,
       favorited: Boolean(favoriteRow),
       myRating: ratingRow?.value ?? null,
+      isTopAssetThisWeek: weekTopKeys.has(weekTopAssetKey("prompt", prompt.id)),
     },
   });
 });

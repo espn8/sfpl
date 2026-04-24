@@ -9,6 +9,7 @@ import { prisma } from "../lib/prisma";
 import { timeSection, recordTiming } from "../middleware/requestTiming";
 import { buildVisibilityWhereFragment } from "../lib/visibility";
 import { thumbnailRefFor } from "./thumbnails";
+import { getWeekTopAssetKeySet, weekTopAssetKey } from "../services/weekTopAssets";
 
 const assetsRouter = Router();
 
@@ -127,6 +128,7 @@ type UnifiedAsset = {
   myRating?: number | null;
   variables?: Array<{ key: string; label: string | null; defaultValue: string | null; required: boolean }>;
   isSmartPick?: boolean;
+  isTopAssetThisWeek?: boolean;
 };
 
 assetsRouter.use(requireAuth);
@@ -755,6 +757,11 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
   const total = typeTotals.prompt + typeTotals.skill + typeTotals.context + typeTotals.build;
   const skip = (page - 1) * pageSize;
   const paginatedAssets = allAssets.slice(skip, skip + pageSize);
+  const weekTopKeys = await timeSection("weekTop", () => getWeekTopAssetKeySet(auth.teamId));
+  const paginatedWithWeek = paginatedAssets.map((a) => ({
+    ...a,
+    isTopAssetThisWeek: weekTopKeys.has(weekTopAssetKey(a.assetType, a.id)),
+  }));
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   const facets = {
@@ -876,7 +883,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
   }
 
   return res.status(200).json({
-    data: paginatedAssets,
+    data: paginatedWithWeek,
     meta,
   });
 });

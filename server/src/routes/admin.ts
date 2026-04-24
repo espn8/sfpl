@@ -20,6 +20,7 @@ import { getAuthContext, requireAuth, requireOnboardingComplete, requireRole } f
 import { prisma } from "../lib/prisma";
 import { runGovernanceSweepWithGate } from "../jobs/governance";
 import { transferOwner } from "../services/governanceOps";
+import { refreshSmartPicksCollection } from "../services/systemCollections";
 
 const adminRouter = Router();
 adminRouter.use(requireAuth);
@@ -203,6 +204,67 @@ adminRouter.post("/governance/run", async (req: Request, res: Response) => {
   const dryRun = parsed.success ? parsed.data.dryRun ?? false : false;
   const result = await runGovernanceSweepWithGate({ dryRun });
   return res.status(200).json({ data: result });
+});
+
+const setSmartPickBodySchema = z.object({
+  assetType: z.enum(["prompt", "skill", "context", "build"]),
+  id: z.number().int().positive(),
+  isSmartPick: z.boolean(),
+});
+
+adminRouter.patch("/smart-picks", async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+  const parsed = setSmartPickBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: { code: "BAD_REQUEST", message: "Invalid request body.", details: parsed.error.issues } });
+  }
+  const { assetType, id, isSmartPick } = parsed.data;
+
+  const teamScope = { teamId: auth.teamId };
+  let updated = false;
+
+  if (assetType === "prompt") {
+    const row = await prisma.prompt.findFirst({ where: { id, ...teamScope } });
+    if (!row) {
+      return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found on this team." } });
+    }
+    await prisma.prompt.update({ where: { id }, data: { isSmartPick } });
+    updated = true;
+  } else if (assetType === "skill") {
+    const row = await prisma.skill.findFirst({ where: { id, ...teamScope } });
+    if (!row) {
+      return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not found on this team." } });
+    }
+    await prisma.skill.update({ where: { id }, data: { isSmartPick } });
+    updated = true;
+  } else if (assetType === "context") {
+    const row = await prisma.contextDocument.findFirst({ where: { id, ...teamScope } });
+    if (!row) {
+      return res.status(404).json({ error: { code: "NOT_FOUND", message: "Context not found on this team." } });
+    }
+    await prisma.contextDocument.update({ where: { id }, data: { isSmartPick } });
+    updated = true;
+  } else {
+    const row = await prisma.build.findFirst({ where: { id, ...teamScope } });
+    if (!row) {
+      return res.status(404).json({ error: { code: "NOT_FOUND", message: "Build not found on this team." } });
+    }
+    await prisma.build.update({ where: { id }, data: { isSmartPick } });
+    updated = true;
+  }
+
+  if (updated) {
+    try {
+      await refreshSmartPicksCollection(auth.teamId);
+    } catch (error) {
+      console.error("[admin] refreshSmartPicksCollection failed:", error);
+    }
+  }
+
+  return res.status(200).json({ data: { ok: true, assetType, id, isSmartPick } });
 });
 
 export { adminRouter };

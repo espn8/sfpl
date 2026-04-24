@@ -1,6 +1,7 @@
 import session from "express-session";
 import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { buildPrismaMock } from "./helpers/mockPrisma";
 
 const mockPromptFindMany = vi.fn();
 const mockPromptCount = vi.fn();
@@ -9,32 +10,43 @@ const mockUsageEventCount = vi.fn();
 const mockCollectionFindMany = vi.fn();
 const mockCollectionCount = vi.fn();
 
+const prismaMock = buildPrismaMock({
+  prompt: {
+    findMany: mockPromptFindMany,
+    count: mockPromptCount,
+  },
+  user: {
+    count: mockUserCount,
+  },
+  usageEvent: {
+    count: mockUsageEventCount,
+    groupBy: vi.fn().mockResolvedValue([]),
+  },
+  skillUsageEvent: {
+    groupBy: vi.fn().mockResolvedValue([]),
+  },
+  contextUsageEvent: {
+    groupBy: vi.fn().mockResolvedValue([]),
+  },
+  buildUsageEvent: {
+    groupBy: vi.fn().mockResolvedValue([]),
+  },
+  collection: {
+    findMany: mockCollectionFindMany,
+    count: mockCollectionCount,
+  },
+});
+
 vi.mock("../src/middleware/auth", () => ({
   requireAuth: (_req: unknown, _res: unknown, next: () => void) => next(),
   requireOnboardingComplete: (_req: unknown, _res: unknown, next: () => void) => next(),
   requireRole: () => (_req: unknown, _res: unknown, next: () => void) => next(),
   requireWriteAccess: (_req: unknown, _res: unknown, next: () => void) => next(),
-  getAuthContext: () => ({ userId: 1, teamId: 1, role: "MEMBER" }),
+  getAuthContext: () => ({ userId: 1, teamId: 1, role: "MEMBER", userOu: null }),
 }));
 
 vi.mock("../src/lib/prisma", () => ({
-  prisma: {
-    $queryRaw: vi.fn(),
-    prompt: {
-      findMany: mockPromptFindMany,
-      count: mockPromptCount,
-    },
-    user: {
-      count: mockUserCount,
-    },
-    usageEvent: {
-      count: mockUsageEventCount,
-    },
-    collection: {
-      findMany: mockCollectionFindMany,
-      count: mockCollectionCount,
-    },
-  },
+  prisma: prismaMock,
 }));
 
 describe("list endpoint pagination", () => {
