@@ -13,7 +13,7 @@ Production URL: https://ail.mysalesforcedemo.com (canonical live site — never 
 - **Fix** ([client/src/features/home/HomePage.tsx](client/src/features/home/HomePage.tsx)): Local state `homeBrowseFilters` plus `getActiveFilters` for chips; changing facets schedules `navigate(\`/search?${filtersToParams(...)}\`)` with a `setTimeout(0)` so the sequence **filter suggestion → clear input** still serializes the URL with an empty `q`. Input uses `handleHomeSearchInputChange` so refs stay aligned for that deferred navigation.
 - **“Works Where You Work” tool pills**: `onClick` now **`navigate` to `/search?tool=...`** (merged with current `homeBrowseFiltersRef`) instead of `setFilter`, which only updated the homepage URL’s query params and did not open results.
 - **Prerequisite helpers** (already on `main` from prior commit): `filtersToParams` and `getActiveFilters` exported from [client/src/features/search/hooks/useSearchState.ts](client/src/features/search/hooks/useSearchState.ts) and [client/src/features/search/index.ts](client/src/features/search/index.ts).
-- **Deploy**: Feature commit `5be03be` shipped as Heroku **v204**; follow-up summary commit `e7c3f87` as **v205**. `git push heroku main:master`. Postbuild `version-bump.js` sets client/server patch to **1.3.4** (production footer).
+- **Deploy**: `git push heroku main:master`. Feature `5be03be` → Heroku **v204**; summary-only pushes through **v206** (`e0e89e6` on `main`). Postbuild `version-bump.js` sets client/server patch to **1.3.4** (production footer).
 
 ### Release: Homepage UX, analytics leaderboard accuracy, Top Assets label (April 24, 2026 — 15:49 CDT)
 
