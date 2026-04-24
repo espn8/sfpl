@@ -1,7 +1,7 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 24, 2026 — 15:49 CDT
-Build Version: b0f69c4 (release bundle; verify with git log -1 --format=%h)
+Last Updated: Friday, April 24, 2026 — 15:55 CDT
+Build Version: (see `git log -1 --oneline` on main after pull)
 App Version: see production footer after deploy (root `package.json` 1.3.3 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
@@ -16,6 +16,7 @@ Production URL: https://ail.mysalesforcedemo.com (canonical live site — never 
   - **Contributors** (`contributors`): ranks owners by total **published** prompts, skills, context documents, and builds. Response field **`assetCount`** replaces **`promptCount`**.
   - **User engagement** (`userEngagementLeaderboard`): **uses** = prompt COPY+LAUNCH plus skill/context/build **COPY** only (no VIEW inflation); **favorites** and **ratings** aggregated across all four asset types. Response field **`ratingCount`** replaces **`feedbackCount`** (these are star ratings submitted, not generic “feedback”). [client/src/features/analytics/api.ts](client/src/features/analytics/api.ts), [AnalyticsPage.tsx](client/src/features/analytics/AnalyticsPage.tsx), [HomePage.tsx](client/src/features/home/HomePage.tsx); admin help copy in [adminHelpContent.ts](client/src/features/admin/adminHelpContent.ts).
 - **Vitest / jsdom**: [client/src/test/setup.ts](client/src/test/setup.ts) provides an `IntersectionObserver` stub (fires `isIntersecting` on a microtask) and avoids TypeScript constructor parameter properties so `pnpm run build` (`erasableSyntaxOnly`) stays green.
+- **Search helpers**: [client/src/features/search/hooks/useSearchState.ts](client/src/features/search/hooks/useSearchState.ts) exports **`getActiveFilters`** (same chip logic as the hook’s `activeFilters` memo, including **Builds** asset label) and **`filtersToParams`**; [client/src/features/search/index.ts](client/src/features/search/index.ts) re-exports them for callers that need URL/filter chips without duplicating label maps.
 
 ### Release: Asset governance, verification lifecycle, and hybrid rating feedback (April 24, 2026 — 15:40 CDT; Heroku v201, footer 1.3.4)
 

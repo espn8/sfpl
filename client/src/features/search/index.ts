@@ -10,7 +10,7 @@ export { SearchSuggestions } from "./components/SearchSuggestions";
 // barrel would drag the whole search results page into any caller that just
 // wants the small search utilities (AssetCard, HomePage, etc.).
 export { SearchProvider, useSearchContext } from "./context/SearchContext";
-export { useSearchState } from "./hooks/useSearchState";
+export { filtersToParams, getActiveFilters, useSearchState } from "./hooks/useSearchState";
 export { useSearchSuggestions } from "./hooks/useSearchSuggestions";
 export type {
   ActiveFilter,

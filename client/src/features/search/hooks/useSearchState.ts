@@ -50,7 +50,7 @@ function parseFiltersFromParams(params: URLSearchParams): SearchFilters {
   };
 }
 
-function filtersToParams(filters: SearchFilters): URLSearchParams {
+export function filtersToParams(filters: SearchFilters): URLSearchParams {
   const params = new URLSearchParams();
 
   if (filters.q) params.set("q", filters.q);
@@ -63,6 +63,84 @@ function filtersToParams(filters: SearchFilters): URLSearchParams {
   if (filters.status) params.set("status", filters.status);
 
   return params;
+}
+
+export function getActiveFilters(filters: SearchFilters): ActiveFilter[] {
+  const result: ActiveFilter[] = [];
+
+  if (filters.assetType !== "all") {
+    const labels: Record<string, string> = {
+      prompt: "Prompts",
+      skill: "Skills",
+      context: "Context",
+      build: "Builds",
+    };
+    result.push({
+      key: "assetType",
+      value: filters.assetType,
+      label: labels[filters.assetType] ?? filters.assetType,
+    });
+  }
+
+  if (filters.tool) {
+    const toolLabels: Record<string, string> = {
+      agentforce_vibes: "Agentforce Vibes",
+      chatgpt: "ChatGPT",
+      claude_code: "Claude Code",
+      claude_cowork: "Claude Cowork",
+      cursor: "Cursor",
+      gemini: "Gemini",
+      meshmesh: "MeshMesh",
+      notebooklm: "NotebookLM",
+      other: "Other",
+      saleo: "Saleo",
+      slackbot: "Slackbot",
+    };
+    result.push({
+      key: "tool",
+      value: filters.tool,
+      label: toolLabels[filters.tool] ?? filters.tool,
+    });
+  }
+
+  if (filters.modality) {
+    const modalityLabels: Record<string, string> = {
+      text: "Text",
+      code: "Code",
+      image: "Image",
+      video: "Video",
+      audio: "Audio",
+      multimodal: "Multimodal",
+    };
+    result.push({
+      key: "modality",
+      value: filters.modality,
+      label: modalityLabels[filters.modality] ?? filters.modality,
+    });
+  }
+
+  if (filters.mine) {
+    result.push({
+      key: "mine",
+      value: "true",
+      label: "My Assets",
+    });
+  }
+
+  if (filters.status) {
+    const statusLabels: Record<string, string> = {
+      DRAFT: "Draft",
+      PUBLISHED: "Published",
+      ARCHIVED: "Archived",
+    };
+    result.push({
+      key: "status",
+      value: filters.status,
+      label: statusLabels[filters.status] ?? filters.status,
+    });
+  }
+
+  return result;
 }
 
 type UseSearchStateOptions = {
@@ -200,82 +278,7 @@ export function useSearchState(options: UseSearchStateOptions = {}): UseSearchSt
     setPageState(1);
   }
 
-  const activeFilters = useMemo<ActiveFilter[]>(() => {
-    const result: ActiveFilter[] = [];
-
-    if (filters.assetType !== "all") {
-      const labels: Record<string, string> = {
-        prompt: "Prompts",
-        skill: "Skills",
-        context: "Context",
-      };
-      result.push({
-        key: "assetType",
-        value: filters.assetType,
-        label: labels[filters.assetType] ?? filters.assetType,
-      });
-    }
-
-    if (filters.tool) {
-      const toolLabels: Record<string, string> = {
-        agentforce_vibes: "Agentforce Vibes",
-        chatgpt: "ChatGPT",
-        claude_code: "Claude Code",
-        claude_cowork: "Claude Cowork",
-        cursor: "Cursor",
-        gemini: "Gemini",
-        meshmesh: "MeshMesh",
-        notebooklm: "NotebookLM",
-        other: "Other",
-        saleo: "Saleo",
-        slackbot: "Slackbot",
-      };
-      result.push({
-        key: "tool",
-        value: filters.tool,
-        label: toolLabels[filters.tool] ?? filters.tool,
-      });
-    }
-
-    if (filters.modality) {
-      const modalityLabels: Record<string, string> = {
-        text: "Text",
-        code: "Code",
-        image: "Image",
-        video: "Video",
-        audio: "Audio",
-        multimodal: "Multimodal",
-      };
-      result.push({
-        key: "modality",
-        value: filters.modality,
-        label: modalityLabels[filters.modality] ?? filters.modality,
-      });
-    }
-
-    if (filters.mine) {
-      result.push({
-        key: "mine",
-        value: "true",
-        label: "My Assets",
-      });
-    }
-
-    if (filters.status) {
-      const statusLabels: Record<string, string> = {
-        DRAFT: "Draft",
-        PUBLISHED: "Published",
-        ARCHIVED: "Archived",
-      };
-      result.push({
-        key: "status",
-        value: filters.status,
-        label: statusLabels[filters.status] ?? filters.status,
-      });
-    }
-
-    return result;
-  }, [filters]);
+  const activeFilters = useMemo<ActiveFilter[]>(() => getActiveFilters(filters), [filters]);
 
   return {
     filters,
