@@ -39,7 +39,8 @@ import { PrismaClient } from "@prisma/client";
 import * as fs from "fs";
 import * as path from "path";
 import { normalizeUrl } from "../src/services/dedup";
-import { sendBrandedEmail, isEmailConfigured } from "../src/lib/email";
+import { isEmailConfigured } from "../src/lib/email";
+import { BatchMailer } from "../src/lib/batchMailer";
 import {
   buildDigest,
   nameFromEmail,
@@ -385,34 +386,46 @@ async function main() {
   } else if (!isEmailConfigured()) {
     console.warn("\nSMTP not configured; skipping email digests.");
   } else {
-    console.log(`\n--- Sending ${createdSkillsByEmail.size} digest email(s) ---`);
-    let sent = 0;
-    let failed = 0;
-    for (const [email, skills] of createdSkillsByEmail.entries()) {
+    const entries = [...createdSkillsByEmail.entries()].filter(
+      ([, skills]) => skills.length > 0
+    );
+    console.log(`\n--- Sending ${entries.length} digest email(s) ---`);
+
+    const mailer = new BatchMailer({
+      total: entries.length,
+      onSend: ({ index, total, label, result, sentInWindow }) => {
+        const prefix = `  [${index}${total ? `/${total}` : ""}]`;
+        if (result.success) {
+          console.log(`${prefix} OK   ${label} — ${sentInWindow}/hour window`);
+        } else {
+          console.error(`${prefix} FAIL ${label}: ${result.error}`);
+        }
+      },
+    });
+    mailer.logPlan(entries.length, "digest email(s)");
+
+    for (const [email, skills] of entries) {
       const userCtx = usersByEmail.get(email);
-      if (!userCtx || skills.length === 0) continue;
+      if (!userCtx) continue;
 
       const digest = buildDigest(
         { email, name: userCtx.name, isFirstTimer: userCtx.isFirstTimer },
         skills
       );
 
-      const result = await sendBrandedEmail({
-        to: email,
-        subject: digest.subject,
-        preheader: digest.preheader,
-        html: digest.html,
-        text: digest.text,
-      });
-
-      if (result.success) {
-        console.log(`  OK   ${email} (${skills.length} skill${skills.length === 1 ? "" : "s"})`);
-        sent++;
-      } else {
-        console.error(`  FAIL ${email}: ${result.error}`);
-        failed++;
-      }
+      await mailer.send(
+        {
+          to: email,
+          subject: digest.subject,
+          preheader: digest.preheader,
+          html: digest.html,
+          text: digest.text,
+        },
+        email
+      );
     }
+
+    const { sent, failed } = mailer.summary();
     console.log(`\nEmails sent: ${sent}, failed: ${failed}.`);
   }
 

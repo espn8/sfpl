@@ -25,7 +25,8 @@
  *     tsx server/scripts/resendSlackbotDigests.ts --send
  */
 import { PrismaClient } from "@prisma/client";
-import { sendBrandedEmail, isEmailConfigured } from "../src/lib/email";
+import { isEmailConfigured } from "../src/lib/email";
+import { BatchMailer } from "../src/lib/batchMailer";
 import {
   buildDigest,
   type CreatedSkillForEmail,
@@ -84,69 +85,77 @@ async function main() {
     console.warn(`\nWARN: no User record for: ${missing.join(", ")}`);
   }
 
-  let sent = 0;
-  let failed = 0;
-  let skipped = 0;
-
-  for (const user of users) {
-    if (user.skills.length === 0) {
-      console.log(`  SKIP ${user.email} — no slackbot skills owned`);
-      skipped++;
-      continue;
+  const toSend = users.filter((u) => u.skills.length > 0);
+  const skipped = users.length - toSend.length;
+  for (const u of users) {
+    if (u.skills.length === 0) {
+      console.log(`  SKIP ${u.email} — no slackbot skills owned`);
     }
+  }
 
+  if (!SEND) {
+    for (const user of toSend) {
+      const digest = buildDigest(
+        { email: user.email, name: user.name, isFirstTimer: !user.googleSub },
+        user.skills.map((s) => ({
+          id: s.id,
+          title: s.title,
+          summary: s.summary ?? "",
+          skillUrl: s.skillUrl,
+        }))
+      );
+      console.log(
+        `  WOULD SEND to ${user.email} (${user.skills.length} skill${user.skills.length === 1 ? "" : "s"}, ${user.googleSub ? "returning" : "first-timer"}): "${digest.subject}"`
+      );
+    }
+    console.log(
+      `\nWould send: ${toSend.length}, skipped: ${skipped}. Re-run with --send to actually email.`
+    );
+    return;
+  }
+
+  if (!isEmailConfigured()) {
+    throw new Error("SMTP not configured; aborting. Set SMTP_* env vars.");
+  }
+
+  const mailer = new BatchMailer({
+    total: toSend.length,
+    onSend: ({ index, total, label, result, sentInWindow }) => {
+      const prefix = `  [${index}${total ? `/${total}` : ""}]`;
+      if (result.success) {
+        console.log(`${prefix} OK   ${label} — ${sentInWindow}/hour window`);
+      } else {
+        console.error(`${prefix} FAIL ${label}: ${result.error}`);
+      }
+    },
+  });
+  mailer.logPlan(toSend.length, "digest email(s)");
+
+  for (const user of toSend) {
     const skills: CreatedSkillForEmail[] = user.skills.map((s) => ({
       id: s.id,
       title: s.title,
       summary: s.summary ?? "",
       skillUrl: s.skillUrl,
     }));
-
     const digest = buildDigest(
-      {
-        email: user.email,
-        name: user.name,
-        isFirstTimer: !user.googleSub,
-      },
+      { email: user.email, name: user.name, isFirstTimer: !user.googleSub },
       skills
     );
-
-    if (!SEND) {
-      console.log(
-        `  WOULD SEND to ${user.email} (${skills.length} skill${skills.length === 1 ? "" : "s"}, ${user.googleSub ? "returning" : "first-timer"}): "${digest.subject}"`
-      );
-      continue;
-    }
-
-    if (!isEmailConfigured()) {
-      console.warn(`  SMTP not configured; cannot send to ${user.email}`);
-      failed++;
-      continue;
-    }
-
-    const result = await sendBrandedEmail({
-      to: user.email,
-      subject: digest.subject,
-      preheader: digest.preheader,
-      html: digest.html,
-      text: digest.text,
-    });
-
-    if (result.success) {
-      console.log(`  OK   ${user.email} (${skills.length} skill${skills.length === 1 ? "" : "s"})`);
-      sent++;
-    } else {
-      console.error(`  FAIL ${user.email}: ${result.error}`);
-      failed++;
-    }
+    await mailer.send(
+      {
+        to: user.email,
+        subject: digest.subject,
+        preheader: digest.preheader,
+        html: digest.html,
+        text: digest.text,
+      },
+      user.email
+    );
   }
 
-  console.log(
-    `\n${SEND ? "Sent" : "Would send"}: ${SEND ? sent : users.filter((u) => u.skills.length > 0).length}, failed: ${failed}, skipped: ${skipped}.`
-  );
-  if (!SEND) {
-    console.log("\nDry run — re-run with --send to actually email.");
-  }
+  const { sent, failed } = mailer.summary();
+  console.log(`\nSent: ${sent}, failed: ${failed}, skipped: ${skipped}.`);
 }
 
 main()
