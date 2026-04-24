@@ -1,6 +1,10 @@
 import type { Prisma } from "@prisma/client";
 import type { Request, Response } from "express";
 import { Router } from "express";
+import { randomBytes } from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import multer from "multer";
 import { z } from "zod";
 import { getAuthContext, requireAuth, requireWriteAccess, type AuthContext } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
@@ -14,6 +18,37 @@ import {
   normalizeUrl,
   formatDuplicateError,
 } from "../services/dedup";
+
+const buildThumbnailUploadsDir = path.resolve(__dirname, "../../public/uploads");
+if (!fs.existsSync(buildThumbnailUploadsDir)) {
+  fs.mkdirSync(buildThumbnailUploadsDir, { recursive: true });
+}
+
+const buildThumbnailStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, buildThumbnailUploadsDir);
+  },
+  filename: (_req, file, cb) => {
+    const uniqueSuffix = `${Date.now()}-${randomBytes(8).toString("hex")}`;
+    const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
+    cb(null, `build-${uniqueSuffix}${ext}`);
+  },
+});
+
+const buildThumbnailUpload = multer({
+  storage: buildThumbnailStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  },
+  fileFilter: (_req, file, cb) => {
+    const allowedMimes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only JPEG, PNG, GIF, and WebP images are allowed."));
+    }
+  },
+});
 
 const buildsRouter = Router();
 
@@ -62,6 +97,7 @@ const createBuildBodySchema = z.object({
   supportUrl: z.string().url("supportUrl must be a valid URL.").optional().or(z.literal("")),
   visibility: promptVisibilitySchema.optional(),
   status: promptStatusSchema.optional(),
+  skipThumbnailGeneration: z.boolean().optional(),
 });
 
 const updateBuildBodySchema = z
@@ -716,6 +752,75 @@ buildsRouter.post("/:id/regenerate-thumbnail", requireWriteAccess, async (req: R
     },
   });
 });
+
+buildsRouter.post(
+  "/:id/thumbnail",
+  requireWriteAccess,
+  buildThumbnailUpload.single("thumbnail"),
+  async (req: Request, res: Response) => {
+    const auth = getAuthContext(req);
+    if (!auth) {
+      return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+    }
+
+    const parsedParams = buildIdParamsSchema.safeParse(req.params);
+    if (!parsedParams.success) {
+      return res.status(400).json(badRequestFromZodError(parsedParams.error));
+    }
+
+    const buildId = parsedParams.data.id;
+    const existing = await prisma.build.findFirst({ where: { id: buildId, teamId: auth.teamId } });
+    if (!existing) {
+      if (req.file) {
+        fs.promises.unlink(req.file.path).catch(() => undefined);
+      }
+      return res.status(404).json({ error: { code: "NOT_FOUND", message: "Build not found." } });
+    }
+
+    if (existing.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
+      if (req.file) {
+        fs.promises.unlink(req.file.path).catch(() => undefined);
+      }
+      return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can modify this build." } });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        error: {
+          code: "BAD_REQUEST",
+          message: "No file uploaded. Please select an image file.",
+        },
+      });
+    }
+
+    const previousUrl = existing.thumbnailUrl;
+    if (previousUrl && previousUrl.startsWith("/uploads/build-")) {
+      const previousPath = path.join(buildThumbnailUploadsDir, path.basename(previousUrl));
+      fs.promises.unlink(previousPath).catch(() => undefined);
+    }
+
+    const thumbnailUrl = `/uploads/${req.file.filename}`;
+
+    const updated = await prisma.build.update({
+      where: { id: buildId },
+      data: {
+        thumbnailUrl,
+        thumbnailStatus: "READY",
+        thumbnailError: null,
+      },
+      include: {
+        owner: { select: { id: true, name: true, avatarUrl: true } },
+      },
+    });
+
+    return res.status(200).json({
+      data: {
+        ...serializeBuild(updated),
+        thumbnailStatus: updated.thumbnailStatus as ThumbnailStatusValue,
+      },
+    });
+  },
+);
 
 const collectionBuildParamsSchema = z.object({
   id: z.coerce.number().int().positive(),

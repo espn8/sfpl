@@ -195,20 +195,6 @@ export function SettingsPage() {
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-6">
         <section className="rounded-lg border border-(--color-border) bg-(--color-surface) p-6">
-          <h2 className="mb-4 text-lg font-medium">Account Information</h2>
-          <dl className="grid gap-4 text-sm sm:grid-cols-2">
-            <div>
-              <dt className="text-(--color-text-muted)">Email</dt>
-              <dd className="mt-1 font-medium">{meQuery.data.email}</dd>
-            </div>
-            <div>
-              <dt className="text-(--color-text-muted)">Role</dt>
-              <dd className="mt-1 font-medium">{meQuery.data.role}</dd>
-            </div>
-          </dl>
-        </section>
-
-        <section className="rounded-lg border border-(--color-border) bg-(--color-surface) p-6">
           <h2 className="mb-4 text-lg font-medium">Appearance</h2>
           <ThemeModeToggle />
         </section>
