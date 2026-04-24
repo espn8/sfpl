@@ -1,7 +1,7 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 24, 2026 — 16:02 CDT
-Build Version: (see `git log -1 --oneline` on main after pull)
+Last Updated: Friday, April 24, 2026 — 16:03 CDT
+Build Version: `5be03be` (see `git log -1 --oneline` after newer commits)
 App Version: see production footer after deploy (root `package.json` 1.3.3 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
@@ -13,6 +13,7 @@ Production URL: https://ail.mysalesforcedemo.com (canonical live site — never 
 - **Fix** ([client/src/features/home/HomePage.tsx](client/src/features/home/HomePage.tsx)): Local state `homeBrowseFilters` plus `getActiveFilters` for chips; changing facets schedules `navigate(\`/search?${filtersToParams(...)}\`)` with a `setTimeout(0)` so the sequence **filter suggestion → clear input** still serializes the URL with an empty `q`. Input uses `handleHomeSearchInputChange` so refs stay aligned for that deferred navigation.
 - **“Works Where You Work” tool pills**: `onClick` now **`navigate` to `/search?tool=...`** (merged with current `homeBrowseFiltersRef`) instead of `setFilter`, which only updated the homepage URL’s query params and did not open results.
 - **Prerequisite helpers** (already on `main` from prior commit): `filtersToParams` and `getActiveFilters` exported from [client/src/features/search/hooks/useSearchState.ts](client/src/features/search/hooks/useSearchState.ts) and [client/src/features/search/index.ts](client/src/features/search/index.ts).
+- **Deploy**: Git `5be03be` on `main`; Heroku **v204** (`git push heroku main:master`). Postbuild `version-bump.js` set client/server package patch to **1.3.4** (production footer).
 
 ### Release: Homepage UX, analytics leaderboard accuracy, Top Assets label (April 24, 2026 — 15:49 CDT)
 
