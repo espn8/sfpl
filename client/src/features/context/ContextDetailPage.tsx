@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
+import { AssetDetailCollectionsDisclosure } from "../../components/AssetDetailCollectionsDisclosure";
 import { ConfirmDeleteModal } from "../../components/ConfirmDeleteModal";
 import { MarkdownPreview } from "../../components/MarkdownPreview";
 import { VariableInputs } from "../../components/VariableInputs";
@@ -309,6 +310,8 @@ export function ContextDetailPage() {
           </>
         )}
       </div>
+
+      <AssetDetailCollectionsDisclosure assetId={docId} assetTitle={doc.title} assetType="context" />
 
       <div className="flex flex-wrap items-center gap-1 rounded-lg border border-(--color-border) bg-(--color-surface) p-2">
         <button

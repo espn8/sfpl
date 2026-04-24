@@ -4,10 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
 import { useToast } from "../../app/providers/ToastProvider";
+import { AssetDetailCollectionsDisclosure } from "../../components/AssetDetailCollectionsDisclosure";
 import { ConfirmDeleteModal } from "../../components/ConfirmDeleteModal";
 import { fetchMe } from "../auth/api";
 import { canCreateContent } from "../auth/roles";
-import { listCollections } from "../collections/api";
 import {
   deletePromptPermanently,
   getPrompt,
@@ -43,7 +43,6 @@ import { PromptThumbnail } from "./PromptThumbnail";
 import { shareOrCopyPromptLink } from "./sharePrompt";
 import { AssetBadges } from "../assets/badges";
 import { VerificationBanner } from "../assets/VerificationControls";
-import { usePromptCollectionMutations } from "./usePromptCollectionMutations";
 
 function pluralize(count: number, singular: string, plural = `${singular}s`): string {
   return `${count.toLocaleString()} ${count === 1 ? singular : plural}`;
@@ -86,20 +85,11 @@ export function PromptDetailPage() {
     queryFn: () => getPrompt(promptId),
     enabled: Number.isInteger(promptId),
   });
-  const collectionsQuery = useQuery({
-    queryKey: ["collections"],
-    queryFn: listCollections,
-    enabled: Number.isInteger(promptId),
-  });
   const meQuery = useQuery({
     queryKey: ["auth", "me"],
     queryFn: fetchMe,
   });
   const queryClient = useQueryClient();
-  const { addToCollectionMutation, removeFromCollectionMutation } = usePromptCollectionMutations({
-    promptId,
-    promptTitle: promptQuery.data?.title,
-  });
   const updateMutation = useMutation({
     mutationFn: (payload: { body: string }) => updatePrompt(promptId, payload),
     onSuccess: () => {
@@ -385,41 +375,11 @@ export function PromptDetailPage() {
           </p>
         </div>
       </section>
-      <section className="space-y-3 rounded border border-(--color-border) bg-(--color-surface) p-4">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-(--color-text-muted)">Collections</h3>
-        {collectionsQuery.isLoading ? <p className="text-sm text-(--color-text-muted)">Loading collections...</p> : null}
-        {collectionsQuery.data?.length ? (
-          <div className="space-y-2">
-            {collectionsQuery.data.map((collection) => {
-              const hasPrompt = collection.prompts.some((entry) => entry.prompt.id === promptId);
-              return (
-                <div
-                  key={collection.id}
-                  className="flex items-center justify-between rounded border border-(--color-border) px-3 py-2"
-                >
-                  <p className="text-sm">{collection.name}</p>
-                  <button
-                    type="button"
-                    className="rounded border border-(--color-border) bg-(--color-surface-muted) px-2 py-1 text-xs"
-                    disabled={addToCollectionMutation.isPending || removeFromCollectionMutation.isPending}
-                    onClick={() => {
-                      if (hasPrompt) {
-                        removeFromCollectionMutation.mutate(collection.id);
-                        return;
-                      }
-                      addToCollectionMutation.mutate(collection.id);
-                    }}
-                  >
-                    {hasPrompt ? "Remove" : "Add"}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="text-sm text-(--color-text-muted)">No collections yet. Create one to organize your favorites.</p>
-        )}
-      </section>
+      <AssetDetailCollectionsDisclosure
+        assetId={promptId}
+        assetTitle={promptData.title}
+        assetType="prompt"
+      />
 
       {hasVariables ? (
         <section className="space-y-3 rounded border border-(--color-border) bg-(--color-surface) p-4">

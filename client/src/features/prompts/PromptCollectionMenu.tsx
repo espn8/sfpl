@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
+import { useAssetCollectionMutations } from "../../components/AssetCollectionMenu";
 import { listCollections } from "../collections/api";
-import { usePromptCollectionMutations } from "./usePromptCollectionMutations";
 
 type PromptCollectionMenuProps = {
   promptId: number;
@@ -9,9 +9,10 @@ type PromptCollectionMenuProps = {
 
 export function PromptCollectionMenu({ promptId, promptTitle }: PromptCollectionMenuProps) {
   const collectionsQuery = useQuery({ queryKey: ["collections"], queryFn: listCollections });
-  const { addToCollectionMutation, removeFromCollectionMutation } = usePromptCollectionMutations({
-    promptId,
-    promptTitle,
+  const { addToCollectionMutation, removeFromCollectionMutation } = useAssetCollectionMutations({
+    assetId: promptId,
+    assetTitle: promptTitle,
+    assetType: "prompt",
   });
   const busy = addToCollectionMutation.isPending || removeFromCollectionMutation.isPending;
 

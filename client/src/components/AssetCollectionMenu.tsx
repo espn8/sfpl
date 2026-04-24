@@ -21,7 +21,7 @@ function BookmarkIcon({ className }: { className: string }) {
   );
 }
 
-function hasAssetInCollection(collection: Collection, assetType: AssetType, assetId: number): boolean {
+export function hasAssetInCollection(collection: Collection, assetType: AssetType, assetId: number): boolean {
   switch (assetType) {
     case "prompt":
       return collection.prompts.some((entry) => entry.prompt.id === assetId);
@@ -36,7 +36,7 @@ function hasAssetInCollection(collection: Collection, assetType: AssetType, asse
   }
 }
 
-function useAssetCollectionMutations({
+export function useAssetCollectionMutations({
   assetId,
   assetTitle,
   assetType,

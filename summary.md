@@ -1,11 +1,21 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 24, 2026 — 16:03 CDT
-Build Version: (see `git log -1 --oneline` on `main` after pull)
+Last Updated: Friday, April 24, 2026 — 16:55 CDT
+Build Version: `6abe6c7` (feat: shared collections disclosure on asset detail pages)
 App Version: see production footer after deploy (root `package.json` 1.3.3 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Release: Asset detail collections UX — shared collapsible disclosure (April 24, 2026 — 16:55 CDT)
+
+- **Problem:** On prompt detail pages, a full-height inline **Collections** list sat above the template/body and pushed primary content down. Context, Skill, and Build detail pages only had the compact bookmark toolbar menu, so bulk Add/Remove lived in different places per asset type.
+- **Shared component** ([client/src/components/AssetDetailCollectionsDisclosure.tsx](client/src/components/AssetDetailCollectionsDisclosure.tsx)): Default-closed `<details>` (aligned with History-style disclosure), `listCollections` on `["collections"]`, Add/Remove rows using **`hasAssetInCollection`** + **`useAssetCollectionMutations`** (same optimistic cache updates as the toolbar menus). Expanded panel includes `role="region"` `aria-label="Collections"`, a horizontal chip row of **member** collection links to `/collections/:id`, and muted surface styling (`bg-(--color-surface-muted)`) so collections read as organization chrome.
+- **Exports** ([client/src/components/AssetCollectionMenu.tsx](client/src/components/AssetCollectionMenu.tsx)): **`hasAssetInCollection`** and **`useAssetCollectionMutations`** are exported for reuse by the disclosure (no duplicate mutation logic).
+- **Detail pages:** [PromptDetailPage.tsx](client/src/features/prompts/PromptDetailPage.tsx) replaces the bespoke Collections `<section>` with `<AssetDetailCollectionsDisclosure assetType="prompt" />`. [ContextDetailPage.tsx](client/src/features/context/ContextDetailPage.tsx), [SkillDetailPage.tsx](client/src/features/skills/SkillDetailPage.tsx), and [BuildDetailPage.tsx](client/src/features/builds/BuildDetailPage.tsx) mount the same component after stats/rating blocks and before the action toolbar.
+- **Prompt toolbar** ([client/src/features/prompts/PromptCollectionMenu.tsx](client/src/features/prompts/PromptCollectionMenu.tsx)): Uses **`useAssetCollectionMutations`** with `assetType: "prompt"` (Phase **3B** dual path: disclosure + menu share one mutation implementation). Removed [client/src/features/prompts/usePromptCollectionMutations.ts](client/src/features/prompts/usePromptCollectionMutations.ts).
+- **Tests:** [client/src/components/AssetDetailCollectionsDisclosure.test.tsx](client/src/components/AssetDetailCollectionsDisclosure.test.tsx) covers summary count, “In N” hint, and expanded region + member link.
+- **Deploy:** Push `main` to origin (and `git push heroku main:master` when you are ready for production smoke on all four asset types).
 
 ### Release: Homepage Smart Search bar wired to `/search` (April 24, 2026 — 16:02 CDT)
 
