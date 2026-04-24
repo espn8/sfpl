@@ -1,12 +1,24 @@
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
 import { env } from "../config/env";
+import { wrapEmailHtml, wrapEmailText, type BrandedEmailOptions } from "./emailTemplate";
 
 export type SendEmailOptions = {
   to: string | string[];
   subject: string;
   text?: string;
   html?: string;
+};
+
+export type SendBrandedEmailOptions = {
+  to: string | string[];
+  subject: string;
+  /** Body HTML placed inside the branded card. Omit the outer <html>/<body>. */
+  html: string;
+  /** Plain-text fallback for clients that cannot render HTML. */
+  text: string;
+  /** Optional preview text shown after the subject in inbox listings. */
+  preheader?: string;
 };
 
 export type SendEmailResult = {
@@ -66,6 +78,27 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
     console.error("Failed to send email:", message);
     return { success: false, error: message };
   }
+}
+
+/**
+ * Send an email wrapped in the shared site-branded header/footer template.
+ *
+ * Callers should provide only the message body (as HTML and plain text);
+ * the header, footer, responsive styling, and dark-mode support are applied
+ * automatically.
+ */
+export async function sendBrandedEmail(options: SendBrandedEmailOptions): Promise<SendEmailResult> {
+  const templateOptions: BrandedEmailOptions = {
+    preheader: options.preheader,
+    title: options.subject,
+  };
+
+  return sendEmail({
+    to: options.to,
+    subject: options.subject,
+    html: wrapEmailHtml(options.html, templateOptions),
+    text: wrapEmailText(options.text, templateOptions),
+  });
 }
 
 export async function verifyEmailConnection(): Promise<boolean> {

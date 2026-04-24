@@ -1,0 +1,47 @@
+---
+description: Branded email template is required for all outgoing email
+alwaysApply: true
+---
+
+# Outgoing Email Template
+
+**All outgoing email — current and future — MUST be sent through `sendBrandedEmail` in `server/src/lib/email.ts`.** This ensures every message uses the shared branded header, footer, mobile-responsive layout, dark-mode support, and plain-text fallback defined in `server/src/lib/emailTemplate.ts`.
+
+## Required
+
+- Call `sendBrandedEmail({ to, subject, html, text, preheader })` for every outgoing email.
+- Pass the **inner body only** for `html` — never include `<!doctype>`, `<html>`, `<head>`, `<body>`, or the header/footer cards. The template wraps them for you.
+- Always supply both `html` and `text`. The `text` version is what users with HTML disabled will see.
+- Provide a short `preheader` (≤ ~100 chars) for the inbox preview.
+- Escape any user-supplied string with `escapeHtml` from `server/src/lib/email.ts` before inserting it into `html`.
+- Match the site palette in inline styles: text `#032d60`, muted `#51678d`, border `#d7dfea`, primary link `#0176d3`, launch button green `#2e844a`. The template's `@media (prefers-color-scheme: dark)` rules adapt these automatically.
+
+## Forbidden
+
+- Do NOT call `sendEmail` directly from services or routes. It is the low-level transport and must only be used by `sendBrandedEmail`.
+- Do NOT import `nodemailer` or construct transporters anywhere other than `server/src/lib/email.ts`.
+- Do NOT inline a full HTML document (`<html>`, `<body>`, header, footer) when composing a message — the template owns all chrome.
+- Do NOT skip the plain-text body. HTML-only email breaks accessibility and deliverability.
+
+## Example
+
+```typescript
+import { sendBrandedEmail, escapeHtml } from "../lib/email";
+
+await sendBrandedEmail({
+  to: user.email,
+  subject: "Welcome to the AI Library",
+  preheader: "Your account is ready — start exploring prompts and skills.",
+  html: `<h1 style="margin:0 0 8px 0;color:#032d60;">Welcome, ${escapeHtml(user.name)}</h1>
+         <p style="margin:0 0 16px 0;">Browse the library at
+           <a href="${escapeHtml(appUrl)}" style="color:#0176d3;">${escapeHtml(appUrl)}</a>.
+         </p>`,
+  text: `Welcome, ${user.name}\n\nBrowse the library at ${appUrl}`,
+});
+```
+
+## When Adding a New Email
+
+1. Add a function to `server/src/services/email.ts` (or a new file in `server/src/services/`) that builds the inner `html` and `text` and calls `sendBrandedEmail`.
+2. Wire up the caller to invoke it (usually fire-and-forget with `.catch(err => console.error(...))`).
+3. Verify both HTML and text versions render correctly — Mailgun's "Logs" view shows both parts.

@@ -1,6 +1,6 @@
 import type { ToolRequest } from "@prisma/client";
 import { env } from "../config/env";
-import { sendEmail, escapeHtml, type SendEmailResult } from "../lib/email";
+import { sendBrandedEmail, escapeHtml, type SendEmailResult } from "../lib/email";
 
 type ToolRequestNotificationData = Pick<
   ToolRequest,
@@ -14,6 +14,19 @@ type ToolRequestNotificationData = Pick<
   | "createdAt"
 >;
 
+const ROW_LABEL_STYLE =
+  "padding:10px 12px;border-bottom:1px solid #d7dfea;font-weight:600;color:#032d60;vertical-align:top;width:180px;";
+const ROW_VALUE_STYLE =
+  "padding:10px 12px;border-bottom:1px solid #d7dfea;color:#032d60;vertical-align:top;word-break:break-word;";
+const SECTION_HEADING_STYLE =
+  "margin:24px 0 8px 0;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#51678d;";
+const TABLE_STYLE =
+  "border-collapse:collapse;width:100%;border:1px solid #d7dfea;border-radius:6px;overflow:hidden;";
+const LINK_STYLE = "color:#0176d3;text-decoration:underline;";
+const HEADING_STYLE =
+  "margin:0 0 8px 0;font-size:22px;line-height:28px;font-weight:700;color:#032d60;";
+const LEAD_STYLE = "margin:0 0 16px 0;font-size:15px;line-height:22px;color:#032d60;";
+
 export async function sendToolRequestNotification(
   request: ToolRequestNotificationData,
 ): Promise<SendEmailResult> {
@@ -22,53 +35,61 @@ export async function sendToolRequestNotification(
     timeStyle: "short",
   });
 
+  const adminUrl = `${env.appBaseUrl.replace(/\/+$/, "")}/admin/tool-requests`;
+  const submitterName = `${request.submitterFirstName} ${request.submitterLastName}`.trim();
+
   const htmlBody = `
-    <h2>New Tool Submission</h2>
-    <p>A new tool has been submitted for review in the AI Library.</p>
-    
-    <h3>Submission Details</h3>
-    <table style="border-collapse: collapse; width: 100%; max-width: 600px;">
+    <h1 class="email-h1" style="${HEADING_STYLE}">New Tool Submission</h1>
+    <p style="${LEAD_STYLE}">A new tool has been submitted for review in the ${escapeHtml("AI Library")}.</p>
+
+    <h2 style="${SECTION_HEADING_STYLE}">Submission Details</h2>
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="${TABLE_STYLE}">
       <tr>
-        <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Tool Name</td>
-        <td style="padding: 8px; border: 1px solid #ddd;">${escapeHtml(request.name)}</td>
+        <td style="${ROW_LABEL_STYLE}">Tool Name</td>
+        <td style="${ROW_VALUE_STYLE}">${escapeHtml(request.name)}</td>
       </tr>
       <tr>
-        <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Salesforce Approved</td>
-        <td style="padding: 8px; border: 1px solid #ddd;">${request.salesforceApproved ? "Yes" : "No"}</td>
+        <td style="${ROW_LABEL_STYLE}">Salesforce Approved</td>
+        <td style="${ROW_VALUE_STYLE}">${request.salesforceApproved ? "Yes" : "No"}</td>
       </tr>
       <tr>
-        <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Tool Details URL</td>
-        <td style="padding: 8px; border: 1px solid #ddd;"><a href="${escapeHtml(request.detailsUrl)}">${escapeHtml(request.detailsUrl)}</a></td>
+        <td style="${ROW_LABEL_STYLE}">Tool Details URL</td>
+        <td style="${ROW_VALUE_STYLE}"><a href="${escapeHtml(request.detailsUrl)}" style="${LINK_STYLE}">${escapeHtml(request.detailsUrl)}</a></td>
       </tr>
       <tr>
-        <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Description</td>
-        <td style="padding: 8px; border: 1px solid #ddd;">${escapeHtml(request.description)}</td>
-      </tr>
-    </table>
-    
-    <h3>Submitter Information</h3>
-    <table style="border-collapse: collapse; width: 100%; max-width: 600px;">
-      <tr>
-        <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Name</td>
-        <td style="padding: 8px; border: 1px solid #ddd;">${escapeHtml(request.submitterFirstName)} ${escapeHtml(request.submitterLastName)}</td>
-      </tr>
-      <tr>
-        <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Email</td>
-        <td style="padding: 8px; border: 1px solid #ddd;"><a href="mailto:${escapeHtml(request.submitterEmail)}">${escapeHtml(request.submitterEmail)}</a></td>
-      </tr>
-      <tr>
-        <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Submitted At</td>
-        <td style="padding: 8px; border: 1px solid #ddd;">${formattedDate}</td>
+        <td style="${ROW_LABEL_STYLE}">Description</td>
+        <td style="${ROW_VALUE_STYLE}">${escapeHtml(request.description)}</td>
       </tr>
     </table>
-    
-    <p style="margin-top: 20px;">
-      <a href="${env.appBaseUrl}/admin/tool-requests" style="background-color: #0070d2; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Review in Admin Panel</a>
-    </p>
+
+    <h2 style="${SECTION_HEADING_STYLE}">Submitter Information</h2>
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="${TABLE_STYLE}">
+      <tr>
+        <td style="${ROW_LABEL_STYLE}">Name</td>
+        <td style="${ROW_VALUE_STYLE}">${escapeHtml(submitterName)}</td>
+      </tr>
+      <tr>
+        <td style="${ROW_LABEL_STYLE}">Email</td>
+        <td style="${ROW_VALUE_STYLE}"><a href="mailto:${escapeHtml(request.submitterEmail)}" style="${LINK_STYLE}">${escapeHtml(request.submitterEmail)}</a></td>
+      </tr>
+      <tr>
+        <td style="${ROW_LABEL_STYLE}">Submitted At</td>
+        <td style="${ROW_VALUE_STYLE}">${escapeHtml(formattedDate)}</td>
+      </tr>
+    </table>
+
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0 4px 0;">
+      <tr>
+        <td align="center" bgcolor="#2e844a" style="border-radius:999px;">
+          <a href="${escapeHtml(adminUrl)}" class="email-button" style="background-color:#2e844a;color:#ffffff;text-decoration:none;border-radius:999px;padding:12px 24px;display:inline-block;font-weight:600;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;">
+            Review in Admin Panel
+          </a>
+        </td>
+      </tr>
+    </table>
   `;
 
-  const textBody = `
-New Tool Submission [AI Library]
+  const textBody = `New Tool Submission
 
 A new tool has been submitted for review.
 
@@ -81,17 +102,17 @@ Description: ${request.description}
 
 SUBMITTER INFORMATION
 ---------------------
-Name: ${request.submitterFirstName} ${request.submitterLastName}
+Name: ${submitterName}
 Email: ${request.submitterEmail}
 Submitted At: ${formattedDate}
 
-Review at: ${env.appBaseUrl}/admin/tool-requests
-  `;
+Review at: ${adminUrl}`;
 
-  return sendEmail({
+  return sendBrandedEmail({
     to: env.toolRequestNotifyEmail,
     subject: "New Tool Submission [AI Library]",
-    text: textBody.trim(),
+    preheader: `New tool submitted: ${request.name} — review in the admin panel.`,
     html: htmlBody.trim(),
+    text: textBody,
   });
 }

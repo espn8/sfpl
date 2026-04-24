@@ -6,6 +6,28 @@ export type ChangelogEntry = {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.3.2",
+    date: "2026-04-24",
+    changes: [
+      "Branded transactional email template with site header/footer, mobile-responsive layout, and dark-mode support",
+      "New sendBrandedEmail helper is now the required API for every outgoing email",
+      "Tool-request admin notification rebuilt on the branded template with a preheader and pill CTA",
+      "New workspace rule mandates sendBrandedEmail for all current and future outgoing email",
+      "Slackbot skills importer script migrates legacy slackbot-tagged Prompts into URL-based Skills (dry-run by default)",
+      "Initial slackbot skills seed CSV (117 rows) added for the importer",
+    ],
+  },
+  {
+    version: "1.3.1",
+    date: "2026-04-24",
+    changes: [
+      "OU taxonomy refreshed to the 2026 canonical list (AMER TMT & CBS, AMER REG, AMER PACE & AFD360 OU, Global SMB (incl. EBOU), UKI (incl. PE), EMEA Central/North/South, France, LATAM, ANZ, North Asia, South Asia, GPS .Org, Data Foundation)",
+      "OU dropdown options extracted into a single shared constant (client/src/constants/ous.ts) used by both the onboarding modal and Settings page",
+      "One-time data migration remaps legacy OU values (e.g. GLOBAL SMB → Global SMB (incl. EBOU), NEXTGEN PLATFORM → Data Foundation, AMER ACC → AMER TMT & CBS)",
+      "Users previously assigned to JAPAN / KOREA / TAIWAN are prompted to re-select an OU on their next action",
+    ],
+  },
+  {
     version: "1.3.0",
     date: "2026-04-23",
     changes: [

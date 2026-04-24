@@ -1,13 +1,23 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 24, 2026 — 11:11 CDT
-Build Version: b39c2f5 (pre-deploy; Heroku release will increment on push)
-App Version: 1.3.1 (root package.json 1.3.0 auto-bumped to 1.3.1 by `scripts/version-bump.js` on Heroku postbuild)
+Last Updated: Friday, April 24, 2026 — 11:17 CDT
+Build Version: 0a64cfb (pre-deploy; Heroku release will increment on push)
+App Version: 1.3.2 (root package.json 1.3.1 auto-bumped to 1.3.2 by `scripts/version-bump.js` on Heroku postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
 
-### Release: v1.3.2 (April 24, 2026 — 11:11 CDT) — OU taxonomy refresh
+### Release: v1.3.2 (April 24, 2026 — 11:17 CDT) — Branded email template and slackbot skills import
+
+- **Branded transactional email template** (new `server/src/lib/emailTemplate.ts`, 218 lines): introduces a shared, mobile-responsive, dark-mode-aware HTML wrapper used by every outgoing email. The template renders a site-branded header with the AI Library logo/wordmark, a centered content card, and a footer with the `#help-ailibrary` Slack channel link and a copyright line. It generates both the HTML document (with `<style>` rules for `@media (max-width: 600px)` and `@media (prefers-color-scheme: dark)`) and a plain-text wrapper with a matching header/footer, consumed automatically by callers.
+- **`sendBrandedEmail` wrapper** (new export in `server/src/lib/email.ts`): new high-level API that takes `{ to, subject, html, text, preheader }` and passes them through `wrapEmailHtml` / `wrapEmailText` before invoking the existing nodemailer transport. `sendEmail` is now considered a low-level primitive and should not be called directly by feature code.
+- **Tool-request notification refactor** (`server/src/services/email.ts`): replaces the old ad-hoc HTML (generic `#0070d2` button, hand-rolled tables) with the branded template, using the Salesforce-inspired palette documented in the new rule (`#032d60` text, `#51678d` muted, `#d7dfea` borders, `#0176d3` links, `#2e844a` CTA). Adds a preheader ("New tool submitted: &lt;name&gt; — review in the admin panel."), normalizes `appBaseUrl` (strips trailing slash), reuses a precomputed `submitterName`, and renders a rounded pill "Review in Admin Panel" button.
+- **New always-apply rule** (`.cursor/rules/email-template.mdc`): mandates `sendBrandedEmail` for **all** outgoing email — current and future. Prohibits calling `sendEmail` directly from services/routes, importing `nodemailer` outside `server/src/lib/email.ts`, inlining full HTML documents, and skipping the plain-text body. Documents the required palette for inline styles so manually-authored markup stays on-brand.
+- **Slackbot skills import script** (new `server/scripts/importSlackbotSkills.ts`, 314 lines): one-shot CSV-driven importer that (1) deletes every Prompt whose `tools` array contains `"slackbot"` (cascades via existing `onDelete: Cascade` to `PromptVersion`, `Favorite`, `Rating`, `UsageEvent`, `PromptTag`, `CollectionPrompt`, `PromptVariable`) and (2) upserts each CSV row as a Skill keyed on `skillUrlNormalized`. Supports a default dry-run mode (reports what would happen, no writes) and an explicit `--apply` mode. Usage documented inline, including a pattern for running against the Heroku prod DB via `DATABASE_URL="$(heroku config:get DATABASE_URL -a aosfail)"`.
+- **Initial slackbot skills seed data** (new `slackbot-skills-2026-04-24.csv`, 117 lines): source CSV consumed by the importer (columns: Skill Name, Description, Skill Link, Creator Email).
+- **Version bump**: root, client, server `package.json` now `1.3.1`; `heroku-postbuild` / `scripts/version-bump.js` increments the patch on deploy, so the production footer will display `v1.3.2` after this release.
+
+### Release: v1.3.1 (April 24, 2026 — 11:11 CDT) — OU taxonomy refresh
 
 - **Canonical OU list updated** to the 2026 taxonomy. The dropdown values, previously hard-coded in two places, now live in a single shared constant at `client/src/constants/ous.ts` exporting `OU_OPTIONS` (and an `OuOption` type). The 15 canonical OUs, in display order, are: `AMER TMT & CBS`, `AMER REG`, `AMER PACE & AFD360 OU`, `Global SMB (incl. EBOU)`, `UKI (incl. PE)`, `EMEA Central`, `EMEA North`, `EMEA South`, `France`, `LATAM`, `ANZ`, `North Asia`, `South Asia`, `GPS .Org`, `Data Foundation`.
 - **UI consumers refactored** to map over `OU_OPTIONS`:
