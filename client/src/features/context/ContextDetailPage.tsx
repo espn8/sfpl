@@ -436,10 +436,10 @@ export function ContextDetailPage() {
           <button
             type="button"
             onClick={handleDownload}
-            className="inline-flex items-center gap-2 rounded-xl border border-(--color-primary) bg-(--color-primary) px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-(--color-primary-hover)"
+            className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors bg-(--color-launch) text-(--color-text-inverse) hover:bg-(--color-launch-hover)"
           >
             <DownloadIcon className="h-4 w-4" />
-            Download Context
+            Download
           </button>
         }
         secondary={

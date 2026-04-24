@@ -2,37 +2,23 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
-import { useToast } from "../../app/providers/ToastProvider";
 import { AssetDetailActionBar } from "../../components/AssetDetailActionBar";
 import { ConfirmDeleteModal } from "../../components/ConfirmDeleteModal";
 import { normalizeUrl } from "../../lib/normalizeUrl";
-import { buildShareUrl, copyToClipboard, shareOrCopyLink } from "../../lib/shareOrCopyLink";
+import { buildShareUrl, shareOrCopyLink } from "../../lib/shareOrCopyLink";
 import { fetchMe } from "../auth/api";
 import { canCreateContent } from "../auth/roles";
 import { archiveBuild, deleteBuildPermanently, getBuild, logBuildUsage, rateBuild, regenerateBuildThumbnail, toggleBuildFavorite } from "./api";
-import { CopyIcon, ExternalLinkIcon, HeartIcon, ShareIcon } from "../prompts/promptActionIcons";
+import { ExternalLinkIcon, HeartIcon, ShareIcon } from "../prompts/promptActionIcons";
 import { PromptThumbnail } from "../prompts/PromptThumbnail";
 import { PromptAverageStars, PromptRateStars } from "../prompts/PromptStars";
 import { AssetCollectionMenu } from "../../components/AssetCollectionMenu";
 import { VerificationBanner } from "../assets/VerificationControls";
 
-function DocumentIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" strokeLinecap="round" strokeLinejoin="round" />
-      <polyline points="14 2 14 8 20 8" strokeLinecap="round" strokeLinejoin="round" />
-      <line x1="16" y1="13" x2="8" y2="13" strokeLinecap="round" strokeLinejoin="round" />
-      <line x1="16" y1="17" x2="8" y2="17" strokeLinecap="round" strokeLinejoin="round" />
-      <polyline points="10 9 9 9 8 9" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 export function BuildDetailPage() {
   const [favorited, setFavorited] = useState(false);
   const [myRating, setMyRating] = useState<number | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const { showToast } = useToast();
   const params = useParams();
   const buildId = Number(params.id);
   const navigate = useNavigate();
@@ -138,14 +124,6 @@ export function BuildDetailPage() {
   const handleOpenBuild = () => {
     void logBuildUsage(buildId, "COPY");
     trackEvent("build_open", { build_id: buildId, source: "detail" });
-  };
-
-  const handleCopyPageLink = async () => {
-    const ok = await copyToClipboard(shareUrl);
-    if (ok) {
-      showToast("Copied link");
-      trackEvent("build_copy_link", { build_id: buildId, source: "detail" });
-    }
   };
 
   const distinctHelpUrl =
@@ -289,21 +267,12 @@ export function BuildDetailPage() {
               href={distinctHelpUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-xl border border-(--color-border) bg-(--color-surface) px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors hover:bg-(--color-surface-muted)"
-            >
-              <DocumentIcon className="h-4 w-4" />
-              View Documentation
-            </a>
-          ) : (
-            <button
-              type="button"
               className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors bg-[#5A1BA9] text-white hover:bg-[#4A1589]"
-              onClick={() => void handleCopyPageLink()}
             >
-              <CopyIcon className="h-4 w-4" />
-              Copy link
-            </button>
-          )
+              <ExternalLinkIcon className="h-4 w-4 shrink-0" />
+              Open Link
+            </a>
+          ) : null
         }
       />
 

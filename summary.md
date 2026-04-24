@@ -1,11 +1,18 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 24, 2026 — 17:33 CDT
+Last Updated: Friday, April 24, 2026 — 17:45 CDT
 Build Version: `e4a6a3a`
 App Version: see production footer after deploy (root `package.json` 1.3.3 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Session: detail CTAs — launch green primaries, Open Link for docs only (April 24, 2026 — 17:45 CDT)
+
+- **Skill detail** ([SkillDetailPage.tsx](client/src/features/skills/SkillDetailPage.tsx)): **Get the Skill** uses Salesforce launch green (`bg-(--color-launch)` / `hover:bg-(--color-launch-hover)`). Toolbar secondary is **Open Link** (purple, external) only when **Documentation URL** (`supportUrl`) is set and **differs** from the skill install URL (`skillUrl`) after [normalizeUrl](client/src/lib/normalizeUrl.ts); no **Copy link** in the action bar (page share remains on the share icon).
+- **Build detail** ([BuildDetailPage.tsx](client/src/features/builds/BuildDetailPage.tsx)): Same pattern — **Open Link** only when `supportUrl` ≠ normalized `buildUrl`; removed purple **Copy link** fallback.
+- **Context detail** ([ContextDetailPage.tsx](client/src/features/context/ContextDetailPage.tsx)): Primary CTA label **Download** (was **Download Context**) with launch green styling; purple **Copy** (body) unchanged.
+- **Deploy:** `git push origin main` and **`git push heroku main:master`** after `npm --prefix client run build` and client tests. Prisma: no schema change.
 
 ### Session: commit, deploy, summary (April 24, 2026 — 17:33 CDT)
 
