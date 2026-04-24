@@ -16,6 +16,9 @@ export type AssetVariable = {
   required: boolean;
 };
 
+export type FeedbackFlag = "WORKED_WELL" | "DID_NOT_WORK" | "INACCURATE" | "OUTDATED" | "OFF_TOPIC";
+export type ArchiveReason = "MANUAL" | "UNVERIFIED" | "INACTIVE" | "LOW_RATING";
+
 export type UnifiedAsset = {
   id: number;
   assetType: AssetType;
@@ -46,6 +49,11 @@ export type UnifiedAsset = {
   myRating?: number | null;
   variables?: AssetVariable[];
   isSmartPick?: boolean;
+  flagCounts?: Partial<Record<FeedbackFlag, number>>;
+  lastVerifiedAt?: string | null;
+  verificationDueAt?: string | null;
+  archivedAt?: string | null;
+  archiveReason?: ArchiveReason | null;
 };
 
 export type ListAssetsFilters = {

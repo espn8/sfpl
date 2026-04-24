@@ -18,6 +18,7 @@ import { promptOwnerAvatarUrl } from "../prompts/promptTagChips";
 import { PromptAverageStars, PromptRateStars } from "../prompts/PromptStars";
 import { PromptThumbnail } from "../prompts/PromptThumbnail";
 import { AssetBadges } from "../assets/badges";
+import { VerificationChip, VerifyAssetButton } from "../assets/VerificationControls";
 
 type ContextListCardProps = {
   context: ContextDocument;
@@ -148,8 +149,19 @@ export function ContextListCard({ context, variant = "default", showAnalytics = 
           >
             {context.summary ?? (variant === "featured" ? "No summary yet" : "No summary")}
           </p>
-          <div className="mt-2">
-            <PromptAverageStars value={context.averageRating ?? null} size="sm" />
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <PromptAverageStars
+              value={context.averageRating ?? null}
+              size="sm"
+              ratingCount={context.ratingCount}
+              flagCounts={context.flagCounts}
+            />
+            <VerificationChip
+              status={context.status}
+              lastVerifiedAt={context.lastVerifiedAt}
+              verificationDueAt={context.verificationDueAt}
+              archiveReason={context.archiveReason}
+            />
           </div>
         </Link>
 
@@ -187,7 +199,17 @@ export function ContextListCard({ context, variant = "default", showAnalytics = 
           </div>
         ) : null}
 
-        {isOwnAsset ? null : (
+        {isOwnAsset ? (
+          <div className="mt-3 flex items-center justify-end gap-2 border-t border-(--color-border) pt-3">
+            <VerifyAssetButton
+              assetType="context"
+              assetId={context.id}
+              status={context.status}
+              verificationDueAt={context.verificationDueAt}
+              compact
+            />
+          </div>
+        ) : (
           <div className="mt-3 flex items-center justify-between gap-2 border-t border-(--color-border) pt-3">
             <span className="text-xs text-(--color-text-muted)">Rate:</span>
             <PromptRateStars

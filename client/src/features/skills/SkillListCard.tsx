@@ -18,6 +18,7 @@ import { PromptAverageStars, PromptRateStars } from "../prompts/PromptStars";
 import { PromptThumbnail } from "../prompts/PromptThumbnail";
 import { AssetBadges } from "../assets/badges";
 import { VisibilityBadge } from "../assets/VisibilityBadge";
+import { VerificationChip, VerifyAssetButton } from "../assets/VerificationControls";
 
 function DownloadIcon({ className }: { className?: string }) {
   return (
@@ -160,8 +161,19 @@ export function SkillListCard({ skill, variant = "default", showAnalytics = fals
           >
             {skill.summary ?? (variant === "featured" ? "No summary yet" : "No summary")}
           </p>
-          <div className="mt-2">
-            <PromptAverageStars value={skill.averageRating ?? null} size="sm" />
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <PromptAverageStars
+              value={skill.averageRating ?? null}
+              size="sm"
+              ratingCount={skill.ratingCount}
+              flagCounts={skill.flagCounts}
+            />
+            <VerificationChip
+              status={skill.status}
+              lastVerifiedAt={skill.lastVerifiedAt}
+              verificationDueAt={skill.verificationDueAt}
+              archiveReason={skill.archiveReason}
+            />
           </div>
         </Link>
 
@@ -199,7 +211,17 @@ export function SkillListCard({ skill, variant = "default", showAnalytics = fals
           </div>
         ) : null}
 
-        {isOwnAsset ? null : (
+        {isOwnAsset ? (
+          <div className="mt-3 flex items-center justify-end gap-2 border-t border-(--color-border) pt-3">
+            <VerifyAssetButton
+              assetType="skill"
+              assetId={skill.id}
+              status={skill.status}
+              verificationDueAt={skill.verificationDueAt}
+              compact
+            />
+          </div>
+        ) : (
           <div className="mt-3 flex items-center justify-between gap-2 border-t border-(--color-border) pt-3">
             <span className="text-xs text-(--color-text-muted)">Rate:</span>
             <PromptRateStars

@@ -26,6 +26,12 @@ const AdminHelpPage = lazy(() =>
 const ToolRequestsPage = lazy(() =>
   import("../features/admin/ToolRequestsPage").then((m) => ({ default: m.ToolRequestsPage })),
 );
+const OwnershipTransferPage = lazy(() =>
+  import("../features/admin/OwnershipTransferPage").then((m) => ({ default: m.OwnershipTransferPage })),
+);
+const GovernancePage = lazy(() =>
+  import("../features/admin/GovernancePage").then((m) => ({ default: m.GovernancePage })),
+);
 const AnalyticsPage = lazy(() =>
   import("../features/analytics/AnalyticsPage").then((m) => ({ default: m.AnalyticsPage })),
 );
@@ -377,6 +383,30 @@ export function AppRouter() {
                 <AppShell>
                   <AdminRoute>
                     <ToolRequestsPage />
+                  </AdminRoute>
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/ownership"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <AdminRoute>
+                    <OwnershipTransferPage />
+                  </AdminRoute>
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/governance"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <AdminRoute>
+                    <GovernancePage />
                   </AdminRoute>
                 </AppShell>
               </ProtectedRoute>

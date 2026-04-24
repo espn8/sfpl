@@ -24,6 +24,7 @@ import { PromptThumbnail } from "../prompts/PromptThumbnail";
 import { PromptAverageStars, PromptRateStars } from "../prompts/PromptStars";
 import { AssetCollectionMenu } from "../../components/AssetCollectionMenu";
 import { AssetBadges } from "../assets/badges";
+import { VerificationBanner } from "../assets/VerificationControls";
 
 function DocumentIcon({ className }: { className?: string }) {
   return (
@@ -183,6 +184,15 @@ export function ContextDetailPage() {
 
   return (
     <article className="space-y-4">
+      <VerificationBanner
+        assetType="context"
+        assetId={docId}
+        status={doc.status}
+        isOwner={isOwnAsset}
+        lastVerifiedAt={doc.lastVerifiedAt}
+        verificationDueAt={doc.verificationDueAt}
+        archiveReason={doc.archiveReason}
+      />
       <div className="flex gap-4">
         <PromptThumbnail
           title={doc.title}

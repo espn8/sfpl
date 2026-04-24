@@ -11,6 +11,7 @@ import { HeartIcon, ShareIcon } from "../prompts/promptActionIcons";
 import { PromptThumbnail } from "../prompts/PromptThumbnail";
 import { PromptAverageStars, PromptRateStars } from "../prompts/PromptStars";
 import { AssetCollectionMenu } from "../../components/AssetCollectionMenu";
+import { VerificationBanner } from "../assets/VerificationControls";
 
 function ExternalLinkIcon({ className }: { className?: string }) {
   return (
@@ -151,6 +152,15 @@ export function BuildDetailPage() {
 
   return (
     <article className="space-y-4">
+      <VerificationBanner
+        assetType="build"
+        assetId={buildId}
+        status={build.status}
+        isOwner={isOwnAsset}
+        lastVerifiedAt={build.lastVerifiedAt}
+        verificationDueAt={build.verificationDueAt}
+        archiveReason={build.archiveReason}
+      />
       <div className="flex gap-4">
         <PromptThumbnail
           title={build.title}

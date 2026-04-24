@@ -97,7 +97,7 @@ export function AdminDashboardPage() {
       description:
         "Verification sweeps, auto-archive review, and the verification audit log.",
       to: "/admin/governance",
-      status: "coming_soon",
+      status: "ready",
       icon: <Icon d="M12 2l9 4v6c0 5-3.8 9.2-9 10-5.2-.8-9-5-9-10V6l9-4z" />,
     },
     {
@@ -106,7 +106,7 @@ export function AdminDashboardPage() {
       description:
         "Reassign assets from departing users — one at a time or in bulk.",
       to: "/admin/ownership",
-      status: "coming_soon",
+      status: "ready",
       icon: (
         <Icon d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M19 8l2 2-2 2 M23 10h-6" />
       ),

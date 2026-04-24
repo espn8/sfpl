@@ -9,6 +9,13 @@ import { z } from "zod";
 import { getAuthContext, requireAuth, requireWriteAccess, type AuthContext } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 import {
+  logManualArchive,
+  transferOwner,
+  unarchiveAsset,
+  verifyAsset,
+} from "../services/governanceOps";
+import { countFlags, didNotWorkRate } from "../services/scoring";
+import {
   buildVisibilityWhereFragment,
   canAccessByVisibility as sharedCanAccessByVisibility,
 } from "../lib/visibility";
@@ -93,6 +100,12 @@ const buildIdParamsSchema = z.object({
 
 const usageBodySchema = z.object({
   eventType: z.enum(["VIEW", "COPY"]),
+});
+
+const feedbackFlagSchema = z.enum(["WORKED_WELL", "DID_NOT_WORK", "INACCURATE", "OUTDATED", "OFF_TOPIC"]);
+const transferOwnerBodySchema = z.object({
+  newOwnerId: z.number().int().positive(),
+  reason: z.string().trim().max(500).optional(),
 });
 
 const createBuildBodySchema = z.object({
@@ -255,7 +268,7 @@ buildsRouter.get("/", async (req: Request, res: Response) => {
 
   if (includeAnalytics && rows.length > 0) {
     const buildIds = rows.map((r) => r.id);
-    const [viewCounts, copyCounts, favoriteCounts, ratingData] = await Promise.all([
+    const [viewCounts, copyCounts, favoriteCounts, ratingData, ratingFlagRows] = await Promise.all([
       prisma.buildUsageEvent.groupBy({
         by: ["buildId"],
         where: { buildId: { in: buildIds }, eventType: "VIEW" },
@@ -277,15 +290,26 @@ buildsRouter.get("/", async (req: Request, res: Response) => {
         _count: { buildId: true },
         _avg: { value: true },
       }),
+      prisma.buildRating.findMany({
+        where: { buildId: { in: buildIds } },
+        select: { buildId: true, feedbackFlags: true },
+      }),
     ]);
 
     const viewMap = new Map(viewCounts.map((v) => [v.buildId, v._count.buildId]));
     const copyMap = new Map(copyCounts.map((c) => [c.buildId, c._count.buildId]));
     const favoriteMap = new Map(favoriteCounts.map((f) => [f.buildId, f._count.buildId]));
     const ratingMap = new Map(ratingData.map((r) => [r.buildId, { count: r._count.buildId, avg: r._avg.value }]));
+    const flagRowsByBuild = new Map<number, Array<{ feedbackFlags: string[] }>>();
+    for (const row of ratingFlagRows) {
+      const list = flagRowsByBuild.get(row.buildId) ?? [];
+      list.push({ feedbackFlags: row.feedbackFlags });
+      flagRowsByBuild.set(row.buildId, list);
+    }
 
     const dataWithAnalytics = rows.map((row) => {
       const ratingInfo = ratingMap.get(row.id);
+      const flagRows = flagRowsByBuild.get(row.id) ?? [];
       return {
         ...serializeBuild(row),
         viewCount: viewMap.get(row.id) ?? 0,
@@ -293,6 +317,8 @@ buildsRouter.get("/", async (req: Request, res: Response) => {
         favoriteCount: favoriteMap.get(row.id) ?? 0,
         ratingCount: ratingInfo?.count ?? 0,
         averageRating: ratingInfo?.avg ?? null,
+        flagCounts: countFlags(flagRows),
+        didNotWorkRate: didNotWorkRate(flagRows),
       };
     });
 
@@ -415,7 +441,7 @@ buildsRouter.get("/:id", async (req: Request, res: Response) => {
     prisma.buildFavorite.count({ where: { buildId } }),
     prisma.buildFavorite.findUnique({ where: { buildId_userId: { buildId, userId: auth.userId } } }),
     prisma.buildRating.findUnique({ where: { userId_buildId: { userId: auth.userId, buildId } } }),
-    prisma.buildRating.findMany({ where: { buildId }, select: { value: true } }),
+    prisma.buildRating.findMany({ where: { buildId }, select: { value: true, feedbackFlags: true } }),
   ]);
 
   const averageRating = ratings.length > 0
@@ -431,9 +457,11 @@ buildsRouter.get("/:id", async (req: Request, res: Response) => {
       favoriteCount,
       favorited: Boolean(favoriteRow),
       myRating: myRatingRow?.value ?? null,
-      ratings,
+      ratings: ratings.map((r) => ({ value: r.value })),
       averageRating,
       ratingCount: ratings.length,
+      flagCounts: countFlags(ratings),
+      didNotWorkRate: didNotWorkRate(ratings),
     },
   });
 });
@@ -683,6 +711,8 @@ buildsRouter.post("/:id/usage", async (req: Request, res: Response) => {
 
 const ratingBodySchema = z.object({
   value: z.number().int().min(1).max(5),
+  feedbackFlags: z.array(feedbackFlagSchema).max(4).optional(),
+  comment: z.string().max(500).optional(),
 });
 
 buildsRouter.post("/:id/rating", async (req: Request, res: Response) => {

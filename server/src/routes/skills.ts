@@ -5,6 +5,13 @@ import { z } from "zod";
 import { getAuthContext, requireAuth, requireWriteAccess, type AuthContext } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 import {
+  logManualArchive,
+  transferOwner,
+  unarchiveAsset,
+  verifyAsset,
+} from "../services/governanceOps";
+import { countFlags, didNotWorkRate } from "../services/scoring";
+import {
   buildVisibilityWhereFragment,
   canAccessByVisibility as sharedCanAccessByVisibility,
 } from "../lib/visibility";
@@ -91,6 +98,18 @@ const createSkillBodySchema = z.object({
   visibility: promptVisibilitySchema.optional(),
   status: promptStatusSchema.optional(),
   tools: z.array(z.union([skillToolSchema, z.string()])).optional(),
+});
+
+const feedbackFlagSchema = z.enum(["WORKED_WELL", "DID_NOT_WORK", "INACCURATE", "OUTDATED", "OFF_TOPIC"]);
+const ratingBodySchema = z.object({
+  value: z.number().int().min(1).max(5),
+  feedbackFlags: z.array(feedbackFlagSchema).max(4).optional(),
+  comment: z.string().max(500).optional(),
+});
+
+const transferOwnerBodySchema = z.object({
+  newOwnerId: z.number().int().positive(),
+  reason: z.string().trim().max(500).optional(),
 });
 
 const updateSkillBodySchema = z
@@ -249,7 +268,7 @@ skillsRouter.get("/", async (req: Request, res: Response) => {
 
   if (includeAnalytics && rows.length > 0) {
     const skillIds = rows.map((r) => r.id);
-    const [viewCounts, copyCounts, favoriteCounts, ratingData] = await Promise.all([
+    const [viewCounts, copyCounts, favoriteCounts, ratingData, ratingFlagRows] = await Promise.all([
       prisma.skillUsageEvent.groupBy({
         by: ["skillId"],
         where: { skillId: { in: skillIds }, eventType: "VIEW" },
@@ -271,15 +290,26 @@ skillsRouter.get("/", async (req: Request, res: Response) => {
         _count: { skillId: true },
         _avg: { value: true },
       }),
+      prisma.skillRating.findMany({
+        where: { skillId: { in: skillIds } },
+        select: { skillId: true, feedbackFlags: true },
+      }),
     ]);
 
     const viewMap = new Map(viewCounts.map((v) => [v.skillId, v._count.skillId]));
     const copyMap = new Map(copyCounts.map((c) => [c.skillId, c._count.skillId]));
     const favoriteMap = new Map(favoriteCounts.map((f) => [f.skillId, f._count.skillId]));
     const ratingMap = new Map(ratingData.map((r) => [r.skillId, { count: r._count.skillId, avg: r._avg.value }]));
+    const flagRowsBySkill = new Map<number, Array<{ feedbackFlags: string[] }>>();
+    for (const row of ratingFlagRows) {
+      const list = flagRowsBySkill.get(row.skillId) ?? [];
+      list.push({ feedbackFlags: row.feedbackFlags });
+      flagRowsBySkill.set(row.skillId, list);
+    }
 
     const dataWithAnalytics = rows.map((row) => {
       const ratingInfo = ratingMap.get(row.id);
+      const flagRows = flagRowsBySkill.get(row.id) ?? [];
       return {
         ...serializeSkill(row),
         viewCount: viewMap.get(row.id) ?? 0,
@@ -287,6 +317,8 @@ skillsRouter.get("/", async (req: Request, res: Response) => {
         favoriteCount: favoriteMap.get(row.id) ?? 0,
         ratingCount: ratingInfo?.count ?? 0,
         averageRating: ratingInfo?.avg ?? null,
+        flagCounts: countFlags(flagRows),
+        didNotWorkRate: didNotWorkRate(flagRows),
       };
     });
 
@@ -409,7 +441,7 @@ skillsRouter.get("/:id", async (req: Request, res: Response) => {
     prisma.skillFavorite.count({ where: { skillId } }),
     prisma.skillFavorite.findUnique({ where: { skillId_userId: { skillId, userId: auth.userId } } }),
     prisma.skillRating.findUnique({ where: { userId_skillId: { userId: auth.userId, skillId } } }),
-    prisma.skillRating.findMany({ where: { skillId }, select: { value: true } }),
+    prisma.skillRating.findMany({ where: { skillId }, select: { value: true, feedbackFlags: true } }),
   ]);
 
   const averageRating = ratings.length > 0
@@ -425,9 +457,11 @@ skillsRouter.get("/:id", async (req: Request, res: Response) => {
       favoriteCount,
       favorited: Boolean(favoriteRow),
       myRating: myRatingRow?.value ?? null,
-      ratings,
+      ratings: ratings.map((r) => ({ value: r.value })),
       averageRating,
       ratingCount: ratings.length,
+      flagCounts: countFlags(ratings),
+      didNotWorkRate: didNotWorkRate(ratings),
     },
   });
 });
@@ -546,12 +580,89 @@ skillsRouter.delete("/:id", requireWriteAccess, async (req: Request, res: Respon
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can archive this skill." } });
   }
 
-  const archived = await prisma.skill.update({
+  await prisma.skill.update({
     where: { id: skillId },
     data: { status: "ARCHIVED" },
   });
+  await logManualArchive("SKILL", skillId, auth.userId);
+  const archived = await prisma.skill.findUnique({ where: { id: skillId } });
 
   return res.status(200).json({ data: archived });
+});
+
+skillsRouter.post("/:id/verify", requireWriteAccess, async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+  const parsedParams = skillIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+  const skillId = parsedParams.data.id;
+  const existing = await prisma.skill.findFirst({ where: { id: skillId, teamId: auth.teamId } });
+  if (!existing) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not found." } });
+  }
+  if (existing.ownerId !== auth.userId) {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only the owner can verify this skill." } });
+  }
+  await verifyAsset("SKILL", skillId, auth.userId);
+  const updated = await prisma.skill.findUnique({ where: { id: skillId } });
+  return res.status(200).json({ data: updated });
+});
+
+skillsRouter.post("/:id/unarchive", requireWriteAccess, async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+  const parsedParams = skillIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+  const skillId = parsedParams.data.id;
+  const existing = await prisma.skill.findFirst({ where: { id: skillId, teamId: auth.teamId } });
+  if (!existing) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not found." } });
+  }
+  if (existing.ownerId !== auth.userId) {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only the owner can unarchive this skill." } });
+  }
+  await unarchiveAsset("SKILL", skillId, auth.userId);
+  const updated = await prisma.skill.findUnique({ where: { id: skillId } });
+  return res.status(200).json({ data: updated });
+});
+
+skillsRouter.post("/:id/transfer-owner", requireWriteAccess, async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+  if (auth.role !== "OWNER" && auth.role !== "ADMIN") {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only admins can transfer ownership." } });
+  }
+  const parsedParams = skillIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+  const parsedBody = transferOwnerBodySchema.safeParse(req.body);
+  if (!parsedBody.success) {
+    return res.status(400).json(badRequestFromZodError(parsedBody.error));
+  }
+  const skillId = parsedParams.data.id;
+  const { newOwnerId, reason } = parsedBody.data;
+  const existing = await prisma.skill.findFirst({ where: { id: skillId, teamId: auth.teamId } });
+  if (!existing) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not found." } });
+  }
+  const newOwner = await prisma.user.findUnique({ where: { id: newOwnerId }, select: { id: true, teamId: true } });
+  if (!newOwner || newOwner.teamId !== auth.teamId) {
+    return res.status(400).json({ error: { code: "BAD_REQUEST", message: "New owner must be a user on the same team." } });
+  }
+  await transferOwner("SKILL", skillId, auth.userId, newOwnerId, reason);
+  const updated = await prisma.skill.findUnique({ where: { id: skillId } });
+  return res.status(200).json({ data: updated });
 });
 
 skillsRouter.delete("/:id/permanent", requireWriteAccess, async (req: Request, res: Response) => {
@@ -676,9 +787,6 @@ skillsRouter.post("/:id/usage", async (req: Request, res: Response) => {
   return res.status(200).json({ data: { ok: true } });
 });
 
-const ratingBodySchema = z.object({
-  value: z.number().int().min(1).max(5),
-});
 
 skillsRouter.post("/:id/rating", async (req: Request, res: Response) => {
   const auth = getAuthContext(req);
@@ -697,7 +805,8 @@ skillsRouter.post("/:id/rating", async (req: Request, res: Response) => {
   }
 
   const skillId = parsedParams.data.id;
-  const { value } = parsedBody.data;
+  const { value, feedbackFlags, comment } = parsedBody.data;
+  const flags = feedbackFlags ?? [];
 
   const skill = await prisma.skill.findUnique({
     where: { id: skillId },
@@ -723,11 +832,11 @@ skillsRouter.post("/:id/rating", async (req: Request, res: Response) => {
 
   await prisma.skillRating.upsert({
     where: { userId_skillId: { userId: auth.userId, skillId } },
-    update: { value },
-    create: { userId: auth.userId, skillId, value },
+    update: { value, feedbackFlags: flags, comment: comment ?? null },
+    create: { userId: auth.userId, skillId, value, feedbackFlags: flags, comment: comment ?? null },
   });
 
-  return res.status(200).json({ data: { ok: true, value } });
+  return res.status(200).json({ data: { ok: true, value, feedbackFlags: flags, comment: comment ?? null } });
 });
 
 skillsRouter.post("/:id/regenerate-thumbnail", requireWriteAccess, async (req: Request, res: Response) => {

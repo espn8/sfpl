@@ -82,7 +82,7 @@ const listAssetsQuerySchema = z.object({
   assetType: z.enum(["all", "prompt", "skill", "context", "build"]).optional(),
   tool: assetToolSchema.optional(),
   status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).optional(),
-  sort: z.enum(["recent", "mostUsed", "name", "updatedAt"]).optional(),
+  sort: z.enum(["recent", "mostUsed", "name", "updatedAt", "topRated"]).optional(),
   mine: z.coerce.boolean().optional(),
   includeAnalytics: z.coerce.boolean().optional(),
   page: z.coerce.number().int().positive().optional(),
@@ -719,6 +719,24 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
     allAssets.sort((a, b) => a.title.localeCompare(b.title));
   } else if (sort === "updatedAt") {
     allAssets.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+  } else if (sort === "topRated") {
+    // Bayesian-smoothed top rated; we only have averageRating+ratingCount here
+    // since the full rating rows were already reduced. Use a 5-prior
+    // smoothing toward 3.5 (default) so noisy assets with a single 5-star
+    // don't outrank mature ones. Smart Pick flag and governance filters live
+    // in analytics.ts; listAssets still shows everything but reorders it.
+    const PRIOR = 5;
+    const GLOBAL = 3.5;
+    const score = (a: { averageRating?: number | null; ratingCount?: number }) => {
+      const r = a.averageRating ?? GLOBAL;
+      const v = a.ratingCount ?? 0;
+      return (v * r + PRIOR * GLOBAL) / (v + PRIOR);
+    };
+    allAssets.sort((a, b) => {
+      const diff = score(b) - score(a);
+      if (diff !== 0) return diff;
+      return (b.ratingCount ?? 0) - (a.ratingCount ?? 0);
+    });
   } else {
     allAssets.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }

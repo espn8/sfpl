@@ -22,6 +22,7 @@ import { buildPromptTagChips, promptOwnerAvatarUrl } from "./promptTagChips";
 import { AssetBadges } from "../assets/badges";
 import { VisibilityBadge } from "../assets/VisibilityBadge";
 import { shareOrCopyPromptLink } from "./sharePrompt";
+import { VerificationChip, VerifyAssetButton } from "../assets/VerificationControls";
 
 function composedTextForList(prompt: PromptSummary): { text: string; canCopyOrLaunch: boolean } {
   const variables = prompt.variables ?? [];
@@ -65,9 +66,10 @@ export function PromptListCard({ prompt, variant = "default", showAnalytics = fa
   }, [prompt.id, prompt.myRating, prompt.favorited]);
 
   const rateMutation = useMutation({
-    mutationFn: (value: number) => ratePrompt(prompt.id, value),
-    onSuccess: async (_, value) => {
-      setMyRating(value);
+    mutationFn: (args: { value: number; feedbackFlags?: string[] }) =>
+      ratePrompt(prompt.id, args.value, { feedbackFlags: args.feedbackFlags }),
+    onSuccess: async (_, args) => {
+      setMyRating(args.value);
       await queryClient.invalidateQueries({ queryKey: ["prompts"] });
     },
   });
@@ -126,8 +128,18 @@ export function PromptListCard({ prompt, variant = "default", showAnalytics = fa
               />
             </span>
           </div>
-          <div className="mt-1">
-            <PromptAverageStars value={prompt.averageRating} />
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <PromptAverageStars
+              value={prompt.averageRating}
+              ratingCount={prompt.ratingCount}
+              flagCounts={prompt.flagCounts}
+            />
+            <VerificationChip
+              status={prompt.status}
+              lastVerifiedAt={prompt.lastVerifiedAt}
+              verificationDueAt={prompt.verificationDueAt}
+              archiveReason={prompt.archiveReason}
+            />
           </div>
           <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-(--color-text-muted)">
             <span className="flex min-w-0 items-center gap-2">
@@ -202,14 +214,24 @@ export function PromptListCard({ prompt, variant = "default", showAnalytics = fa
           </div>
         ) : null}
 
-        {isOwnAsset ? null : (
+        {isOwnAsset ? (
+          <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+            <VerifyAssetButton
+              assetType="prompt"
+              assetId={prompt.id}
+              status={prompt.status}
+              verificationDueAt={prompt.verificationDueAt}
+              compact
+            />
+          </div>
+        ) : (
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
             <span className="text-xs text-(--color-text-muted)">Rate this prompt</span>
             <PromptRateStars
               value={myRating}
               disabled={rateMutation.isPending}
-              onChange={(value) => {
-                rateMutation.mutate(value);
+              onChange={(value, extras) => {
+                rateMutation.mutate({ value, feedbackFlags: extras?.feedbackFlags });
                 trackEvent("prompt_rate", { prompt_id: prompt.id, value });
               }}
             />

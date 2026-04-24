@@ -42,6 +42,7 @@ import { PromptAverageStars, PromptRateStars } from "./PromptStars";
 import { PromptThumbnail } from "./PromptThumbnail";
 import { shareOrCopyPromptLink } from "./sharePrompt";
 import { AssetBadges } from "../assets/badges";
+import { VerificationBanner } from "../assets/VerificationControls";
 import { usePromptCollectionMutations } from "./usePromptCollectionMutations";
 
 function pluralize(count: number, singular: string, plural = `${singular}s`): string {
@@ -119,9 +120,10 @@ export function PromptDetailPage() {
     },
   });
   const rateMutation = useMutation({
-    mutationFn: (value: number) => ratePrompt(promptId, value),
-    onSuccess: async (_, value) => {
-      setMyRating(value);
+    mutationFn: (args: { value: number; feedbackFlags?: string[] }) =>
+      ratePrompt(promptId, args.value, { feedbackFlags: args.feedbackFlags }),
+    onSuccess: async (_, args) => {
+      setMyRating(args.value);
       await queryClient.invalidateQueries({ queryKey: ["prompt", promptId] });
       await queryClient.invalidateQueries({ queryKey: ["prompts"] });
     },
@@ -249,6 +251,15 @@ export function PromptDetailPage() {
 
   return (
     <div className="space-y-4">
+      <VerificationBanner
+        assetType="prompt"
+        assetId={promptId}
+        status={promptData.status}
+        isOwner={isOwnAsset}
+        lastVerifiedAt={promptData.lastVerifiedAt}
+        verificationDueAt={promptData.verificationDueAt}
+        archiveReason={promptData.archiveReason}
+      />
       <div className="overflow-hidden rounded-xl border border-(--color-border) bg-(--color-surface)">
         <PromptThumbnail
           title={promptData.title}
@@ -271,7 +282,12 @@ export function PromptDetailPage() {
           />
           </div>
           <div className="mt-2">
-            <PromptAverageStars value={averageRating} size="md" />
+            <PromptAverageStars
+              value={averageRating}
+              size="md"
+              ratingCount={promptData.ratings?.length ?? 0}
+              flagCounts={promptData.flagCounts}
+            />
           </div>
           <div className="mt-3 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm text-(--color-text-muted)">
             <span className="flex min-w-0 items-center gap-2">
@@ -324,8 +340,9 @@ export function PromptDetailPage() {
                   value={myRating}
                   disabled={rateMutation.isPending}
                   size="md"
-                  onChange={(value) => {
-                    rateMutation.mutate(value);
+                  showFlags
+                  onChange={(value, extras) => {
+                    rateMutation.mutate({ value, feedbackFlags: extras?.feedbackFlags });
                     trackEvent("prompt_rate", { prompt_id: promptId, value });
                   }}
                 />

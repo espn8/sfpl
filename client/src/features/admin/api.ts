@@ -58,3 +58,70 @@ export async function reviewToolRequest(id: number, input: ReviewToolRequestInpu
   const response = await apiClient.patch<{ data: ToolRequest }>(`/api/tool-requests/${id}`, input);
   return response.data.data;
 }
+
+export type AdminUser = {
+  id: number;
+  name: string | null;
+  email: string;
+  avatarUrl: string | null;
+  role: string;
+};
+
+export type AdminUserAsset = {
+  id: number;
+  title: string;
+  status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  updatedAt: string;
+  verificationDueAt: string | null;
+  archivedAt: string | null;
+  archiveReason: "MANUAL" | "UNVERIFIED" | "INACTIVE" | "LOW_RATING" | null;
+};
+
+export type AdminUserAssetsResponse = {
+  data: {
+    user: { id: number; name: string | null; email: string; role: string };
+    prompts: AdminUserAsset[];
+    skills: AdminUserAsset[];
+    contexts: AdminUserAsset[];
+    builds: AdminUserAsset[];
+    totals: { prompts: number; skills: number; contexts: number; builds: number; total: number };
+  };
+};
+
+export async function listAdminUsers(q?: string): Promise<AdminUser[]> {
+  const { data } = await apiClient.get<{ data: AdminUser[] }>("/api/admin/users", {
+    params: q ? { q } : undefined,
+  });
+  return data.data;
+}
+
+export async function listUserAssets(userId: number): Promise<AdminUserAssetsResponse["data"]> {
+  const { data } = await apiClient.get<AdminUserAssetsResponse>(`/api/admin/users/${userId}/assets`);
+  return data.data;
+}
+
+export type TransferAssetsInput = {
+  newOwnerId: number;
+  includeStatuses?: Array<"DRAFT" | "PUBLISHED" | "ARCHIVED">;
+  assetTypes?: Array<"PROMPT" | "SKILL" | "CONTEXT" | "BUILD">;
+  reason?: string;
+};
+
+export async function transferUserAssets(
+  userId: number,
+  input: TransferAssetsInput,
+): Promise<{ fromUserId: number; toUserId: number; transferred: Record<string, number>; total: number }> {
+  const { data } = await apiClient.post<{
+    data: { fromUserId: number; toUserId: number; transferred: Record<string, number>; total: number };
+  }>(`/api/admin/users/${userId}/transfer-assets`, input);
+  return data.data;
+}
+
+export async function runGovernanceSweep(dryRun = false): Promise<Record<string, unknown>> {
+  const { data } = await apiClient.post<{ data: Record<string, unknown> }>(
+    `/api/admin/governance/run`,
+    {},
+    { params: dryRun ? { dryRun: true } : undefined },
+  );
+  return data.data;
+}

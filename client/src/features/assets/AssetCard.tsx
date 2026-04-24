@@ -23,6 +23,7 @@ import { PromptAverageStars, PromptRateStars } from "../prompts/PromptStars";
 import { PromptThumbnail } from "../prompts/PromptThumbnail";
 import { PromptCollectionMenu } from "../prompts/PromptCollectionMenu";
 import { AssetBadges } from "./badges";
+import { VerificationChip, VerifyAssetButton } from "./VerificationControls";
 
 type AssetCardProps = {
   asset: UnifiedAsset;
@@ -183,11 +184,17 @@ export function AssetCard({ asset, variant = "default", showAnalytics = false, h
               favoriteCount={asset.favoriteCount}
             />
           </div>
-          {asset.assetType === "prompt" && asset.averageRating !== undefined ? (
-            <div className="mt-1">
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            {asset.assetType === "prompt" && asset.averageRating !== undefined ? (
               <PromptAverageStars value={asset.averageRating} />
-            </div>
-          ) : null}
+            ) : null}
+            <VerificationChip
+              status={asset.status}
+              lastVerifiedAt={asset.lastVerifiedAt}
+              verificationDueAt={asset.verificationDueAt}
+              archiveReason={asset.archiveReason}
+            />
+          </div>
           <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-(--color-text-muted)">
             <span className="flex min-w-0 items-center gap-2">
               <img
@@ -280,6 +287,18 @@ export function AssetCard({ asset, variant = "default", showAnalytics = false, h
                 rateMutation.mutate(value);
                 trackEvent("prompt_rate", { prompt_id: asset.id, value });
               }}
+            />
+          </div>
+        ) : null}
+
+        {isOwnAsset ? (
+          <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+            <VerifyAssetButton
+              assetType={asset.assetType}
+              assetId={asset.id}
+              status={asset.status}
+              verificationDueAt={asset.verificationDueAt}
+              compact
             />
           </div>
         ) : null}

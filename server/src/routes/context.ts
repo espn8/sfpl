@@ -5,6 +5,13 @@ import { z } from "zod";
 import { getAuthContext, requireAuth, requireWriteAccess, type AuthContext } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 import {
+  logManualArchive,
+  transferOwner,
+  unarchiveAsset,
+  verifyAsset,
+} from "../services/governanceOps";
+import { countFlags, didNotWorkRate } from "../services/scoring";
+import {
   buildVisibilityWhereFragment,
   canAccessByVisibility as sharedCanAccessByVisibility,
 } from "../lib/visibility";
@@ -65,6 +72,12 @@ const contextIdParamsSchema = z.object({
 
 const usageBodySchema = z.object({
   eventType: z.enum(["VIEW", "COPY"]),
+});
+
+const feedbackFlagSchema = z.enum(["WORKED_WELL", "DID_NOT_WORK", "INACCURATE", "OUTDATED", "OFF_TOPIC"]);
+const transferOwnerBodySchema = z.object({
+  newOwnerId: z.number().int().positive(),
+  reason: z.string().trim().max(500).optional(),
 });
 
 const contextVariableItemSchema = z.object({
@@ -287,7 +300,7 @@ contextRouter.get("/", async (req: Request, res: Response) => {
 
   if (includeAnalytics && rows.length > 0) {
     const contextIds = rows.map((r) => r.id);
-    const [viewCounts, copyCounts, favoriteCounts, ratingData] = await Promise.all([
+    const [viewCounts, copyCounts, favoriteCounts, ratingData, ratingFlagRows] = await Promise.all([
       prisma.contextUsageEvent.groupBy({
         by: ["contextId"],
         where: { contextId: { in: contextIds }, eventType: "VIEW" },
@@ -309,15 +322,26 @@ contextRouter.get("/", async (req: Request, res: Response) => {
         _count: { contextId: true },
         _avg: { value: true },
       }),
+      prisma.contextRating.findMany({
+        where: { contextId: { in: contextIds } },
+        select: { contextId: true, feedbackFlags: true },
+      }),
     ]);
 
     const viewMap = new Map(viewCounts.map((v) => [v.contextId, v._count.contextId]));
     const copyMap = new Map(copyCounts.map((c) => [c.contextId, c._count.contextId]));
     const favoriteMap = new Map(favoriteCounts.map((f) => [f.contextId, f._count.contextId]));
     const ratingMap = new Map(ratingData.map((r) => [r.contextId, { count: r._count.contextId, avg: r._avg.value }]));
+    const flagRowsByContext = new Map<number, Array<{ feedbackFlags: string[] }>>();
+    for (const row of ratingFlagRows) {
+      const list = flagRowsByContext.get(row.contextId) ?? [];
+      list.push({ feedbackFlags: row.feedbackFlags });
+      flagRowsByContext.set(row.contextId, list);
+    }
 
     const dataWithAnalytics = rows.map((row) => {
       const ratingInfo = ratingMap.get(row.id);
+      const flagRows = flagRowsByContext.get(row.id) ?? [];
       return {
         ...serializeContextDoc(row),
         viewCount: viewMap.get(row.id) ?? 0,
@@ -325,6 +349,8 @@ contextRouter.get("/", async (req: Request, res: Response) => {
         favoriteCount: favoriteMap.get(row.id) ?? 0,
         ratingCount: ratingInfo?.count ?? 0,
         averageRating: ratingInfo?.avg ?? null,
+        flagCounts: countFlags(flagRows),
+        didNotWorkRate: didNotWorkRate(flagRows),
       };
     });
 
@@ -458,7 +484,7 @@ contextRouter.get("/:id", async (req: Request, res: Response) => {
     prisma.contextFavorite.count({ where: { contextId } }),
     prisma.contextFavorite.findUnique({ where: { contextId_userId: { contextId, userId: auth.userId } } }),
     prisma.contextRating.findUnique({ where: { userId_contextId: { userId: auth.userId, contextId } } }),
-    prisma.contextRating.findMany({ where: { contextId }, select: { value: true } }),
+    prisma.contextRating.findMany({ where: { contextId }, select: { value: true, feedbackFlags: true } }),
   ]);
 
   const averageRating = ratings.length > 0
@@ -474,9 +500,11 @@ contextRouter.get("/:id", async (req: Request, res: Response) => {
       favoriteCount,
       favorited: Boolean(favoriteRow),
       myRating: myRatingRow?.value ?? null,
-      ratings,
+      ratings: ratings.map((r) => ({ value: r.value })),
       averageRating,
       ratingCount: ratings.length,
+      flagCounts: countFlags(ratings),
+      didNotWorkRate: didNotWorkRate(ratings),
     },
   });
 });
@@ -647,12 +675,89 @@ contextRouter.delete("/:id", requireWriteAccess, async (req: Request, res: Respo
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can archive this document." } });
   }
 
-  const archived = await prisma.contextDocument.update({
+  await prisma.contextDocument.update({
     where: { id: docId },
     data: { status: "ARCHIVED" },
   });
+  await logManualArchive("CONTEXT", docId, auth.userId);
+  const archived = await prisma.contextDocument.findUnique({ where: { id: docId } });
 
   return res.status(200).json({ data: archived });
+});
+
+contextRouter.post("/:id/verify", requireWriteAccess, async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+  const parsedParams = contextIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+  const docId = parsedParams.data.id;
+  const existing = await prisma.contextDocument.findFirst({ where: { id: docId, teamId: auth.teamId } });
+  if (!existing) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Context document not found." } });
+  }
+  if (existing.ownerId !== auth.userId) {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only the owner can verify this document." } });
+  }
+  await verifyAsset("CONTEXT", docId, auth.userId);
+  const updated = await prisma.contextDocument.findUnique({ where: { id: docId } });
+  return res.status(200).json({ data: updated });
+});
+
+contextRouter.post("/:id/unarchive", requireWriteAccess, async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+  const parsedParams = contextIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+  const docId = parsedParams.data.id;
+  const existing = await prisma.contextDocument.findFirst({ where: { id: docId, teamId: auth.teamId } });
+  if (!existing) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Context document not found." } });
+  }
+  if (existing.ownerId !== auth.userId) {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only the owner can unarchive this document." } });
+  }
+  await unarchiveAsset("CONTEXT", docId, auth.userId);
+  const updated = await prisma.contextDocument.findUnique({ where: { id: docId } });
+  return res.status(200).json({ data: updated });
+});
+
+contextRouter.post("/:id/transfer-owner", requireWriteAccess, async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+  if (auth.role !== "OWNER" && auth.role !== "ADMIN") {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only admins can transfer ownership." } });
+  }
+  const parsedParams = contextIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+  const parsedBody = transferOwnerBodySchema.safeParse(req.body);
+  if (!parsedBody.success) {
+    return res.status(400).json(badRequestFromZodError(parsedBody.error));
+  }
+  const docId = parsedParams.data.id;
+  const { newOwnerId, reason } = parsedBody.data;
+  const existing = await prisma.contextDocument.findFirst({ where: { id: docId, teamId: auth.teamId } });
+  if (!existing) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Context document not found." } });
+  }
+  const newOwner = await prisma.user.findUnique({ where: { id: newOwnerId }, select: { id: true, teamId: true } });
+  if (!newOwner || newOwner.teamId !== auth.teamId) {
+    return res.status(400).json({ error: { code: "BAD_REQUEST", message: "New owner must be a user on the same team." } });
+  }
+  await transferOwner("CONTEXT", docId, auth.userId, newOwnerId, reason);
+  const updated = await prisma.contextDocument.findUnique({ where: { id: docId } });
+  return res.status(200).json({ data: updated });
 });
 
 contextRouter.delete("/:id/permanent", requireWriteAccess, async (req: Request, res: Response) => {
@@ -780,6 +885,8 @@ contextRouter.post("/:id/usage", async (req: Request, res: Response) => {
 
 const ratingBodySchema = z.object({
   value: z.number().int().min(1).max(5),
+  feedbackFlags: z.array(feedbackFlagSchema).max(4).optional(),
+  comment: z.string().max(500).optional(),
 });
 
 contextRouter.post("/:id/rating", async (req: Request, res: Response) => {

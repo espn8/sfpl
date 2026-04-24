@@ -1,9 +1,11 @@
 import type { Request, Response } from "express";
 import { Router } from "express";
-import { Role, UsageAction } from "@prisma/client";
+import { Role, UsageAction, type FeedbackFlag } from "@prisma/client";
 import { z } from "zod";
 import { getAuthContext, requireAuth, requireRole } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
+import { buildAggregate, computeFinalScore, DEFAULT_GLOBAL_MEAN } from "../services/scoring";
+import { countFlags } from "../lib/flagCounts";
 
 const analyticsRouter = Router();
 analyticsRouter.use(requireAuth);
@@ -15,7 +17,7 @@ const ouQuerySchema = z.object({
 type RatedPrompt = {
   id: number;
   title: string;
-  ratings: Array<{ value: number }>;
+  ratings: Array<{ value: number; feedbackFlags: FeedbackFlag[] }>;
 };
 type UserActivityCounts = {
   usedCount: number;
@@ -44,13 +46,16 @@ analyticsRouter.get("/overview", async (req: Request, res: Response) => {
       take: 10,
     }),
     prisma.prompt.findMany({
-      where: { teamId: auth.teamId },
+      where: {
+        teamId: auth.teamId,
+        status: "PUBLISHED",
+        OR: [{ verificationDueAt: null }, { verificationDueAt: { gt: new Date() } }],
+      },
       select: {
         id: true,
         title: true,
-        ratings: { select: { value: true } },
+        ratings: { select: { value: true, feedbackFlags: true } },
       },
-      take: 10,
     }),
     prisma.prompt.findMany({
       where: {
@@ -126,17 +131,26 @@ analyticsRouter.get("/overview", async (req: Request, res: Response) => {
     usageCount: g._count._all,
   }));
 
-  const topRatedWithAverage = (topRated as RatedPrompt[])
-    .map((prompt: RatedPrompt) => ({
-      id: prompt.id,
-      title: prompt.title,
-      averageRating:
-        prompt.ratings.length === 0
-          ? null
-          : prompt.ratings.reduce((sum: number, item: { value: number }) => sum + item.value, 0) / prompt.ratings.length,
-      ratingCount: prompt.ratings.length,
-    }))
-    .sort((a: { averageRating: number | null }, b: { averageRating: number | null }) => (b.averageRating ?? 0) - (a.averageRating ?? 0))
+  const topRatedPrompts = topRated as RatedPrompt[];
+  const allRatingValues = topRatedPrompts.flatMap((p) => p.ratings.map((r) => r.value));
+  const teamGlobalMean =
+    allRatingValues.length === 0
+      ? DEFAULT_GLOBAL_MEAN
+      : allRatingValues.reduce((s, v) => s + v, 0) / allRatingValues.length;
+
+  const topRatedWithAverage = topRatedPrompts
+    .map((prompt) => {
+      const agg = buildAggregate(prompt.ratings);
+      return {
+        id: prompt.id,
+        title: prompt.title,
+        averageRating: agg.count === 0 ? null : agg.average,
+        ratingCount: agg.count,
+        score: computeFinalScore(agg, teamGlobalMean),
+        flagCounts: countFlags(prompt.ratings),
+      };
+    })
+    .sort((a, b) => b.score - a.score || b.ratingCount - a.ratingCount)
     .slice(0, 10);
 
   const userActivityMap = new Map<number, UserActivityCounts>();

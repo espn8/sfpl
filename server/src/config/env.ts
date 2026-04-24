@@ -28,6 +28,8 @@ type Env = {
   devWhitelistToken?: string;
   /** User ID to impersonate when using whitelist bypass auth. Defaults to 1. */
   devWhitelistUserId: number;
+  /** Gate the governance sweep (auto-archive, warning emails, Smart Pick recompute). */
+  governanceSweepEnabled: boolean;
 };
 
 function getRequired(name: string): string {
@@ -101,4 +103,5 @@ export const env: Env = {
   toolRequestNotifyEmail: process.env.TOOL_REQUEST_NOTIFY_EMAIL ?? "akleymann+ailibrary@salesforce.com",
   devWhitelistToken: process.env.DEV_WHITELIST_TOKEN,
   devWhitelistUserId: Number(process.env.DEV_WHITELIST_USER_ID ?? 1),
+  governanceSweepEnabled: parseBoolean("GOVERNANCE_SWEEP_ENABLED", false),
 };

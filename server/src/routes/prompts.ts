@@ -5,6 +5,13 @@ import { z } from "zod";
 import { getAuthContext, requireAuth, requireWriteAccess, type AuthContext } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 import {
+  logManualArchive,
+  transferOwner,
+  unarchiveAsset,
+  verifyAsset,
+} from "../services/governanceOps";
+import { countFlags } from "../lib/flagCounts";
+import {
   buildVisibilityWhereFragment,
   canAccessByVisibility,
 } from "../lib/visibility";
@@ -240,8 +247,16 @@ const updatePromptBodySchema = z
     "At least one field must be provided.",
   );
 
+const feedbackFlagSchema = z.enum(["WORKED_WELL", "DID_NOT_WORK", "INACCURATE", "OUTDATED", "OFF_TOPIC"]);
 const ratingBodySchema = z.object({
   value: z.number().int().min(1).max(5),
+  feedbackFlags: z.array(feedbackFlagSchema).max(4).optional(),
+  comment: z.string().max(500).optional(),
+});
+
+const transferOwnerBodySchema = z.object({
+  newOwnerId: z.number().int().positive(),
+  reason: z.string().trim().max(500).optional(),
 });
 
 const usageBodySchema = z.object({
@@ -454,7 +469,7 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
         owner: { select: { id: true, name: true, avatarUrl: true } },
         variables: { select: { key: true, label: true, defaultValue: true, required: true } },
         _count: { select: { favorites: true, ratings: true, usageEvents: true } },
-        ratings: { select: { value: true } },
+        ratings: { select: { value: true, feedbackFlags: true } },
         promptTags: { include: { tag: true } },
       },
       orderBy,
@@ -492,7 +507,7 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
           owner: { select: { id: true, name: true, avatarUrl: true } },
           variables: { select: { key: true, label: true, defaultValue: true, required: true } },
           _count: { select: { favorites: true, ratings: true, usageEvents: true } },
-          ratings: { select: { value: true } },
+          ratings: { select: { value: true, feedbackFlags: true } },
           promptTags: { include: { tag: true } },
         },
         orderBy,
@@ -524,10 +539,15 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
     modality?: PromptModality;
     thumbnailUrl?: string | null;
     thumbnailStatus?: string;
+    isSmartPick?: boolean;
+    lastVerifiedAt?: Date | null;
+    verificationDueAt?: Date | null;
+    archivedAt?: Date | null;
+    archiveReason?: string | null;
     createdAt: Date;
     updatedAt: Date;
     owner: { id: number; name: string | null; avatarUrl: string | null };
-    ratings: { value: number }[];
+    ratings: Array<{ value: number; feedbackFlags: string[] }>;
     promptTags: { tag: { name: string } }[];
     _count: { favorites: number; ratings: number; usageEvents: number };
     variables?: Array<{ key: string; label: string | null; defaultValue: string | null; required: boolean }>;
@@ -592,6 +612,11 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
       prompt.ratings.length === 0
         ? null
         : prompt.ratings.reduce((sum: number, item: { value: number }) => sum + item.value, 0) / prompt.ratings.length,
+    flagCounts: countFlags(prompt.ratings),
+    lastVerifiedAt: "lastVerifiedAt" in prompt ? prompt.lastVerifiedAt : null,
+    verificationDueAt: "verificationDueAt" in prompt ? prompt.verificationDueAt : null,
+    archivedAt: "archivedAt" in prompt ? prompt.archivedAt : null,
+    archiveReason: "archiveReason" in prompt ? prompt.archiveReason : null,
     variables: Array.isArray(prompt.variables)
       ? prompt.variables.map((item) => ({
           key: item.key,
@@ -1021,16 +1046,96 @@ promptsRouter.delete("/:id", requireWriteAccess, async (req: Request, res: Respo
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can archive this prompt." } });
   }
 
-  const archived = await prisma.prompt.update({
+  await prisma.prompt.update({
     where: { id: promptId },
     data: { status: "ARCHIVED" },
   });
+  await logManualArchive("PROMPT", promptId, auth.userId);
+  const archived = await prisma.prompt.findUnique({ where: { id: promptId } });
 
   if (existing.status === "PUBLISHED") {
     scheduleSystemCollectionRefresh(auth.teamId, existing.tools);
   }
 
   return res.status(200).json({ data: archived });
+});
+
+promptsRouter.post("/:id/verify", requireWriteAccess, async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+  const parsedParams = promptIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+  const promptId = parsedParams.data.id;
+  const existing = await prisma.prompt.findFirst({ where: { id: promptId, teamId: auth.teamId } });
+  if (!existing) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
+  }
+  if (existing.ownerId !== auth.userId) {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only the owner can verify this prompt." } });
+  }
+  await verifyAsset("PROMPT", promptId, auth.userId);
+  const updated = await prisma.prompt.findUnique({ where: { id: promptId } });
+  return res.status(200).json({ data: updated });
+});
+
+promptsRouter.post("/:id/unarchive", requireWriteAccess, async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+  const parsedParams = promptIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+  const promptId = parsedParams.data.id;
+  const existing = await prisma.prompt.findFirst({ where: { id: promptId, teamId: auth.teamId } });
+  if (!existing) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
+  }
+  if (existing.ownerId !== auth.userId) {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only the owner can unarchive this prompt." } });
+  }
+  await unarchiveAsset("PROMPT", promptId, auth.userId);
+  const updated = await prisma.prompt.findUnique({ where: { id: promptId } });
+  if (updated?.status === "PUBLISHED") {
+    scheduleSystemCollectionRefresh(auth.teamId, existing.tools);
+  }
+  return res.status(200).json({ data: updated });
+});
+
+promptsRouter.post("/:id/transfer-owner", requireWriteAccess, async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+  if (auth.role !== "OWNER" && auth.role !== "ADMIN") {
+    return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only admins can transfer ownership." } });
+  }
+  const parsedParams = promptIdParamsSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    return res.status(400).json(badRequestFromZodError(parsedParams.error));
+  }
+  const parsedBody = transferOwnerBodySchema.safeParse(req.body);
+  if (!parsedBody.success) {
+    return res.status(400).json(badRequestFromZodError(parsedBody.error));
+  }
+  const promptId = parsedParams.data.id;
+  const { newOwnerId, reason } = parsedBody.data;
+  const existing = await prisma.prompt.findFirst({ where: { id: promptId, teamId: auth.teamId } });
+  if (!existing) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
+  }
+  const newOwner = await prisma.user.findUnique({ where: { id: newOwnerId }, select: { id: true, teamId: true } });
+  if (!newOwner || newOwner.teamId !== auth.teamId) {
+    return res.status(400).json({ error: { code: "BAD_REQUEST", message: "New owner must be a user on the same team." } });
+  }
+  await transferOwner("PROMPT", promptId, auth.userId, newOwnerId, reason);
+  const updated = await prisma.prompt.findUnique({ where: { id: promptId } });
+  return res.status(200).json({ data: updated });
 });
 
 promptsRouter.delete("/:id/permanent", requireWriteAccess, async (req: Request, res: Response) => {
@@ -1242,7 +1347,7 @@ promptsRouter.post("/:id/rating", async (req: Request, res: Response) => {
     return res.status(400).json(badRequestFromZodError(parsedBody.error));
   }
   const promptId = parsedParams.data.id;
-  const value = parsedBody.data.value;
+  const { value, feedbackFlags, comment } = parsedBody.data;
   const prompt = await prisma.prompt.findUnique({
     where: { id: promptId },
     select: {
@@ -1264,10 +1369,11 @@ promptsRouter.post("/:id/rating", async (req: Request, res: Response) => {
       .status(403)
       .json({ error: { code: "FORBIDDEN", message: "You can't rate your own prompt." } });
   }
+  const flags = feedbackFlags ?? [];
   const rating = await prisma.rating.upsert({
     where: { userId_promptId: { userId: auth.userId, promptId } },
-    create: { userId: auth.userId, promptId, value },
-    update: { value },
+    create: { userId: auth.userId, promptId, value, feedbackFlags: flags, comment: comment ?? null },
+    update: { value, feedbackFlags: flags, comment: comment ?? null },
   });
   return res.status(200).json({ data: rating });
 });

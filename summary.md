@@ -1,11 +1,28 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 24, 2026 — 14:09 CDT
-Build Version: 3336c95 (Heroku release will increment on push)
-App Version: 1.3.7 (root package.json 1.3.3 auto-bumped to 1.3.7 by `scripts/version-bump.js` on Heroku postbuild)
+Last Updated: Friday, April 24, 2026 — 15:38 CDT
+Build Version: 4685ea3 (Heroku release will increment on push)
+App Version: 1.3.8 (root package.json 1.3.3 auto-bumped by `scripts/version-bump.js` on Heroku postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Release: v1.3.8 (April 24, 2026 — 15:38 CDT) — Asset governance, verification lifecycle, and hybrid rating feedback
+
+- **Database (Prisma migration `20260424200000_add_governance_and_rating_flags`)**:
+  - **Per-asset lifecycle fields** on `Prompt`, `Skill`, `ContextDocument`, and `Build`: `lastVerifiedAt`, `verificationDueAt`, `warningSentAt`, `archivedAt`, `archiveReason` (enum `ArchiveReason`: MANUAL, UNVERIFIED, INACTIVE, LOW_RATING). Backfill sets `lastVerifiedAt` / `verificationDueAt` from `updatedAt` for published assets so the first nightly sweep does not mass-archive.
+  - **Hybrid ratings**: `feedbackFlags` (`FeedbackFlag` enum) and optional `comment` on `Rating`, `SkillRating`, `ContextRating`, and `BuildRating` for structured feedback (e.g. worked well, inaccurate, outdated).
+  - **`AssetVerification` audit log** and enums `AssetType`, `VerificationAction`. Composite indexes on `(status, verificationDueAt)` support efficient governance sweeps.
+- **Governance job** ([server/src/jobs/governance.ts](server/src/jobs/governance.ts), [server/src/jobs/runGovernance.ts](server/src/jobs/runGovernance.ts)): scheduled/manual sweep (warnings, due dates, auto-archive per scoring rules in [server/src/services/scoring.ts](server/src/services/scoring.ts)); [server/src/lib/flagCounts.ts](server/src/lib/flagCounts.ts) aggregates low-rating signal. Admin can trigger `POST /api/admin/governance/run` ([server/src/routes/admin.ts](server/src/routes/admin.ts)).
+- **Admin API** ([server/src/routes/admin.ts](server/src/routes/admin.ts)): `GET /api/admin/users` (team user search), `GET /api/admin/users/:userId/assets`, `POST /api/admin/users/:userId/transfer-assets` (bulk ownership transfer via [server/src/services/governanceOps.ts](server/src/services/governanceOps.ts)), plus governance run above. Gated to `OWNER` and `ADMIN`.
+- **User-scoped API** ([server/src/routes/me.ts](server/src/routes/me.ts)): `GET /api/me/assets/needs-verification?window=7` lists the caller’s published assets with verification due within the window; powers Settings “My Assets” and reminder UX.
+- **Client — admin**: [client/src/features/admin/GovernancePage.tsx](client/src/features/admin/GovernancePage.tsx) and [client/src/features/admin/OwnershipTransferPage.tsx](client/src/features/admin/OwnershipTransferPage.tsx) are linked from [AdminDashboardPage](client/src/features/admin/AdminDashboardPage.tsx) (Asset Governance, Ownership Transfer now “ready”). Routes in [client/src/app/router.tsx](client/src/app/router.tsx): `/admin/governance`, `/admin/ownership-transfer`.
+- **Client — Settings**: [client/src/features/settings/MyAssetsSection.tsx](client/src/features/settings/MyAssetsSection.tsx) surfaces assets needing verification; [SettingsPage](client/src/features/settings/SettingsPage.tsx) integrates the section.
+- **Client — assets & ratings**: [client/src/features/assets/VerificationControls.tsx](client/src/features/assets/VerificationControls.tsx), [client/src/features/assets/governance.ts](client/src/features/assets/governance.ts), [AssetCard](client/src/features/assets/AssetCard.tsx) updates; star controls ([PromptStars](client/src/features/prompts/PromptStars.tsx), parallel patterns on skills/context/builds) support optional feedback flags/comment. Feature `api.ts` files updated for new list/detail fields.
+- **Config**: [.env.example](.env.example) and [server/src/config/env.ts](server/src/config/env.ts) document governance-related env. [server/package.json](server/package.json) adds `governance:sweep` and `governance:sweep:dry` (run compiled `runGovernance.js` after build).
+- **Tests**: New/updated server tests: `governance-ops`, `governance-scoring`, `governance-sweep`, plus [server/test/context-flow.test.ts](server/test/context-flow.test.ts) adjustments.
+- **Version bump**: Root `package.json` remains `1.3.3` locally; Heroku `heroku-postbuild` will bump; production footer expected **v1.3.8** after this release.
+- **Migrations on deploy**: Root [Procfile](Procfile) `release:` runs `npm --prefix server run prisma:deploy`, so Heroku applies new migrations before the web dyno restarts.
 
 ### Release: v1.3.7 (April 24, 2026 — 14:09 CDT) — List card thumbnails on Prompts, Skills, Context, and Builds
 
@@ -879,7 +896,7 @@ git push heroku main
 
 ### TODO/FIXME Scan
 
-- Repository scan for `TODO|FIXME` in `*.{ts,tsx,js,jsx}` completed (April 16, 2026): no matches in application source.
+- Repository scan for `TODO|FIXME` in `*.{ts,tsx,js,jsx}` completed (April 24, 2026): no matches in application source.
 - Workspace automation rules may still mention `TODO|FIXME` as documentation; that is non-runtime.
 
 ### Roadmap / Backlog

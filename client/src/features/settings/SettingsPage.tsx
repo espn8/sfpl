@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { fetchMe, logout, updateMyProfile, uploadProfilePhoto } from "../auth/api";
 import { ThemeModeToggle } from "../../components/ui/ThemeModeToggle";
 import { ApiKeysSection } from "./ApiKeysSection";
+import { MyAssetsSection } from "./MyAssetsSection";
 import { OU_OPTIONS } from "../../constants/ous";
 
 function ChevronRightIcon({ className }: { className?: string }) {
@@ -321,6 +322,10 @@ export function SettingsPage() {
           </button>
         </div>
       </form>
+
+      <div className="mt-6">
+        <MyAssetsSection />
+      </div>
 
       <div className="mt-6">
         <ApiKeysSection />

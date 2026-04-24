@@ -85,6 +85,7 @@ export type PromptSummary = {
   createdAt: string;
   updatedAt: string;
   averageRating: number | null;
+  ratingCount?: number;
   usageCount: number;
   viewCount: number;
   favorited: boolean;
@@ -97,6 +98,11 @@ export type PromptSummary = {
   thumbnailStatus: "PENDING" | "READY" | "FAILED";
   variables?: PromptSummaryVariable[];
   isSmartPick?: boolean;
+  flagCounts?: Record<string, number>;
+  lastVerifiedAt?: string | null;
+  verificationDueAt?: string | null;
+  archivedAt?: string | null;
+  archiveReason?: "MANUAL" | "UNVERIFIED" | "INACTIVE" | "LOW_RATING" | null;
 };
 
 export type PromptVariable = {
@@ -161,6 +167,11 @@ export type Prompt = {
   thumbnailStatus: "PENDING" | "READY" | "FAILED";
   thumbnailError?: string | null;
   isSmartPick?: boolean;
+  flagCounts?: Record<string, number>;
+  lastVerifiedAt?: string | null;
+  verificationDueAt?: string | null;
+  archivedAt?: string | null;
+  archiveReason?: "MANUAL" | "UNVERIFIED" | "INACTIVE" | "LOW_RATING" | null;
 };
 
 type ApiResponse<T> = {
@@ -278,8 +289,18 @@ export async function toggleFavorite(promptId: number): Promise<{ favorited: boo
   return response.data.data;
 }
 
-export async function ratePrompt(promptId: number, value: number): Promise<void> {
-  await apiClient.post(`/api/prompts/${promptId}/rating`, { value });
+export async function ratePrompt(
+  promptId: number,
+  value: number,
+  options?: { feedbackFlags?: string[]; comment?: string }
+): Promise<void> {
+  await apiClient.post(`/api/prompts/${promptId}/rating`, {
+    value,
+    ...(options?.feedbackFlags && options.feedbackFlags.length > 0
+      ? { feedbackFlags: options.feedbackFlags }
+      : {}),
+    ...(options?.comment ? { comment: options.comment } : {}),
+  });
 }
 
 export async function logUsage(promptId: number, action: "VIEW" | "COPY" | "LAUNCH"): Promise<void> {

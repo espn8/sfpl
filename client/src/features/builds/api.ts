@@ -33,6 +33,11 @@ export type Build = {
   averageRating?: number | null;
   ratingCount?: number;
   isSmartPick?: boolean;
+  flagCounts?: Record<string, number>;
+  lastVerifiedAt?: string | null;
+  verificationDueAt?: string | null;
+  archivedAt?: string | null;
+  archiveReason?: "MANUAL" | "UNVERIFIED" | "INACTIVE" | "LOW_RATING" | null;
 };
 
 export type ListBuildsFilters = {
@@ -108,8 +113,18 @@ export async function logBuildUsage(id: number, eventType: "VIEW" | "COPY"): Pro
   await apiClient.post(`/api/builds/${id}/usage`, { eventType });
 }
 
-export async function rateBuild(id: number, value: number): Promise<void> {
-  await apiClient.post(`/api/builds/${id}/rating`, { value });
+export async function rateBuild(
+  id: number,
+  value: number,
+  options?: { feedbackFlags?: string[]; comment?: string }
+): Promise<void> {
+  await apiClient.post(`/api/builds/${id}/rating`, {
+    value,
+    ...(options?.feedbackFlags && options.feedbackFlags.length > 0
+      ? { feedbackFlags: options.feedbackFlags }
+      : {}),
+    ...(options?.comment ? { comment: options.comment } : {}),
+  });
 }
 
 export async function regenerateBuildThumbnail(id: number): Promise<{ id: number; thumbnailStatus: string }> {

@@ -13,6 +13,8 @@
     "prisma:deploy": "prisma migrate deploy",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "tsx prisma/seed.ts",
+    "governance:sweep": "node dist/jobs/runGovernance.js",
+    "governance:sweep:dry": "node dist/jobs/runGovernance.js --dry-run",
     "seed:slack-skills": "tsx prisma/seed-slack-skills.ts",
     "seed:slack-prompts": "tsx prisma/seed-slack-prompts.ts",
     "heroku-postbuild": "npm --prefix ../client run build && rimraf public && mkdir -p public && cp -R ../client/dist/. public/"

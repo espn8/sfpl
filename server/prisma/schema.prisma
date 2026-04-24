@@ -46,6 +46,7 @@ model User {
   buildRatings      BuildRating[]
   toolRequestsReviewed ToolRequest[]
   apiKeys           ApiKey[]
+  assetVerifications AssetVerification[]
 }
 
 model Team {
@@ -82,6 +83,11 @@ model Prompt {
   thumbnailError  String?
   isSmartPick     Boolean           @default(false)
   usageCount      Int               @default(0)
+  lastVerifiedAt    DateTime?
+  verificationDueAt DateTime?
+  warningSentAt     DateTime?
+  archivedAt        DateTime?
+  archiveReason     ArchiveReason?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
   team            Team              @relation(fields: [teamId], references: [id], onDelete: Restrict)
@@ -97,6 +103,7 @@ model Prompt {
   @@unique([bodyHash])
   @@index([titleNormalized])
   @@index([teamId, usageCount])
+  @@index([status, verificationDueAt])
 }
 
 model Skill {
@@ -116,6 +123,11 @@ model Skill {
   thumbnailError     String?
   isSmartPick        Boolean          @default(false)
   usageCount         Int              @default(0)
+  lastVerifiedAt     DateTime?
+  verificationDueAt  DateTime?
+  warningSentAt      DateTime?
+  archivedAt         DateTime?
+  archiveReason      ArchiveReason?
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
   team               Team             @relation(fields: [teamId], references: [id], onDelete: Restrict)
@@ -129,6 +141,7 @@ model Skill {
   @@unique([skillUrlNormalized])
   @@index([teamId, updatedAt])
   @@index([teamId, usageCount])
+  @@index([status, verificationDueAt])
 }
 
 model ContextDocument {
@@ -149,6 +162,11 @@ model ContextDocument {
   thumbnailError  String?
   isSmartPick     Boolean          @default(false)
   usageCount      Int              @default(0)
+  lastVerifiedAt    DateTime?
+  verificationDueAt DateTime?
+  warningSentAt     DateTime?
+  archivedAt        DateTime?
+  archiveReason     ArchiveReason?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   team            Team             @relation(fields: [teamId], references: [id], onDelete: Restrict)
@@ -164,6 +182,7 @@ model ContextDocument {
   @@index([teamId, updatedAt])
   @@index([titleNormalized])
   @@index([teamId, usageCount])
+  @@index([status, verificationDueAt])
 }
 
 model Build {
@@ -182,6 +201,11 @@ model Build {
   thumbnailError     String?
   isSmartPick        Boolean          @default(false)
   usageCount         Int              @default(0)
+  lastVerifiedAt     DateTime?
+  verificationDueAt  DateTime?
+  warningSentAt      DateTime?
+  archivedAt         DateTime?
+  archiveReason      ArchiveReason?
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
   team               Team             @relation(fields: [teamId], references: [id], onDelete: Restrict)
@@ -195,6 +219,7 @@ model Build {
   @@unique([buildUrlNormalized])
   @@index([teamId, updatedAt])
   @@index([teamId, usageCount])
+  @@index([status, verificationDueAt])
 }
 
 model PromptVersion {
@@ -369,14 +394,16 @@ model Favorite {
 }
 
 model Rating {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  promptId  Int
-  value     Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  prompt    Prompt   @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  id            Int            @id @default(autoincrement())
+  userId        Int
+  promptId      Int
+  value         Int
+  feedbackFlags FeedbackFlag[] @default([])
+  comment       String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prompt        Prompt         @relation(fields: [promptId], references: [id], onDelete: Cascade)
 
   @@unique([userId, promptId])
 }
@@ -467,27 +494,31 @@ model ContextUsageEvent {
 }
 
 model SkillRating {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  skillId   Int
-  value     Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  skill     Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  id            Int            @id @default(autoincrement())
+  userId        Int
+  skillId       Int
+  value         Int
+  feedbackFlags FeedbackFlag[] @default([])
+  comment       String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill         Skill          @relation(fields: [skillId], references: [id], onDelete: Cascade)
 
   @@unique([userId, skillId])
 }
 
 model ContextRating {
-  id        Int             @id @default(autoincrement())
-  userId    Int
-  contextId Int
-  value     Int
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  context   ContextDocument @relation(fields: [contextId], references: [id], onDelete: Cascade)
+  id            Int             @id @default(autoincrement())
+  userId        Int
+  contextId     Int
+  value         Int
+  feedbackFlags FeedbackFlag[]  @default([])
+  comment       String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  context       ContextDocument @relation(fields: [contextId], references: [id], onDelete: Cascade)
 
   @@unique([userId, contextId])
 }
@@ -517,14 +548,16 @@ model BuildUsageEvent {
 }
 
 model BuildRating {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  buildId   Int
-  value     Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  build     Build    @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  id            Int            @id @default(autoincrement())
+  userId        Int
+  buildId       Int
+  value         Int
+  feedbackFlags FeedbackFlag[] @default([])
+  comment       String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  build         Build          @relation(fields: [buildId], references: [id], onDelete: Cascade)
 
   @@unique([userId, buildId])
 }
@@ -612,4 +645,48 @@ model ApiKey {
 
   @@index([keyHash])
   @@index([userId])
+}
+
+model AssetVerification {
+  id        Int                @id @default(autoincrement())
+  assetType AssetType
+  assetId   Int
+  userId    Int
+  action    VerificationAction
+  reason    ArchiveReason?
+  notes     String?
+  createdAt DateTime           @default(now())
+  user      User               @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([assetType, assetId, createdAt])
+  @@index([userId, createdAt])
+}
+
+enum AssetType {
+  PROMPT
+  SKILL
+  CONTEXT
+  BUILD
+}
+
+enum VerificationAction {
+  VERIFIED
+  ARCHIVED
+  UNARCHIVED
+  OWNERSHIP_TRANSFERRED
+}
+
+enum ArchiveReason {
+  MANUAL
+  UNVERIFIED
+  INACTIVE
+  LOW_RATING
+}
+
+enum FeedbackFlag {
+  WORKED_WELL
+  DID_NOT_WORK
+  INACCURATE
+  OUTDATED
+  OFF_TOPIC
 }

@@ -62,6 +62,11 @@ export type ContextDocument = {
   averageRating?: number | null;
   ratingCount?: number;
   isSmartPick?: boolean;
+  flagCounts?: Record<string, number>;
+  lastVerifiedAt?: string | null;
+  verificationDueAt?: string | null;
+  archivedAt?: string | null;
+  archiveReason?: "MANUAL" | "UNVERIFIED" | "INACTIVE" | "LOW_RATING" | null;
 };
 
 export type ListContextFilters = {
@@ -156,8 +161,18 @@ export async function regenerateContextThumbnail(id: number): Promise<ContextDoc
   return data.data;
 }
 
-export async function rateContext(contextId: number, value: number): Promise<{ ok: boolean; value: number }> {
-  const { data } = await apiClient.post<{ data: { ok: boolean; value: number } }>(`/api/context/${contextId}/rating`, { value });
+export async function rateContext(
+  contextId: number,
+  value: number,
+  options?: { feedbackFlags?: string[]; comment?: string }
+): Promise<{ ok: boolean; value: number }> {
+  const { data } = await apiClient.post<{ data: { ok: boolean; value: number } }>(`/api/context/${contextId}/rating`, {
+    value,
+    ...(options?.feedbackFlags && options.feedbackFlags.length > 0
+      ? { feedbackFlags: options.feedbackFlags }
+      : {}),
+    ...(options?.comment ? { comment: options.comment } : {}),
+  });
   return data.data;
 }
 

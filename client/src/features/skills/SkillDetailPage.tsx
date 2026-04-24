@@ -12,6 +12,7 @@ import { PromptThumbnail } from "../prompts/PromptThumbnail";
 import { PromptAverageStars, PromptRateStars } from "../prompts/PromptStars";
 import { AssetCollectionMenu } from "../../components/AssetCollectionMenu";
 import { AssetBadges } from "../assets/badges";
+import { VerificationBanner } from "../assets/VerificationControls";
 
 function DownloadIcon({ className }: { className?: string }) {
   return (
@@ -152,6 +153,15 @@ export function SkillDetailPage() {
 
   return (
     <article className="space-y-4">
+      <VerificationBanner
+        assetType="skill"
+        assetId={skillId}
+        status={skill.status}
+        isOwner={isOwnAsset}
+        lastVerifiedAt={skill.lastVerifiedAt}
+        verificationDueAt={skill.verificationDueAt}
+        archiveReason={skill.archiveReason}
+      />
       <div className="flex gap-4">
         <PromptThumbnail
           title={skill.title}

@@ -76,7 +76,7 @@ describe("context API", () => {
   it("archives with DELETE", async () => {
     const app = await buildContextApp();
     contextDocument.findFirst.mockResolvedValue({ id: 9, teamId: 1, ownerId: 1 });
-    contextDocument.update.mockResolvedValue({
+    const archived = {
       id: 9,
       status: "ARCHIVED",
       teamId: 1,
@@ -87,7 +87,9 @@ describe("context API", () => {
       visibility: "PUBLIC",
       createdAt: new Date(),
       updatedAt: new Date(),
-    });
+    };
+    contextDocument.update.mockResolvedValue(archived);
+    contextDocument.findUnique.mockResolvedValue(archived);
 
     const response = await request(app).delete("/api/context/9");
 
