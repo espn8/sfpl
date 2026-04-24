@@ -23,7 +23,7 @@ export function AssetDetailCollectionsDisclosure({
   assetTitle,
   assetType,
 }: AssetDetailCollectionsDisclosureProps) {
-  const collectionsQuery = useQuery({ queryKey: ["collections"], queryFn: listCollections });
+  const collectionsQuery = useQuery({ queryKey: ["collections"], queryFn: () => listCollections() });
   const { addToCollectionMutation, removeFromCollectionMutation } = useAssetCollectionMutations({
     assetId,
     assetTitle,

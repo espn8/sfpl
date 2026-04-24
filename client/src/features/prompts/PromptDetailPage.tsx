@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
 import { useToast } from "../../app/providers/ToastProvider";
+import { AssetDetailActionBar } from "../../components/AssetDetailActionBar";
 import { ConfirmDeleteModal } from "../../components/ConfirmDeleteModal";
 import { fetchMe } from "../auth/api";
 import { canCreateContent } from "../auth/roles";
@@ -391,34 +392,36 @@ export function PromptDetailPage() {
         />
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-(--color-border) bg-(--color-surface) p-3">
-        <div className="flex flex-wrap items-center gap-0.5">
-          <button
-            type="button"
-            className="rounded-md border border-transparent p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text)"
-            aria-label="Share prompt link"
-            onClick={() => {
-              void shareOrCopyPromptLink(promptData.title, shareUrl);
-              trackEvent("prompt_share", { prompt_id: promptId, source: "detail" });
-            }}
-          >
-            <ShareIcon className="h-5 w-5" />
-          </button>
-          <PromptCollectionMenu promptId={promptId} promptTitle={promptData.title} />
-          <button
-            type="button"
-            disabled={favoriteMutation.isPending}
-            className="rounded-md border border-transparent p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text) disabled:opacity-50"
-            aria-label={favorited ? "Remove favorite" : "Add favorite"}
-            onClick={() => {
-              favoriteMutation.mutate();
-              trackEvent("prompt_favorite_toggle", { prompt_id: promptId, source: "detail" });
-            }}
-          >
-            <HeartIcon className="h-5 w-5" filled={favorited} />
-          </button>
-        </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
+      <AssetDetailActionBar
+        left={
+          <>
+            <button
+              type="button"
+              className="rounded-md border border-transparent p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text)"
+              aria-label="Share prompt link"
+              onClick={() => {
+                void shareOrCopyPromptLink(promptData.title, shareUrl);
+                trackEvent("prompt_share", { prompt_id: promptId, source: "detail" });
+              }}
+            >
+              <ShareIcon className="h-5 w-5" />
+            </button>
+            <PromptCollectionMenu promptId={promptId} promptTitle={promptData.title} />
+            <button
+              type="button"
+              disabled={favoriteMutation.isPending}
+              className="rounded-md border border-transparent p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text) disabled:opacity-50"
+              aria-label={favorited ? "Remove favorite" : "Add favorite"}
+              onClick={() => {
+                favoriteMutation.mutate();
+                trackEvent("prompt_favorite_toggle", { prompt_id: promptId, source: "detail" });
+              }}
+            >
+              <HeartIcon className="h-5 w-5" filled={favorited} />
+            </button>
+          </>
+        }
+        openIn={
           <label className="flex items-center gap-2 text-sm">
             <span className="text-(--color-text-muted)">Open in</span>
             <select
@@ -435,6 +438,8 @@ export function PromptDetailPage() {
               ))}
             </select>
           </label>
+        }
+        primary={
           <a
             href={canCopyOrLaunch ? launchUrl : undefined}
             target="_blank"
@@ -457,6 +462,8 @@ export function PromptDetailPage() {
             <SparkleIcon className="h-4 w-4" />
             {useLabel}
           </a>
+        }
+        secondary={
           <button
             type="button"
             disabled={!canCopyOrLaunch}
@@ -476,8 +483,8 @@ export function PromptDetailPage() {
             <CopyIcon className="h-4 w-4" />
             Copy
           </button>
-        </div>
-      </div>
+        }
+      />
 
       {canEdit || canDelete ? (
         <div className="flex flex-wrap gap-2">

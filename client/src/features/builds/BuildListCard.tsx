@@ -241,7 +241,7 @@ export function BuildListCard({ build, variant = "default", showAnalytics = fals
           <div className="flex items-center gap-2">
             <Link
               to={`/builds/${build.id}`}
-              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors bg-(--color-surface-muted) text-(--color-text) hover:bg-(--color-border)"
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors bg-(--color-launch) text-(--color-text-inverse) hover:bg-(--color-launch-hover)"
             >
               <EyeIcon className="h-4 w-4" />
               View details
@@ -250,7 +250,7 @@ export function BuildListCard({ build, variant = "default", showAnalytics = fals
               href={build.buildUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors bg-(--color-launch) text-(--color-text-inverse) hover:bg-(--color-launch-hover)"
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors bg-[#5A1BA9] text-white hover:bg-[#4A1589]"
               onClick={handleOpenBuild}
             >
               <ExternalLinkIcon className="h-4 w-4" />

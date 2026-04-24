@@ -349,7 +349,7 @@ export function AssetCard({ asset, variant = "default", showAnalytics = false, h
           <div className="flex items-center gap-2">
             <Link
               to={detailPath}
-              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors bg-[#5A1BA9] text-white hover:bg-[#4A1589]"
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors bg-(--color-launch) text-(--color-text-inverse) hover:bg-(--color-launch-hover)"
             >
               <EyeIcon className="h-4 w-4" />
               View details
@@ -369,7 +369,7 @@ export function AssetCard({ asset, variant = "default", showAnalytics = false, h
               <button
                 type="button"
                 disabled={isCopying}
-                className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors bg-[#04844B] text-white hover:bg-[#036B3E] disabled:opacity-70"
+                className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors bg-[#5A1BA9] text-white hover:bg-[#4A1589] disabled:opacity-70"
                 aria-label={`Use ${asset.assetType}`}
                 onClick={handleCopy}
               >

@@ -62,7 +62,7 @@ export function PromptsListPage() {
 
   const collectionsQuery = useQuery({
     queryKey: ["collections"],
-    queryFn: listCollections,
+    queryFn: () => listCollections(),
   });
 
   if (promptsQuery.isLoading) {

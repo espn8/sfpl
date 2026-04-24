@@ -35,6 +35,7 @@ const createCollectionBodySchema = z.object({
 const listCollectionsQuerySchema = z.object({
   page: z.coerce.number().int().positive().optional(),
   pageSize: z.coerce.number().int().positive().max(100).optional(),
+  mine: z.coerce.boolean().optional(),
 });
 
 const updateCollectionBodySchema = z
@@ -78,10 +79,16 @@ collectionsRouter.get("/", async (req: Request, res: Response) => {
   const page = parsedQuery.data.page ?? 1;
   const pageSize = parsedQuery.data.pageSize ?? 20;
   const skip = (page - 1) * pageSize;
+  const mine = parsedQuery.data.mine ?? false;
+
+  const where = {
+    teamId: auth.teamId,
+    ...(mine ? { createdById: auth.userId } : {}),
+  };
 
   const [collections, total] = await Promise.all([
     prisma.collection.findMany({
-      where: { teamId: auth.teamId },
+      where,
       include: {
         prompts: { include: { prompt: true }, orderBy: { sortOrder: "asc" } },
         skills: { include: { skill: true }, orderBy: { sortOrder: "asc" } },
@@ -93,7 +100,7 @@ collectionsRouter.get("/", async (req: Request, res: Response) => {
       skip,
       take: pageSize,
     }),
-    prisma.collection.count({ where: { teamId: auth.teamId } }),
+    prisma.collection.count({ where }),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));

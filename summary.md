@@ -1,11 +1,21 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 24, 2026 — 17:22 CDT
-Build Version: `8ef846f` (includes feature `06444e0` + summary hash line)
+Last Updated: Friday, April 24, 2026 — 17:28 CDT
+Build Version: `c82d3ba`
 App Version: see production footer after deploy (root `package.json` 1.3.3 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Release: Asset card CTAs, collections index, shared detail action bar (April 24, 2026 — 17:28 CDT)
+
+- **Search / unified cards** ([AssetCard.tsx](client/src/features/assets/AssetCard.tsx)): **View details** uses Salesforce green via theme `bg-(--color-launch)` / `hover:bg-(--color-launch-hover)` (same tokens as [theme.css](client/src/styles/theme.css), `#2e844a`). The second control (**Get the Skill** or **Use**) uses Salesforce purple `bg-[#5A1BA9]` / `hover:bg-[#4A1589]`. This reverses the prior purple-first / green-**Use** pairing on mixed-type search cards.
+- **Build list cards** ([BuildListCard.tsx](client/src/features/builds/BuildListCard.tsx)): **View details** uses the same launch green (replacing muted surface styling). **Open Build** uses the purple treatment (replacing `--color-launch`), so build browse cards match the global rule: green primary detail link, purple secondary external action.
+- **Collections index** ([CollectionsPage.tsx](client/src/features/collections/CollectionsPage.tsx)): Responsive **grid** (`1` / `sm:2` / `lg:3` columns). **Load more** reveals six cards at a time (`COLLECTIONS_PAGE_SIZE`). **All collections** vs **My collections** toggle resets the visible window; list query key includes `{ mine }` and fetches up to **`COLLECTIONS_FETCH_PAGE_SIZE` (100)** per scope via [listCollections](client/src/features/collections/api.ts) query params.
+- **Collections list API** ([server/src/routes/collections.ts](server/src/routes/collections.ts)): `GET /api/collections` accepts optional **`mine=true`** (restrict to `createdById` = caller) in addition to existing **`page`** / **`pageSize`** (max 100).
+- **Shared detail toolbar** ([AssetDetailActionBar.tsx](client/src/components/AssetDetailActionBar.tsx)): Bordered row with **left** icon cluster, optional **`openIn`** slot, **primary** and **secondary** CTAs. Adopted on [PromptDetailPage.tsx](client/src/features/prompts/PromptDetailPage.tsx) (Open-in select, green **Use prompt**, purple **Copy**), [SkillDetailPage.tsx](client/src/features/skills/SkillDetailPage.tsx) (green **Get the Skill**, purple **Copy link** + toast), [BuildDetailPage.tsx](client/src/features/builds/BuildDetailPage.tsx) (green **Open Build**, secondary = **View Documentation** when `supportUrl` differs from build URL, else purple **Copy link**), and [ContextDetailPage.tsx](client/src/features/context/ContextDetailPage.tsx) (primary **Download Context**, purple **Copy** body + toast on success; removes the duplicate full-width “Use this context” section in favor of one bar).
+- **React Query + `listCollections`**: Call sites use `queryFn: () => listCollections()` ([AssetCollectionMenu.tsx](client/src/components/AssetCollectionMenu.tsx), [PromptCollectionMenu.tsx](client/src/features/prompts/PromptCollectionMenu.tsx), [AssetDetailCollectionsDisclosure.tsx](client/src/components/AssetDetailCollectionsDisclosure.tsx), [PromptsListPage.tsx](client/src/features/prompts/PromptsListPage.tsx)) because `listCollections` now accepts optional query params; avoids passing a function reference that no longer matches the zero-arg `queryFn` signature.
+- **Deploy:** `git push origin main` and `git push heroku main:master` after `npm --prefix client run build` and pre-push server + client tests. Prisma: no schema change in this release.
 
 ### Release: Detail page chrome reduction — no Metadata block, no stats strip, no Collections disclosure (April 24, 2026 — 17:22 CDT)
 
@@ -372,9 +382,7 @@ Production URL: https://ail.mysalesforcedemo.com (canonical live site — never 
 
 ### Previous Session Changes (April 21, 2026 — earlier)
 
-- **AssetCard button redesign**: Updated the action buttons on asset cards for better visual hierarchy and Salesforce branding:
-  - Renamed "Copy" button to "Use" with Salesforce green background (`#04844B`, hover `#036B3E`)
-  - Changed "View details" link to Salesforce purple background (`#5A1BA9`, hover `#4A1589`)
+- **AssetCard button redesign** (April 21, 2026; CTA palette revised **April 24, 2026**): Renamed "Copy" to **Use** on non-skill cards. An intermediate layout used purple **View details** and green **Use**; **as of April 24, 2026 (17:24 CDT)** the app standard is **View details** = `bg-(--color-launch)` (Salesforce green in [theme.css](client/src/styles/theme.css)) and **second CTA** = purple `#5A1BA9` / `#4A1589` on [AssetCard](client/src/features/assets/AssetCard.tsx) and [BuildListCard](client/src/features/builds/BuildListCard.tsx) (see **Recent Changes**).
 
 - **Removed faceted filters from Top Performers section**: Removed the Type/Tool filter row from the "Top Performers This Week" section on the homepage for a cleaner presentation. Filters are still available in the main search bar.
 

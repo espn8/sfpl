@@ -189,7 +189,7 @@ export function useAssetCollectionMutations({
 }
 
 export function AssetCollectionMenu({ assetId, assetTitle, assetType }: AssetCollectionMenuProps) {
-  const collectionsQuery = useQuery({ queryKey: ["collections"], queryFn: listCollections });
+  const collectionsQuery = useQuery({ queryKey: ["collections"], queryFn: () => listCollections() });
   const { addToCollectionMutation, removeFromCollectionMutation } = useAssetCollectionMutations({
     assetId,
     assetTitle,

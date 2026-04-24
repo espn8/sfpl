@@ -2,10 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
-import { buildShareUrl, shareOrCopyLink } from "../../lib/shareOrCopyLink";
+import { useToast } from "../../app/providers/ToastProvider";
+import { AssetDetailActionBar } from "../../components/AssetDetailActionBar";
+import { buildShareUrl, copyToClipboard, shareOrCopyLink } from "../../lib/shareOrCopyLink";
 import { deleteCollection, getCollection, removePromptFromCollection, updateCollection } from "./api";
 import { PromptThumbnail } from "../prompts/PromptThumbnail";
-import { ShareIcon } from "../prompts/promptActionIcons";
+import { CopyIcon, ShareIcon } from "../prompts/promptActionIcons";
 
 export function CollectionDetailPage() {
   const params = useParams();
@@ -13,6 +15,7 @@ export function CollectionDetailPage() {
   const queryClient = useQueryClient();
   const collectionId = Number(params.id);
   const [message, setMessage] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   const collectionQuery = useQuery({
     queryKey: ["collection", collectionId],
@@ -70,21 +73,19 @@ export function CollectionDetailPage() {
     trackEvent("collection_share", { collection_id: collectionId, source: "detail" });
   };
 
+  const handleCopyPageLink = async () => {
+    const ok = await copyToClipboard(shareUrl);
+    if (ok) {
+      showToast("Copied link");
+      trackEvent("collection_copy_link", { collection_id: collectionId, source: "detail" });
+    }
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="space-y-1">
-          <h2 className="text-2xl font-semibold">{collection.name}</h2>
-          <p className="text-(--color-text-muted)">{collection.description ?? "No description."}</p>
-        </div>
-        <button
-          type="button"
-          className="rounded-md border border-(--color-border) p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text)"
-          aria-label="Share collection link"
-          onClick={() => void handleShare()}
-        >
-          <ShareIcon className="h-5 w-5" />
-        </button>
+      <div className="space-y-1">
+        <h2 className="text-2xl font-semibold">{collection.name}</h2>
+        <p className="text-(--color-text-muted)">{collection.description ?? "No description."}</p>
       </div>
       <form
         key={`${collection.id}-${collection.name}-${collection.description ?? ""}`}
@@ -177,6 +178,37 @@ export function CollectionDetailPage() {
           ))
         )}
       </div>
+
+      <AssetDetailActionBar
+        left={
+          <button
+            type="button"
+            className="rounded-md border border-transparent p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text)"
+            aria-label="Share collection link"
+            onClick={() => void handleShare()}
+          >
+            <ShareIcon className="h-5 w-5" />
+          </button>
+        }
+        primary={
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 rounded-xl border border-(--color-primary) bg-(--color-primary) px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-(--color-primary-hover)"
+            onClick={() => void handleCopyPageLink()}
+          >
+            <CopyIcon className="h-4 w-4" />
+            Copy link
+          </button>
+        }
+        secondary={
+          <Link
+            to="/collections"
+            className="inline-flex items-center gap-2 rounded-xl border border-(--color-border) bg-(--color-surface) px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors hover:bg-(--color-surface-muted)"
+          >
+            All collections
+          </Link>
+        }
+      />
     </div>
   );
 }

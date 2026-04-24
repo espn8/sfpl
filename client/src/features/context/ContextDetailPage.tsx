@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
+import { useToast } from "../../app/providers/ToastProvider";
+import { AssetDetailActionBar } from "../../components/AssetDetailActionBar";
 import { ConfirmDeleteModal } from "../../components/ConfirmDeleteModal";
 import { MarkdownPreview } from "../../components/MarkdownPreview";
 import { VariableInputs } from "../../components/VariableInputs";
@@ -46,6 +48,7 @@ export function ContextDetailPage() {
   const [myRating, setMyRating] = useState<number | null>(null);
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const { showToast } = useToast();
   const params = useParams();
   const docId = Number(params.id);
   const navigate = useNavigate();
@@ -170,6 +173,7 @@ export function ContextDetailPage() {
     if (success) {
       void logContextUsage(docId, "COPY");
       trackEvent("context_copy", { context_id: docId, source: "detail" });
+      showToast("Copied to clipboard");
     }
   };
 
@@ -293,76 +297,6 @@ export function ContextDetailPage() {
         )}
       </div>
 
-      <section className="space-y-4 rounded-lg border border-(--color-border) bg-(--color-surface-muted) p-6">
-        <h2 className="text-lg font-semibold">Use this context</h2>
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={handleDownload}
-            className="inline-flex items-center gap-2 rounded-xl border border-(--color-primary) bg-(--color-primary) px-6 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-(--color-primary-hover)"
-          >
-            <DownloadIcon className="h-5 w-5" />
-            Download Context
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleCopyContent()}
-            className="inline-flex items-center gap-2 rounded-xl border border-(--color-border) bg-(--color-surface) px-6 py-3 text-base font-semibold shadow-sm transition-colors hover:bg-(--color-surface-muted)"
-          >
-            <CopyIcon className="h-5 w-5" />
-            Copy
-          </button>
-        </div>
-      </section>
-
-      <div className="flex flex-wrap items-center gap-1 rounded-lg border border-(--color-border) bg-(--color-surface) p-2">
-        <button
-          type="button"
-          className="rounded-md border border-transparent p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text)"
-          aria-label="Share context link"
-          onClick={() => void handleShare()}
-        >
-          <ShareIcon className="h-5 w-5" />
-        </button>
-        <AssetCollectionMenu assetId={docId} assetTitle={doc.title} assetType="context" />
-        <button
-          type="button"
-          disabled={favoriteMutation.isPending}
-          className="rounded-md border border-transparent p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text) disabled:opacity-50"
-          aria-label={favorited ? "Remove favorite" : "Add favorite"}
-          onClick={() => {
-            favoriteMutation.mutate();
-            trackEvent("context_favorite_toggle", { context_id: docId, source: "detail" });
-          }}
-        >
-          <HeartIcon className="h-5 w-5" filled={favorited} />
-        </button>
-        {doc.supportUrl ? (
-          <a
-            href={doc.supportUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-md border border-transparent p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text)"
-            aria-label="View documentation"
-          >
-            <DocumentIcon className="h-5 w-5" />
-          </a>
-        ) : null}
-      </div>
-      {doc.supportUrl ? (
-        <div className="flex items-center gap-2">
-          <a
-            href={doc.supportUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-sm text-(--color-primary) hover:underline"
-          >
-            <DocumentIcon className="h-4 w-4" />
-            View Documentation
-          </a>
-        </div>
-      ) : null}
-
       {hasVariables ? (
         <section className="space-y-3 rounded border border-(--color-border) bg-(--color-surface) p-4">
           <h3 className="text-sm font-semibold uppercase tracking-wide text-(--color-text-muted)">Template</h3>
@@ -460,6 +394,65 @@ export function ContextDetailPage() {
           )}
         </section>
       )}
+
+      <AssetDetailActionBar
+        left={
+          <>
+            <button
+              type="button"
+              className="rounded-md border border-transparent p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text)"
+              aria-label="Share context link"
+              onClick={() => void handleShare()}
+            >
+              <ShareIcon className="h-5 w-5" />
+            </button>
+            <AssetCollectionMenu assetId={docId} assetTitle={doc.title} assetType="context" />
+            <button
+              type="button"
+              disabled={favoriteMutation.isPending}
+              className="rounded-md border border-transparent p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text) disabled:opacity-50"
+              aria-label={favorited ? "Remove favorite" : "Add favorite"}
+              onClick={() => {
+                favoriteMutation.mutate();
+                trackEvent("context_favorite_toggle", { context_id: docId, source: "detail" });
+              }}
+            >
+              <HeartIcon className="h-5 w-5" filled={favorited} />
+            </button>
+            {doc.supportUrl ? (
+              <a
+                href={doc.supportUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-md border border-transparent p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text)"
+                aria-label="View documentation"
+              >
+                <DocumentIcon className="h-5 w-5" />
+              </a>
+            ) : null}
+          </>
+        }
+        primary={
+          <button
+            type="button"
+            onClick={handleDownload}
+            className="inline-flex items-center gap-2 rounded-xl border border-(--color-primary) bg-(--color-primary) px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-(--color-primary-hover)"
+          >
+            <DownloadIcon className="h-4 w-4" />
+            Download Context
+          </button>
+        }
+        secondary={
+          <button
+            type="button"
+            onClick={() => void handleCopyContent()}
+            className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors bg-[#5A1BA9] text-white hover:bg-[#4A1589]"
+          >
+            <CopyIcon className="h-4 w-4" />
+            Copy
+          </button>
+        }
+      />
 
       <ConfirmDeleteModal
         isOpen={showDeleteModal}

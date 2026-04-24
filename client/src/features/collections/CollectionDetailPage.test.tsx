@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ToastProvider } from "../../app/providers/ToastProvider";
 import { CollectionDetailPage } from "./CollectionDetailPage";
 import { deleteCollection, getCollection, removePromptFromCollection, updateCollection } from "./api";
 
@@ -39,11 +40,13 @@ function renderCollectionDetailPage() {
 
   render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={["/collections/1"]}>
-        <Routes>
-          <Route path="/collections/:id" element={<CollectionDetailPage />} />
-        </Routes>
-      </MemoryRouter>
+      <ToastProvider>
+        <MemoryRouter initialEntries={["/collections/1"]}>
+          <Routes>
+            <Route path="/collections/:id" element={<CollectionDetailPage />} />
+          </Routes>
+        </MemoryRouter>
+      </ToastProvider>
     </QueryClientProvider>,
   );
 }

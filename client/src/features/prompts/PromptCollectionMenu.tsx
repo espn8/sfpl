@@ -8,7 +8,7 @@ type PromptCollectionMenuProps = {
 };
 
 export function PromptCollectionMenu({ promptId, promptTitle }: PromptCollectionMenuProps) {
-  const collectionsQuery = useQuery({ queryKey: ["collections"], queryFn: listCollections });
+  const collectionsQuery = useQuery({ queryKey: ["collections"], queryFn: () => listCollections() });
   const { addToCollectionMutation, removeFromCollectionMutation } = useAssetCollectionMutations({
     assetId: promptId,
     assetTitle: promptTitle,

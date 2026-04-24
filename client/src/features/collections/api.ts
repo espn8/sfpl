@@ -52,8 +52,20 @@ type ApiResponse<T> = {
   data: T;
 };
 
-export async function listCollections(): Promise<Collection[]> {
-  const response = await apiClient.get<CollectionListResponse>("/api/collections");
+export type ListCollectionsParams = {
+  mine?: boolean;
+  page?: number;
+  pageSize?: number;
+};
+
+export async function listCollections(params?: ListCollectionsParams): Promise<Collection[]> {
+  const response = await apiClient.get<CollectionListResponse>("/api/collections", {
+    params: {
+      ...(params?.mine ? { mine: true } : {}),
+      ...(params?.page != null ? { page: params.page } : {}),
+      ...(params?.pageSize != null ? { pageSize: params.pageSize } : {}),
+    },
+  });
   return response.data.data;
 }
 

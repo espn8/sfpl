@@ -2,13 +2,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
+import { useToast } from "../../app/providers/ToastProvider";
+import { AssetDetailActionBar } from "../../components/AssetDetailActionBar";
 import { ConfirmDeleteModal } from "../../components/ConfirmDeleteModal";
 import { normalizeUrl } from "../../lib/normalizeUrl";
-import { buildShareUrl, shareOrCopyLink } from "../../lib/shareOrCopyLink";
+import { buildShareUrl, copyToClipboard, shareOrCopyLink } from "../../lib/shareOrCopyLink";
 import { fetchMe } from "../auth/api";
 import { canCreateContent } from "../auth/roles";
 import { archiveBuild, deleteBuildPermanently, getBuild, logBuildUsage, rateBuild, regenerateBuildThumbnail, toggleBuildFavorite } from "./api";
-import { ExternalLinkIcon, HeartIcon, ShareIcon } from "../prompts/promptActionIcons";
+import { CopyIcon, ExternalLinkIcon, HeartIcon, ShareIcon } from "../prompts/promptActionIcons";
 import { PromptThumbnail } from "../prompts/PromptThumbnail";
 import { PromptAverageStars, PromptRateStars } from "../prompts/PromptStars";
 import { AssetCollectionMenu } from "../../components/AssetCollectionMenu";
@@ -30,6 +32,7 @@ export function BuildDetailPage() {
   const [favorited, setFavorited] = useState(false);
   const [myRating, setMyRating] = useState<number | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const { showToast } = useToast();
   const params = useParams();
   const buildId = Number(params.id);
   const navigate = useNavigate();
@@ -137,6 +140,14 @@ export function BuildDetailPage() {
     trackEvent("build_open", { build_id: buildId, source: "detail" });
   };
 
+  const handleCopyPageLink = async () => {
+    const ok = await copyToClipboard(shareUrl);
+    if (ok) {
+      showToast("Copied link");
+      trackEvent("build_copy_link", { build_id: buildId, source: "detail" });
+    }
+  };
+
   const distinctHelpUrl =
     build.supportUrl && normalizeUrl(build.supportUrl) !== normalizeUrl(build.buildUrl) ? build.supportUrl : null;
 
@@ -234,69 +245,67 @@ export function BuildDetailPage() {
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-1 rounded-lg border border-(--color-border) bg-(--color-surface) p-2">
-        <button
-          type="button"
-          className="rounded-md border border-transparent p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text)"
-          aria-label="Share build link"
-          onClick={() => void handleShare()}
-        >
-          <ShareIcon className="h-5 w-5" />
-        </button>
-        <AssetCollectionMenu assetId={buildId} assetTitle={build.title} assetType="build" />
-        <button
-          type="button"
-          disabled={favoriteMutation.isPending}
-          className="rounded-md border border-transparent p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text) disabled:opacity-50"
-          aria-label={favorited ? "Remove favorite" : "Add favorite"}
-          onClick={() => {
-            favoriteMutation.mutate();
-            trackEvent("build_favorite_toggle", { build_id: buildId, source: "detail" });
-          }}
-        >
-          <HeartIcon className="h-5 w-5" filled={favorited} />
-        </button>
-      </div>
-
-      <section className="space-y-4 rounded-lg border border-(--color-border) bg-(--color-surface-muted) p-6">
-        <h2 className="text-lg font-semibold">Access this Build</h2>
-        <p className="text-sm text-(--color-text-muted)">
-          Builds are functional tools and applications you can use, deploy, or demo. Click below to open the build or view its documentation.
-        </p>
-        <div className="flex flex-wrap gap-3">
+      <AssetDetailActionBar
+        left={
+          <>
+            <button
+              type="button"
+              className="rounded-md border border-transparent p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text)"
+              aria-label="Share build link"
+              onClick={() => void handleShare()}
+            >
+              <ShareIcon className="h-5 w-5" />
+            </button>
+            <AssetCollectionMenu assetId={buildId} assetTitle={build.title} assetType="build" />
+            <button
+              type="button"
+              disabled={favoriteMutation.isPending}
+              className="rounded-md border border-transparent p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text) disabled:opacity-50"
+              aria-label={favorited ? "Remove favorite" : "Add favorite"}
+              onClick={() => {
+                favoriteMutation.mutate();
+                trackEvent("build_favorite_toggle", { build_id: buildId, source: "detail" });
+              }}
+            >
+              <HeartIcon className="h-5 w-5" filled={favorited} />
+            </button>
+          </>
+        }
+        primary={
           <a
             href={build.buildUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-xl px-6 py-3 text-base font-semibold shadow-sm transition-colors bg-(--color-launch) text-(--color-text-inverse) hover:bg-(--color-launch-hover)"
+            className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors bg-(--color-launch) text-(--color-text-inverse) hover:bg-(--color-launch-hover)"
             onClick={handleOpenBuild}
           >
-            <ExternalLinkIcon className="h-5 w-5 shrink-0" />
+            <ExternalLinkIcon className="h-4 w-4 shrink-0" />
             Open Build
           </a>
-          {distinctHelpUrl ? (
+        }
+        secondary={
+          distinctHelpUrl ? (
             <a
               href={distinctHelpUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-xl border border-(--color-border) bg-(--color-surface) px-6 py-3 text-base font-semibold shadow-sm transition-colors hover:bg-(--color-surface-muted)"
+              className="inline-flex items-center gap-2 rounded-xl border border-(--color-border) bg-(--color-surface) px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors hover:bg-(--color-surface-muted)"
             >
-              <DocumentIcon className="h-5 w-5" />
+              <DocumentIcon className="h-4 w-4" />
               View Documentation
             </a>
-          ) : null}
-        </div>
-        {distinctHelpUrl ? (
-          <div className="mt-4 space-y-2 text-sm">
-            <p>
-              <span className="font-medium text-(--color-text-muted)">Help URL:</span>{" "}
-              <a href={distinctHelpUrl} target="_blank" rel="noopener noreferrer" className="break-all text-(--color-primary) hover:underline">
-                {distinctHelpUrl}
-              </a>
-            </p>
-          </div>
-        ) : null}
-      </section>
+          ) : (
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors bg-[#5A1BA9] text-white hover:bg-[#4A1589]"
+              onClick={() => void handleCopyPageLink()}
+            >
+              <CopyIcon className="h-4 w-4" />
+              Copy link
+            </button>
+          )
+        }
+      />
 
       <ConfirmDeleteModal
         isOpen={showDeleteModal}
