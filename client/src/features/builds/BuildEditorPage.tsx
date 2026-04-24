@@ -8,6 +8,7 @@ import {
 } from "../../components/DuplicateWarningModal";
 import { PublishStatusModal } from "../../components/PublishStatusModal";
 import { sanitizeTitle } from "../../lib/sanitizeTitle";
+import { SummaryField } from "../assets/SummaryField";
 import { createBuild, uploadBuildThumbnail, type CreateBuildInput } from "./api";
 
 type PendingBuildData = {
@@ -175,11 +176,7 @@ export function BuildEditorPage() {
         required
         className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
       />
-      <input
-        name="summary"
-        placeholder="Summary (optional) - Brief description of what this build does"
-        className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
-      />
+      <SummaryField assetType="build" />
       <select
         name="visibility"
         defaultValue="PUBLIC"

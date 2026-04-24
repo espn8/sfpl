@@ -16,6 +16,11 @@ import {
   normalizeTitle,
   formatDuplicateError,
 } from "../services/dedup";
+import {
+  SUMMARY_MAX_CHARS,
+  SUMMARY_TOO_LONG_MESSAGE,
+  checkUpdatedSummaryLength,
+} from "../lib/summaryLimits";
 
 const promptsRouter = Router();
 
@@ -189,7 +194,7 @@ const replacePromptVariablesBodySchema = z
 const createPromptBodySchema = z
   .object({
     title: z.string().trim().min(1, "title is required."),
-    summary: z.string().trim().optional(),
+    summary: z.string().trim().max(SUMMARY_MAX_CHARS, SUMMARY_TOO_LONG_MESSAGE).optional(),
     body: z.string().min(1, "body is required."),
     visibility: promptVisibilitySchema.optional(),
     status: promptStatusSchema.optional(),
@@ -829,6 +834,15 @@ promptsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respon
 
   if (existing.ownerId !== auth.userId && auth.role !== "OWNER" && auth.role !== "ADMIN") {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can modify this prompt." } });
+  }
+
+  const nextSummary =
+    typeof updateData.summary === "string" ? updateData.summary.trim() : undefined;
+  const summaryCheck = checkUpdatedSummaryLength(nextSummary, existing.summary);
+  if (!summaryCheck.ok) {
+    return res.status(400).json({
+      error: { code: "BAD_REQUEST", message: summaryCheck.message },
+    });
   }
 
   const nextTitle = typeof updateData.title === "string" ? updateData.title.trim() : existing.title;

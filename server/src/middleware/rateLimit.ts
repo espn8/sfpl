@@ -30,4 +30,18 @@ const authRateLimit = rateLimit({
   },
 });
 
-export { authRateLimit };
+const aiRewriteRateLimit = rateLimit({
+  windowMs: parsePositiveInt(process.env.AI_REWRITE_RATE_LIMIT_WINDOW_MS, 60 * 1000),
+  limit: parsePositiveInt(process.env.AI_REWRITE_RATE_LIMIT_MAX, 20),
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator,
+  message: {
+    error: {
+      code: "TOO_MANY_REQUESTS",
+      message: "Too many AI rewrite requests. Please wait a moment and try again.",
+    },
+  },
+});
+
+export { authRateLimit, aiRewriteRateLimit };

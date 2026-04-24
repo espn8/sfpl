@@ -10,6 +10,7 @@ import { env } from "./config/env";
 import { prisma } from "./lib/prisma";
 import { errorHandler } from "./middleware/errorHandler";
 import { requestTimingMiddleware } from "./middleware/requestTiming";
+import { aiRouter } from "./routes/ai";
 import { analyticsRouter } from "./routes/analytics";
 import { assetsRouter } from "./routes/assets";
 import { authRouter } from "./routes/auth";
@@ -99,6 +100,7 @@ export function createApp(options?: CreateAppOptions): express.Express {
   app.use("/api/search", searchRouter);
   app.use("/api/tool-requests", toolRequestsRouter);
   app.use("/api/api-keys", apiKeysRouter);
+  app.use("/api/ai", aiRouter);
   app.use("/api/v1", v1Router);
 
   const publicPath = path.resolve(__dirname, "../public");

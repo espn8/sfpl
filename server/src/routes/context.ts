@@ -15,6 +15,11 @@ import {
   normalizeTitle,
   formatDuplicateError,
 } from "../services/dedup";
+import {
+  SUMMARY_MAX_CHARS,
+  SUMMARY_TOO_LONG_MESSAGE,
+  checkUpdatedSummaryLength,
+} from "../lib/summaryLimits";
 
 const contextRouter = Router();
 
@@ -98,7 +103,7 @@ const replaceContextVariablesBodySchema = z
 const createContextBodySchema = z
   .object({
     title: z.string().trim().min(1, "title is required."),
-    summary: z.string().trim().optional(),
+    summary: z.string().trim().max(SUMMARY_MAX_CHARS, SUMMARY_TOO_LONG_MESSAGE).optional(),
     body: z.string().min(1, "body is required.").max(MAX_BODY_LENGTH, "body is too long."),
     supportUrl: z.string().url("supportUrl must be a valid URL.").optional().or(z.literal("")),
     visibility: promptVisibilitySchema.optional(),
@@ -502,6 +507,13 @@ contextRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respon
   }
 
   const u = parsedBody.data;
+  const nextSummaryInput = typeof u.summary === "string" ? u.summary.trim() : undefined;
+  const summaryCheck = checkUpdatedSummaryLength(nextSummaryInput, existing.summary);
+  if (!summaryCheck.ok) {
+    return res.status(400).json({
+      error: { code: "BAD_REQUEST", message: summaryCheck.message },
+    });
+  }
   const nextTitle = typeof u.title === "string" ? u.title.trim() : existing.title;
   const nextBody = typeof u.body === "string" ? u.body : existing.body;
   const nextSupportUrl = typeof u.supportUrl === "string" ? u.supportUrl || null : existing.supportUrl;

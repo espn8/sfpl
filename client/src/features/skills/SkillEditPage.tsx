@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { sanitizeTitle } from "../../lib/sanitizeTitle";
+import { SummaryField } from "../assets/SummaryField";
 import { ToolRequestModal } from "../prompts/ToolRequestModal";
 import {
   getSkill,
@@ -132,11 +133,10 @@ export function SkillEditPage() {
         placeholder="Skill name"
         className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
       />
-      <input
-        name="summary"
+      <SummaryField
+        assetType="skill"
         defaultValue={skill.summary ?? ""}
-        placeholder="Summary (optional) - Brief description of what this skill does"
-        className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
+        title={skill.title}
       />
       <div className="grid gap-2 md:grid-cols-2">
         <select

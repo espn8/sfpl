@@ -8,6 +8,7 @@ import {
 } from "../../components/DuplicateWarningModal";
 import { PublishStatusModal } from "../../components/PublishStatusModal";
 import { sanitizeTitle } from "../../lib/sanitizeTitle";
+import { SummaryField } from "../assets/SummaryField";
 import { ToolRequestModal } from "../prompts/ToolRequestModal";
 import { createSkill, getSkillToolsSortedAlphabetically, getSkillToolLabel, isValidArchiveUrl, ARCHIVE_EXTENSIONS, type SkillTool } from "./api";
 
@@ -134,11 +135,7 @@ export function SkillEditorPage() {
         required
         className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
       />
-      <input
-        name="summary"
-        placeholder="Summary (optional) - Brief description of what this skill does"
-        className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
-      />
+      <SummaryField assetType="skill" />
       <select
         name="visibility"
         defaultValue="PUBLIC"

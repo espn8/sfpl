@@ -139,11 +139,7 @@ export function BuildListCard({ build, variant = "default", showAnalytics = fals
             </span>
           </div>
           <p
-            className={
-              variant === "featured"
-                ? "mt-2 line-clamp-2 text-sm text-(--color-text-muted)"
-                : "mt-2 text-sm text-(--color-text-muted)"
-            }
+            className="mt-2 line-clamp-2 text-sm text-(--color-text-muted)"
           >
             {build.summary ?? (variant === "featured" ? "No summary yet" : "No summary")}
           </p>

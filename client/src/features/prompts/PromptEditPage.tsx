@@ -7,6 +7,7 @@ import {
   type DuplicateMatch,
 } from "../../components/DuplicateWarningModal";
 import { sanitizeTitle } from "../../lib/sanitizeTitle";
+import { SummaryField } from "../assets/SummaryField";
 import { listTags } from "../tags/api";
 import {
   getPrompt,
@@ -237,11 +238,10 @@ export function PromptEditPage() {
         placeholder="Title"
         className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
       />
-      <input
-        name="summary"
+      <SummaryField
+        assetType="prompt"
         defaultValue={prompt.summary ?? ""}
-        placeholder="Summary"
-        className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
+        title={prompt.title}
       />
       <input
         name="modelHint"

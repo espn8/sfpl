@@ -145,11 +145,7 @@ export function PromptListCard({ prompt, variant = "default", showAnalytics = fa
             </span>
           </div>
           <p
-            className={
-              variant === "featured"
-                ? "mt-2 line-clamp-2 text-sm text-(--color-text-muted)"
-                : "mt-2 text-sm text-(--color-text-muted)"
-            }
+            className="mt-2 line-clamp-2 text-sm text-(--color-text-muted)"
           >
             {prompt.summary
               ? highlightQuery

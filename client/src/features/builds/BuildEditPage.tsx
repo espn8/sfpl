@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { sanitizeTitle } from "../../lib/sanitizeTitle";
+import { SummaryField } from "../assets/SummaryField";
 import {
   getBuild,
   regenerateBuildThumbnail,
@@ -265,11 +266,10 @@ export function BuildEditPage() {
         required
         className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
       />
-      <input
-        name="summary"
+      <SummaryField
+        assetType="build"
         defaultValue={build.summary ?? ""}
-        placeholder="Summary (optional) - Brief description of what this build does"
-        className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
+        title={build.title}
       />
       <div className="grid gap-2 md:grid-cols-2">
         <select

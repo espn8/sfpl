@@ -9,6 +9,7 @@ import {
   type DuplicateMatch,
 } from "../../components/DuplicateWarningModal";
 import { sanitizeTitle } from "../../lib/sanitizeTitle";
+import { SummaryField } from "../assets/SummaryField";
 import {
   createPrompt,
   getToolLabel,
@@ -169,14 +170,8 @@ export function PromptEditorPage() {
         />
         <p className="mt-1 text-xs text-(--color-text-muted)">A short name for your prompt</p>
       </div>
-      <div>
-        <input
-          name="summary"
-          placeholder="Summary"
-          className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
-        />
-        <p className="mt-1 text-xs text-(--color-text-muted)">Why would someone use this prompt?</p>
-      </div>
+      <SummaryField assetType="prompt" />
+
       <div className="grid gap-2 md:grid-cols-2">
         <select
           name="visibility"

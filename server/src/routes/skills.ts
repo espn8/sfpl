@@ -14,6 +14,11 @@ import {
   normalizeUrl,
   formatDuplicateError,
 } from "../services/dedup";
+import {
+  SUMMARY_MAX_CHARS,
+  SUMMARY_TOO_LONG_MESSAGE,
+  checkUpdatedSummaryLength,
+} from "../lib/summaryLimits";
 
 const skillsRouter = Router();
 
@@ -80,7 +85,7 @@ const usageBodySchema = z.object({
 
 const createSkillBodySchema = z.object({
   title: z.string().trim().min(1, "title is required."),
-  summary: z.string().trim().optional(),
+  summary: z.string().trim().max(SUMMARY_MAX_CHARS, SUMMARY_TOO_LONG_MESSAGE).optional(),
   skillUrl: skillUrlSchema,
   supportUrl: z.string().url("supportUrl must be a valid URL.").optional().or(z.literal("")),
   visibility: promptVisibilitySchema.optional(),
@@ -453,6 +458,13 @@ skillsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respons
   }
 
   const u = parsedBody.data;
+  const nextSummaryInput = typeof u.summary === "string" ? u.summary.trim() : undefined;
+  const summaryCheck = checkUpdatedSummaryLength(nextSummaryInput, existing.summary);
+  if (!summaryCheck.ok) {
+    return res.status(400).json({
+      error: { code: "BAD_REQUEST", message: summaryCheck.message },
+    });
+  }
   const nextTitle = typeof u.title === "string" ? u.title.trim() : existing.title;
   const nextSummary = typeof u.summary === "string" ? u.summary.trim() || null : existing.summary;
   const nextSkillUrl = u.skillUrl ?? existing.skillUrl;
