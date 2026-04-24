@@ -8,6 +8,7 @@ import type { UnifiedAsset } from "./api";
 import { fetchMe } from "../auth/api";
 import { getPrompt, logUsage } from "../prompts/api";
 import { getContextDocument, logContextUsage } from "../context/api";
+import { getSkill, logSkillUsage } from "../skills/api";
 
 vi.mock("../auth/api", () => ({
   fetchMe: vi.fn(),
@@ -177,6 +178,47 @@ describe("AssetCard lazy copy", () => {
       expect(writeText).toHaveBeenCalledWith("LAZY CONTEXT BODY");
     });
     expect(logContextUsage).toHaveBeenCalledWith(22, "COPY");
+  });
+
+  it("fetches the skill and opens its URL for skill assets", async () => {
+    const openSpy = vi.fn();
+    vi.stubGlobal("open", openSpy);
+
+    vi.mocked(getSkill).mockResolvedValue({
+      id: 44,
+      title: "Sample Skill",
+      summary: null,
+      skillUrl: "https://example.com/the-skill",
+      supportUrl: null,
+      status: "PUBLISHED",
+      visibility: "PUBLIC",
+      tools: [],
+      createdAt: "2026-01-01T00:00:00Z",
+      updatedAt: "2026-02-01T00:00:00Z",
+      owner: { id: 1, name: "Tester", avatarUrl: null },
+    } as unknown as Awaited<ReturnType<typeof getSkill>>);
+
+    const skillAsset: UnifiedAsset = {
+      ...basePromptAsset,
+      id: 44,
+      assetType: "skill",
+      title: "Sample Skill",
+    };
+
+    wrap(<AssetCard asset={skillAsset} />);
+
+    const getButton = await screen.findByRole("button", { name: /Get the Skill/i });
+    await userEvent.click(getButton);
+
+    await waitFor(() => {
+      expect(getSkill).toHaveBeenCalledWith(44);
+    });
+    await waitFor(() => {
+      expect(openSpy).toHaveBeenCalledWith("https://example.com/the-skill", "_blank", "noopener,noreferrer");
+    });
+    expect(logSkillUsage).toHaveBeenCalledWith(44, "COPY");
+
+    vi.unstubAllGlobals();
   });
 
   it("copies directly without a network call when body is already present (builds case)", async () => {

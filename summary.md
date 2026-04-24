@@ -1,11 +1,20 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 24, 2026 — 16:55 CDT
-Build Version: `6abe6c7` (feat: shared collections disclosure on asset detail pages)
+Last Updated: Friday, April 24, 2026 — 17:12 CDT
+Build Version: `57d76a4`
 App Version: see production footer after deploy (root `package.json` 1.3.3 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Release: Skill / build / context detail & card copy — Get the Skill, Help URL dedup, context CTAs (April 24, 2026 — 17:12 CDT)
+
+- **Shared URL normalization** ([client/src/lib/normalizeUrl.ts](client/src/lib/normalizeUrl.ts)): Client helper mirrors server `normalizeUrl` in [server/src/services/dedup.ts](server/src/services/dedup.ts) so primary vs support links compare consistently.
+- **Skill detail** ([SkillDetailPage.tsx](client/src/features/skills/SkillDetailPage.tsx)): Section title and primary CTA use **Get the Skill** with shared **ExternalLinkIcon** ([promptActionIcons.tsx](client/src/features/prompts/promptActionIcons.tsx)). Optional **View Documentation** and **Help URL:** line render only when `supportUrl` is set and **differs** from `skillUrl` (no duplicate Slack/doc link when URLs match).
+- **Skill list & unified cards** ([SkillListCard.tsx](client/src/features/skills/SkillListCard.tsx), [AssetCard.tsx](client/src/features/assets/AssetCard.tsx)): Same **Get the Skill** label and external-link icon; `AssetCard` for `assetType === "skill"` now **opens** `skillUrl` in a new tab via `getSkill` (replacing green **Use** + clipboard copy). [AssetCard.test.tsx](client/src/features/assets/AssetCard.test.tsx) covers the skill path.
+- **Build detail** ([BuildDetailPage.tsx](client/src/features/builds/BuildDetailPage.tsx)): **Open Build** unchanged. **View Documentation** and footer **Help URL:** only when `supportUrl` ≠ normalized `buildUrl`; removed redundant **Build URL:** prose line.
+- **Context detail** ([ContextDetailPage.tsx](client/src/features/context/ContextDetailPage.tsx)): New **Use this context** section with primary **Download Context** and secondary **Copy** (skill-style layout); copy/download icon-only duplicates removed from the bookmark row; successful clipboard copy logs `logContextUsage(…, "COPY")`.
+- **Deploy:** `git push origin main` and `git push heroku main:master`; client-only — run `npm --prefix client run build` before push.
 
 ### Release: Asset detail collections UX — shared collapsible disclosure (April 24, 2026 — 16:55 CDT)
 

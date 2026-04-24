@@ -173,6 +173,7 @@ export function ContextDetailPage() {
   const handleCopyContent = async () => {
     const success = await copyToClipboard(composed.text);
     if (success) {
+      void logContextUsage(docId, "COPY");
       trackEvent("context_copy", { context_id: docId, source: "detail" });
     }
   };
@@ -313,23 +314,29 @@ export function ContextDetailPage() {
 
       <AssetDetailCollectionsDisclosure assetId={docId} assetTitle={doc.title} assetType="context" />
 
+      <section className="space-y-4 rounded-lg border border-(--color-border) bg-(--color-surface-muted) p-6">
+        <h2 className="text-lg font-semibold">Use this context</h2>
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={handleDownload}
+            className="inline-flex items-center gap-2 rounded-xl border border-(--color-primary) bg-(--color-primary) px-6 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-(--color-primary-hover)"
+          >
+            <DownloadIcon className="h-5 w-5" />
+            Download Context
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleCopyContent()}
+            className="inline-flex items-center gap-2 rounded-xl border border-(--color-border) bg-(--color-surface) px-6 py-3 text-base font-semibold shadow-sm transition-colors hover:bg-(--color-surface-muted)"
+          >
+            <CopyIcon className="h-5 w-5" />
+            Copy
+          </button>
+        </div>
+      </section>
+
       <div className="flex flex-wrap items-center gap-1 rounded-lg border border-(--color-border) bg-(--color-surface) p-2">
-        <button
-          type="button"
-          className="rounded-md border border-transparent p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text)"
-          aria-label="Copy context content"
-          onClick={() => void handleCopyContent()}
-        >
-          <CopyIcon className="h-5 w-5" />
-        </button>
-        <button
-          type="button"
-          className="rounded-md border border-transparent p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text)"
-          aria-label="Download as .md file"
-          onClick={handleDownload}
-        >
-          <DownloadIcon className="h-5 w-5" />
-        </button>
         <button
           type="button"
           className="rounded-md border border-transparent p-2 text-(--color-text-muted) hover:bg-(--color-surface-muted) hover:text-(--color-text)"

@@ -9,6 +9,7 @@ import { getToolLabel } from "../prompts/api";
 import {
   CalendarIcon,
   EyeIcon,
+  ExternalLinkIcon,
   HeartIcon,
   ShareIcon,
 } from "../prompts/promptActionIcons";
@@ -19,16 +20,6 @@ import { PromptThumbnail } from "../prompts/PromptThumbnail";
 import { AssetBadges } from "../assets/badges";
 import { VisibilityBadge } from "../assets/VisibilityBadge";
 import { VerificationChip, VerifyAssetButton } from "../assets/VerificationControls";
-
-function DownloadIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" strokeLinecap="round" strokeLinejoin="round" />
-      <polyline points="7 10 12 15 17 10" strokeLinecap="round" strokeLinejoin="round" />
-      <line x1="12" y1="15" x2="12" y2="3" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
 
 type SkillListCardProps = {
   skill: Skill;
@@ -270,11 +261,11 @@ export function SkillListCard({ skill, variant = "default", showAnalytics = fals
             <button
               type="button"
               className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors bg-[#5A1BA9] text-white hover:bg-[#4A1589]"
-              aria-label="Download skill"
+              aria-label="Get the Skill (opens in new tab)"
               onClick={handleDownload}
             >
-              <DownloadIcon className="h-4 w-4" />
-              Download
+              <ExternalLinkIcon className="h-4 w-4 shrink-0" />
+              Get the Skill
             </button>
           </div>
         </div>

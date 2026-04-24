@@ -8,12 +8,13 @@ import { type UnifiedAsset } from "./api";
 import { getToolLabel } from "../prompts/api";
 import { highlightMatches, truncateWithHighlight } from "../search";
 import { getPrompt, logUsage, ratePrompt, toggleFavorite } from "../prompts/api";
-import { getSkill, toggleSkillFavorite, logSkillUsage } from "../skills/api";
+import { getSkill, logSkillUsage, toggleSkillFavorite } from "../skills/api";
 import { getContextDocument, toggleContextFavorite, logContextUsage } from "../context/api";
 import {
   CalendarIcon,
   CopyIcon,
   EyeIcon,
+  ExternalLinkIcon,
   HeartIcon,
   ShareIcon,
 } from "../prompts/promptActionIcons";
@@ -112,6 +113,7 @@ export function AssetCard({ asset, variant = "default", showAnalytics = false, h
   };
 
   const [isCopying, setIsCopying] = useState(false);
+  const [isOpeningSkill, setIsOpeningSkill] = useState(false);
 
   const loadCopyText = async (): Promise<string | null> => {
     if (asset.body && asset.body.length > 0) {
@@ -125,11 +127,26 @@ export function AssetCard({ asset, variant = "default", showAnalytics = false, h
       const doc = await getContextDocument(asset.id);
       return doc.body ?? null;
     }
-    if (asset.assetType === "skill") {
-      const skill = await getSkill(asset.id);
-      return skill.skillUrl ?? null;
-    }
     return null;
+  };
+
+  const handleOpenSkill = async () => {
+    if (asset.assetType !== "skill" || isOpeningSkill) return;
+    setIsOpeningSkill(true);
+    try {
+      const skill = await getSkill(asset.id);
+      if (!skill.skillUrl) {
+        showToast("Skill link unavailable");
+        return;
+      }
+      window.open(skill.skillUrl, "_blank", "noopener,noreferrer");
+      void logSkillUsage(asset.id, "COPY");
+      trackEvent("skill_download", { skill_id: asset.id, source: "list" });
+    } catch {
+      showToast("Couldn't open skill. Try the detail page.");
+    } finally {
+      setIsOpeningSkill(false);
+    }
   };
 
   const handleCopy = async () => {
@@ -337,16 +354,29 @@ export function AssetCard({ asset, variant = "default", showAnalytics = false, h
               <EyeIcon className="h-4 w-4" />
               View details
             </Link>
-            <button
-              type="button"
-              disabled={isCopying}
-              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors bg-[#04844B] text-white hover:bg-[#036B3E] disabled:opacity-70"
-              aria-label={`Use ${asset.assetType}`}
-              onClick={handleCopy}
-            >
-              <CopyIcon className="h-4 w-4" />
-              {isCopying ? "Copying…" : "Use"}
-            </button>
+            {asset.assetType === "skill" ? (
+              <button
+                type="button"
+                disabled={isOpeningSkill}
+                className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors bg-[#5A1BA9] text-white hover:bg-[#4A1589] disabled:opacity-70"
+                aria-label="Get the Skill (opens in new tab)"
+                onClick={() => void handleOpenSkill()}
+              >
+                <ExternalLinkIcon className="h-4 w-4 shrink-0" />
+                {isOpeningSkill ? "Opening…" : "Get the Skill"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={isCopying}
+                className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors bg-[#04844B] text-white hover:bg-[#036B3E] disabled:opacity-70"
+                aria-label={`Use ${asset.assetType}`}
+                onClick={handleCopy}
+              >
+                <CopyIcon className="h-4 w-4 shrink-0" />
+                {isCopying ? "Copying…" : "Use"}
+              </button>
+            )}
           </div>
         </div>
       </div>

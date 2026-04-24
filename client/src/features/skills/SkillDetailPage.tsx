@@ -4,26 +4,17 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
 import { AssetDetailCollectionsDisclosure } from "../../components/AssetDetailCollectionsDisclosure";
 import { ConfirmDeleteModal } from "../../components/ConfirmDeleteModal";
+import { normalizeUrl } from "../../lib/normalizeUrl";
 import { buildShareUrl, shareOrCopyLink } from "../../lib/shareOrCopyLink";
 import { fetchMe } from "../auth/api";
 import { canCreateContent } from "../auth/roles";
 import { archiveSkill, deleteSkillPermanently, getSkill, logSkillUsage, rateSkill, regenerateSkillThumbnail, toggleSkillFavorite, getSkillToolLabel } from "./api";
-import { HeartIcon, ShareIcon } from "../prompts/promptActionIcons";
+import { ExternalLinkIcon, HeartIcon, ShareIcon } from "../prompts/promptActionIcons";
 import { PromptThumbnail } from "../prompts/PromptThumbnail";
 import { PromptAverageStars, PromptRateStars } from "../prompts/PromptStars";
 import { AssetCollectionMenu } from "../../components/AssetCollectionMenu";
 import { AssetBadges } from "../assets/badges";
 import { VerificationBanner } from "../assets/VerificationControls";
-
-function DownloadIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" strokeLinecap="round" strokeLinejoin="round" />
-      <polyline points="7 10 12 15 17 10" strokeLinecap="round" strokeLinejoin="round" />
-      <line x1="12" y1="15" x2="12" y2="3" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
 
 function DocumentIcon({ className }: { className?: string }) {
   return (
@@ -151,6 +142,9 @@ export function SkillDetailPage() {
     void logSkillUsage(skillId, "COPY");
     trackEvent("skill_download", { skill_id: skillId, source: "detail" });
   };
+
+  const distinctHelpUrl =
+    skill.supportUrl && normalizeUrl(skill.supportUrl) !== normalizeUrl(skill.skillUrl) ? skill.supportUrl : null;
 
   return (
     <article className="space-y-4">
@@ -307,7 +301,7 @@ export function SkillDetailPage() {
       </div>
 
       <section className="space-y-4 rounded-lg border border-(--color-border) bg-(--color-surface-muted) p-6">
-        <h2 className="text-lg font-semibold">Download Skill</h2>
+        <h2 className="text-lg font-semibold">Get the Skill</h2>
         <div className="flex flex-wrap gap-3">
           <a
             href={skill.skillUrl}
@@ -316,12 +310,12 @@ export function SkillDetailPage() {
             onClick={handleDownloadSkill}
             className="inline-flex items-center gap-2 rounded-xl border border-(--color-primary) bg-(--color-primary) px-6 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-(--color-primary-hover)"
           >
-            <DownloadIcon className="h-5 w-5" />
-            Download Skill
+            <ExternalLinkIcon className="h-5 w-5 shrink-0" />
+            Get the Skill
           </a>
-          {skill.supportUrl ? (
+          {distinctHelpUrl ? (
             <a
-              href={skill.supportUrl}
+              href={distinctHelpUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-xl border border-(--color-border) bg-(--color-surface) px-6 py-3 text-base font-semibold shadow-sm transition-colors hover:bg-(--color-surface-muted)"
@@ -331,9 +325,14 @@ export function SkillDetailPage() {
             </a>
           ) : null}
         </div>
-        <p className="text-sm text-(--color-text-muted)">
-          Skill URL: <a href={skill.skillUrl} target="_blank" rel="noopener noreferrer" className="text-(--color-primary) hover:underline">{skill.skillUrl}</a>
-        </p>
+        {distinctHelpUrl ? (
+          <p className="text-sm text-(--color-text-muted)">
+            Help URL:{" "}
+            <a href={distinctHelpUrl} target="_blank" rel="noopener noreferrer" className="break-all text-(--color-primary) hover:underline">
+              {distinctHelpUrl}
+            </a>
+          </p>
+        ) : null}
       </section>
 
       <ConfirmDeleteModal

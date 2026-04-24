@@ -4,25 +4,16 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { trackEvent } from "../../app/analytics";
 import { AssetDetailCollectionsDisclosure } from "../../components/AssetDetailCollectionsDisclosure";
 import { ConfirmDeleteModal } from "../../components/ConfirmDeleteModal";
+import { normalizeUrl } from "../../lib/normalizeUrl";
 import { buildShareUrl, shareOrCopyLink } from "../../lib/shareOrCopyLink";
 import { fetchMe } from "../auth/api";
 import { canCreateContent } from "../auth/roles";
 import { archiveBuild, deleteBuildPermanently, getBuild, logBuildUsage, rateBuild, regenerateBuildThumbnail, toggleBuildFavorite } from "./api";
-import { HeartIcon, ShareIcon } from "../prompts/promptActionIcons";
+import { ExternalLinkIcon, HeartIcon, ShareIcon } from "../prompts/promptActionIcons";
 import { PromptThumbnail } from "../prompts/PromptThumbnail";
 import { PromptAverageStars, PromptRateStars } from "../prompts/PromptStars";
 import { AssetCollectionMenu } from "../../components/AssetCollectionMenu";
 import { VerificationBanner } from "../assets/VerificationControls";
-
-function ExternalLinkIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" strokeLinecap="round" strokeLinejoin="round" />
-      <polyline points="15 3 21 3 21 9" strokeLinecap="round" strokeLinejoin="round" />
-      <line x1="10" y1="14" x2="21" y2="3" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
 
 function DocumentIcon({ className }: { className?: string }) {
   return (
@@ -150,6 +141,9 @@ export function BuildDetailPage() {
     void logBuildUsage(buildId, "COPY");
     trackEvent("build_open", { build_id: buildId, source: "detail" });
   };
+
+  const distinctHelpUrl =
+    build.supportUrl && normalizeUrl(build.supportUrl) !== normalizeUrl(build.buildUrl) ? build.supportUrl : null;
 
   return (
     <article className="space-y-4">
@@ -298,12 +292,12 @@ export function BuildDetailPage() {
             className="inline-flex items-center gap-2 rounded-xl px-6 py-3 text-base font-semibold shadow-sm transition-colors bg-(--color-launch) text-(--color-text-inverse) hover:bg-(--color-launch-hover)"
             onClick={handleOpenBuild}
           >
-            <ExternalLinkIcon className="h-5 w-5" />
+            <ExternalLinkIcon className="h-5 w-5 shrink-0" />
             Open Build
           </a>
-          {build.supportUrl ? (
+          {distinctHelpUrl ? (
             <a
-              href={build.supportUrl}
+              href={distinctHelpUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-xl border border-(--color-border) bg-(--color-surface) px-6 py-3 text-base font-semibold shadow-sm transition-colors hover:bg-(--color-surface-muted)"
@@ -313,22 +307,16 @@ export function BuildDetailPage() {
             </a>
           ) : null}
         </div>
-        <div className="mt-4 space-y-2 text-sm">
-          <p>
-            <span className="font-medium text-(--color-text-muted)">Build URL:</span>{" "}
-            <a href={build.buildUrl} target="_blank" rel="noopener noreferrer" className="text-(--color-primary) hover:underline break-all">
-              {build.buildUrl}
-            </a>
-          </p>
-          {build.supportUrl ? (
+        {distinctHelpUrl ? (
+          <div className="mt-4 space-y-2 text-sm">
             <p>
-              <span className="font-medium text-(--color-text-muted)">Documentation:</span>{" "}
-              <a href={build.supportUrl} target="_blank" rel="noopener noreferrer" className="text-(--color-primary) hover:underline break-all">
-                {build.supportUrl}
+              <span className="font-medium text-(--color-text-muted)">Help URL:</span>{" "}
+              <a href={distinctHelpUrl} target="_blank" rel="noopener noreferrer" className="break-all text-(--color-primary) hover:underline">
+                {distinctHelpUrl}
               </a>
             </p>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
       </section>
 
       <ConfirmDeleteModal
