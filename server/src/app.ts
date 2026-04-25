@@ -110,7 +110,28 @@ export function createApp(options?: CreateAppOptions): express.Express {
   const publicPath = path.resolve(__dirname, "../public");
   app.use(express.static(publicPath));
 
-  app.get(/^(?!\/api).*/, (_req, res) => {
+  /** True for browser routes that should receive the SPA shell (not missing hashed chunks, etc.). */
+  function isSpaDocumentPath(pathname: string): boolean {
+    if (pathname.startsWith("/assets/")) {
+      return false;
+    }
+    if (
+      /\.(?:js|mjs|css|map|ico|png|jpe?g|gif|webp|svg|avif|woff2?|ttf|eot|wasm|webmanifest)$/i.test(
+        pathname,
+      )
+    ) {
+      return false;
+    }
+    return true;
+  }
+
+  app.get(/^(?!\/api).*/, (req, res) => {
+    if (!isSpaDocumentPath(req.path)) {
+      res.status(404).type("text/plain").send("Not found");
+      return;
+    }
+    // Avoid stale index.html across deploys (old HTML referencing removed chunk files).
+    res.setHeader("Cache-Control", "no-cache, must-revalidate");
     res.sendFile(path.join(publicPath, "index.html"));
   });
 
