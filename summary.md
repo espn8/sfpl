@@ -1,11 +1,15 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 24, 2026 — 19:02 CDT
-Build Version: `0efd7bb`
+Last Updated: Friday, April 24, 2026 — 19:03 CDT
+Build Version: `bc4df55`
 App Version: see production footer after deploy (root `package.json` 1.3.3 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Session: summary metadata sync to HEAD (April 24, 2026 — 19:03 CDT)
+
+- **Docs:** Root [summary.md](summary.md) **`Build Version`** / **`Last Updated`** aligned with **`git rev-parse --short HEAD`** per [.cursor/rules/summary-build-version-head.mdc](.cursor/rules/summary-build-version-head.mdc).
 
 ### Session: SPA static fallback — missing Vite chunks (April 24, 2026 — 19:02 CDT)
 
