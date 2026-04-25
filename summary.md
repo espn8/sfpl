@@ -1,11 +1,19 @@
 # AI Library - Technical Summary
 
 Last Updated: Friday, April 24, 2026 — 18:59 CDT
-Build Version: `fc72943`
+Build Version: `7b8d03c`
 App Version: see production footer after deploy (root `package.json` 1.3.3 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Session: SPA static fallback — missing Vite chunks (April 24, 2026 — 19:02 CDT)
+
+- **Problem:** After deploys (or cached shell), a request for a removed lazy chunk under **`/assets/*.js`** could fall through **`express.static`**; the SPA catch-all sent **`index.html`**, so the browser loaded **`text/html`** as a module (MIME error, blank screen on routes like prompt edit).
+- **Server** ([server/src/app.ts](server/src/app.ts)): **`isSpaDocumentPath`** — SPA fallback only for document-like paths; **`/assets/`** and common static file extensions get **404** `text/plain` instead of HTML. **`Cache-Control: no-cache, must-revalidate`** on **`index.html`** so clients revalidate the shell across deploys.
+- **Tests** ([server/test/spa-fallback.test.ts](server/test/spa-fallback.test.ts)): Missing **`/assets/…`** and **`*.css`** requests return **404**, not the HTML shell.
+- **Docs / workflow:** [.cursor/rules/summary-build-version-head.mdc](.cursor/rules/summary-build-version-head.mdc) — **`summary.md`** **`Build Version`** must track **`git rev-parse --short HEAD`** (with follow-up sync when the tip advances). [.cursor/rules/commit-deploy-update-summary.mdc](.cursor/rules/commit-deploy-update-summary.mdc) references that rule.
+- **Prisma:** none. **Pre-deploy:** `npm --prefix server test`, `npm --prefix client run build`. **Deploy:** **`git push origin main`**, **`git push heroku main:master`**. Production: https://ail.mysalesforcedemo.com
 
 ### Session: client permanent-delete UI aligned with server ACLs (April 24, 2026 — 18:47 CDT)
 
