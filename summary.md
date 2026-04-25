@@ -1,11 +1,20 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 24, 2026 — 19:12 CDT
-Build Version: `a9f2951`
+Last Updated: Friday, April 24, 2026 — 19:24 CDT
+Build Version: `85ed8cc`
 App Version: see production footer after deploy (root `package.json` 1.3.3 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Session: collections menu UX — cards, create inline, popover polish (April 24, 2026 — 19:24 CDT)
+
+- **Problem:** The bookmark **Add to collection** `<details>` panel looked clipped or inert because list cards used **`overflow-hidden`** on the whole shell, which clipped the absolutely positioned dropdown. The menu only listed existing collections (no create path) and did not match newer surface styling.
+- **Overflow** ([AssetCard.tsx](client/src/features/assets/AssetCard.tsx), [PromptListCard.tsx](client/src/features/prompts/PromptListCard.tsx), [SkillListCard.tsx](client/src/features/skills/SkillListCard.tsx), [ContextListCard.tsx](client/src/features/context/ContextListCard.tsx), [BuildListCard.tsx](client/src/features/builds/BuildListCard.tsx)): Removed outer **`overflow-hidden`**; confine clipping to the thumbnail block (**`overflow-hidden rounded-t-xl`**) and **`max-md:rounded-t-xl rounded-b-xl`** on the body where the hero is `hidden md:block` so dropdowns can extend below the card.
+- **Parity** ([AssetCard.tsx](client/src/features/assets/AssetCard.tsx)): **`AssetCollectionMenu`** for every **`assetType`** (prompt, skill, context, build), not prompt-only. List cards for skills, context, and builds gained the same menu after Share ([SkillListCard.tsx](client/src/features/skills/SkillListCard.tsx), [ContextListCard.tsx](client/src/features/context/ContextListCard.tsx), [BuildListCard.tsx](client/src/features/builds/BuildListCard.tsx)); prompts use **`AssetCollectionMenu`** from [PromptListCard.tsx](client/src/features/prompts/PromptListCard.tsx) (replacing **`PromptCollectionMenu`** at those call sites). [AssetCard.test.tsx](client/src/features/assets/AssetCard.test.tsx) mocks **`AssetCollectionMenu`**.
+- **Create collection** ([CollectionCreateInline.tsx](client/src/components/CollectionCreateInline.tsx)): Shared inline form (**`createCollection`**, React Query) with **`variant`** **`default`** vs **`popoverFooter`**. [AssetCollectionMenu.tsx](client/src/components/AssetCollectionMenu.tsx) and [AssetDetailCollectionsDisclosure.tsx](client/src/components/AssetDetailCollectionsDisclosure.tsx) mount it; on success the current asset is **added** to the new collection via existing add mutations.
+- **Popover UI** ([AssetCollectionMenu.tsx](client/src/components/AssetCollectionMenu.tsx)): Structured header (icon tile, title, helper line), scrollable list with skeleton loading, empty state copy, row hover and **Add / Added** pills, **`z-50`**, **`rounded-xl`** panel, **`group-open:`** summary styling and focus ring. Footer uses **`CollectionCreateInline`** **`variant="popoverFooter"`** with launch-style **Create** control and improved input focus ring.
+- **Prisma:** none. **Pre-deploy:** `npm --prefix client run build`, client tests as needed. **Deploy:** **`git push origin main`**, **`git push heroku main:master`**. Production: https://ail.mysalesforcedemo.com
 
 ### Session: team catalog — published-only lists; owner-only drafts in shared surfaces (April 24, 2026 — 19:12 CDT)
 

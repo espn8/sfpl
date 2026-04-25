@@ -7,7 +7,7 @@ import { fetchMe } from "../auth/api";
 import { highlightMatches, truncateWithHighlight } from "../search";
 import { logUsage, ratePrompt, toggleFavorite, type PromptSummary } from "./api";
 import { interpolatePromptBody } from "./interpolatePrompt";
-import { PromptCollectionMenu } from "./PromptCollectionMenu";
+import { AssetCollectionMenu } from "../../components/AssetCollectionMenu";
 import { PromptThumbnail } from "./PromptThumbnail";
 import {
   CalendarIcon,
@@ -84,8 +84,8 @@ export function PromptListCard({ prompt, variant = "default", showAnalytics = fa
 
   const shellClass =
     variant === "featured"
-      ? "overflow-hidden rounded-xl border border-(--color-border) bg-(--color-surface) p-0 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-(--color-primary) hover:shadow-md motion-reduce:transform-none motion-reduce:transition-none"
-      : "overflow-hidden rounded-xl border border-(--color-border) bg-(--color-surface) p-0 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm motion-reduce:transform-none motion-reduce:transition-none";
+      ? "rounded-xl border border-(--color-border) bg-(--color-surface) p-0 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-(--color-primary) hover:shadow-md motion-reduce:transform-none motion-reduce:transition-none"
+      : "rounded-xl border border-(--color-border) bg-(--color-surface) p-0 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm motion-reduce:transform-none motion-reduce:transition-none";
 
   const activityLabel = formatPromptActivityLabel(prompt.createdAt, prompt.updatedAt);
   const tagChips = buildPromptTagChips({
@@ -99,7 +99,7 @@ export function PromptListCard({ prompt, variant = "default", showAnalytics = fa
 
   return (
     <div className={shellClass}>
-      <div className="hidden md:block">
+      <div className="hidden overflow-hidden rounded-t-xl md:block">
         <PromptThumbnail
           title={prompt.title}
           thumbnailUrl={prompt.thumbnailUrl}
@@ -107,7 +107,7 @@ export function PromptListCard({ prompt, variant = "default", showAnalytics = fa
           className="h-40 w-full object-cover"
         />
       </div>
-      <div className="p-4">
+      <div className="max-md:rounded-t-xl rounded-b-xl p-4">
         <Link to={`/prompts/${prompt.id}`} className="block">
           <div className="flex min-w-0 items-start gap-2">
             <p
@@ -251,7 +251,7 @@ export function PromptListCard({ prompt, variant = "default", showAnalytics = fa
             >
               <ShareIcon className="h-5 w-5" />
             </button>
-            <PromptCollectionMenu promptId={prompt.id} promptTitle={prompt.title} />
+            <AssetCollectionMenu assetId={prompt.id} assetTitle={prompt.title} assetType="prompt" />
             <button
               type="button"
               disabled={favoriteMutation.isPending}

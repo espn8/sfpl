@@ -7,9 +7,10 @@ import { fetchMe } from "../auth/api";
 import { type UnifiedAsset } from "./api";
 import { getToolLabel } from "../prompts/api";
 import { highlightMatches, truncateWithHighlight } from "../search";
+import { rateBuild, toggleBuildFavorite } from "../builds/api";
 import { getPrompt, logUsage, ratePrompt, toggleFavorite } from "../prompts/api";
-import { getSkill, logSkillUsage, toggleSkillFavorite } from "../skills/api";
-import { getContextDocument, toggleContextFavorite, logContextUsage } from "../context/api";
+import { getSkill, logSkillUsage, rateSkill, toggleSkillFavorite } from "../skills/api";
+import { getContextDocument, logContextUsage, rateContext, toggleContextFavorite } from "../context/api";
 import {
   CalendarIcon,
   CopyIcon,
@@ -22,7 +23,7 @@ import { formatPromptActivityLabel } from "../prompts/promptActivityLabel";
 import { promptOwnerAvatarUrl, buildPromptTagChips } from "../prompts/promptTagChips";
 import { PromptAverageStars, PromptRateStars } from "../prompts/PromptStars";
 import { PromptThumbnail } from "../prompts/PromptThumbnail";
-import { PromptCollectionMenu } from "../prompts/PromptCollectionMenu";
+import { AssetCollectionMenu } from "../../components/AssetCollectionMenu";
 import { AssetBadges } from "./badges";
 import { VerificationChip, VerifyAssetButton } from "./VerificationControls";
 
@@ -52,11 +53,14 @@ export function AssetCard({ asset, variant = "default", showAnalytics = false, h
     mutationFn: async () => {
       if (asset.assetType === "prompt") {
         return toggleFavorite(asset.id);
-      } else if (asset.assetType === "skill") {
-        return toggleSkillFavorite(asset.id);
-      } else {
-        return toggleContextFavorite(asset.id);
       }
+      if (asset.assetType === "skill") {
+        return toggleSkillFavorite(asset.id);
+      }
+      if (asset.assetType === "build") {
+        return toggleBuildFavorite(asset.id);
+      }
+      return toggleContextFavorite(asset.id);
     },
     onSuccess: async (data) => {
       setFavorited(data.favorited);
@@ -64,22 +68,41 @@ export function AssetCard({ asset, variant = "default", showAnalytics = false, h
       await queryClient.invalidateQueries({ queryKey: ["prompts"] });
       await queryClient.invalidateQueries({ queryKey: ["skills"] });
       await queryClient.invalidateQueries({ queryKey: ["context"] });
+      await queryClient.invalidateQueries({ queryKey: ["builds"] });
     },
   });
 
   const rateMutation = useMutation({
-    mutationFn: (value: number) => ratePrompt(asset.id, value),
+    mutationFn: async (value: number) => {
+      switch (asset.assetType) {
+        case "prompt":
+          await ratePrompt(asset.id, value);
+          return;
+        case "skill":
+          await rateSkill(asset.id, value);
+          return;
+        case "context":
+          await rateContext(asset.id, value);
+          return;
+        case "build":
+          await rateBuild(asset.id, value);
+          return;
+      }
+    },
     onSuccess: async (_, value) => {
       setMyRating(value);
       await queryClient.invalidateQueries({ queryKey: ["assets"] });
       await queryClient.invalidateQueries({ queryKey: ["prompts"] });
+      await queryClient.invalidateQueries({ queryKey: ["skills"] });
+      await queryClient.invalidateQueries({ queryKey: ["context"] });
+      await queryClient.invalidateQueries({ queryKey: ["builds"] });
     },
   });
 
   const shellClass =
     variant === "featured"
-      ? "overflow-hidden rounded-xl border border-(--color-border) bg-(--color-surface) p-0 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-(--color-primary) hover:shadow-md motion-reduce:transform-none motion-reduce:transition-none"
-      : "overflow-hidden rounded-xl border border-(--color-border) bg-(--color-surface) p-0 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm motion-reduce:transform-none motion-reduce:transition-none";
+      ? "rounded-xl border border-(--color-border) bg-(--color-surface) p-0 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-(--color-primary) hover:shadow-md motion-reduce:transform-none motion-reduce:transition-none"
+      : "rounded-xl border border-(--color-border) bg-(--color-surface) p-0 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm motion-reduce:transform-none motion-reduce:transition-none";
 
   const activityLabel = formatPromptActivityLabel(asset.createdAt, asset.updatedAt);
 
@@ -177,13 +200,15 @@ export function AssetCard({ asset, variant = "default", showAnalytics = false, h
 
   return (
     <div className={shellClass}>
-      <PromptThumbnail
-        title={asset.title}
-        thumbnailUrl={asset.thumbnailUrl}
-        thumbnailStatus={asset.thumbnailStatus}
-        className="h-40 w-full object-cover"
-      />
-      <div className="p-4">
+      <div className="overflow-hidden rounded-t-xl">
+        <PromptThumbnail
+          title={asset.title}
+          thumbnailUrl={asset.thumbnailUrl}
+          thumbnailStatus={asset.thumbnailStatus}
+          className="h-40 w-full object-cover"
+        />
+      </div>
+      <div className="rounded-b-xl p-4">
         <Link to={detailPath} className="block">
           <div className="flex min-w-0 items-start gap-2">
             <p
@@ -202,9 +227,12 @@ export function AssetCard({ asset, variant = "default", showAnalytics = false, h
             />
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-2">
-            {asset.assetType === "prompt" && asset.averageRating !== undefined ? (
-              <PromptAverageStars value={asset.averageRating} />
-            ) : null}
+            <PromptAverageStars
+              value={asset.averageRating ?? null}
+              size="sm"
+              ratingCount={asset.ratingCount}
+              flagCounts={asset.flagCounts}
+            />
             <VerificationChip
               status={asset.status}
               lastVerifiedAt={asset.lastVerifiedAt}
@@ -294,15 +322,32 @@ export function AssetCard({ asset, variant = "default", showAnalytics = false, h
           </div>
         ) : null}
 
-        {asset.assetType === "prompt" && !isOwnAsset ? (
+        {!isOwnAsset ? (
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-            <span className="text-xs text-(--color-text-muted)">Rate this prompt</span>
+            <span className="text-xs text-(--color-text-muted)">
+              {asset.assetType === "prompt"
+                ? "Rate this prompt"
+                : asset.assetType === "skill"
+                  ? "Rate this skill"
+                  : asset.assetType === "context"
+                    ? "Rate this context"
+                    : "Rate this build"}
+            </span>
             <PromptRateStars
               value={myRating}
               disabled={rateMutation.isPending}
+              size="sm"
               onChange={(value) => {
                 rateMutation.mutate(value);
-                trackEvent("prompt_rate", { prompt_id: asset.id, value });
+                if (asset.assetType === "prompt") {
+                  trackEvent("prompt_rate", { prompt_id: asset.id, value });
+                } else if (asset.assetType === "skill") {
+                  trackEvent("skill_rate", { skill_id: asset.id, value, source: "list" });
+                } else if (asset.assetType === "context") {
+                  trackEvent("context_rate", { context_id: asset.id, value, source: "list" });
+                } else {
+                  trackEvent("build_rate", { build_id: asset.id, value, source: "list" });
+                }
               }}
             />
           </div>
@@ -330,9 +375,7 @@ export function AssetCard({ asset, variant = "default", showAnalytics = false, h
             >
               <ShareIcon className="h-5 w-5" />
             </button>
-            {asset.assetType === "prompt" ? (
-              <PromptCollectionMenu promptId={asset.id} promptTitle={asset.title} />
-            ) : null}
+            <AssetCollectionMenu assetId={asset.id} assetTitle={asset.title} assetType={asset.assetType} />
             <button
               type="button"
               disabled={favoriteMutation.isPending}

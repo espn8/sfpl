@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
+import { CollectionCreateInline } from "./CollectionCreateInline";
 import { listCollections } from "../features/collections/api";
 import { type AssetType, hasAssetInCollection, useAssetCollectionMutations } from "./AssetCollectionMenu";
 
@@ -108,8 +109,14 @@ export function AssetDetailCollectionsDisclosure({
           </div>
         ) : null}
         {loaded && totalCount === 0 ? (
-          <p className="text-sm text-(--color-text-muted)">No collections yet. Create one to organize your favorites.</p>
+          <p className="text-sm text-(--color-text-muted)">No collections yet. Create one below, then add this asset.</p>
         ) : null}
+        <CollectionCreateInline
+          disabled={busy}
+          onCreated={(collection) => {
+            addToCollectionMutation.mutate(collection.id);
+          }}
+        />
       </div>
     </details>
   );

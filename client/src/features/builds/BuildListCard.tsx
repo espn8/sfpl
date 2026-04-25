@@ -15,6 +15,7 @@ import { formatPromptActivityLabel } from "../prompts/promptActivityLabel";
 import { promptOwnerAvatarUrl } from "../prompts/promptTagChips";
 import { PromptAverageStars, PromptRateStars } from "../prompts/PromptStars";
 import { PromptThumbnail } from "../prompts/PromptThumbnail";
+import { AssetCollectionMenu } from "../../components/AssetCollectionMenu";
 import { AssetBadges } from "../assets/badges";
 import { VerificationChip, VerifyAssetButton } from "../assets/VerificationControls";
 
@@ -69,8 +70,8 @@ export function BuildListCard({ build, variant = "default", showAnalytics = fals
 
   const shellClass =
     variant === "featured"
-      ? "overflow-hidden rounded-xl border border-(--color-border) bg-(--color-surface) p-0 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-(--color-primary) hover:shadow-md motion-reduce:transform-none motion-reduce:transition-none"
-      : "overflow-hidden rounded-xl border border-(--color-border) bg-(--color-surface) p-0 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm motion-reduce:transform-none motion-reduce:transition-none";
+      ? "rounded-xl border border-(--color-border) bg-(--color-surface) p-0 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-(--color-primary) hover:shadow-md motion-reduce:transform-none motion-reduce:transition-none"
+      : "rounded-xl border border-(--color-border) bg-(--color-surface) p-0 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm motion-reduce:transform-none motion-reduce:transition-none";
 
   const activityLabel = formatPromptActivityLabel(build.createdAt, build.updatedAt);
 
@@ -99,7 +100,7 @@ export function BuildListCard({ build, variant = "default", showAnalytics = fals
 
   return (
     <div className={shellClass}>
-      <div className="hidden md:block">
+      <div className="hidden overflow-hidden rounded-t-xl md:block">
         <PromptThumbnail
           title={build.title}
           thumbnailUrl={build.thumbnailUrl}
@@ -107,7 +108,7 @@ export function BuildListCard({ build, variant = "default", showAnalytics = fals
           className="h-40 w-full object-cover"
         />
       </div>
-      <div className="p-4">
+      <div className="max-md:rounded-t-xl rounded-b-xl p-4">
         <Link to={`/builds/${build.id}`} className="block">
           <div className="flex min-w-0 items-start gap-2">
             <p
@@ -225,6 +226,7 @@ export function BuildListCard({ build, variant = "default", showAnalytics = fals
             >
               <ShareIcon className="h-5 w-5" />
             </button>
+            <AssetCollectionMenu assetId={build.id} assetTitle={build.title} assetType="build" />
             <button
               type="button"
               disabled={favoriteMutation.isPending}

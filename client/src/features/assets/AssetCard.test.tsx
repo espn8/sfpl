@@ -29,12 +29,19 @@ vi.mock("../context/api", () => ({
   getContextDocument: vi.fn(),
   logContextUsage: vi.fn(),
   toggleContextFavorite: vi.fn(),
+  rateContext: vi.fn().mockResolvedValue({ ok: true, value: 5 }),
 }));
 
 vi.mock("../skills/api", () => ({
   getSkill: vi.fn(),
   logSkillUsage: vi.fn(),
   toggleSkillFavorite: vi.fn(),
+  rateSkill: vi.fn().mockResolvedValue({ ok: true, value: 5 }),
+}));
+
+vi.mock("../builds/api", () => ({
+  rateBuild: vi.fn().mockResolvedValue(undefined),
+  toggleBuildFavorite: vi.fn().mockResolvedValue({ favorited: false }),
 }));
 
 vi.mock("../../app/analytics", () => ({
@@ -49,8 +56,8 @@ vi.mock("../prompts/PromptThumbnail", () => ({
   PromptThumbnail: () => <div />,
 }));
 
-vi.mock("../prompts/PromptCollectionMenu", () => ({
-  PromptCollectionMenu: () => <div />,
+vi.mock("../../components/AssetCollectionMenu", () => ({
+  AssetCollectionMenu: () => <div />,
 }));
 
 vi.mock("../prompts/PromptStars", () => ({
