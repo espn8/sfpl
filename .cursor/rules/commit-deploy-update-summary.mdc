@@ -17,7 +17,7 @@ Update root `summary.md` with enough detail for a developer to rebuild the proje
 1. **Metadata & Versioning**
    - Add header lines:
      - `Last Updated: [Current Date/Time]`
-     - `Build Version: [Short Git Hash]`
+     - `Build Version: [Short Git Hash]` — **must match** `git rev-parse --short HEAD` on a clean tip after your work; see [summary-build-version-head](summary-build-version-head.mdc) (re-check after commits; add a tiny sync commit if the header lags `HEAD`).
    - Compare previous `summary.md` with current project state and write a **Recent Changes** section.
 
 2. **Technical Architecture**
