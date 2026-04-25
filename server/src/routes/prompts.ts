@@ -10,6 +10,7 @@ import {
   type AuthContext,
 } from "../middleware/auth";
 import { ownerNameSearchClause } from "../lib/assetSearch";
+import { canViewAssetInTeamCatalog } from "../lib/catalogAsset";
 import { prisma } from "../lib/prisma";
 import {
   logManualArchive,
@@ -401,11 +402,12 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
   if (mine) {
     where.ownerId = auth.userId;
     where.teamId = auth.teamId;
+    if (status) {
+      where.status = status;
+    }
   } else {
     whereAnd.push(buildVisibilityWhereFragment(auth) as Prisma.PromptWhereInput);
-  }
-  if (status) {
-    where.status = status;
+    where.status = "PUBLISHED";
   }
   if (q) {
     whereAnd.push({
@@ -835,6 +837,9 @@ promptsRouter.get("/:id", async (req: Request, res: Response) => {
   if (!canAccessPromptByVisibility(prompt, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this prompt." } });
   }
+  if (!canViewAssetInTeamCatalog(prompt.status, prompt.ownerId, auth.userId)) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
+  }
 
   const [viewCount, favoriteRow, ratingRow, weekTopKeys] = await Promise.all([
     prisma.usageEvent.count({ where: { promptId, action: UsageAction.VIEW } }),
@@ -1215,6 +1220,7 @@ promptsRouter.get("/:id/versions", async (req: Request, res: Response) => {
       id: true,
       teamId: true,
       ownerId: true,
+      status: true,
       visibility: true,
       owner: { select: { ou: true } },
     },
@@ -1224,6 +1230,9 @@ promptsRouter.get("/:id/versions", async (req: Request, res: Response) => {
   }
   if (!canAccessPromptByVisibility(prompt, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this prompt." } });
+  }
+  if (!canViewAssetInTeamCatalog(prompt.status, prompt.ownerId, auth.userId)) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
   }
   const versions = await prisma.promptVersion.findMany({
     where: { promptId },
@@ -1333,6 +1342,7 @@ promptsRouter.post("/:id/favorite", async (req: Request, res: Response) => {
       id: true,
       teamId: true,
       ownerId: true,
+      status: true,
       visibility: true,
       owner: { select: { ou: true } },
     },
@@ -1342,6 +1352,9 @@ promptsRouter.post("/:id/favorite", async (req: Request, res: Response) => {
   }
   if (!canAccessPromptByVisibility(prompt, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this prompt." } });
+  }
+  if (!canViewAssetInTeamCatalog(prompt.status, prompt.ownerId, auth.userId)) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
   }
 
   const existing = await prisma.favorite.findUnique({ where: { userId_promptId: { userId: auth.userId, promptId } } });
@@ -1374,6 +1387,7 @@ promptsRouter.post("/:id/rating", async (req: Request, res: Response) => {
       id: true,
       teamId: true,
       ownerId: true,
+      status: true,
       visibility: true,
       owner: { select: { ou: true } },
     },
@@ -1383,6 +1397,9 @@ promptsRouter.post("/:id/rating", async (req: Request, res: Response) => {
   }
   if (!canAccessPromptByVisibility(prompt, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this prompt." } });
+  }
+  if (!canViewAssetInTeamCatalog(prompt.status, prompt.ownerId, auth.userId)) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
   }
   if (prompt.ownerId === auth.userId) {
     return res
@@ -1419,6 +1436,7 @@ promptsRouter.post("/:id/usage", async (req: Request, res: Response) => {
       id: true,
       teamId: true,
       ownerId: true,
+      status: true,
       visibility: true,
       owner: { select: { ou: true } },
     },
@@ -1428,6 +1446,9 @@ promptsRouter.post("/:id/usage", async (req: Request, res: Response) => {
   }
   if (!canAccessPromptByVisibility(prompt, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this prompt." } });
+  }
+  if (!canViewAssetInTeamCatalog(prompt.status, prompt.ownerId, auth.userId)) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Prompt not found." } });
   }
   if (action === UsageAction.COPY || action === UsageAction.LAUNCH) {
     await prisma.$transaction([

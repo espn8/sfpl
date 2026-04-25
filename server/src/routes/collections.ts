@@ -3,6 +3,12 @@ import type { Request, Response } from "express";
 import { Router } from "express";
 import { z } from "zod";
 import { getAuthContext, requireAuth, requireOnboardingComplete, requireWriteAccess } from "../middleware/auth";
+import {
+  catalogVisibleBuildWhere,
+  catalogVisibleContextWhere,
+  catalogVisiblePromptWhere,
+  catalogVisibleSkillWhere,
+} from "../lib/catalogAsset";
 import { prisma } from "../lib/prisma";
 import {
   ensureSystemCollections,
@@ -92,10 +98,26 @@ collectionsRouter.get("/", async (req: Request, res: Response) => {
     prisma.collection.findMany({
       where,
       include: {
-        prompts: { include: { prompt: true }, orderBy: { sortOrder: "asc" } },
-        skills: { include: { skill: true }, orderBy: { sortOrder: "asc" } },
-        contexts: { include: { context: true }, orderBy: { sortOrder: "asc" } },
-        builds: { include: { build: true }, orderBy: { sortOrder: "asc" } },
+        prompts: {
+          where: { prompt: catalogVisiblePromptWhere(auth.userId) },
+          include: { prompt: true },
+          orderBy: { sortOrder: "asc" },
+        },
+        skills: {
+          where: { skill: catalogVisibleSkillWhere(auth.userId) },
+          include: { skill: true },
+          orderBy: { sortOrder: "asc" },
+        },
+        contexts: {
+          where: { context: catalogVisibleContextWhere(auth.userId) },
+          include: { context: true },
+          orderBy: { sortOrder: "asc" },
+        },
+        builds: {
+          where: { build: catalogVisibleBuildWhere(auth.userId) },
+          include: { build: true },
+          orderBy: { sortOrder: "asc" },
+        },
         users: { include: { user: { select: { id: true, name: true, email: true, avatarUrl: true, title: true } } }, orderBy: { sortOrder: "asc" } },
       },
       orderBy: { createdAt: "desc" },
@@ -164,10 +186,26 @@ collectionsRouter.get("/:id", async (req: Request, res: Response) => {
   const collection = await prisma.collection.findFirst({
     where: { id: collectionId, teamId: auth.teamId },
     include: {
-      prompts: { include: { prompt: true }, orderBy: { sortOrder: "asc" } },
-      skills: { include: { skill: true }, orderBy: { sortOrder: "asc" } },
-      contexts: { include: { context: true }, orderBy: { sortOrder: "asc" } },
-      builds: { include: { build: true }, orderBy: { sortOrder: "asc" } },
+      prompts: {
+        where: { prompt: catalogVisiblePromptWhere(auth.userId) },
+        include: { prompt: true },
+        orderBy: { sortOrder: "asc" },
+      },
+      skills: {
+        where: { skill: catalogVisibleSkillWhere(auth.userId) },
+        include: { skill: true },
+        orderBy: { sortOrder: "asc" },
+      },
+      contexts: {
+        where: { context: catalogVisibleContextWhere(auth.userId) },
+        include: { context: true },
+        orderBy: { sortOrder: "asc" },
+      },
+      builds: {
+        where: { build: catalogVisibleBuildWhere(auth.userId) },
+        include: { build: true },
+        orderBy: { sortOrder: "asc" },
+      },
       users: { include: { user: { select: { id: true, name: true, email: true, avatarUrl: true, title: true } } }, orderBy: { sortOrder: "asc" } },
     },
   });

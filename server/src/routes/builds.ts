@@ -14,6 +14,7 @@ import {
   type AuthContext,
 } from "../middleware/auth";
 import { ownerNameSearchClause } from "../lib/assetSearch";
+import { canViewAssetInTeamCatalog } from "../lib/catalogAsset";
 import { prisma } from "../lib/prisma";
 import {
   logManualArchive,
@@ -226,11 +227,12 @@ buildsRouter.get("/", async (req: Request, res: Response) => {
   if (mine) {
     where.ownerId = auth.userId;
     where.teamId = auth.teamId;
+    if (status) {
+      where.status = status;
+    }
   } else {
     whereAnd.push(buildVisibilityWhereFragment(auth) as Prisma.BuildWhereInput);
-  }
-  if (status) {
-    where.status = status;
+    where.status = "PUBLISHED";
   }
   if (q) {
     whereAnd.push({
@@ -451,6 +453,9 @@ buildsRouter.get("/:id", async (req: Request, res: Response) => {
   if (!canAccessByVisibility(build, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this build." } });
   }
+  if (!canViewAssetInTeamCatalog(build.status, build.ownerId, auth.userId)) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Build not found." } });
+  }
 
   const [viewCount, copyCount, favoriteCount, favoriteRow, myRatingRow, ratings, weekTopKeys] = await Promise.all([
     prisma.buildUsageEvent.count({ where: { buildId, eventType: "VIEW" } }),
@@ -659,6 +664,7 @@ buildsRouter.post("/:id/favorite", async (req: Request, res: Response) => {
       id: true,
       teamId: true,
       ownerId: true,
+      status: true,
       visibility: true,
       owner: { select: { ou: true } },
     },
@@ -668,6 +674,9 @@ buildsRouter.post("/:id/favorite", async (req: Request, res: Response) => {
   }
   if (!canAccessByVisibility(build, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this build." } });
+  }
+  if (!canViewAssetInTeamCatalog(build.status, build.ownerId, auth.userId)) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Build not found." } });
   }
 
   const existing = await prisma.buildFavorite.findUnique({
@@ -706,6 +715,7 @@ buildsRouter.post("/:id/usage", async (req: Request, res: Response) => {
       id: true,
       teamId: true,
       ownerId: true,
+      status: true,
       visibility: true,
       owner: { select: { ou: true } },
     },
@@ -715,6 +725,9 @@ buildsRouter.post("/:id/usage", async (req: Request, res: Response) => {
   }
   if (!canAccessByVisibility(build, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this build." } });
+  }
+  if (!canViewAssetInTeamCatalog(build.status, build.ownerId, auth.userId)) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Build not found." } });
   }
 
   if (eventType === "COPY") {
@@ -759,6 +772,7 @@ buildsRouter.post("/:id/rating", async (req: Request, res: Response) => {
       id: true,
       teamId: true,
       ownerId: true,
+      status: true,
       visibility: true,
       owner: { select: { ou: true } },
     },
@@ -768,6 +782,9 @@ buildsRouter.post("/:id/rating", async (req: Request, res: Response) => {
   }
   if (!canAccessByVisibility(build, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this build." } });
+  }
+  if (!canViewAssetInTeamCatalog(build.status, build.ownerId, auth.userId)) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Build not found." } });
   }
   if (build.ownerId === auth.userId) {
     return res
@@ -986,6 +1003,7 @@ buildsRouter.get("/:id/versions", async (req: Request, res: Response) => {
       id: true,
       teamId: true,
       ownerId: true,
+      status: true,
       visibility: true,
       owner: { select: { ou: true } },
     },
@@ -995,6 +1013,9 @@ buildsRouter.get("/:id/versions", async (req: Request, res: Response) => {
   }
   if (!canAccessByVisibility(build, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this build." } });
+  }
+  if (!canViewAssetInTeamCatalog(build.status, build.ownerId, auth.userId)) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Build not found." } });
   }
 
   const versions = await prisma.buildVersion.findMany({

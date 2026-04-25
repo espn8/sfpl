@@ -10,6 +10,7 @@ import {
   type AuthContext,
 } from "../middleware/auth";
 import { ownerNameSearchClause } from "../lib/assetSearch";
+import { canViewAssetInTeamCatalog } from "../lib/catalogAsset";
 import { prisma } from "../lib/prisma";
 import {
   logManualArchive,
@@ -253,11 +254,12 @@ contextRouter.get("/", async (req: Request, res: Response) => {
   if (mine) {
     where.ownerId = auth.userId;
     where.teamId = auth.teamId;
+    if (status) {
+      where.status = status;
+    }
   } else {
     whereAnd.push(buildVisibilityWhereFragment(auth) as Prisma.ContextDocumentWhereInput);
-  }
-  if (status) {
-    where.status = status;
+    where.status = "PUBLISHED";
   }
   if (tool) {
     where.tools = { has: tool };
@@ -493,6 +495,9 @@ contextRouter.get("/:id", async (req: Request, res: Response) => {
   }
   if (!canAccessByVisibility(doc, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this document." } });
+  }
+  if (!canViewAssetInTeamCatalog(doc.status, doc.ownerId, auth.userId)) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Context document not found." } });
   }
 
   const [viewCount, copyCount, favoriteCount, favoriteRow, myRatingRow, ratings, weekTopKeys] = await Promise.all([
@@ -833,6 +838,7 @@ contextRouter.post("/:id/favorite", async (req: Request, res: Response) => {
       id: true,
       teamId: true,
       ownerId: true,
+      status: true,
       visibility: true,
       owner: { select: { ou: true } },
     },
@@ -842,6 +848,9 @@ contextRouter.post("/:id/favorite", async (req: Request, res: Response) => {
   }
   if (!canAccessByVisibility(doc, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this document." } });
+  }
+  if (!canViewAssetInTeamCatalog(doc.status, doc.ownerId, auth.userId)) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Context document not found." } });
   }
 
   const existing = await prisma.contextFavorite.findUnique({
@@ -880,6 +889,7 @@ contextRouter.post("/:id/usage", async (req: Request, res: Response) => {
       id: true,
       teamId: true,
       ownerId: true,
+      status: true,
       visibility: true,
       owner: { select: { ou: true } },
     },
@@ -889,6 +899,9 @@ contextRouter.post("/:id/usage", async (req: Request, res: Response) => {
   }
   if (!canAccessByVisibility(doc, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this document." } });
+  }
+  if (!canViewAssetInTeamCatalog(doc.status, doc.ownerId, auth.userId)) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Context document not found." } });
   }
 
   if (eventType === "COPY") {
@@ -933,6 +946,7 @@ contextRouter.post("/:id/rating", async (req: Request, res: Response) => {
       id: true,
       teamId: true,
       ownerId: true,
+      status: true,
       visibility: true,
       owner: { select: { ou: true } },
     },
@@ -942,6 +956,9 @@ contextRouter.post("/:id/rating", async (req: Request, res: Response) => {
   }
   if (!canAccessByVisibility(doc, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this document." } });
+  }
+  if (!canViewAssetInTeamCatalog(doc.status, doc.ownerId, auth.userId)) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Context document not found." } });
   }
   if (doc.ownerId === auth.userId) {
     return res
@@ -1091,6 +1108,7 @@ contextRouter.get("/:id/versions", async (req: Request, res: Response) => {
       id: true,
       teamId: true,
       ownerId: true,
+      status: true,
       visibility: true,
       owner: { select: { ou: true } },
     },
@@ -1100,6 +1118,9 @@ contextRouter.get("/:id/versions", async (req: Request, res: Response) => {
   }
   if (!canAccessByVisibility(doc, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this document." } });
+  }
+  if (!canViewAssetInTeamCatalog(doc.status, doc.ownerId, auth.userId)) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Context document not found." } });
   }
 
   const versions = await prisma.contextVersion.findMany({

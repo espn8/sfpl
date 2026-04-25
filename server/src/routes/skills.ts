@@ -10,6 +10,7 @@ import {
   type AuthContext,
 } from "../middleware/auth";
 import { ownerNameSearchClause } from "../lib/assetSearch";
+import { canViewAssetInTeamCatalog } from "../lib/catalogAsset";
 import { prisma } from "../lib/prisma";
 import {
   logManualArchive,
@@ -211,11 +212,12 @@ skillsRouter.get("/", async (req: Request, res: Response) => {
   if (mine) {
     where.ownerId = auth.userId;
     where.teamId = auth.teamId;
+    if (status) {
+      where.status = status;
+    }
   } else {
     whereAnd.push(buildVisibilityWhereFragment(auth) as Prisma.SkillWhereInput);
-  }
-  if (status) {
-    where.status = status;
+    where.status = "PUBLISHED";
   }
   if (tool) {
     where.tools = { has: tool };
@@ -439,6 +441,9 @@ skillsRouter.get("/:id", async (req: Request, res: Response) => {
   }
   if (!canAccessByVisibility(skill, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this skill." } });
+  }
+  if (!canViewAssetInTeamCatalog(skill.status, skill.ownerId, auth.userId)) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not found." } });
   }
 
   const [viewCount, copyCount, favoriteCount, favoriteRow, myRatingRow, ratings, weekTopKeys] = await Promise.all([
@@ -726,6 +731,7 @@ skillsRouter.post("/:id/favorite", async (req: Request, res: Response) => {
       id: true,
       teamId: true,
       ownerId: true,
+      status: true,
       visibility: true,
       owner: { select: { ou: true } },
     },
@@ -735,6 +741,9 @@ skillsRouter.post("/:id/favorite", async (req: Request, res: Response) => {
   }
   if (!canAccessByVisibility(skill, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this skill." } });
+  }
+  if (!canViewAssetInTeamCatalog(skill.status, skill.ownerId, auth.userId)) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not found." } });
   }
 
   const existing = await prisma.skillFavorite.findUnique({
@@ -773,6 +782,7 @@ skillsRouter.post("/:id/usage", async (req: Request, res: Response) => {
       id: true,
       teamId: true,
       ownerId: true,
+      status: true,
       visibility: true,
       owner: { select: { ou: true } },
     },
@@ -782,6 +792,9 @@ skillsRouter.post("/:id/usage", async (req: Request, res: Response) => {
   }
   if (!canAccessByVisibility(skill, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this skill." } });
+  }
+  if (!canViewAssetInTeamCatalog(skill.status, skill.ownerId, auth.userId)) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not found." } });
   }
 
   if (eventType === "COPY") {
@@ -822,6 +835,7 @@ skillsRouter.post("/:id/rating", async (req: Request, res: Response) => {
       id: true,
       teamId: true,
       ownerId: true,
+      status: true,
       visibility: true,
       owner: { select: { ou: true } },
     },
@@ -831,6 +845,9 @@ skillsRouter.post("/:id/rating", async (req: Request, res: Response) => {
   }
   if (!canAccessByVisibility(skill, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this skill." } });
+  }
+  if (!canViewAssetInTeamCatalog(skill.status, skill.ownerId, auth.userId)) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not found." } });
   }
   if (skill.ownerId === auth.userId) {
     return res
@@ -980,6 +997,7 @@ skillsRouter.get("/:id/versions", async (req: Request, res: Response) => {
       id: true,
       teamId: true,
       ownerId: true,
+      status: true,
       visibility: true,
       owner: { select: { ou: true } },
     },
@@ -989,6 +1007,9 @@ skillsRouter.get("/:id/versions", async (req: Request, res: Response) => {
   }
   if (!canAccessByVisibility(skill, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this skill." } });
+  }
+  if (!canViewAssetInTeamCatalog(skill.status, skill.ownerId, auth.userId)) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Skill not found." } });
   }
 
   const versions = await prisma.skillVersion.findMany({

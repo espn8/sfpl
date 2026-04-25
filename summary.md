@@ -1,11 +1,20 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 24, 2026 — 19:03 CDT
-Build Version: `e5a6993`
+Last Updated: Friday, April 24, 2026 — 19:12 CDT
+Build Version: `ec9ff62`
 App Version: see production footer after deploy (root `package.json` 1.3.3 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Session: team catalog — published-only lists; owner-only drafts in shared surfaces (April 24, 2026 — 19:12 CDT)
+
+- **Problem:** Team-wide asset lists and unified **`/api/assets`** could return **DRAFT** / **ARCHIVED** rows when no `status` query was sent; nested collection payloads exposed other users’ non-published assets.
+- **New helper** ([server/src/lib/catalogAsset.ts](server/src/lib/catalogAsset.ts)): **`canViewAssetInTeamCatalog`** (published for everyone, else owner-only) and Prisma fragments **`catalogVisible*Where`** for collection junction filters.
+- **List routes** ([server/src/routes/prompts.ts](server/src/routes/prompts.ts), [skills.ts](server/src/routes/skills.ts), [context.ts](server/src/routes/context.ts), [builds.ts](server/src/routes/builds.ts), [assets.ts](server/src/routes/assets.ts)): When **`mine`** is not true, **`status`** is forced to **`PUBLISHED`**; optional **`status`** filter applies only for **`mine=true`** (caller’s own content).
+- **Collections** ([server/src/routes/collections.ts](server/src/routes/collections.ts)): **`GET /api/collections`** and **`GET /api/collections/:id`** include only member assets that are **published** or **owned by the viewer** (so owners still see their drafts inside their collections).
+- **Engagement / detail APIs (non-owners):** **`GET …/:id`**, **`GET …/:id/versions`**, and **favorite / rating / usage** handlers for prompts, skills, context, and builds return **404** when the asset is not published and the caller is not the owner (after visibility checks), so deep links and side-channel APIs do not surface others’ drafts.
+- **Prisma:** none. **Pre-deploy:** `npm --prefix server test`, `npm --prefix client run build`. **Deploy:** **`git push origin main`**, **`git push heroku main:master`**. Production: https://ail.mysalesforcedemo.com
 
 ### Session: summary metadata sync to HEAD (April 24, 2026 — 19:03 CDT)
 

@@ -148,7 +148,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
   const q = parsedQuery.data.q ?? "";
   const assetType = parsedQuery.data.assetType ?? "all";
   const tool = parsedQuery.data.tool;
-  const status = parsedQuery.data.status;
+  const statusFilter = parsedQuery.data.status;
   const sort = parsedQuery.data.sort ?? "recent";
   const mine = parsedQuery.data.mine ?? false;
   const includeAnalytics = parsedQuery.data.includeAnalytics ?? false;
@@ -206,8 +206,12 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
     if (tool) {
       promptWhere.tools = { has: tool };
     }
-    if (status) {
-      promptWhere.status = status;
+    if (mine) {
+      if (statusFilter) {
+        promptWhere.status = statusFilter;
+      }
+    } else {
+      promptWhere.status = "PUBLISHED";
     }
 
     const promptOrderBy: Prisma.PromptOrderByWithRelationInput =
@@ -337,8 +341,12 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
     if (tool) {
       skillWhere.tools = { has: tool };
     }
-    if (status) {
-      skillWhere.status = status;
+    if (mine) {
+      if (statusFilter) {
+        skillWhere.status = statusFilter;
+      }
+    } else {
+      skillWhere.status = "PUBLISHED";
     }
     if (skillAnd.length > 0) {
       skillWhere.AND = skillAnd;
@@ -474,8 +482,12 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
     if (tool) {
       contextWhere.tools = { has: tool };
     }
-    if (status) {
-      contextWhere.status = status;
+    if (mine) {
+      if (statusFilter) {
+        contextWhere.status = statusFilter;
+      }
+    } else {
+      contextWhere.status = "PUBLISHED";
     }
     if (contextAnd.length > 0) {
       contextWhere.AND = contextAnd;
@@ -605,8 +617,12 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         ],
       });
     }
-    if (status) {
-      buildWhere.status = status;
+    if (mine) {
+      if (statusFilter) {
+        buildWhere.status = statusFilter;
+      }
+    } else {
+      buildWhere.status = "PUBLISHED";
     }
     if (buildAnd.length > 0) {
       buildWhere.AND = buildAnd;
