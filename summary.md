@@ -1,11 +1,20 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, April 24, 2026 — 19:24 CDT
-Build Version: `f21e28d`
+Last Updated: Tuesday, April 28, 2026 — 09:05 CDT
+Build Version: `d4cafcb`
 App Version: see production footer after deploy (root `package.json` 1.3.3 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Session: skill install URL — Slack `/docs/` prefix, no archive links, Slackbot Skill Canvas copy (April 28, 2026 — 09:05 CDT)
+
+- **Problem:** Slack skill install links still documented and validated against the legacy **`/skills/`** path; canonical Slackbot skill pages use **`/docs/`**; URLs containing **`archive`** (e.g. channel archive paths) must not pass validation.
+- **Validation** ([server/src/lib/skillUrl.ts](server/src/lib/skillUrl.ts), [client/src/features/skills/api.ts](client/src/features/skills/api.ts)): **`SLACK_ENTERPRISE_SKILL_DOCS_URL_PREFIX`** is **`https://salesforce.enterprise.slack.com/docs/`**. **`isValidSlackEnterpriseSkillUrl`** requires that prefix, a parseable URL, and rejects the full string when **`archive`** appears (case-insensitive). **`/skills/`** URLs are no longer accepted.
+- **API messages** ([server/src/routes/skills.ts](server/src/routes/skills.ts), [server/src/routes/v1/index.ts](server/src/routes/v1/index.ts)): **`skillUrl`** validation errors refer to a Slack **skill docs** URL and the same prefix constant.
+- **Forms** ([SkillEditorPage.tsx](client/src/features/skills/SkillEditorPage.tsx), [SkillEditPage.tsx](client/src/features/skills/SkillEditPage.tsx)): Helper text opens with **Link to the skill package file or Slackbot Skill Canvas.**; still lists supported archive extensions, the docs URL prefix, and that links containing **`archive`** are not accepted; placeholders and inline validation messages match server rules.
+- **Tests** ([server/test/skillUrl.test.ts](server/test/skillUrl.test.ts), [server/test/skills-flow.test.ts](server/test/skills-flow.test.ts)): **`/docs/…`** acceptance, **`/skills/`** and **`archive`** rejection, flow test Slack fixture updated to **`/docs/`** shape.
+- **Prisma:** none. **Pre-deploy:** `npx vitest run test/skillUrl.test.ts test/skills-flow.test.ts` (server), `npm --prefix client run build`. **Deploy:** **`git push origin main`**, **`git push heroku main:master`**. Production: https://ail.mysalesforcedemo.com
 
 ### Session: collections menu UX — cards, create inline, popover polish (April 24, 2026 — 19:24 CDT)
 
@@ -75,7 +84,7 @@ Production URL: https://ail.mysalesforcedemo.com (canonical live site — never 
 - **Client — AppShell** ([client/src/components/AppShell.tsx](client/src/components/AppShell.tsx)): Blocks the shell with a **welcome / complete profile** modal when `onboardingCompleted` is false; [AppShell.test.tsx](client/src/components/AppShell.test.tsx) covers the gate.
 - **Client — Prompt detail** ([client/src/features/prompts/PromptDetailPage.tsx](client/src/features/prompts/PromptDetailPage.tsx)): Validates `promptId > 0`; clearer loading vs missing/error states; **archive** mutation + navigation; **`AssetCollectionMenu`** instead of prompt-only collection menu; share uses shared **`buildShareUrl` / `shareOrCopyLink`**; edit/delete eligibility uses `me` + owner id alignment with **`canCreateContent`**.
 - **Client — usage analytics on secondary actions** ([BuildDetailPage.tsx](client/src/features/builds/BuildDetailPage.tsx), [SkillDetailPage.tsx](client/src/features/skills/SkillDetailPage.tsx), [ContextDetailPage.tsx](client/src/features/context/ContextDetailPage.tsx)): **Open Link** (build docs / skill help) and **Download** (context) now record **COPY** usage plus the existing `trackEvent` names (`build_documentation_open`, `skill_help_open`, `context_download`).
-- **Skill install URLs** ([server/src/lib/skillUrl.ts](server/src/lib/skillUrl.ts), [client/src/features/skills/api.ts](client/src/features/skills/api.ts), [server/src/routes/skills.ts](server/src/routes/skills.ts), [server/src/routes/v1/index.ts](server/src/routes/v1/index.ts), [SkillEditorPage.tsx](client/src/features/skills/SkillEditorPage.tsx), [SkillEditPage.tsx](client/src/features/skills/SkillEditPage.tsx)): `skillUrl` accepts a path ending in a supported archive extension **or** a URL beginning with **`https://salesforce.enterprise.slack.com/skills/`**. Tests: [server/test/skillUrl.test.ts](server/test/skillUrl.test.ts), extended [server/test/skills-flow.test.ts](server/test/skills-flow.test.ts).
+- **Skill install URLs** (*superseded April 28, 2026 — see Recent Changes*): Earlier release used **`/skills/`** prefix only. Current behavior: **`https://salesforce.enterprise.slack.com/docs/`**, no **`archive`** substring, plus archive file extensions — same file list as [server/src/lib/skillUrl.ts](server/src/lib/skillUrl.ts).
 - **Types & governance copy**: `PROFILE_INCOMPLETE` added to archive-reason unions ([client/src/features/assets/api.ts](client/src/features/assets/api.ts), prompts/skills/context/builds/admin APIs, [governance.ts](client/src/features/assets/governance.ts)).
 - **New detail page tests** (client): [BuildDetailPage.test.tsx](client/src/features/builds/BuildDetailPage.test.tsx), [ContextDetailPage.test.tsx](client/src/features/context/ContextDetailPage.test.tsx), [SkillDetailPage.test.tsx](client/src/features/skills/SkillDetailPage.test.tsx).
 - **Docs** ([AUTH_PROTECTION.md](AUTH_PROTECTION.md)): Session shape and onboarding/profile completion flow documented.
