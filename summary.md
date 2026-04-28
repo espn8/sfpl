@@ -1,11 +1,20 @@
 # AI Library - Technical Summary
 
-Last Updated: Tuesday, April 28, 2026 — 13:48 CDT
-Build Version: `f647e7d`
+Last Updated: Tuesday, April 28, 2026 — 14:56 CDT
+Build Version: `6cc0327`
 App Version: see production footer after deploy (root `package.json` 1.3.5 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Session: Analytics overview rolling 7-day leaderboards; “This Week” UI and help (April 28, 2026 — 14:56 CDT)
+
+- **Behavior:** **`GET /api/analytics/overview`** now drives **rolling 7-day** (not calendar-week) **Top Contributors** and **User Engagement / Most Active** metrics, still **workspace-catalog-only** via **`teamCatalogWhere`** (`{ teamId: auth.teamId }`).
+- **Server** — [server/src/routes/analytics.ts](server/src/routes/analytics.ts): **`rollingSevenDaysAgo`**; engagement **`groupBy`** filters add **`createdAt`** (usage, favorites) or **`updatedAt`** (ratings, for upserts) ≥ window; contributor **`groupBy`** uses **`publishedAssetThisWeekWhere`** — **`PUBLISHED`** assets whose **`createdAt`** falls in the window (counts new catalog rows, not a separate **`publishedAt`**).
+- **Client** — [client/src/features/home/HomePage.tsx](client/src/features/home/HomePage.tsx): titles **Top Contributors This Week** / **Most Active This Week**, subtitles for the 7-day definitions, empty-state copy; **Most Active** row remains **Score N** only (from prior change).
+- **Admin analytics** — [client/src/features/analytics/AnalyticsPage.tsx](client/src/features/analytics/AnalyticsPage.tsx): matching section titles and empty messages.
+- **Admin help** — [client/src/features/admin/adminHelpContent.ts](client/src/features/admin/adminHelpContent.ts): **User Engagement** answer documents both leaderboards and rolling-7-day rules.
+- **Prisma:** none. **Deploy:** **`git push heroku main`** (and **`git push origin main`**). **Verify:** https://ail.mysalesforcedemo.com — home (admin) leaderboard cards and **Analytics** admin sections vs expectations.
 
 ### Session: User Engagement leaderboard scoped to workspace assets; home score UI (April 28, 2026 — 13:48 CDT)
 

@@ -35,7 +35,15 @@ analyticsRouter.get("/overview", async (req: Request, res: Response) => {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  const publishedAssetWhere = { teamId: auth.teamId, status: PromptStatus.PUBLISHED };
+  const rollingSevenDaysAgo = new Date();
+  rollingSevenDaysAgo.setDate(rollingSevenDaysAgo.getDate() - 7);
+
+  /** Published team assets first created in the rolling 7-day window (home / analytics “This Week”). */
+  const publishedAssetThisWeekWhere = {
+    teamId: auth.teamId,
+    status: PromptStatus.PUBLISHED,
+    createdAt: { gte: rollingSevenDaysAgo },
+  };
   /** Limit engagement metrics to assets in this workspace (matches contributor / top-used scope). */
   const teamCatalogWhere = { teamId: auth.teamId };
 
@@ -101,82 +109,130 @@ analyticsRouter.get("/overview", async (req: Request, res: Response) => {
         user: { teamId: auth.teamId },
         prompt: teamCatalogWhere,
         action: { in: [UsageAction.COPY, UsageAction.LAUNCH] },
+        createdAt: { gte: rollingSevenDaysAgo },
       },
       _count: { _all: true },
     }),
     prisma.skillUsageEvent.groupBy({
       by: ["userId"],
-      where: { user: { teamId: auth.teamId }, skill: teamCatalogWhere, eventType: "COPY" },
+      where: {
+        user: { teamId: auth.teamId },
+        skill: teamCatalogWhere,
+        eventType: "COPY",
+        createdAt: { gte: rollingSevenDaysAgo },
+      },
       _count: { _all: true },
     }),
     prisma.contextUsageEvent.groupBy({
       by: ["userId"],
-      where: { user: { teamId: auth.teamId }, context: teamCatalogWhere, eventType: "COPY" },
+      where: {
+        user: { teamId: auth.teamId },
+        context: teamCatalogWhere,
+        eventType: "COPY",
+        createdAt: { gte: rollingSevenDaysAgo },
+      },
       _count: { _all: true },
     }),
     prisma.buildUsageEvent.groupBy({
       by: ["userId"],
-      where: { user: { teamId: auth.teamId }, build: teamCatalogWhere, eventType: "COPY" },
+      where: {
+        user: { teamId: auth.teamId },
+        build: teamCatalogWhere,
+        eventType: "COPY",
+        createdAt: { gte: rollingSevenDaysAgo },
+      },
       _count: { _all: true },
     }),
     prisma.favorite.groupBy({
       by: ["userId"],
-      where: { user: { teamId: auth.teamId }, prompt: teamCatalogWhere },
+      where: {
+        user: { teamId: auth.teamId },
+        prompt: teamCatalogWhere,
+        createdAt: { gte: rollingSevenDaysAgo },
+      },
       _count: { _all: true },
     }),
     prisma.skillFavorite.groupBy({
       by: ["userId"],
-      where: { user: { teamId: auth.teamId }, skill: teamCatalogWhere },
+      where: {
+        user: { teamId: auth.teamId },
+        skill: teamCatalogWhere,
+        createdAt: { gte: rollingSevenDaysAgo },
+      },
       _count: { _all: true },
     }),
     prisma.contextFavorite.groupBy({
       by: ["userId"],
-      where: { user: { teamId: auth.teamId }, context: teamCatalogWhere },
+      where: {
+        user: { teamId: auth.teamId },
+        context: teamCatalogWhere,
+        createdAt: { gte: rollingSevenDaysAgo },
+      },
       _count: { _all: true },
     }),
     prisma.buildFavorite.groupBy({
       by: ["userId"],
-      where: { user: { teamId: auth.teamId }, build: teamCatalogWhere },
+      where: {
+        user: { teamId: auth.teamId },
+        build: teamCatalogWhere,
+        createdAt: { gte: rollingSevenDaysAgo },
+      },
       _count: { _all: true },
     }),
     prisma.rating.groupBy({
       by: ["userId"],
-      where: { user: { teamId: auth.teamId }, prompt: teamCatalogWhere },
+      where: {
+        user: { teamId: auth.teamId },
+        prompt: teamCatalogWhere,
+        updatedAt: { gte: rollingSevenDaysAgo },
+      },
       _count: { _all: true },
     }),
     prisma.skillRating.groupBy({
       by: ["userId"],
-      where: { user: { teamId: auth.teamId }, skill: teamCatalogWhere },
+      where: {
+        user: { teamId: auth.teamId },
+        skill: teamCatalogWhere,
+        updatedAt: { gte: rollingSevenDaysAgo },
+      },
       _count: { _all: true },
     }),
     prisma.contextRating.groupBy({
       by: ["userId"],
-      where: { user: { teamId: auth.teamId }, context: teamCatalogWhere },
+      where: {
+        user: { teamId: auth.teamId },
+        context: teamCatalogWhere,
+        updatedAt: { gte: rollingSevenDaysAgo },
+      },
       _count: { _all: true },
     }),
     prisma.buildRating.groupBy({
       by: ["userId"],
-      where: { user: { teamId: auth.teamId }, build: teamCatalogWhere },
+      where: {
+        user: { teamId: auth.teamId },
+        build: teamCatalogWhere,
+        updatedAt: { gte: rollingSevenDaysAgo },
+      },
       _count: { _all: true },
     }),
     prisma.prompt.groupBy({
       by: ["ownerId"],
-      where: publishedAssetWhere,
+      where: publishedAssetThisWeekWhere,
       _count: { _all: true },
     }),
     prisma.skill.groupBy({
       by: ["ownerId"],
-      where: publishedAssetWhere,
+      where: publishedAssetThisWeekWhere,
       _count: { _all: true },
     }),
     prisma.contextDocument.groupBy({
       by: ["ownerId"],
-      where: publishedAssetWhere,
+      where: publishedAssetThisWeekWhere,
       _count: { _all: true },
     }),
     prisma.build.groupBy({
       by: ["ownerId"],
-      where: publishedAssetWhere,
+      where: publishedAssetThisWeekWhere,
       _count: { _all: true },
     }),
   ]);

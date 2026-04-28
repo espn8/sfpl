@@ -706,8 +706,10 @@ export function HomePage() {
           {canViewAnalytics ? (
           <section className="grid gap-4 md:grid-cols-2">
             <div className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-sm transition-all duration-300 hover:shadow motion-reduce:transition-none">
-              <h3 className="text-xl font-semibold">Top Contributors</h3>
-              <p className="mt-1 text-sm text-(--color-text-muted)">The people driving AI adoption forward</p>
+              <h3 className="text-xl font-semibold">Top Contributors This Week</h3>
+              <p className="mt-1 text-sm text-(--color-text-muted)">
+                Published assets first added in the last 7 days
+              </p>
               <div className="mt-3 space-y-2">
                 {contributorLeaderboard.map((contributor, index) => (
                   <div
@@ -724,13 +726,13 @@ export function HomePage() {
                   </div>
                 ))}
                 {contributorLeaderboard.length === 0 ? (
-                  <p className="text-sm text-(--color-text-muted)">Be the first to contribute and claim your spot.</p>
+                  <p className="text-sm text-(--color-text-muted)">No new published assets in the last 7 days.</p>
                 ) : null}
               </div>
             </div>
             <div className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-sm transition-all duration-300 hover:shadow motion-reduce:transition-none">
-              <h3 className="text-xl font-semibold">Most Active</h3>
-              <p className="mt-1 text-sm text-(--color-text-muted)">The most engaged users</p>
+              <h3 className="text-xl font-semibold">Most Active This Week</h3>
+              <p className="mt-1 text-sm text-(--color-text-muted)">Uses, favorites, and ratings in the last 7 days</p>
               <div className="mt-3 space-y-2">
                 {usersLeaderboard.map((user, index) => (
                   <div
@@ -747,7 +749,7 @@ export function HomePage() {
                   </div>
                 ))}
                 {usersLeaderboard.length === 0 ? (
-                  <p className="text-sm text-(--color-text-muted)">Start engaging to see active users here.</p>
+                  <p className="text-sm text-(--color-text-muted)">No engagement on your catalog in the last 7 days.</p>
                 ) : null}
               </div>
             </div>

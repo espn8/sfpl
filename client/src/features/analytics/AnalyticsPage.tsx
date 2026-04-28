@@ -201,10 +201,10 @@ export function AnalyticsPage() {
         </SectionCard>
 
         <SectionCard
-          title="Top Contributors"
+          title="Top Contributors This Week"
           icon={<UsersIcon className="h-5 w-5 text-(--color-text-muted)" />}
           isEmpty={contributors.length === 0 || contributors.every((c) => c.assetCount === 0)}
-          emptyMessage="No contributors yet."
+          emptyMessage="No new published assets in the last 7 days."
         >
           <div className="space-y-2">
             {contributors
@@ -242,10 +242,10 @@ export function AnalyticsPage() {
         </SectionCard>
 
         <SectionCard
-          title="Engagement Leaderboard"
+          title="Engagement Leaderboard This Week"
           icon={<TrophyIcon className="h-5 w-5 text-(--color-text-muted)" />}
           isEmpty={userEngagementLeaderboard.length === 0}
-          emptyMessage="No engagement activity recorded yet."
+          emptyMessage="No engagement on your catalog in the last 7 days."
         >
           <div className="space-y-2">
             {userEngagementLeaderboard.map((item, index) => (

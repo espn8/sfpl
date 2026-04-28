@@ -32,7 +32,7 @@ export const adminHelpContent: AdminHelpSection[] = [
       {
         question: "What is User Engagement?",
         answer:
-          "A per-user leaderboard combining uses (prompt copy/launch plus copy on other asset types), favorites across asset types, and star ratings submitted — only for assets in the current workspace (aligned with Top Contributors, which counts published prompts, skills, context, and builds for that workspace). Useful for recognizing active contributors and spotting adoption trends by Department/OU or region.",
+          "Home and Analytics show two rolling 7-day leaderboards (workspace catalog only). Top Contributors ranks owners by published prompts, skills, context, and builds whose rows were created in the last 7 days (still published). Engagement / Most Active ranks users by uses (prompt copy/launch plus copy on other asset types), favorites added, and ratings created or updated — each counted only when the event falls in the last 7 days and the asset belongs to the workspace. Useful for recognizing momentum and adoption trends.",
       },
     ],
   },
