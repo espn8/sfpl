@@ -35,6 +35,9 @@ const OwnershipTransferPage = lazy(() =>
 const GovernancePage = lazy(() =>
   import("../features/admin/GovernancePage").then((m) => ({ default: m.GovernancePage })),
 );
+const DepartmentOuAdminPage = lazy(() =>
+  import("../features/admin/DepartmentOuAdminPage").then((m) => ({ default: m.DepartmentOuAdminPage })),
+);
 const AnalyticsPage = lazy(() =>
   import("../features/analytics/AnalyticsPage").then((m) => ({ default: m.AnalyticsPage })),
 );
@@ -435,6 +438,18 @@ export function AppRouter() {
                 <AppShell>
                   <AdminRoute>
                     <GovernancePage />
+                  </AdminRoute>
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/department-ous"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <AdminRoute>
+                    <DepartmentOuAdminPage />
                   </AdminRoute>
                 </AppShell>
               </ProtectedRoute>

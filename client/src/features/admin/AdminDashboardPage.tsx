@@ -122,6 +122,15 @@ export function AdminDashboardPage() {
       icon: <Icon d="M12 2l9 4v6c0 5-3.8 9.2-9 10-5.2-.8-9-5-9-10V6l9-4z" />,
     },
     {
+      id: "department-ous",
+      title: "Department/OU (custom values)",
+      description:
+        "See non-canonical User.ou strings in use so you can add them to the official dropdown in code.",
+      to: "/admin/department-ous",
+      status: "ready",
+      icon: <Icon d="M4 6h16M4 12h10M4 18h14" />,
+    },
+    {
       id: "ownership",
       title: "Ownership Transfer",
       description:

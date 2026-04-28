@@ -100,7 +100,10 @@ const createSkillBodySchema = z.object({
   visibility: promptVisibilitySchema.optional(),
   status: promptStatusSchema.optional(),
   tools: z.array(z.union([skillToolSchema, z.string()])).optional(),
-  tagIds: z.array(z.coerce.number().int().positive()).max(50).optional(),
+  tagIds: z
+    .array(z.coerce.number().int().positive())
+    .min(1, "At least one tag is required.")
+    .max(50),
 });
 
 const feedbackFlagSchema = z.enum(["WORKED_WELL", "DID_NOT_WORK", "INACCURATE", "OUTDATED", "OFF_TOPIC"]);
@@ -408,18 +411,17 @@ skillsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
 
   void queueSkillThumbnailGeneration(skill.id);
 
-  if (tagIds && tagIds.length > 0) {
-    const ok = await validateTagIdsExist(tagIds);
-    if (!ok) {
-      await prisma.skill.delete({ where: { id: skill.id } });
-      return res.status(400).json({
-        error: { code: "BAD_REQUEST", message: "One or more tags are invalid." },
-      });
-    }
-    await prisma.skillTag.createMany({
-      data: [...new Set(tagIds)].map((tid) => ({ skillId: skill.id, tagId: tid })),
+  const uniqueSkillTagIds = [...new Set(tagIds)];
+  const skillTagsOk = await validateTagIdsExist(uniqueSkillTagIds);
+  if (!skillTagsOk) {
+    await prisma.skill.delete({ where: { id: skill.id } });
+    return res.status(400).json({
+      error: { code: "BAD_REQUEST", message: "One or more tags are invalid." },
     });
   }
+  await prisma.skillTag.createMany({
+    data: uniqueSkillTagIds.map((tid) => ({ skillId: skill.id, tagId: tid })),
+  });
 
   const skillOut = await prisma.skill.findUnique({
     where: { id: skill.id },

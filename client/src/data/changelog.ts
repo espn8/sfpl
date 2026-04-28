@@ -6,6 +6,17 @@ export type ChangelogEntry = {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "1.3.5",
+    date: "2026-04-28",
+    changes: [
+      "Profile Department/OU: replaced geographic OU dropdown with 14 canonical departments plus an Other field with free text (admins can promote common strings via code)",
+      "Legacy geographic User.ou values: one-time script appendLegacyOuSalesSuffix.ts (npm run migrate:legacy-ou-sales --prefix server) appends \" - Sales\" only for exact pre-change geographic strings, keeping TEAM groups aligned",
+      "Admin: new /admin/department-ous page and GET /api/admin/department-ous/custom-in-use list distinct non-canonical User.ou values with user counts",
+      "Region unchanged; copy clarifies Region is for administration/reporting only and does not drive My Team (TEAM) visibility — TEAM still matches on owner Department/OU only",
+      "Asset editors: TEAM visibility option label updated to \"Team (same Department/OU)\" across prompts, skills, context, and builds",
+    ],
+  },
+  {
     version: "1.3.4",
     date: "2026-04-24",
     changes: [

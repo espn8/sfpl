@@ -136,7 +136,10 @@ const createContextBodySchema = z
     status: promptStatusSchema.optional(),
     tools: z.array(z.union([contextToolSchema, z.string()])).optional(),
     variables: z.array(contextVariableItemSchema).max(40).optional(),
-    tagIds: z.array(z.coerce.number().int().positive()).max(50).optional(),
+    tagIds: z
+      .array(z.coerce.number().int().positive())
+      .min(1, "At least one tag is required.")
+      .max(50),
   })
   .superRefine((value, ctx) => {
     if (!value.variables?.length) {
@@ -455,18 +458,17 @@ contextRouter.post("/", requireWriteAccess, async (req: Request, res: Response) 
 
   void queueContextThumbnailGeneration(doc.id);
 
-  if (tagIds && tagIds.length > 0) {
-    const ok = await validateTagIdsExist(tagIds);
-    if (!ok) {
-      await prisma.contextDocument.delete({ where: { id: doc.id } });
-      return res.status(400).json({
-        error: { code: "BAD_REQUEST", message: "One or more tags are invalid." },
-      });
-    }
-    await prisma.contextTag.createMany({
-      data: [...new Set(tagIds)].map((tid) => ({ contextId: doc.id, tagId: tid })),
+  const uniqueContextTagIds = [...new Set(tagIds)];
+  const contextTagsOk = await validateTagIdsExist(uniqueContextTagIds);
+  if (!contextTagsOk) {
+    await prisma.contextDocument.delete({ where: { id: doc.id } });
+    return res.status(400).json({
+      error: { code: "BAD_REQUEST", message: "One or more tags are invalid." },
     });
   }
+  await prisma.contextTag.createMany({
+    data: uniqueContextTagIds.map((tid) => ({ contextId: doc.id, tagId: tid })),
+  });
 
   const docOut = await prisma.contextDocument.findUnique({
     where: { id: doc.id },

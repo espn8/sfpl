@@ -26,6 +26,8 @@ async function buildContextApp() {
 }
 
 const contextDocument = prismaMock.contextDocument as Record<string, ReturnType<typeof vi.fn>>;
+const tag = prismaMock.tag as Record<string, ReturnType<typeof vi.fn>>;
+const contextTag = prismaMock.contextTag as Record<string, ReturnType<typeof vi.fn>>;
 
 describe("context API", () => {
   beforeEach(() => {
@@ -70,10 +72,13 @@ describe("context API", () => {
       variables: [] as { id: number; key: string; label: string | null; defaultValue: string | null; required: boolean }[],
       contextTags: [] as { tag: { name: string } }[],
     });
+    tag.count.mockResolvedValue(1);
+    contextTag.createMany.mockResolvedValue({ count: 1 });
 
     const response = await request(app).post("/api/context").send({
       title: "Rules",
       body: "# Rules\n\nBe kind.",
+      tagIds: [1],
     });
 
     expect(response.status).toBe(201);

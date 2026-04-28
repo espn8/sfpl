@@ -8,6 +8,7 @@ alwaysApply: true
 When making changes that affect the database or backend:
 
 1. **Schema Changes**: After modifying `schema.prisma`, always apply migrations to both local AND Heroku databases
+   - **Before production migration:** capture a Heroku Postgres backup (e.g. `heroku pg:backups:capture -a <app>`). Deploy runs `prisma migrate deploy` in the Heroku release phase (see root `Procfile`); see [commit-deploy-update-summary](commit-deploy-update-summary.mdc) for the full workflow.
    - Local: `npx prisma migrate dev` (in server directory)
    - Heroku: `heroku pg:psql -c "<SQL>"` or `heroku run npx prisma migrate deploy`
 

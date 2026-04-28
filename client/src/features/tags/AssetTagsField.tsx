@@ -10,9 +10,11 @@ export type AssetTagsFieldProps = {
   onChange: (ids: number[]) => void;
   /** When the user cannot edit, show these tag names (e.g. from API `tags` array). */
   readOnlyTagNames?: string[];
+  /** When true, label indicates at least one tag is required for create flows. */
+  required?: boolean;
 };
 
-export function AssetTagsField({ canEdit, selectedIds, onChange, readOnlyTagNames }: AssetTagsFieldProps) {
+export function AssetTagsField({ canEdit, selectedIds, onChange, readOnlyTagNames, required }: AssetTagsFieldProps) {
   const queryClient = useQueryClient();
   const meQuery = useQuery({ queryKey: ["auth", "me"], queryFn: fetchMe });
   const [filter, setFilter] = useState("");
@@ -72,7 +74,7 @@ export function AssetTagsField({ canEdit, selectedIds, onChange, readOnlyTagName
     <>
       <div className="space-y-2 rounded border border-(--color-border) bg-(--color-surface-muted) p-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm font-medium">Tags</p>
+          <p className="text-sm font-medium">{required ? "Tags (required)" : "Tags"}</p>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"

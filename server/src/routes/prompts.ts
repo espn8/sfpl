@@ -221,7 +221,10 @@ const createPromptBodySchema = z
     modality: apiModalitySchema,
     modelHint: z.string().trim().optional(),
     variables: z.array(promptVariableItemSchema).max(40).optional(),
-    tagIds: z.array(z.coerce.number().int().positive()).max(50).optional(),
+    tagIds: z
+      .array(z.coerce.number().int().positive())
+      .min(1, "At least one tag is required.")
+      .max(50),
   })
   .superRefine((value, ctx) => {
     if (!value.variables?.length) {
@@ -732,18 +735,17 @@ promptsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) 
     include: { variables: true },
   });
 
-  if (tagIds && tagIds.length > 0) {
-    const ok = await validateTagIdsExist(tagIds);
-    if (!ok) {
-      await prisma.prompt.delete({ where: { id: prompt.id } });
-      return res.status(400).json({
-        error: { code: "BAD_REQUEST", message: "One or more tags are invalid." },
-      });
-    }
-    await prisma.promptTag.createMany({
-      data: [...new Set(tagIds)].map((tagId) => ({ promptId: prompt.id, tagId })),
+  const uniquePromptTagIds = [...new Set(tagIds)];
+  const tagsOk = await validateTagIdsExist(uniquePromptTagIds);
+  if (!tagsOk) {
+    await prisma.prompt.delete({ where: { id: prompt.id } });
+    return res.status(400).json({
+      error: { code: "BAD_REQUEST", message: "One or more tags are invalid." },
     });
   }
+  await prisma.promptTag.createMany({
+    data: uniquePromptTagIds.map((tagId) => ({ promptId: prompt.id, tagId })),
+  });
 
   void queuePromptThumbnailGeneration(prompt.id);
 

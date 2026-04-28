@@ -75,7 +75,7 @@ export type CreateBuildInput = {
   visibility?: "PUBLIC" | "TEAM" | "PRIVATE";
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   skipThumbnailGeneration?: boolean;
-  tagIds?: number[];
+  tagIds: number[];
 };
 
 export async function createBuild(input: CreateBuildInput): Promise<Build> {

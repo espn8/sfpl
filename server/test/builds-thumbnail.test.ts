@@ -42,6 +42,8 @@ async function buildBuildsApp() {
 }
 
 const build = prismaMock.build as Record<string, ReturnType<typeof vi.fn>>;
+const tag = prismaMock.tag as Record<string, ReturnType<typeof vi.fn>>;
+const buildTag = prismaMock.buildTag as Record<string, ReturnType<typeof vi.fn>>;
 
 const PNG_PIXEL = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=",
@@ -94,11 +96,14 @@ describe("builds thumbnail upload + AI-skip behavior", () => {
       owner: { id: 1, name: "Owner", avatarUrl: null },
       buildTags: [] as { tag: { name: string } }[],
     });
+    tag.count.mockResolvedValue(1);
+    buildTag.createMany.mockResolvedValue({ count: 1 });
 
     const response = await request(app).post("/api/builds").send({
       title: "My Build",
       buildUrl: "https://example.com/my-build",
       skipThumbnailGeneration: true,
+      tagIds: [1],
     });
 
     expect(response.status).toBe(201);
@@ -150,10 +155,13 @@ describe("builds thumbnail upload + AI-skip behavior", () => {
     };
     build.findUnique.mockResolvedValue(buildOut);
     mockGeneratePromptThumbnail.mockResolvedValue("data:image/png;base64,AAA");
+    tag.count.mockResolvedValue(1);
+    buildTag.createMany.mockResolvedValue({ count: 1 });
 
     const response = await request(app).post("/api/builds").send({
       title: "AI Build",
       buildUrl: "https://example.com/ai-build",
+      tagIds: [1],
     });
 
     expect(response.status).toBe(201);

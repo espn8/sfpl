@@ -96,7 +96,7 @@ export type CreateSkillInput = {
   visibility?: "PUBLIC" | "TEAM" | "PRIVATE";
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   tools?: string[];
-  tagIds?: number[];
+  tagIds: number[];
 };
 
 export async function createSkill(input: CreateSkillInput): Promise<Skill> {

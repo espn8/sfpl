@@ -27,6 +27,8 @@ async function buildSkillsApp() {
 
 const skill = prismaMock.skill as Record<string, ReturnType<typeof vi.fn>>;
 const skillVersion = prismaMock.skillVersion as Record<string, ReturnType<typeof vi.fn>>;
+const tag = prismaMock.tag as Record<string, ReturnType<typeof vi.fn>>;
+const skillTag = prismaMock.skillTag as Record<string, ReturnType<typeof vi.fn>>;
 
 describe("skills API", () => {
   beforeEach(() => {
@@ -70,11 +72,14 @@ describe("skills API", () => {
       owner: { id: 1, name: "U", avatarUrl: null },
     });
     skill.findUnique.mockResolvedValue(createdRow);
+    tag.count.mockResolvedValue(1);
+    skillTag.createMany.mockResolvedValue({ count: 1 });
 
     const response = await request(app).post("/api/skills").send({
       title: "My Skill",
       summary: "S",
       skillUrl: "https://example.com/skill.zip",
+      tagIds: [1],
     });
 
     expect(response.status).toBe(201);
@@ -124,10 +129,13 @@ describe("skills API", () => {
       owner: { id: 1, name: "U", avatarUrl: null },
     });
     skill.findUnique.mockResolvedValue(createdRow);
+    tag.count.mockResolvedValue(1);
+    skillTag.createMany.mockResolvedValue({ count: 1 });
 
     const response = await request(app).post("/api/skills").send({
       title: "Slack Skill",
       skillUrl: slackSkillUrl,
+      tagIds: [1],
     });
 
     expect(response.status).toBe(201);
@@ -144,6 +152,7 @@ describe("skills API", () => {
     const response = await request(app).post("/api/skills").send({
       title: "Bad",
       skillUrl: "https://example.com/readme.md",
+      tagIds: [1],
     });
 
     expect(response.status).toBe(400);

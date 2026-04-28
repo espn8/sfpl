@@ -129,7 +129,10 @@ const createBuildBodySchema = z.object({
   visibility: promptVisibilitySchema.optional(),
   status: promptStatusSchema.optional(),
   skipThumbnailGeneration: z.boolean().optional(),
-  tagIds: z.array(z.coerce.number().int().positive()).max(50).optional(),
+  tagIds: z
+    .array(z.coerce.number().int().positive())
+    .min(1, "At least one tag is required.")
+    .max(50),
 });
 
 const updateBuildBodySchema = z
@@ -421,18 +424,17 @@ buildsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
     void queueBuildThumbnailGeneration(build.id);
   }
 
-  if (tagIds && tagIds.length > 0) {
-    const ok = await validateTagIdsExist(tagIds);
-    if (!ok) {
-      await prisma.build.delete({ where: { id: build.id } });
-      return res.status(400).json({
-        error: { code: "BAD_REQUEST", message: "One or more tags are invalid." },
-      });
-    }
-    await prisma.buildTag.createMany({
-      data: [...new Set(tagIds)].map((tid) => ({ buildId: build.id, tagId: tid })),
+  const uniqueBuildTagIds = [...new Set(tagIds)];
+  const buildTagsOk = await validateTagIdsExist(uniqueBuildTagIds);
+  if (!buildTagsOk) {
+    await prisma.build.delete({ where: { id: build.id } });
+    return res.status(400).json({
+      error: { code: "BAD_REQUEST", message: "One or more tags are invalid." },
     });
   }
+  await prisma.buildTag.createMany({
+    data: uniqueBuildTagIds.map((tid) => ({ buildId: build.id, tagId: tid })),
+  });
 
   const buildOut = await prisma.build.findUnique({
     where: { id: build.id },

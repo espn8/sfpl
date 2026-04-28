@@ -112,7 +112,7 @@ export type CreateContextInput = {
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   tools?: string[];
   variables?: ContextVariableInput[];
-  tagIds?: number[];
+  tagIds: number[];
 };
 
 export async function createContextDocument(input: CreateContextInput): Promise<ContextDocument> {

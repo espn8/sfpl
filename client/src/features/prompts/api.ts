@@ -235,6 +235,7 @@ export async function createPrompt(payload: {
   modality: PromptModality;
   modelHint?: string;
   variables?: PromptVariableInput[];
+  tagIds: number[];
 }): Promise<Prompt> {
   const response = await apiClient.post<ApiResponse<Prompt>>("/api/prompts", payload);
   return response.data.data;

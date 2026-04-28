@@ -19,7 +19,7 @@ const VISIBILITY_STYLES: Record<
     label: "My Team",
     classes:
       "border-sky-500/35 bg-sky-500/10 text-sky-700 dark:text-sky-300",
-    title: "My Team — visible to members of your OU",
+    title: "My Team — visible to users with the same Department/OU as the owner",
   },
   PRIVATE: {
     label: "Private",

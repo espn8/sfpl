@@ -125,3 +125,12 @@ export async function runGovernanceSweep(dryRun = false): Promise<Record<string,
   );
   return data.data;
 }
+
+export type CustomDepartmentOuRow = { ou: string; userCount: number };
+
+export async function listCustomDepartmentOusInUse(): Promise<CustomDepartmentOuRow[]> {
+  const { data } = await apiClient.get<{ data: { rows: CustomDepartmentOuRow[] } }>(
+    "/api/admin/department-ous/custom-in-use",
+  );
+  return data.data.rows;
+}

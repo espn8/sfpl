@@ -10,6 +10,7 @@ import {
 } from "../../components/DuplicateWarningModal";
 import { sanitizeTitle } from "../../lib/sanitizeTitle";
 import { SummaryField } from "../assets/SummaryField";
+import { AssetTagsField } from "../tags/AssetTagsField";
 import {
   createPrompt,
   getToolLabel,
@@ -37,6 +38,7 @@ type PendingPromptData = {
   modality: PromptModality;
   modelHint?: string;
   variables?: Array<{ key: string; label: string | null; defaultValue: string; required: boolean }>;
+  tagIds: number[];
 };
 
 function sanitizeVariableKey(input: string): string {
@@ -60,6 +62,7 @@ export function PromptEditorPage() {
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const [duplicateMatches, setDuplicateMatches] = useState<DuplicateMatch[]>([]);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
 
   const insertVariable = (key: string) => {
     const textarea = bodyRef.current;
@@ -139,6 +142,10 @@ export function PromptEditorPage() {
           setValidationError("Please enter the tool name for 'Other'.");
           return;
         }
+        if (selectedTagIds.length === 0) {
+          setValidationError("Please select at least one tag.");
+          return;
+        }
         const variables = variableRows
           .map((row) => ({
             key: row.key.trim(),
@@ -157,6 +164,7 @@ export function PromptEditorPage() {
           modality: modality as PromptModality,
           modelHint: selectedTools.has("other") && otherToolName.trim() ? otherToolName.trim() : undefined,
           variables: variables.length > 0 ? variables : undefined,
+          tagIds: selectedTagIds,
         });
         setShowPublishModal(true);
       }}
@@ -171,6 +179,7 @@ export function PromptEditorPage() {
         <p className="mt-1 text-xs text-(--color-text-muted)">A short name for your prompt</p>
       </div>
       <SummaryField assetType="prompt" />
+      <AssetTagsField canEdit required selectedIds={selectedTagIds} onChange={setSelectedTagIds} />
 
       <div className="grid gap-2 md:grid-cols-2">
         <select
@@ -179,7 +188,7 @@ export function PromptEditorPage() {
           className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
         >
           <option value="PUBLIC">Public (All Users)</option>
-          <option value="TEAM">Team (My OU Only)</option>
+          <option value="TEAM">Team (same Department/OU)</option>
           <option value="PRIVATE">Private (Only Me)</option>
         </select>
         <select

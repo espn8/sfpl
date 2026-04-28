@@ -48,7 +48,7 @@ const helpContent: HelpSection[] = [
       {
         question: "What should I do first?",
         answer:
-          '1. Accept the compliance notice (see "Compliance & Policies" below) — it pops up on first load\n2. Complete your profile (name, region, OU, title, and optional profile photo)\n3. Browse the homepage to see Top Performers and featured assets\n4. Try using a prompt by clicking "Use" on any card — it copies to your clipboard and/or launches the target tool\n5. Save assets you like by clicking the heart (favorite) icon\n6. Create your first asset using the "Create" button or the hero cards',
+          '1. Accept the compliance notice (see "Compliance & Policies" below) — it pops up on first load\n2. Complete your profile (name, region, Department/OU, title, and optional profile photo)\n3. Browse the homepage to see Top Performers and featured assets\n4. Try using a prompt by clicking "Use" on any card — it copies to your clipboard and/or launches the target tool\n5. Save assets you like by clicking the heart (favorite) icon\n6. Create your first asset using the "Create" button or the hero cards',
       },
       {
         question: "What are Smart Picks, New, Updated, and Popular badges?",
@@ -270,7 +270,7 @@ const helpContent: HelpSection[] = [
       {
         question: "What are the visibility levels?",
         answer:
-          "Every asset (Prompt, Skill, Context, Build) has a visibility level:\n• Public — anyone signed into AI Library can see and use it (global; not scoped to your OU)\n• Team — only members of your Operating Unit (OU) can see it\n• Private — only you can see it\n\nAdmins can see all assets regardless of visibility.",
+          "Every asset (Prompt, Skill, Context, Build) has a visibility level:\n• Public — anyone signed into AI Library can see and use it (global; not scoped to your Department/OU)\n• Team — only members with the same Department/OU as the asset owner can see it (Region does not affect Team visibility)\n• Private — only you can see it\n\nAdmins can see all assets regardless of visibility.",
       },
       {
         question: "What user roles exist?",
@@ -312,7 +312,7 @@ const helpContent: HelpSection[] = [
       {
         question: "How do I update my profile?",
         answer:
-          "Click your avatar in the top-right corner to open the profile modal, or go to /settings for the full-page version. You can update your display name, region, OU, title, and profile photo.",
+          "Click your avatar in the top-right corner to open the profile modal, or go to /settings for the full-page version. You can update your display name, region, Department/OU, title, and profile photo.",
       },
       {
         question: "How do I change my profile photo?",
@@ -320,9 +320,9 @@ const helpContent: HelpSection[] = [
           'In the profile modal or Settings page, click "Change Photo" to upload a new headshot. Supported formats: JPEG, PNG, GIF, WebP (max 5 MB). Uploads are stored on the server and served from /uploads/.',
       },
       {
-        question: "What are Region and OU?",
+        question: "What are Region and Department/OU?",
         answer:
-          "Region and Operating Unit help AI Library scope TEAM-visibility assets correctly and help admins understand adoption. Select the region and OU that matches your role. Region, OU, and title are optional on profile save.",
+          "Region is for reporting and administration only — it does not control who sees Team-visible assets. Department/OU (with an optional Other value) scopes My Team (TEAM) sharing: only users whose stored Department/OU string matches the asset owner's can see that asset when it is set to Team. Title is optional on profile save; Department/OU is required when completing onboarding.",
       },
     ],
   },

@@ -32,7 +32,7 @@ export const adminHelpContent: AdminHelpSection[] = [
       {
         question: "What is User Engagement?",
         answer:
-          "A per-user leaderboard combining uses (prompt copy/launch plus copy on other asset types), favorites across asset types, and star ratings submitted. Top Contributors ranks published prompts, skills, context, and builds combined. Useful for recognizing active contributors and spotting adoption trends by OU or region.",
+          "A per-user leaderboard combining uses (prompt copy/launch plus copy on other asset types), favorites across asset types, and star ratings submitted. Top Contributors ranks published prompts, skills, context, and builds combined. Useful for recognizing active contributors and spotting adoption trends by Department/OU or region.",
       },
     ],
   },
@@ -95,7 +95,7 @@ export const adminHelpContent: AdminHelpSection[] = [
       {
         question: "Who sees what by visibility?",
         answer:
-          "• PUBLIC — anyone signed into AI Library\n• TEAM — only members of the asset owner's Operating Unit (OU)\n• PRIVATE — only the owner\n• ADMIN / OWNER — can see all assets regardless of visibility (useful for troubleshooting and curation)",
+          "• PUBLIC — anyone signed into AI Library\n• TEAM — only members who share the same Department/OU string as the asset owner (Region does not apply)\n• PRIVATE — only the owner\n• ADMIN / OWNER — can see all assets regardless of visibility (useful for troubleshooting and curation)",
       },
     ],
   },

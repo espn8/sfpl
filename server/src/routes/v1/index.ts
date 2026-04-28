@@ -7,6 +7,7 @@ import { PromptModality } from "@prisma/client";
 import { env } from "../../config/env";
 import { ARCHIVE_EXTENSIONS, isValidSkillPackageUrl, SLACK_ENTERPRISE_SKILL_DOCS_URL_PREFIX } from "../../lib/skillUrl";
 import { generatePromptThumbnail } from "../../services/nanoBanana";
+import { validateTagIdsExist } from "../../lib/assetTags";
 
 const v1Router = Router();
 
@@ -129,6 +130,7 @@ const createPromptSchema = z.object({
   modality: apiModalitySchema.optional().default("text"),
   visibility: z.enum(["PUBLIC", "TEAM", "PRIVATE"]).optional().default("PUBLIC"),
   publish: z.boolean().optional().default(false),
+  tagIds: z.array(z.coerce.number().int().positive()).min(1).max(50),
 });
 
 v1Router.post("/prompts", async (req: Request, res: Response) => {
@@ -148,7 +150,7 @@ v1Router.post("/prompts", async (req: Request, res: Response) => {
     });
   }
 
-  const { title, body, summary, tools, modality, visibility, publish } = parsed.data;
+  const { title, body, summary, tools, modality, visibility, publish, tagIds } = parsed.data;
 
   const validTools = tools.filter((t): t is (typeof PROMPT_TOOLS)[number] =>
     PROMPT_TOOLS.includes(t as (typeof PROMPT_TOOLS)[number])
@@ -172,6 +174,18 @@ v1Router.post("/prompts", async (req: Request, res: Response) => {
       status: true,
       createdAt: true,
     },
+  });
+
+  const uniquePromptTagIds = [...new Set(tagIds)];
+  const tagsOk = await validateTagIdsExist(uniquePromptTagIds);
+  if (!tagsOk) {
+    await prisma.prompt.delete({ where: { id: prompt.id } });
+    return res.status(400).json({
+      error: { code: "BAD_REQUEST", message: "One or more tags are invalid." },
+    });
+  }
+  await prisma.promptTag.createMany({
+    data: uniquePromptTagIds.map((tagId) => ({ promptId: prompt.id, tagId })),
   });
 
   setImmediate(async () => {
@@ -210,6 +224,7 @@ const createSkillSchema = z.object({
   tools: z.array(z.string()).optional().default(["cursor"]),
   visibility: z.enum(["PUBLIC", "TEAM", "PRIVATE"]).optional().default("PUBLIC"),
   publish: z.boolean().optional().default(false),
+  tagIds: z.array(z.coerce.number().int().positive()).min(1).max(50),
 });
 
 v1Router.post("/skills", async (req: Request, res: Response) => {
@@ -229,7 +244,7 @@ v1Router.post("/skills", async (req: Request, res: Response) => {
     });
   }
 
-  const { title, skillUrl, summary, supportUrl, tools, visibility, publish } = parsed.data;
+  const { title, skillUrl, summary, supportUrl, tools, visibility, publish, tagIds } = parsed.data;
 
   const validTools = tools.filter((t): t is (typeof PROMPT_TOOLS)[number] =>
     PROMPT_TOOLS.includes(t as (typeof PROMPT_TOOLS)[number])
@@ -253,6 +268,18 @@ v1Router.post("/skills", async (req: Request, res: Response) => {
       status: true,
       createdAt: true,
     },
+  });
+
+  const uniqueSkillTagIds = [...new Set(tagIds)];
+  const skillTagsOk = await validateTagIdsExist(uniqueSkillTagIds);
+  if (!skillTagsOk) {
+    await prisma.skill.delete({ where: { id: skill.id } });
+    return res.status(400).json({
+      error: { code: "BAD_REQUEST", message: "One or more tags are invalid." },
+    });
+  }
+  await prisma.skillTag.createMany({
+    data: uniqueSkillTagIds.map((tagId) => ({ skillId: skill.id, tagId })),
   });
 
   setImmediate(async () => {
@@ -288,6 +315,7 @@ const createContextSchema = z.object({
   tools: z.array(z.string()).optional().default(["cursor"]),
   visibility: z.enum(["PUBLIC", "TEAM", "PRIVATE"]).optional().default("PUBLIC"),
   publish: z.boolean().optional().default(false),
+  tagIds: z.array(z.coerce.number().int().positive()).min(1).max(50),
 });
 
 v1Router.post("/context", async (req: Request, res: Response) => {
@@ -307,7 +335,7 @@ v1Router.post("/context", async (req: Request, res: Response) => {
     });
   }
 
-  const { title, body, summary, tools, visibility, publish } = parsed.data;
+  const { title, body, summary, tools, visibility, publish, tagIds } = parsed.data;
 
   const validTools = tools.filter((t): t is (typeof PROMPT_TOOLS)[number] =>
     PROMPT_TOOLS.includes(t as (typeof PROMPT_TOOLS)[number])
@@ -330,6 +358,18 @@ v1Router.post("/context", async (req: Request, res: Response) => {
       status: true,
       createdAt: true,
     },
+  });
+
+  const uniqueContextTagIds = [...new Set(tagIds)];
+  const contextTagsOk = await validateTagIdsExist(uniqueContextTagIds);
+  if (!contextTagsOk) {
+    await prisma.contextDocument.delete({ where: { id: context.id } });
+    return res.status(400).json({
+      error: { code: "BAD_REQUEST", message: "One or more tags are invalid." },
+    });
+  }
+  await prisma.contextTag.createMany({
+    data: uniqueContextTagIds.map((tagId) => ({ contextId: context.id, tagId })),
   });
 
   setImmediate(async () => {
@@ -365,6 +405,7 @@ const createBuildSchema = z.object({
   supportUrl: z.string().url().optional().or(z.literal("")),
   visibility: z.enum(["PUBLIC", "TEAM", "PRIVATE"]).optional().default("PUBLIC"),
   publish: z.boolean().optional().default(false),
+  tagIds: z.array(z.coerce.number().int().positive()).min(1).max(50),
 });
 
 v1Router.post("/builds", async (req: Request, res: Response) => {
@@ -384,7 +425,7 @@ v1Router.post("/builds", async (req: Request, res: Response) => {
     });
   }
 
-  const { title, buildUrl, summary, supportUrl, visibility, publish } = parsed.data;
+  const { title, buildUrl, summary, supportUrl, visibility, publish, tagIds } = parsed.data;
 
   const build = await prisma.build.create({
     data: {
@@ -403,6 +444,18 @@ v1Router.post("/builds", async (req: Request, res: Response) => {
       status: true,
       createdAt: true,
     },
+  });
+
+  const uniqueBuildTagIds = [...new Set(tagIds)];
+  const buildTagsOk = await validateTagIdsExist(uniqueBuildTagIds);
+  if (!buildTagsOk) {
+    await prisma.build.delete({ where: { id: build.id } });
+    return res.status(400).json({
+      error: { code: "BAD_REQUEST", message: "One or more tags are invalid." },
+    });
+  }
+  await prisma.buildTag.createMany({
+    data: uniqueBuildTagIds.map((tagId) => ({ buildId: build.id, tagId })),
   });
 
   setImmediate(async () => {

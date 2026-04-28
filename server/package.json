@@ -1,6 +1,6 @@
 {
   "name": "server",
-  "version": "1.3.3",
+  "version": "1.3.5",
   "private": true,
   "description": "Express + Prisma API server",
   "main": "dist/index.js",
@@ -17,6 +17,7 @@
     "governance:sweep:dry": "node dist/jobs/runGovernance.js --dry-run",
     "seed:slack-skills": "tsx prisma/seed-slack-skills.ts",
     "seed:slack-prompts": "tsx prisma/seed-slack-prompts.ts",
+    "migrate:legacy-ou-sales": "tsx scripts/appendLegacyOuSalesSuffix.ts",
     "heroku-postbuild": "npm --prefix ../client run build && rimraf public && mkdir -p public && cp -R ../client/dist/. public/"
   },
   "type": "commonjs",

@@ -19,6 +19,7 @@ Update root `summary.md` with enough detail for a developer to rebuild the proje
      - `Last Updated: [Current Date/Time]`
      - `Build Version: [Short Git Hash]` — **every run**, **must match** `git rev-parse --short HEAD` on a clean tip after commits that touch `summary.md`; see [summary-build-version-head](summary-build-version-head.mdc). Re-check after each commit; add a doc-only sync commit if the header lags `HEAD`.
    - Compare previous `summary.md` with current project state and write a **Recent Changes** section.
+   - When the changeset includes **database migrations** (edit to `server/prisma/schema.prisma` or new/changed files under `server/prisma/migrations/`), document that in **Recent Changes**: what changed, migration name(s), and that production backup was captured before deploy (see Phase 2).
 
 2. **Technical Architecture**
    - List core stack (languages/frameworks + versions from lockfiles/manifests).
@@ -39,14 +40,22 @@ Update root `summary.md` with enough detail for a developer to rebuild the proje
    - Add a `Roadmap/Backlog` section listing findings.
 
 ## Phase 2: Git & Deployment
-1. Stage all changes with `git add .`.
-2. Commit with a message based on **Recent Changes** from Phase 1.
-3. **Build Version vs HEAD (required every time)** — Follow [summary-build-version-head](summary-build-version-head.mdc): after the commit (and any doc-only sync commit so **`Build Version`** matches **`git rev-parse --short HEAD`** on a clean tree), **always** run verify before pushing—no exceptions for small edits.
-4. Verify branch, then deploy via `git push heroku main`.
-5. If Heroku push fails, stop and report the error log.
-6. If deploy succeeds, confirm the final `Last Updated` timestamp.
+1. **Help documentation** — Before staging: follow [help-sync-before-ship](help-sync-before-ship.mdc). If the change set affects product or admin behavior, confirm user help (`client/src/features/help/HelpPage.tsx`), admin help (`client/src/features/admin/adminHelpContent.ts`), and when needed Ask-AI `HELP_CONTENT` (`server/src/services/helpSearch.ts`) are accurate. **Admin-only help must live only in `adminHelpContent.ts`, never in `HelpPage.tsx` or `HELP_CONTENT`.**
+2. **Database migrations (when applicable)** — If this work **adds or changes** Prisma schema or files under `server/prisma/migrations/`:
+   - **Production backup (non-negotiable before production migration):** The Heroku **release** phase runs `prisma migrate deploy` (see root `Procfile`) when you deploy, so **always capture a Heroku Postgres backup immediately before** `git push heroku` in step 6 — after your migration files are committed and **`Build Version`** is verified, but **before** the push triggers release. Example: `heroku pg:backups:capture -a aosfail` (use the project’s Heroku app name; `aosfail` is the app behind [production-url](production-url.mdc)). Retain the backup id from the CLI output in case you need to roll back.
+   - **Apply / align migrations** with [test-and-deploy-production](test-and-deploy-production.mdc) (e.g. local `npx prisma migrate dev` in `server/` while developing; production is applied on release or via `heroku run` as documented there).
+   - **Rollback:** Restoring a prior backup (e.g. `heroku pg:backups:restore`) is destructive to data written after the backup; use it only when a migration fails or you must revert. Prefer a **forward** follow-up migration when possible. If you restore, do it with a clear plan and after the failed migration is understood.
+   - **Local / non-Heroku databases:** If you run `migrate dev` or `migrate deploy` against any **non-throwaway** database, take a dump or snapshot **before** that migration (e.g. `pg_dump` for PostgreSQL), not only production.
+3. Stage all changes with `git add .`.
+4. Commit with a message based on **Recent Changes** from Phase 1.
+5. **Build Version vs HEAD (required every time)** — Follow [summary-build-version-head](summary-build-version-head.mdc): after the commit (and any doc-only sync commit so **`Build Version`** matches **`git rev-parse --short HEAD`** on a clean tree), **always** run verify before pushing—no exceptions for small edits.
+6. **Deploy** — Verify branch, then **if step 2 applies** run `heroku pg:backups:capture` now, then **`git push heroku main`**. If there is no migration in the changeset, push without requiring a backup for this step.
+7. If Heroku push fails, stop and report the error log.
+8. If deploy succeeds, confirm the final `Last Updated` timestamp.
 
 ## Execution Requirements
 - Perform end-to-end execution where feasible: summary update, commit, deploy, and validation.
-- **Build Version / HEAD** — On every run of this workflow, complete Phase 2 step 3 (sync commit if needed, verify grep matches `git rev-parse --short HEAD` on a clean tree) **before** deploy. Never push with `summary.md` committed unless that check passes.
+- **Help** — When Phase 1 documents behavior changes, complete Phase 2 step 1 so Help / Admin Help / `HELP_CONTENT` match the implementation.
+- **Database migrations** — When the changeset includes Prisma migrations, complete Phase 2 step 2 and run **`heroku pg:backups:capture` immediately before** Phase 2 step 6’s `git push heroku` (after step 5 passes). For non-throwaway local DBs, dump before `migrate dev` / `migrate deploy` per step 2.
+- **Build Version / HEAD** — On every run of this workflow, complete Phase 2 step 5 (sync commit if needed, verify grep matches `git rev-parse --short HEAD` on a clean tree) **before** deploy. Never push with `summary.md` committed unless that check passes.
 - If repository state blocks execution (for example not a git repo, missing remote, auth failure), stop at first blocker and report precise remediation.

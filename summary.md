@@ -1,11 +1,22 @@
 # AI Library - Technical Summary
 
-Last Updated: Tuesday, April 28, 2026 — 11:45 CDT
-Build Version: `5a40d92`
-App Version: see production footer after deploy (root `package.json` 1.3.3 in repo; Heroku `version-bump.js` on postbuild)
+Last Updated: Tuesday, April 28, 2026 — 13:16 CDT
+Build Version: `44a34de`
+App Version: see production footer after deploy (root `package.json` 1.3.5 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Session: Department/OU profile taxonomy, Other, admin custom values, legacy ` - Sales` migration (April 28, 2026 — 13:16 CDT)
+
+- **Problem:** Profile “OU” was a geographic list; product needs **Department/OU** (14 canonical departments), an **Other** free-text path, **Region** unchanged and explicitly **not** tied to TEAM visibility, legacy geographic `User.ou` values migrated with **` - Sales`** for TEAM string continuity, and an **admin** view of non-canonical `ou` strings in use.
+- **Constants** — [client/src/constants/ous.ts](client/src/constants/ous.ts): **`OU_OPTIONS`** (14 plain department names), **`LEGACY_GEO_OU_VALUES`** (frozen pre-change geographic strings), **`isCanonicalDepartmentOu`**, **`DEPARTMENT_OU_OTHER_SENTINEL`**, **`departmentOuSubmitValue`**. Mirror: [server/src/constants/departmentOuOptions.ts](server/src/constants/departmentOuOptions.ts) (**`CANONICAL_DEPARTMENT_OU_VALUES`**, **`LEGACY_GEO_OU_VALUES`**, **`isCanonicalDepartmentOu`**) — **must stay in sync** with client.
+- **Profile UI** — [client/src/components/DepartmentOuFields.tsx](client/src/components/DepartmentOuFields.tsx): select + **Other…** + custom text; ref skips one sync when transitioning to Other with empty API value. [client/src/components/AppShell.tsx](client/src/components/AppShell.tsx) welcome modal + [client/src/features/settings/SettingsPage.tsx](client/src/features/settings/SettingsPage.tsx): Region helper (“reporting and administration only”), **Department/OU** labels, trimmed **`ou`** on submit, validation when Other is empty. Asset editors: TEAM option label **“Team (same Department/OU)”** (prompts, skills, context, builds edit/create pages).
+- **API** — [server/src/routes/auth.ts](server/src/routes/auth.ts): **`ou`** Zod **`.max(120)`**; **`OU_REQUIRED`** message references Department/OU. [server/src/routes/admin.ts](server/src/routes/admin.ts): **`GET /api/admin/department-ous/custom-in-use`** — `user.groupBy(ou)` for caller’s **`teamId`**, filter out canonical departments, sort by count.
+- **Admin app** — [client/src/features/admin/DepartmentOuAdminPage.tsx](client/src/features/admin/DepartmentOuAdminPage.tsx), [client/src/features/admin/api.ts](client/src/features/admin/api.ts) **`listCustomDepartmentOusInUse`**, route **`/admin/department-ous`**, [client/src/app/router.tsx](client/src/app/router.tsx), [AdminDashboardPage.tsx](client/src/features/admin/AdminDashboardPage.tsx) tile. **Tests:** [server/test/admin-custom-department-ous.test.ts](server/test/admin-custom-department-ous.test.ts) (mocks **`user.findUnique`** for **`refreshSessionRoleFromDb`** + **`groupBy`**).
+- **Legacy data** — [server/scripts/appendLegacyOuSalesSuffix.ts](server/scripts/appendLegacyOuSalesSuffix.ts): dry-run by default; **`--apply`** runs **`UPDATE`**-style **`updateMany`** per legacy string (`ou` → `ou + " - Sales"`). **Run on production after deploy:** `heroku run npm --prefix server run migrate:legacy-ou-sales -- --apply -a aosfail` (or equivalent with app name). **Idempotent** once no row matches exact legacy strings.
+- **Docs / copy** — [client/src/features/help/HelpPage.tsx](client/src/features/help/HelpPage.tsx), [server/src/services/helpSearch.ts](server/src/services/helpSearch.ts), [client/src/features/admin/adminHelpContent.ts](client/src/features/admin/adminHelpContent.ts), [client/src/features/assets/VisibilityBadge.tsx](client/src/features/assets/VisibilityBadge.tsx), [client/src/data/changelog.ts](client/src/data/changelog.ts) **1.3.5** entry. **Versions:** root / **client** / **server** `package.json` → **1.3.5**.
+- **Prisma:** none (data-only migration script). **Deploy:** `git push origin main`, **`git push heroku main:master`**. **Verify:** https://ail.mysalesforcedemo.com — then run legacy migration on Heroku Postgres as above; re-check admin **Department/OU (custom values)** and profile flows.
 
 ### Session: global asset tags, tag requests, owner-only assignment (April 28, 2026 — 11:45 CDT)
 

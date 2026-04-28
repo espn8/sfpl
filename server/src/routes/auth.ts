@@ -59,7 +59,7 @@ const updateProfileBodySchema = z.object({
       { message: "avatarUrl must be a valid URL or server upload path." },
     ),
   region: z.string().trim().optional().default(""),
-  ou: z.string().trim().optional().default(""),
+  ou: z.string().trim().max(120, "Department/OU must be at most 120 characters.").optional().default(""),
   title: z.string().trim().optional().default(""),
 });
 const googleJwks = createRemoteJWKSet(
@@ -600,7 +600,7 @@ authRouter.patch("/me", async (req: Request, res: Response) => {
     return res.status(400).json({
       error: {
         code: "OU_REQUIRED",
-        message: "Please select your Organizational Unit (OU) before continuing.",
+        message: "Please select your Department/OU before continuing.",
       },
     });
   }

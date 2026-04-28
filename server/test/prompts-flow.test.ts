@@ -74,11 +74,14 @@ describe("prompts create/update/restore flows", () => {
     mockGeneratePromptThumbnail.mockResolvedValue("https://example.com/thumb.png");
     prompt.update.mockResolvedValue({ id: 10 });
 
+    tag.count.mockResolvedValue(1);
+    promptTag.createMany.mockResolvedValue({ count: 1 });
     const response = await request(app).post("/api/prompts").send({
       title: "A",
       body: "B",
       tools: ["cursor"],
       modality: "text",
+      tagIds: [1],
     });
 
     expect(response.status).toBe(201);

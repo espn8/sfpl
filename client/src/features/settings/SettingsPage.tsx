@@ -5,7 +5,7 @@ import { fetchMe, logout, updateMyProfile, uploadProfilePhoto } from "../auth/ap
 import { ThemeModeToggle } from "../../components/ui/ThemeModeToggle";
 import { ApiKeysSection } from "./ApiKeysSection";
 import { MyAssetsSection } from "./MyAssetsSection";
-import { OU_OPTIONS } from "../../constants/ous";
+import { DepartmentOuFields } from "../../components/DepartmentOuFields";
 
 function ChevronRightIcon({ className }: { className?: string }) {
   return (
@@ -126,11 +126,16 @@ export function SettingsPage() {
       setFormError("Name and profile photo are required.");
       return;
     }
+    const ouTrimmed = ou.trim();
+    if (!ouTrimmed) {
+      setFormError("Please select a Department/OU or enter your department when using Other.");
+      return;
+    }
     updateProfileMutation.mutate({
       name,
       avatarUrl: profilePhotoUrl,
       region,
-      ou,
+      ou: ouTrimmed,
       title,
     });
   };
@@ -266,23 +271,21 @@ export function SettingsPage() {
                   <option value="LATAM">LATAM</option>
                   <option value="EMEA">EMEA</option>
                 </select>
+                <span className="mt-1 block text-xs text-(--color-text-muted)">
+                  Used for reporting and administration only — not for My Team sharing.
+                </span>
               </label>
 
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium">OU</span>
-                <select
-                  className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
+              <div className="block text-sm">
+                <span className="mb-1 block font-medium">Department/OU</span>
+                <DepartmentOuFields
                   value={ou}
-                  onChange={(e) => setOu(e.target.value)}
-                >
-                  <option value="">Select OU</option>
-                  {OU_OPTIONS.map((name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  onChange={setOu}
+                  disabled={updateProfileMutation.isPending}
+                  selectId="settings-department-ou"
+                  customInputId="settings-department-ou-custom"
+                />
+              </div>
             </div>
           </div>
         </section>

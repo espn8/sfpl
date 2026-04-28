@@ -19,7 +19,7 @@ const defaultUser = {
   name: "Test User",
   avatarUrl: "https://api.dicebear.com/9.x/bottts/svg?seed=Test",
   region: "AMER",
-  ou: "ANZ",
+  ou: "Engineering",
   title: "Engineer",
   onboardingCompleted: true,
   role: "MEMBER" as const,

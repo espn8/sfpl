@@ -23,7 +23,7 @@ Click "Continue with Google" on the login page using your Salesforce Google acco
 
 ### What should I do first?
 1. Accept the compliance acknowledgment that appears on first load (required every 96 hours)
-2. Complete your profile (name, region, OU, title, profile photo)
+2. Complete your profile (name, region, Department/OU, title, profile photo)
 3. Browse Top Performers on the homepage
 4. Try an asset by clicking "Use" — copies to your clipboard and/or launches the target tool
 5. Favorite assets you like (heart icon)
@@ -61,7 +61,7 @@ Placeholders like [KEY] or {{KEY}} defined in the editor with a label, optional 
 3. Body
 4. Insert variables as needed
 5. Target tool(s) + generated-output type
-6. Visibility: Public / Team (your OU) / Private
+6. Visibility: Public / Team (same Department/OU as owner) / Private
 7. Click Save — modal prompts you to pick Draft or Publish Now
 If a potential duplicate is detected (exact body hash, 85%+ similar title, or same normalized URL for Skills/Builds), a Duplicate Warning modal shows the existing matches with links.
 
@@ -160,7 +160,7 @@ Slackbot, Agentforce Vibes, Claude, Claude Cowork, ChatGPT, Gemini, Cursor, Note
 ## Visibility & Roles
 
 ### Visibility levels (per asset)
-- Public — anyone signed into AI Library (global, not OU-scoped)
+- Public — anyone signed into AI Library (global, not Department/OU–scoped)
 - Team — only your Operating Unit sees it
 - Private — only you see it
 Admins see all assets regardless of visibility.
@@ -185,7 +185,7 @@ The Ask AI box on this help page answers questions using help docs. Use it when 
 ## Your Profile
 
 ### Updating your profile
-Click the avatar top-right for the profile modal, or go to /settings for the full-page version. Update name, region, OU, title, and photo. Region/OU/title are optional.
+Click the avatar top-right for the profile modal, or go to /settings for the full-page version. Update name, region, Department/OU, title, and photo. Region is for administration/reporting only (not Team visibility). Department/OU is required when finishing onboarding; title is optional.
 
 ### Profile photo
 Upload JPEG/PNG/GIF/WebP, max 5MB. Stored on server under /uploads/.

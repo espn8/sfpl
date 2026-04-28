@@ -18,7 +18,7 @@ type PendingBuildData = {
   buildUrl: string;
   supportUrl?: string;
   visibility: "PUBLIC" | "TEAM" | "PRIVATE";
-  tagIds?: number[];
+  tagIds: number[];
 };
 
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
@@ -154,6 +154,10 @@ export function BuildEditorPage() {
           setValidationError("Support URL must be a valid URL if provided.");
           return;
         }
+        if (selectedTagIds.length === 0) {
+          setValidationError("Please select at least one tag.");
+          return;
+        }
         
         setPendingFormData({
           title,
@@ -187,11 +191,11 @@ export function BuildEditorPage() {
         className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
       >
         <option value="PUBLIC">Public (All Users)</option>
-        <option value="TEAM">Team (My OU Only)</option>
+        <option value="TEAM">Team (same Department/OU)</option>
         <option value="PRIVATE">Private (Only Me)</option>
       </select>
 
-      <AssetTagsField canEdit selectedIds={selectedTagIds} onChange={setSelectedTagIds} />
+      <AssetTagsField canEdit required selectedIds={selectedTagIds} onChange={setSelectedTagIds} />
 
       <div className="space-y-3 rounded border border-(--color-border) bg-(--color-surface-muted) p-4">
         <div>

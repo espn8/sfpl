@@ -6,7 +6,7 @@ import { fetchMe, updateMyProfile, uploadProfilePhoto } from "../features/auth/a
 import { canAccessAdminUi, canCreateContent } from "../features/auth/roles";
 import { ThemeModeToggle } from "./ui/ThemeModeToggle";
 import { ComplianceModal } from "./ComplianceModal";
-import { OU_OPTIONS } from "../constants/ous";
+import { DepartmentOuFields } from "./DepartmentOuFields";
 
 const SALESFORCE_LOGO = "/salesforce-logo.png";
 
@@ -159,7 +159,7 @@ export function AppShell({ children }: AppShellProps) {
         const apiError = error.response?.data?.error;
         if (apiError?.code === "OU_REQUIRED") {
           setFormError(
-            apiError.message ?? "Please select your Organizational Unit (OU) before continuing.",
+            apiError.message ?? "Please select your Department/OU before continuing.",
           );
           return;
         }
@@ -511,15 +511,16 @@ export function AppShell({ children }: AppShellProps) {
                   setFormError("Name and profile photo are required.");
                   return;
                 }
-                if (!ou) {
-                  setFormError("Please select your Organizational Unit (OU) before continuing.");
+                const ouTrimmed = ou.trim();
+                if (!ouTrimmed) {
+                  setFormError("Please select your Department/OU (or enter your department if you chose Other).");
                   return;
                 }
                 updateProfileMutation.mutate({
                   name,
                   avatarUrl: profilePhotoUrl,
                   region,
-                  ou,
+                  ou: ouTrimmed,
                   title,
                 });
               }}
@@ -583,29 +584,23 @@ export function AppShell({ children }: AppShellProps) {
                     <option value="LATAM">LATAM</option>
                     <option value="EMEA">EMEA</option>
                   </select>
+                  <span className="mt-1 block text-xs text-(--color-text-muted)">
+                    Used for reporting and administration only — not for My Team sharing.
+                  </span>
                 </label>
 
-                <label className="block text-sm">
+                <div className="block text-sm">
                   <span className="mb-1 block">
-                    OU <span className="text-(--color-text-muted)">(required)</span>
+                    Department/OU <span className="text-(--color-text-muted)">(required)</span>
                   </span>
-                  <select
-                    className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
+                  <DepartmentOuFields
                     value={ou}
-                    onChange={(event) => setOu(event.target.value)}
-                    required
-                  >
-                    <option value="">Select OU</option>
-                    {OU_OPTIONS.map((name) => (
-                      <option key={name} value={name}>
-                        {name}
-                      </option>
-                    ))}
-                  </select>
-                  <span className="mt-1 block text-xs text-(--color-text-muted)">
-                    Your OU determines who sees assets you share with My Team.
-                  </span>
-                </label>
+                    onChange={setOu}
+                    disabled={updateProfileMutation.isPending}
+                    selectId="welcome-department-ou"
+                    customInputId="welcome-department-ou-custom"
+                  />
+                </div>
               </div>
 
               <label className="block text-sm">
@@ -623,7 +618,7 @@ export function AppShell({ children }: AppShellProps) {
               <div className="mt-4 flex justify-end gap-2 border-t border-(--color-border) pt-4">
                 <button
                   type="submit"
-                  disabled={updateProfileMutation.isPending || !ou}
+                  disabled={updateProfileMutation.isPending || !ou.trim()}
                   className="rounded bg-(--color-primary) px-4 py-2 text-(--color-text-inverse) hover:bg-(--color-primary-active) active:bg-(--color-primary-active) disabled:opacity-60"
                 >
                   {updateProfileMutation.isPending ? "Saving..." : "Get Started"}

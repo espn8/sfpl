@@ -325,7 +325,7 @@ export function BuildEditPage() {
           className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
         >
           <option value="PUBLIC">Public (All Users)</option>
-          <option value="TEAM">Team (My OU Only)</option>
+          <option value="TEAM">Team (same Department/OU)</option>
           <option value="PRIVATE">Private (Only Me)</option>
         </select>
       </div>

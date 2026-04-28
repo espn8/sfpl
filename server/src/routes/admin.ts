@@ -9,8 +9,8 @@
  *   - POST /api/admin/users/:userId/transfer-assets
  *     Bulk-reassigns ownership of every asset owned by `userId` to
  *     `newOwnerId`. Used when a teammate leaves the business.
- *   - POST /api/admin/governance/run
- *     Manually triggers the governance sweep; useful for staging/ops.
+ *   - GET  /api/admin/department-ous/custom-in-use
+ *     Lists distinct non-canonical User.ou values on the team (for promoting to OU_OPTIONS).
  */
 
 import type { Request, Response } from "express";
@@ -21,6 +21,7 @@ import { prisma } from "../lib/prisma";
 import { runGovernanceSweepWithGate } from "../jobs/governance";
 import { transferOwner } from "../services/governanceOps";
 import { refreshSmartPicksCollection } from "../services/systemCollections";
+import { isCanonicalDepartmentOu } from "../constants/departmentOuOptions";
 
 const adminRouter = Router();
 adminRouter.use(requireAuth);
@@ -265,6 +266,26 @@ adminRouter.patch("/smart-picks", async (req: Request, res: Response) => {
   }
 
   return res.status(200).json({ data: { ok: true, assetType, id, isSmartPick } });
+});
+
+adminRouter.get("/department-ous/custom-in-use", async (req: Request, res: Response) => {
+  const auth = getAuthContext(req);
+  if (!auth) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Authentication required." } });
+  }
+
+  const grouped = await prisma.user.groupBy({
+    by: ["ou"],
+    where: { teamId: auth.teamId, ou: { not: null } },
+    _count: { _all: true },
+  });
+
+  const rows = grouped
+    .filter((row): row is { ou: string; _count: { _all: number } } => row.ou !== null && !isCanonicalDepartmentOu(row.ou))
+    .map((row) => ({ ou: row.ou, userCount: row._count._all }))
+    .sort((a, b) => b.userCount - a.userCount || a.ou.localeCompare(b.ou));
+
+  return res.status(200).json({ data: { rows } });
 });
 
 export { adminRouter };
