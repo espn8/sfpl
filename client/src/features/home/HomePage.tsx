@@ -743,10 +743,7 @@ export function HomePage() {
                       </span>
                       {user.name ?? user.email}
                     </p>
-                    <p className="text-sm text-(--color-text-muted)">
-                      Score {user.score} ({pluralize(user.usedCount, "use")}, {pluralize(user.favoritedCount, "favorite")},{" "}
-                      {pluralize(user.ratingCount, "rating")})
-                    </p>
+                    <p className="text-sm text-(--color-text-muted)">Score {user.score}</p>
                   </div>
                 ))}
                 {usersLeaderboard.length === 0 ? (

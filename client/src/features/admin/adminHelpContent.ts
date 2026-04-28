@@ -32,7 +32,7 @@ export const adminHelpContent: AdminHelpSection[] = [
       {
         question: "What is User Engagement?",
         answer:
-          "A per-user leaderboard combining uses (prompt copy/launch plus copy on other asset types), favorites across asset types, and star ratings submitted. Top Contributors ranks published prompts, skills, context, and builds combined. Useful for recognizing active contributors and spotting adoption trends by Department/OU or region.",
+          "A per-user leaderboard combining uses (prompt copy/launch plus copy on other asset types), favorites across asset types, and star ratings submitted — only for assets in the current workspace (aligned with Top Contributors, which counts published prompts, skills, context, and builds for that workspace). Useful for recognizing active contributors and spotting adoption trends by Department/OU or region.",
       },
     ],
   },
