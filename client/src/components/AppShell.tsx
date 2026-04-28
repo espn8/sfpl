@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AxiosError } from "axios";
@@ -7,6 +7,8 @@ import { canAccessAdminUi, canCreateContent } from "../features/auth/roles";
 import { ThemeModeToggle } from "./ui/ThemeModeToggle";
 import { ComplianceModal } from "./ComplianceModal";
 import { DepartmentOuFields } from "./DepartmentOuFields";
+import { PageLoadingFallback } from "./PageLoadingFallback";
+import { RouteErrorBoundary } from "./RouteErrorBoundary";
 
 const SALESFORCE_LOGO = "/salesforce-logo.png";
 
@@ -448,7 +450,9 @@ export function AppShell({ children }: AppShellProps) {
             </div>
           )}
         </div>
-        {children}
+        <Suspense fallback={<PageLoadingFallback variant="content" />}>
+          <RouteErrorBoundary placement="embedded">{children}</RouteErrorBoundary>
+        </Suspense>
         <footer className="mt-8 rounded-lg border border-(--color-border) bg-(--color-surface) px-4 py-3">
           <div className="flex items-center justify-between gap-4">
             <img src={SALESFORCE_LOGO} alt="Salesforce" className="h-9 w-auto object-contain" />

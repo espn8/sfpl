@@ -3,6 +3,7 @@ import { AxiosError } from "axios";
 import { Navigate } from "react-router-dom";
 import { fetchMe } from "../features/auth/api";
 import { canCreateContent } from "../features/auth/roles";
+import { PageLoadingFallback } from "./PageLoadingFallback";
 
 type WriterRouteProps = {
   children: React.ReactNode;
@@ -16,7 +17,7 @@ export function WriterRoute({ children }: WriterRouteProps) {
   });
 
   if (meQuery.isLoading) {
-    return <p className="p-8">Loading session...</p>;
+    return <PageLoadingFallback />;
   }
 
   if (meQuery.error instanceof AxiosError && meQuery.error.response?.status === 401) {

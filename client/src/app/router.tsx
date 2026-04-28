@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { trackPageView } from "./analytics";
 import { AppShell } from "../components/AppShell";
+import { PageLoadingFallback } from "../components/PageLoadingFallback";
 import { AdminRoute } from "../components/AdminRoute";
 import { ProtectedRoute } from "../components/ProtectedRoute";
 import { WriterRoute } from "../components/WriterRoute";
@@ -11,11 +12,10 @@ import { HomePage } from "../features/home/HomePage";
 /**
  * Route-level code splitting.
  *
- * The homepage, login, and the terms/privacy static pages are kept eager
- * because they cover ~all unauthenticated traffic and the initial
- * authenticated landing page. Everything else is loaded on demand the first
- * time the user navigates to it, so a cold homepage visit only pulls down
- * the HomePage code + shell.
+ * The homepage and login are eager (initial authenticated + auth flows).
+ * Terms/privacy are lazy but wrapped in local Suspense (no AppShell).
+ * Other routes load on demand; lazy segments suspend inside AppShell so
+ * the header/nav stay mounted during chunk loads.
  */
 const AdminDashboardPage = lazy(() =>
   import("../features/admin/AdminDashboardPage").then((m) => ({ default: m.AdminDashboardPage })),
@@ -125,30 +125,28 @@ function RouteTracker() {
   return null;
 }
 
-function RouteFallback() {
-  return (
-    <div
-      role="status"
-      aria-label="Loading page"
-      className="flex h-full min-h-[40vh] items-center justify-center"
-    >
-      <div
-        aria-hidden
-        className="h-8 w-8 animate-spin rounded-full border-2 border-(--color-border) border-t-(--color-accent)"
-      />
-    </div>
-  );
-}
-
 export function AppRouter() {
   return (
     <BrowserRouter>
       <RouteTracker />
-      <Suspense fallback={<RouteFallback />}>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/terms" element={<TermsPage />} />
-          <Route path="/privacy" element={<PrivacyPage />} />
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/terms"
+          element={
+            <Suspense fallback={<PageLoadingFallback />}>
+              <TermsPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/privacy"
+          element={
+            <Suspense fallback={<PageLoadingFallback />}>
+              <PrivacyPage />
+            </Suspense>
+          }
+        />
           <Route
             path="/"
             element={
@@ -485,8 +483,7 @@ export function AppRouter() {
               </ProtectedRoute>
             }
           />
-        </Routes>
-      </Suspense>
+      </Routes>
     </BrowserRouter>
   );
 }
