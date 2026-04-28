@@ -18,6 +18,7 @@
     "seed:slack-skills": "tsx prisma/seed-slack-skills.ts",
     "seed:slack-prompts": "tsx prisma/seed-slack-prompts.ts",
     "migrate:legacy-ou-sales": "tsx scripts/appendLegacyOuSalesSuffix.ts",
+    "slack:backfill-public": "tsx scripts/backfillSlackPublicPublishedAssets.ts",
     "heroku-postbuild": "npm --prefix ../client run build && rimraf public && mkdir -p public && cp -R ../client/dist/. public/"
   },
   "type": "commonjs",

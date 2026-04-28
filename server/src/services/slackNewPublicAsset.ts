@@ -1,23 +1,9 @@
 import type { PromptModality, PromptStatus, PromptVisibility } from "@prisma/client";
 import { env } from "../config/env";
 import { prisma } from "../lib/prisma";
-import { formatToolsForDisplay } from "../lib/toolLabels";
+import { sendSlackPublicPublishedAsset, type SlackAssetKind } from "./slackNewPublicAssetCore";
 
-export type SlackAssetKind = "prompt" | "skill" | "context" | "build";
-
-const ASSET_TYPE_SLACK: Record<SlackAssetKind, string> = {
-  prompt: "Prompt",
-  skill: "Skill",
-  context: "Context",
-  build: "Build",
-};
-
-const URL_SEGMENT: Record<SlackAssetKind, string> = {
-  prompt: "prompts",
-  skill: "skills",
-  context: "context",
-  build: "builds",
-};
+export type { SlackAssetKind } from "./slackNewPublicAssetCore";
 
 function isPublicPublished(row: { visibility: string; status: string }): boolean {
   return row.visibility === "PUBLIC" && row.status === "PUBLISHED";
@@ -36,28 +22,6 @@ export function enteredPublicPublished(
   return !isPublicPublished(before);
 }
 
-function modalityLabel(modality: PromptModality | null | undefined): string {
-  if (modality === undefined || modality === null) {
-    return "";
-  }
-  switch (modality) {
-    case "TEXT":
-      return "text";
-    case "CODE":
-      return "code";
-    case "IMAGE":
-      return "image";
-    case "VIDEO":
-      return "video";
-    case "AUDIO":
-      return "audio";
-    case "MULTIMODAL":
-      return "multimodal";
-    default:
-      return String(modality).toLowerCase();
-  }
-}
-
 type NotifyArgs = {
   before: { visibility: PromptVisibility; status: PromptStatus } | null;
   after: {
@@ -74,17 +38,7 @@ type NotifyArgs = {
   ownerId: number;
 };
 
-function buildAssetLink(kind: SlackAssetKind, id: number): string {
-  const base = env.appBaseUrl.replace(/\/+$/, "");
-  return `${base}/${URL_SEGMENT[kind]}/${id}`;
-}
-
-/**
- * Fire-and-forget POST to Slack Workflow when an asset enters PUBLIC + PUBLISHED.
- * Does nothing if webhook URL is unset or transition does not qualify.
- */
 function slackWebhookUrl(): string | undefined {
-  // Read at call time so Heroku config changes take effect after dyno restart without relying on a stale snapshot.
   const fromEnv = process.env.SLACK_NEW_PUBLIC_ASSET_WEBHOOK_URL?.trim();
   if (fromEnv) {
     return fromEnv;
@@ -92,6 +46,10 @@ function slackWebhookUrl(): string | undefined {
   return env.slackNewPublicAssetWebhookUrl;
 }
 
+/**
+ * Fire-and-forget POST to Slack Workflow when an asset enters PUBLIC + PUBLISHED.
+ * Does nothing if webhook URL is unset or transition does not qualify.
+ */
 export function notifySlackIfEnteredPublicPublished(args: NotifyArgs): void {
   const { before, after, tagNames, assetKind, ownerId } = args;
   if (!enteredPublicPublished(before, after)) {
@@ -105,40 +63,23 @@ export function notifySlackIfEnteredPublicPublished(args: NotifyArgs): void {
     return;
   }
 
-  // Defer past the HTTP response so Slack I/O never blocks the route; avoids edge cases with floating promises.
+  const appBaseUrl = process.env.APP_BASE_URL?.trim() || env.appBaseUrl;
+
   setImmediate(() => {
     void (async () => {
       try {
-        const owner = await prisma.user.findUnique({
-          where: { id: ownerId },
-          select: { email: true },
+        await sendSlackPublicPublishedAsset(prisma, {
+          webhookUrl: url,
+          appBaseUrl,
+          assetKind,
+          id: after.id,
+          title: after.title,
+          summary: after.summary,
+          tools: after.tools,
+          modality: after.modality,
+          tagNames,
+          ownerId,
         });
-        const userEmail = owner?.email ?? "";
-
-        const payload = {
-          assetname: after.title,
-          assettype: ASSET_TYPE_SLACK[assetKind],
-          assetlink: buildAssetLink(assetKind, after.id),
-          assettags: tagNames.join(", "),
-          assetsummary: after.summary?.trim() ?? "",
-          user: userEmail,
-          assettool: formatToolsForDisplay(after.tools),
-          assetmodality: assetKind === "prompt" ? modalityLabel(after.modality ?? null) : "—",
-        };
-
-        const res = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json; charset=utf-8" },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) {
-          const text = await res.text().catch(() => "");
-          console.error(
-            `[slackNewPublicAsset] webhook failed ${res.status} for ${assetKind} ${after.id}: ${text.slice(0, 500)}`,
-          );
-          return;
-        }
-        console.log(`[slackNewPublicAsset] posted ${assetKind} ${after.id} to Slack workflow`);
       } catch (err) {
         console.error("[slackNewPublicAsset] webhook error:", err);
       }
