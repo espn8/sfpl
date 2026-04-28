@@ -1,11 +1,19 @@
 # AI Library - Technical Summary
 
-Last Updated: Tuesday, April 28, 2026 — 13:16 CDT
-Build Version: `1ec1bfa`
+Last Updated: Tuesday, April 28, 2026 — 13:48 CDT
+Build Version: `4053cc4`
 App Version: see production footer after deploy (root `package.json` 1.3.5 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Session: User Engagement leaderboard scoped to workspace assets; home score UI (April 28, 2026 — 13:48 CDT)
+
+- **Problem:** **User Engagement** on **`GET /api/analytics/overview`** aggregated favorites and ratings (and related per-user usage splits) by **`user.teamId`** only, so activity on assets **outside** the current workspace still inflated scores—misaligned with **Top Contributors** (published assets in the workspace).
+- **Server** — [server/src/routes/analytics.ts](server/src/routes/analytics.ts): Introduces **`teamCatalogWhere`** (`{ teamId: auth.teamId }`). Extends **`usageEvent`**, **`skillUsageEvent`**, **`contextUsageEvent`**, **`buildUsageEvent`** user **`groupBy`** filters so the related asset (**`prompt`**, **`skill`**, **`context`**, **`build`**) must belong to the workspace; same for **`favorite`** / **`skillFavorite`** / **`contextFavorite`** / **`buildFavorite`** and all **`rating`** / **`skillRating`** / **`contextRating`** / **`buildRating`** user aggregates.
+- **Client** — [client/src/features/home/HomePage.tsx](client/src/features/home/HomePage.tsx): User Engagement row shows **Score N** only (removes inline breakdown of uses / favorites / ratings counts).
+- **Admin help** — [client/src/features/admin/adminHelpContent.ts](client/src/features/admin/adminHelpContent.ts): **User Engagement** answer clarifies metrics are **only for assets in the current workspace**, aligned with Top Contributors.
+- **Prisma:** none. **Tests:** `npm --prefix server test` (124). **Deploy:** **`git push heroku main:master`**. **Verify:** https://ail.mysalesforcedemo.com — Analytics → User Engagement vs Top Contributors.
 
 ### Session: Department/OU profile taxonomy, Other, admin custom values, legacy ` - Sales` migration (April 28, 2026 — 13:16 CDT)
 
