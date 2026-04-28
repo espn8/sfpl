@@ -272,8 +272,11 @@ export function ContextDetailPage() {
         </div>
       </div>
       <p className="text-sm text-(--color-text-muted)">
-        {doc.status} · {doc.visibility} · Owner {doc.owner.name ?? `#${doc.owner.id}`} · Updated{" "}
-        {new Date(doc.updatedAt).toLocaleString()}
+        {doc.status} · {doc.visibility} · Owner{" "}
+        <Link to={`/users/${doc.owner.id}`} className="font-medium text-(--color-primary) underline-offset-2 hover:underline">
+          {doc.owner.name ?? `#${doc.owner.id}`}
+        </Link>{" "}
+        · Updated {new Date(doc.updatedAt).toLocaleString()}
       </p>
       <div className="mt-2">
         <PromptAverageStars value={averageRating} size="md" />

@@ -11,9 +11,9 @@ When making changes that affect the database or backend:
    - Local: `npx prisma migrate dev` (in server directory)
    - Heroku: `heroku pg:psql -c "<SQL>"` or `heroku run npx prisma migrate deploy`
 
-2. **Testing**: Test changes on the production Heroku app, not just locally
+2. **Testing**: Validate on the production app at `https://ail.mysalesforcedemo.com` (not localhost). Default workflow: `deploy-only-verification.mdc`.
 
-3. **Deployment**: Push changes to Heroku after local verification
+3. **Deployment**: Push changes to Heroku
    - `git push heroku main:master`
 
 4. **Verify**: Check Heroku logs for errors after deployment

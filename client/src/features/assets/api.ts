@@ -63,6 +63,7 @@ export type ListAssetsFilters = {
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   sort?: "recent" | "mostUsed" | "name" | "updatedAt";
   mine?: boolean;
+  ownerId?: number;
   includeAnalytics?: boolean;
   page?: number;
   pageSize?: number;

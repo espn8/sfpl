@@ -1,17 +1,32 @@
 ---
-description: summary.md Build Version must track git HEAD short hash
+description: Every change to summary.md or deploy push must align Build Version with git HEAD; mandatory verify
 alwaysApply: true
 ---
 
-# Rule: `summary.md` Build Version matches `HEAD`
+# Rule: Always align Build Version with `HEAD`
 
-## Invariant
+## Non-negotiable
 
-On the default branch with a **clean** working tree, the **`Build Version`** line in the root [summary.md](summary.md) (the short hash inside backticks) **must equal** the output of:
+**Every** time `summary.md` changes, lands in a commit, or you push/deploy (including partial doc-only pushes): run the verify step before considering the work done. Do not skip when “only a small edit” or “will fix later”—stale **`Build Version`** lines accumulate otherwise.
+
+## Mandate
+
+Whenever `summary.md` is edited, refreshed, or committed as part of documentation work, **`Build Version`** (backticks in the header) **must match** the current repository tip:
 
 ```bash
 git rev-parse --short HEAD
 ```
+
+On the default branch with a **clean** working tree, that value and **`Build Version`** **must be identical**.
+
+## Verify (run every time — after header edits, after commits touching `summary.md`, and immediately before `git push`)
+
+```bash
+git rev-parse --short HEAD
+grep '^Build Version:' summary.md
+```
+
+If they disagree, update **`Build Version:`** to the short hash from `git rev-parse --short HEAD`, then commit.
 
 ## Git caveat
 
@@ -23,6 +38,16 @@ A commit’s id is not known until the commit exists, so the backtick value **ca
 2. Commit `summary.md` (and any other files) as usual.
 3. If **`Build Version`** ≠ **`git rev-parse --short HEAD`** on a clean tree, make **one** doc-only commit updating **`Build Version`** (and **`Last Updated`** if you like) to the current short hash, then push.
 
+## Workflow: summary update → commit → deploy
+
+Whenever you edit `summary.md`, commit, or deploy (alone or as the **Commit, Deploy and Update Summary** flow), keep **`Build Version`** aligned with **`HEAD`**:
+
+1. **Before writing the header** — Run `git rev-parse --short HEAD` and set **`Build Version: \`<value>\`** to that short hash (not an older hash from memory).
+2. **After each commit that touches `summary.md`** — On a clean tree, run the verify commands above. If they differ, make **one** doc-only commit updating **`Build Version`** (and **`Last Updated`** if appropriate).
+3. **Before `git push` / deploy** — Final check: clean working tree and **`grep '^Build Version:' summary.md`** matches **`git rev-parse --short HEAD`**. If not, sync `summary.md` and commit again, then push.
+
+Deployed code is identified by the git revision you push; the documented **`Build Version`** should describe that same tip when the push includes `summary.md`.
+
 ## Relation to commit / deploy workflow
 
-The **Commit, Deploy and Update Summary** rule (`.cursor/rules/commit-deploy-update-summary.mdc`) Phase 1 metadata step must follow this rule whenever **`Build Version`** is set or refreshed.
+The **Commit, Deploy and Update Summary** rule (`.cursor/rules/commit-deploy-update-summary.mdc`) runs Phase 1 (summary) then Phase 2 (git + deploy). Phase 1 metadata and Phase 2 pre-push steps **must** follow this rule whenever **`Build Version`** is set or refreshed.

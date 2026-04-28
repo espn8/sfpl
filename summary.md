@@ -1,11 +1,32 @@
 # AI Library - Technical Summary
 
-Last Updated: Tuesday, April 28, 2026 — 09:06 CDT
-Build Version: `414d899`
+Last Updated: Tuesday, April 28, 2026 — 10:33 CDT
+Build Version: `611d0c6`
 App Version: see production footer after deploy (root `package.json` 1.3.3 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Session: user profiles, team member favorites, `ownerId` assets, deploy-only verification rule (April 28, 2026 — 10:33 CDT)
+
+- **Prisma** ([server/prisma/schema.prisma](server/prisma/schema.prisma), migration [20260428120000_user_profile_favorite/migration.sql](server/prisma/migrations/20260428120000_user_profile_favorite/migration.sql)): **`UserProfileFavorite`** model (`fanUserId`, `targetUserId`, `@@unique([fanUserId, targetUserId])`, cascade FKs to `User`) for per-user “favorited by teammates” stats. **Production:** apply with `heroku run npx prisma migrate deploy` (or release-phase equivalent) so the new table exists before relying on profile favorites.
+- **API** — [server/src/routes/users.ts](server/src/routes/users.ts) mounted at **`/api/users`** in [server/src/app.ts](server/src/app.ts):
+  - **`GET /api/users/:id`**: Same-team user only; returns `id`, `name`, `avatarUrl`, `ou`, `region`, `title`, **`collectionAddsCount`** (memberships in collections on the team), **`favoriteCount`** (rows where `targetUserId` = id), **`favoritedByMe`**. Loads the user first; **404** without running aggregate queries for missing users.
+  - **`POST /api/users/:id/favorite`**: Idempotent toggle; **400** if `id ===` session user; same-team check.
+- **Assets list** ([server/src/routes/assets.ts](server/src/routes/assets.ts)): Query **`ownerId`** (optional int, mutually exclusive with **`mine`**). Resolves user in `auth.teamId` or **404**; applies existing catalog visibility + **PUBLISHED** filters and **`ownerId`** on prompts, skills, context, builds. **`Cache-Control: private, no-store`** when `ownerId` or `mine` is set; short `max-age` only for anonymous team catalog lists without those flags.
+- **Client**
+  - Route **`/users/:id`** → lazy **[UserProfilePage](client/src/features/users/UserProfilePage.tsx)** ([router.tsx](client/src/app/router.tsx)); **[client/src/features/users/api.ts](client/src/features/users/api.ts)** (`fetchUserProfile`, `toggleUserFavorite`).
+  - **[UserCollectionMenu](client/src/components/UserCollectionMenu.tsx)**: Add/remove person via **`POST/DELETE /api/collections/:collectionId/users/:userId`**; optimistic updates against **`["collections"]`** query cache.
+  - **[collections/api.ts](client/src/features/collections/api.ts)**: `Collection.users`, **`addUserToCollection`**, **`removeUserFromCollection`**.
+  - **[CollectionDetailPage](client/src/features/collections/CollectionDetailPage.tsx)**: **People** section (avatar, link to `/users/:id`, remove).
+  - **[ListAssetsFilters](client/src/features/assets/api.ts)**: **`ownerId`** passed through to **`GET /api/assets`** for profile asset grids.
+  - **Owner → profile links**: [AssetCard.tsx](client/src/features/assets/AssetCard.tsx) (title/summary vs owner row; **Build** detail path `[Build]`); [PromptDetailPage](client/src/features/prompts/PromptDetailPage.tsx), [SkillDetailPage](client/src/features/skills/SkillDetailPage.tsx), [ContextDetailPage](client/src/features/context/ContextDetailPage.tsx), [BuildDetailPage](client/src/features/builds/BuildDetailPage.tsx) — owner name links to **`/users/:id`**. List cards updated in the same release line (see commit history for prompt/skill/context/build list splits).
+- **Tests**: [server/test/users-routes.test.ts](server/test/users-routes.test.ts); [server/test/assets-list.test.ts](server/test/assets-list.test.ts) — `ownerId` behavior, cache header, **`mine`+`ownerId`** **400**, missing user **404**.
+- **Cursor / workflow rules**
+  - **[.cursor/rules/deploy-only-verification.mdc](.cursor/rules/deploy-only-verification.mdc)** (**alwaysApply**): Routine verification is **deploy then check https://ail.mysalesforcedemo.com**; do **not** use local `npm run build`, `tsc`, or test suites as the default proof loop unless the user explicitly asks.
+  - **[.cursor/rules/production-only-workflow.mdc](.cursor/rules/production-only-workflow.mdc)**, **[.cursor/rules/test-and-deploy-production.mdc](.cursor/rules/test-and-deploy-production.mdc)**: Adjusted so default verification matches deploy-only (no mandatory local build/test step in the written workflow).
+  - **[.cursor/rules/commit-deploy-update-summary.mdc](.cursor/rules/commit-deploy-update-summary.mdc)**, **[.cursor/rules/summary-build-version-head.mdc](.cursor/rules/summary-build-version-head.mdc)**: Kept **Build Version** ↔ **`git rev-parse --short HEAD`** invariant on clean trees; clarified verify-before-push applies to that hash check (not a substitute for the user’s deploy-only preference).
+- **Deploy:** `git push origin main`, **`git push heroku main:master`**; ensure Prisma migration applied on Heroku Postgres. **Verify** product behavior only on **https://ail.mysalesforcedemo.com** per **deploy-only-verification.mdc**.
 
 ### Session: skill install URL — Slack `/docs/` prefix, no archive links, Slackbot Skill Canvas copy (April 28, 2026 — 09:05 CDT)
 

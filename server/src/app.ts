@@ -29,6 +29,7 @@ import { meRouter } from "./routes/me";
 import { adminRouter } from "./routes/admin";
 import { authenticateApiKey } from "./middleware/apiKeyAuth";
 import { v1Router } from "./routes/v1";
+import { usersRouter } from "./routes/users";
 
 type CreateAppOptions = {
   sessionStore?: Store;
@@ -103,6 +104,7 @@ export function createApp(options?: CreateAppOptions): express.Express {
   app.use("/api/tool-requests", toolRequestsRouter);
   app.use("/api/api-keys", apiKeysRouter);
   app.use("/api/me", meRouter);
+  app.use("/api/users", usersRouter);
   app.use("/api/admin", adminRouter);
   app.use("/api/ai", aiRouter);
   app.use("/api/v1", v1Router);

@@ -68,6 +68,9 @@ const ContextListPage = lazy(() =>
 const SearchResultsPage = lazy(() =>
   import("../features/search/SearchResultsPage").then((m) => ({ default: m.SearchResultsPage })),
 );
+const UserProfilePage = lazy(() =>
+  import("../features/users/UserProfilePage").then((m) => ({ default: m.UserProfilePage })),
+);
 const SkillDetailPage = lazy(() =>
   import("../features/skills/SkillDetailPage").then((m) => ({ default: m.SkillDetailPage })),
 );
@@ -156,6 +159,16 @@ export function AppRouter() {
               <ProtectedRoute>
                 <AppShell>
                   <SearchResultsPage />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/users/:id"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <UserProfilePage />
                 </AppShell>
               </ProtectedRoute>
             }

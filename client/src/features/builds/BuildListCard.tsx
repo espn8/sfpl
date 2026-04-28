@@ -125,50 +125,56 @@ export function BuildListCard({ build, variant = "default", showAnalytics = fals
               favoriteCount={build.favoriteCount}
             />
           </div>
-          <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-(--color-text-muted)">
-            <span className="flex min-w-0 items-center gap-2">
-              <img
-                src={promptOwnerAvatarUrl(build.owner)}
-                alt=""
-                className="h-7 w-7 shrink-0 rounded-full border border-(--color-border) bg-(--color-surface-muted) object-cover"
-              />
-              <span className="truncate font-medium text-(--color-text)">{build.owner.name ?? "Unknown"}</span>
-            </span>
-            <span className="text-(--color-border)" aria-hidden>
-              ·
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <EyeIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              <span>{(build.viewCount ?? 0).toLocaleString()} views</span>
-            </span>
-            <span className="text-(--color-border)" aria-hidden>
-              ·
-            </span>
-            <span className="inline-flex items-center gap-1" title={`Created ${new Date(build.createdAt).toLocaleString()}`}>
-              <CalendarIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              <span>{activityLabel || "—"}</span>
-            </span>
-          </div>
+        </Link>
+        <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-(--color-text-muted)">
+          <Link
+            to={`/users/${build.owner.id}`}
+            className="flex min-w-0 max-w-full items-center gap-2 rounded outline-none hover:text-(--color-primary) focus-visible:ring-2 focus-visible:ring-(--color-primary)"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={promptOwnerAvatarUrl(build.owner)}
+              alt=""
+              className="h-7 w-7 shrink-0 rounded-full border border-(--color-border) bg-(--color-surface-muted) object-cover"
+            />
+            <span className="truncate font-medium text-(--color-text)">{build.owner.name ?? "Unknown"}</span>
+          </Link>
+          <span className="text-(--color-border)" aria-hidden>
+            ·
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <EyeIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            <span>{(build.viewCount ?? 0).toLocaleString()} views</span>
+          </span>
+          <span className="text-(--color-border)" aria-hidden>
+            ·
+          </span>
+          <span className="inline-flex items-center gap-1" title={`Created ${new Date(build.createdAt).toLocaleString()}`}>
+            <CalendarIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            <span>{activityLabel || "—"}</span>
+          </span>
+        </div>
+        <Link to={`/builds/${build.id}`} className="block">
           <p
             className="mt-2 line-clamp-2 text-sm text-(--color-text-muted)"
           >
             {build.summary ?? (variant === "featured" ? "No summary yet" : "No summary")}
           </p>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <PromptAverageStars
-              value={build.averageRating ?? null}
-              size="sm"
-              ratingCount={build.ratingCount}
-              flagCounts={build.flagCounts}
-            />
-            <VerificationChip
-              status={build.status}
-              lastVerifiedAt={build.lastVerifiedAt}
-              verificationDueAt={build.verificationDueAt}
-              archiveReason={build.archiveReason}
-            />
-          </div>
         </Link>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <PromptAverageStars
+            value={build.averageRating ?? null}
+            size="sm"
+            ratingCount={build.ratingCount}
+            flagCounts={build.flagCounts}
+          />
+          <VerificationChip
+            status={build.status}
+            lastVerifiedAt={build.lastVerifiedAt}
+            verificationDueAt={build.verificationDueAt}
+            archiveReason={build.archiveReason}
+          />
+        </div>
 
         {showAnalytics ? (
           <div className="mt-3 grid grid-cols-4 gap-2 rounded-lg border border-(--color-primary)/20 bg-(--color-primary)/5 p-3">

@@ -106,8 +106,22 @@ export function AssetCard({ asset, variant = "default", showAnalytics = false, h
 
   const activityLabel = formatPromptActivityLabel(asset.createdAt, asset.updatedAt);
 
-  const assetTypeLabel = asset.assetType === "prompt" ? "Prompt" : asset.assetType === "skill" ? "Skill" : "Context";
-  const detailPath = asset.assetType === "prompt" ? `/prompts/${asset.id}` : asset.assetType === "skill" ? `/skills/${asset.id}` : `/context/${asset.id}`;
+  const assetTypeLabel =
+    asset.assetType === "prompt"
+      ? "Prompt"
+      : asset.assetType === "skill"
+        ? "Skill"
+        : asset.assetType === "build"
+          ? "Build"
+          : "Context";
+  const detailPath =
+    asset.assetType === "prompt"
+      ? `/prompts/${asset.id}`
+      : asset.assetType === "skill"
+        ? `/skills/${asset.id}`
+        : asset.assetType === "build"
+          ? `/builds/${asset.id}`
+          : `/context/${asset.id}`;
 
   const toolChips = asset.assetType === "prompt"
     ? buildPromptTagChips({
@@ -240,30 +254,36 @@ export function AssetCard({ asset, variant = "default", showAnalytics = false, h
               archiveReason={asset.archiveReason}
             />
           </div>
-          <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-(--color-text-muted)">
-            <span className="flex min-w-0 items-center gap-2">
-              <img
-                src={promptOwnerAvatarUrl(asset.owner)}
-                alt=""
-                className="h-7 w-7 shrink-0 rounded-full border border-(--color-border) bg-(--color-surface-muted) object-cover"
-              />
-              <span className="truncate font-medium text-(--color-text)">{asset.owner.name ?? "Unknown"}</span>
-            </span>
-            <span className="text-(--color-border)" aria-hidden>
-              ·
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <EyeIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              <span>{asset.viewCount.toLocaleString()} views</span>
-            </span>
-            <span className="text-(--color-border)" aria-hidden>
-              ·
-            </span>
-            <span className="inline-flex items-center gap-1" title={`Created ${new Date(asset.createdAt).toLocaleString()}`}>
-              <CalendarIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              <span>{activityLabel || "—"}</span>
-            </span>
-          </div>
+        </Link>
+        <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-(--color-text-muted)">
+          <Link
+            to={`/users/${asset.owner.id}`}
+            className="flex min-w-0 max-w-full items-center gap-2 rounded outline-none hover:text-(--color-primary) focus-visible:ring-2 focus-visible:ring-(--color-primary)"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={promptOwnerAvatarUrl(asset.owner)}
+              alt=""
+              className="h-7 w-7 shrink-0 rounded-full border border-(--color-border) bg-(--color-surface-muted) object-cover"
+            />
+            <span className="truncate font-medium text-(--color-text)">{asset.owner.name ?? "Unknown"}</span>
+          </Link>
+          <span className="text-(--color-border)" aria-hidden>
+            ·
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <EyeIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            <span>{asset.viewCount.toLocaleString()} views</span>
+          </span>
+          <span className="text-(--color-border)" aria-hidden>
+            ·
+          </span>
+          <span className="inline-flex items-center gap-1" title={`Created ${new Date(asset.createdAt).toLocaleString()}`}>
+            <CalendarIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            <span>{activityLabel || "—"}</span>
+          </span>
+        </div>
+        <Link to={detailPath} className="block">
           <p
             className="mt-2 line-clamp-2 text-sm text-(--color-text-muted)"
           >

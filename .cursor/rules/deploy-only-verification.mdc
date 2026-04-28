@@ -1,0 +1,30 @@
+---
+description: No local build, typecheck, or test runs for verification—deploy and confirm on production only
+alwaysApply: true
+---
+
+# Deploy-Only Verification (No Local Build / Test Loop)
+
+**CRITICAL**: For routine work, do **not** use local compile or automated test commands as the verification path. **Deploy, then verify on the live app only.**
+
+## Forbidden for routine verification (unless the user explicitly asks you to)
+
+- Do **not** run `npm run build`, `vite build`, `tsc --noEmit`, or workspace test commands (e.g. `vitest`, `npm test`) to “confirm” a change before or instead of production checks.
+- Do **not** instruct the user to run those commands for product verification.
+- Do **not** treat passing local build/tests as sufficient proof that the feature works in the real environment.
+
+You may still run **read-only** editor diagnostics (e.g. IDE/linter hints on touched files) when fixing obvious issues; that does **not** replace production verification.
+
+## Required workflow
+
+1. **Deploy to production** using the project’s normal process (e.g. `git push heroku main:master` — align with `test-and-deploy-production.mdc` when relevant).
+2. **Verify only on** `https://ail.mysalesforcedemo.com` — browser automation against that host, or the user confirming behavior and pasting production console/network errors. Canonical URL is defined in `production-url.mdc`.
+3. **Logs**: use `heroku logs` when needed; do **not** present `*.herokuapp.com` as the “live site” URL to the user.
+
+## Tradeoff
+
+Skipping pre-deploy builds/tests means broken deploys or runtime-only failures are more likely; the user accepts that in exchange for this workflow.
+
+## When the user explicitly asks
+
+If they ask for a local build, typecheck, or test run, run or suggest **only** what they requested.

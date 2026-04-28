@@ -202,8 +202,11 @@ export function BuildDetailPage() {
         </div>
       </div>
       <p className="text-sm text-(--color-text-muted)">
-        {build.status} · {build.visibility} · Owner {build.owner.name ?? `#${build.owner.id}`} · Updated{" "}
-        {new Date(build.updatedAt).toLocaleString()}
+        {build.status} · {build.visibility} · Owner{" "}
+        <Link to={`/users/${build.owner.id}`} className="font-medium text-(--color-primary) underline-offset-2 hover:underline">
+          {build.owner.name ?? `#${build.owner.id}`}
+        </Link>{" "}
+        · Updated {new Date(build.updatedAt).toLocaleString()}
       </p>
       <div className="mt-2">
         <PromptAverageStars value={averageRating} size="md" />

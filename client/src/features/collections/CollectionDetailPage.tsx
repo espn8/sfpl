@@ -5,9 +5,10 @@ import { trackEvent } from "../../app/analytics";
 import { useToast } from "../../app/providers/ToastProvider";
 import { AssetDetailActionBar } from "../../components/AssetDetailActionBar";
 import { buildShareUrl, copyToClipboard, shareOrCopyLink } from "../../lib/shareOrCopyLink";
-import { deleteCollection, getCollection, removePromptFromCollection, updateCollection } from "./api";
+import { deleteCollection, getCollection, removePromptFromCollection, removeUserFromCollection, updateCollection } from "./api";
 import { PromptThumbnail } from "../prompts/PromptThumbnail";
 import { CopyIcon, ShareIcon } from "../prompts/promptActionIcons";
+import { promptOwnerAvatarUrl } from "../prompts/promptTagChips";
 
 export function CollectionDetailPage() {
   const params = useParams();
@@ -32,6 +33,16 @@ export function CollectionDetailPage() {
     },
     onError: () => {
       setMessage("Could not update collection.");
+    },
+  });
+  const removeUserMutation = useMutation({
+    mutationFn: (userId: number) => removeUserFromCollection(collectionId, userId),
+    onSuccess: async () => {
+      trackEvent("collection_user_remove", { collection_id: collectionId });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["collection", collectionId] }),
+        queryClient.invalidateQueries({ queryKey: ["collections"] }),
+      ]);
     },
   });
   const removePromptMutation = useMutation({
@@ -148,6 +159,39 @@ export function CollectionDetailPage() {
         </div>
       </form>
       <div className="space-y-2">
+        <h3 className="text-sm font-semibold text-(--color-text)">People</h3>
+        {!collection.users?.length ? (
+          <p className="text-(--color-text-muted)">No people in this collection yet.</p>
+        ) : (
+          collection.users.map((entry) => (
+            <div key={entry.user.id} className="flex items-center justify-between rounded border border-(--color-border) bg-(--color-surface) p-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <img
+                  src={promptOwnerAvatarUrl(entry.user)}
+                  alt=""
+                  className="h-12 w-12 shrink-0 rounded-full border border-(--color-border) bg-(--color-surface-muted) object-cover"
+                />
+                <Link to={`/users/${entry.user.id}`} className="link min-w-0 truncate font-medium">
+                  {entry.user.name ?? entry.user.email}
+                </Link>
+              </div>
+              <button
+                type="button"
+                disabled={removeUserMutation.isPending}
+                className="rounded border border-(--color-border) bg-(--color-surface-muted) px-2 py-1 text-xs"
+                onClick={() => {
+                  removeUserMutation.mutate(entry.user.id);
+                }}
+              >
+                Remove
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <h3 className="text-sm font-semibold text-(--color-text)">Prompts</h3>
         {collection.prompts.length === 0 ? (
           <p className="text-(--color-text-muted)">No prompts in this collection yet.</p>
         ) : (

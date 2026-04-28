@@ -19,15 +19,10 @@ Do NOT do any of the following:
 
 ## Required Workflow
 
-1. **Code verification (local, no server)**:
-   - TypeScript: `npm --prefix client run build` or `tsc --noEmit`
-   - Lint: use the ReadLints tool
-   - Unit/integration tests only
-
-2. **Deploy to production**:
+1. **Deploy to production**:
    - `git push heroku main:master`
 
-3. **Verify in production**:
+2. **Verify in production** (no local build/test as the default loop — see `deploy-only-verification.mdc`):
    - `heroku logs --tail --app <app>`
    - Use browser tool against the PRODUCTION URL only: `https://ail.mysalesforcedemo.com`
    - Do NOT use `*.herokuapp.com` URLs — always use `https://ail.mysalesforcedemo.com`
@@ -37,8 +32,7 @@ Do NOT do any of the following:
 
 - User shares production console errors (e.g. minified `index-*.js` stack traces)
 - Fix the source
-- Verify compilation cleanly: `npm --prefix client run build`
-- Commit and deploy; verify in production
+- Commit and deploy; verify on `https://ail.mysalesforcedemo.com` (do not default to local build/test — `deploy-only-verification.mdc`)
 
 ## When In Doubt
 

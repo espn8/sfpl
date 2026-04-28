@@ -11,6 +11,7 @@ const mockPromptCount = vi.fn();
 const mockSkillCount = vi.fn();
 const mockContextCount = vi.fn();
 const mockBuildCount = vi.fn();
+const mockUserFindFirst = vi.fn();
 const mockUserCount = vi.fn();
 const mockUsageEventCount = vi.fn();
 
@@ -63,7 +64,7 @@ vi.mock("../src/lib/prisma", () => ({
     skillRating: { findMany: noopFindMany, groupBy: noopGroupBy },
     contextRating: { findMany: noopFindMany, groupBy: noopGroupBy },
     buildRating: { findMany: noopFindMany, groupBy: noopGroupBy },
-    user: { count: mockUserCount },
+    user: { count: mockUserCount, findFirst: mockUserFindFirst },
   },
 }));
 
@@ -419,5 +420,39 @@ describe("GET /api/assets payload shape", () => {
 
     const size = Buffer.byteLength(JSON.stringify(response.body), "utf8");
     expect(size).toBeLessThan(50 * 1024);
+  });
+
+  it("returns 400 when mine and ownerId are combined", async () => {
+    const { createApp } = await import("../src/app");
+    const app = createApp({ sessionStore: new session.MemoryStore() });
+    const response = await request(app).get("/api/assets?sort=recent&mine=true&ownerId=2");
+    expect(response.status).toBe(400);
+  });
+
+  it("returns 404 when ownerId user is not on the team", async () => {
+    mockUserFindFirst.mockResolvedValueOnce(null);
+    const { createApp } = await import("../src/app");
+    const app = createApp({ sessionStore: new session.MemoryStore() });
+    const response = await request(app).get("/api/assets?sort=recent&ownerId=99");
+    expect(response.status).toBe(404);
+  });
+
+  it("scopes catalog queries by ownerId when provided", async () => {
+    mockUserFindFirst.mockResolvedValueOnce({ id: 7 });
+    const { createApp } = await import("../src/app");
+    const app = createApp({ sessionStore: new session.MemoryStore() });
+    const response = await request(app).get("/api/assets?sort=recent&ownerId=7");
+    expect(response.status).toBe(200);
+    const promptWhere = mockPromptFindMany.mock.calls[0]?.[0]?.where as { ownerId?: number };
+    expect(promptWhere.ownerId).toBe(7);
+  });
+
+  it("sets Cache-Control to no-store for ownerId profile lists", async () => {
+    mockUserFindFirst.mockResolvedValueOnce({ id: 7 });
+    const { createApp } = await import("../src/app");
+    const app = createApp({ sessionStore: new session.MemoryStore() });
+    const response = await request(app).get("/api/assets?sort=recent&ownerId=7");
+    expect(response.status).toBe(200);
+    expect(response.headers["cache-control"]).toBe("private, no-store");
   });
 });

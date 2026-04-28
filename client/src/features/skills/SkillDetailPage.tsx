@@ -223,8 +223,11 @@ export function SkillDetailPage() {
         </div>
       </div>
       <p className="text-sm text-(--color-text-muted)">
-        {skill.status} · {skill.visibility} · Owner {skill.owner.name ?? `#${skill.owner.id}`} · Updated{" "}
-        {new Date(skill.updatedAt).toLocaleString()}
+        {skill.status} · {skill.visibility} · Owner{" "}
+        <Link to={`/users/${skill.owner.id}`} className="font-medium text-(--color-primary) underline-offset-2 hover:underline">
+          {skill.owner.name ?? `#${skill.owner.id}`}
+        </Link>{" "}
+        · Updated {new Date(skill.updatedAt).toLocaleString()}
       </p>
       <div className="mt-2">
         <PromptAverageStars value={averageRating} size="md" />

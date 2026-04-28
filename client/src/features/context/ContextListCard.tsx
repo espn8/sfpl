@@ -121,50 +121,56 @@ export function ContextListCard({ context, variant = "default", showAnalytics = 
               favoriteCount={context.favoriteCount}
             />
           </div>
-          <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-(--color-text-muted)">
-            <span className="flex min-w-0 items-center gap-2">
-              <img
-                src={promptOwnerAvatarUrl(context.owner)}
-                alt=""
-                className="h-7 w-7 shrink-0 rounded-full border border-(--color-border) bg-(--color-surface-muted) object-cover"
-              />
-              <span className="truncate font-medium text-(--color-text)">{context.owner.name ?? "Unknown"}</span>
-            </span>
-            <span className="text-(--color-border)" aria-hidden>
-              ·
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <EyeIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              <span>{(context.viewCount ?? 0).toLocaleString()} views</span>
-            </span>
-            <span className="text-(--color-border)" aria-hidden>
-              ·
-            </span>
-            <span className="inline-flex items-center gap-1" title={`Created ${new Date(context.createdAt).toLocaleString()}`}>
-              <CalendarIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              <span>{activityLabel || "—"}</span>
-            </span>
-          </div>
+        </Link>
+        <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-(--color-text-muted)">
+          <Link
+            to={`/users/${context.owner.id}`}
+            className="flex min-w-0 max-w-full items-center gap-2 rounded outline-none hover:text-(--color-primary) focus-visible:ring-2 focus-visible:ring-(--color-primary)"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={promptOwnerAvatarUrl(context.owner)}
+              alt=""
+              className="h-7 w-7 shrink-0 rounded-full border border-(--color-border) bg-(--color-surface-muted) object-cover"
+            />
+            <span className="truncate font-medium text-(--color-text)">{context.owner.name ?? "Unknown"}</span>
+          </Link>
+          <span className="text-(--color-border)" aria-hidden>
+            ·
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <EyeIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            <span>{(context.viewCount ?? 0).toLocaleString()} views</span>
+          </span>
+          <span className="text-(--color-border)" aria-hidden>
+            ·
+          </span>
+          <span className="inline-flex items-center gap-1" title={`Created ${new Date(context.createdAt).toLocaleString()}`}>
+            <CalendarIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            <span>{activityLabel || "—"}</span>
+          </span>
+        </div>
+        <Link to={`/context/${context.id}`} className="block">
           <p
             className="mt-2 line-clamp-2 text-sm text-(--color-text-muted)"
           >
             {context.summary ?? (variant === "featured" ? "No summary yet" : "No summary")}
           </p>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <PromptAverageStars
-              value={context.averageRating ?? null}
-              size="sm"
-              ratingCount={context.ratingCount}
-              flagCounts={context.flagCounts}
-            />
-            <VerificationChip
-              status={context.status}
-              lastVerifiedAt={context.lastVerifiedAt}
-              verificationDueAt={context.verificationDueAt}
-              archiveReason={context.archiveReason}
-            />
-          </div>
         </Link>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <PromptAverageStars
+            value={context.averageRating ?? null}
+            size="sm"
+            ratingCount={context.ratingCount}
+            flagCounts={context.flagCounts}
+          />
+          <VerificationChip
+            status={context.status}
+            lastVerifiedAt={context.lastVerifiedAt}
+            verificationDueAt={context.verificationDueAt}
+            archiveReason={context.archiveReason}
+          />
+        </div>
 
         {toolChips.length > 0 ? (
           <div className="mt-3 flex flex-wrap gap-2">

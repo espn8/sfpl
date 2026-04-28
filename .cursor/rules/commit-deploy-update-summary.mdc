@@ -17,7 +17,7 @@ Update root `summary.md` with enough detail for a developer to rebuild the proje
 1. **Metadata & Versioning**
    - Add header lines:
      - `Last Updated: [Current Date/Time]`
-     - `Build Version: [Short Git Hash]` — **must match** `git rev-parse --short HEAD` on a clean tip after your work; see [summary-build-version-head](summary-build-version-head.mdc) (re-check after commits; add a tiny sync commit if the header lags `HEAD`).
+     - `Build Version: [Short Git Hash]` — **every run**, **must match** `git rev-parse --short HEAD` on a clean tip after commits that touch `summary.md`; see [summary-build-version-head](summary-build-version-head.mdc). Re-check after each commit; add a doc-only sync commit if the header lags `HEAD`.
    - Compare previous `summary.md` with current project state and write a **Recent Changes** section.
 
 2. **Technical Architecture**
@@ -41,10 +41,12 @@ Update root `summary.md` with enough detail for a developer to rebuild the proje
 ## Phase 2: Git & Deployment
 1. Stage all changes with `git add .`.
 2. Commit with a message based on **Recent Changes** from Phase 1.
-3. Verify branch, then deploy via `git push heroku main`.
-4. If Heroku push fails, stop and report the error log.
-5. If deploy succeeds, confirm the final `Last Updated` timestamp.
+3. **Build Version vs HEAD (required every time)** — Follow [summary-build-version-head](summary-build-version-head.mdc): after the commit (and any doc-only sync commit so **`Build Version`** matches **`git rev-parse --short HEAD`** on a clean tree), **always** run verify before pushing—no exceptions for small edits.
+4. Verify branch, then deploy via `git push heroku main`.
+5. If Heroku push fails, stop and report the error log.
+6. If deploy succeeds, confirm the final `Last Updated` timestamp.
 
 ## Execution Requirements
 - Perform end-to-end execution where feasible: summary update, commit, deploy, and validation.
+- **Build Version / HEAD** — On every run of this workflow, complete Phase 2 step 3 (sync commit if needed, verify grep matches `git rev-parse --short HEAD` on a clean tree) **before** deploy. Never push with `summary.md` committed unless that check passes.
 - If repository state blocks execution (for example not a git repo, missing remote, auth failure), stop at first blocker and report precise remediation.

@@ -36,6 +36,15 @@ export type Collection = {
       thumbnailStatus?: "PENDING" | "READY" | "FAILED";
     };
   }>;
+  users?: Array<{
+    user: {
+      id: number;
+      name: string | null;
+      email: string;
+      avatarUrl: string | null;
+      title: string | null;
+    };
+  }>;
 };
 
 export type CollectionListResponse = {
@@ -97,4 +106,12 @@ export async function addPromptToCollection(collectionId: number, promptId: numb
 
 export async function removePromptFromCollection(collectionId: number, promptId: number): Promise<void> {
   await apiClient.delete(`/api/collections/${collectionId}/prompts/${promptId}`);
+}
+
+export async function addUserToCollection(collectionId: number, userId: number): Promise<void> {
+  await apiClient.post(`/api/collections/${collectionId}/users/${userId}`);
+}
+
+export async function removeUserFromCollection(collectionId: number, userId: number): Promise<void> {
+  await apiClient.delete(`/api/collections/${collectionId}/users/${userId}`);
 }

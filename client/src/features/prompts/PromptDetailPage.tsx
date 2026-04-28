@@ -332,8 +332,11 @@ export function PromptDetailPage() {
         </div>
       ) : null}
       <p className="text-sm text-(--color-text-muted)">
-        {promptData.status} · {promptData.visibility} · Owner {owner.name ?? `#${owner.id}`} ·{" "}
-        {viewCount.toLocaleString()} views · Updated {new Date(promptData.updatedAt).toLocaleString()}
+        {promptData.status} · {promptData.visibility} · Owner{" "}
+        <Link to={`/users/${owner.id}`} className="font-medium text-(--color-primary) underline-offset-2 hover:underline">
+          {owner.name ?? `#${owner.id}`}
+        </Link>{" "}
+        · {viewCount.toLocaleString()} views · Updated {new Date(promptData.updatedAt).toLocaleString()}
       </p>
       <div className="mt-2">
         <PromptAverageStars

@@ -47,6 +47,19 @@ model User {
   toolRequestsReviewed ToolRequest[]
   apiKeys           ApiKey[]
   assetVerifications AssetVerification[]
+  userProfileFavoritesGiven    UserProfileFavorite[] @relation("UserProfileFavoritesGiven")
+  userProfileFavoritesReceived UserProfileFavorite[] @relation("UserProfileFavoritesReceived")
+}
+
+model UserProfileFavorite {
+  id           Int      @id @default(autoincrement())
+  fanUserId    Int
+  targetUserId Int
+  createdAt    DateTime @default(now())
+  fan          User     @relation("UserProfileFavoritesGiven", fields: [fanUserId], references: [id], onDelete: Cascade)
+  target       User     @relation("UserProfileFavoritesReceived", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@unique([fanUserId, targetUserId])
 }
 
 model Team {

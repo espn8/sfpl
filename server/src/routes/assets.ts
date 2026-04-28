@@ -86,6 +86,7 @@ const listAssetsQuerySchema = z.object({
   status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).optional(),
   sort: z.enum(["recent", "mostUsed", "name", "updatedAt", "topRated"]).optional(),
   mine: z.coerce.boolean().optional(),
+  ownerId: z.coerce.number().int().positive().optional(),
   includeAnalytics: z.coerce.boolean().optional(),
   page: z.coerce.number().int().positive().optional(),
   pageSize: z.coerce.number().int().positive().max(100).optional(),
@@ -151,6 +152,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
   const statusFilter = parsedQuery.data.status;
   const sort = parsedQuery.data.sort ?? "recent";
   const mine = parsedQuery.data.mine ?? false;
+  const ownerIdParam = parsedQuery.data.ownerId;
   const includeAnalytics = parsedQuery.data.includeAnalytics ?? false;
   const page = parsedQuery.data.page ?? 1;
   const pageSize = parsedQuery.data.pageSize ?? 20;
@@ -158,6 +160,27 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
   // HomePage's secondary (top-performers) call opts out with snapshot=false to
   // skip 6 team-wide count queries that don't vary between requests.
   const includeSnapshot = parsedQuery.data.snapshot ?? true;
+
+  if (mine && ownerIdParam !== undefined) {
+    return res.status(400).json({
+      error: {
+        code: "BAD_REQUEST",
+        message: "Cannot combine mine and ownerId filters.",
+      },
+    });
+  }
+
+  let profileOwnerId: number | undefined;
+  if (ownerIdParam !== undefined) {
+    const ownerUser = await prisma.user.findFirst({
+      where: { id: ownerIdParam, teamId: auth.teamId },
+      select: { id: true },
+    });
+    if (!ownerUser) {
+      return res.status(404).json({ error: { code: "NOT_FOUND", message: "User not found." } });
+    }
+    profileOwnerId = ownerUser.id;
+  }
 
   const includePrompts = assetType === "all" || assetType === "prompt";
   const includeSkills = assetType === "all" || assetType === "skill";
@@ -175,6 +198,9 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
       const fragment = buildVisibilityWhereFragment(auth) as Prisma.PromptWhereInput;
       if (fragment.OR) {
         where.AND = [fragment];
+      }
+      if (profileOwnerId !== undefined) {
+        where.ownerId = profileOwnerId;
       }
     }
     return where;
@@ -328,6 +354,9 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
       skillWhere.teamId = auth.teamId;
     } else {
       skillAnd.push(buildVisibilityWhereFragment(auth) as Prisma.SkillWhereInput);
+      if (profileOwnerId !== undefined) {
+        skillWhere.ownerId = profileOwnerId;
+      }
     }
     if (q) {
       skillAnd.push({
@@ -468,6 +497,9 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
       contextWhere.teamId = auth.teamId;
     } else {
       contextAnd.push(buildVisibilityWhereFragment(auth) as Prisma.ContextDocumentWhereInput);
+      if (profileOwnerId !== undefined) {
+        contextWhere.ownerId = profileOwnerId;
+      }
     }
     if (q) {
       contextAnd.push({
@@ -607,6 +639,9 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
       buildWhere.teamId = auth.teamId;
     } else {
       buildAnd.push(buildVisibilityWhereFragment(auth) as Prisma.BuildWhereInput);
+      if (profileOwnerId !== undefined) {
+        buildWhere.ownerId = profileOwnerId;
+      }
     }
     if (q) {
       buildAnd.push({
@@ -879,9 +914,9 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
 
   // Team-wide (non-mine) list responses are identical across users on the same
   // team for the same filter tuple, so browsers and intermediate caches can
-  // safely reuse them for a short window. "mine" and personalized responses
-  // (favorites, myRating) stay no-cache to avoid user-to-user bleed.
-  if (!mine) {
+  // safely reuse them for a short window. "mine", owner profile lists, and
+  // personalized responses (favorites, myRating) stay no-cache to avoid user-to-user bleed.
+  if (!mine && profileOwnerId === undefined) {
     res.set("Cache-Control", "private, max-age=30, must-revalidate");
   } else {
     res.set("Cache-Control", "private, no-store");
