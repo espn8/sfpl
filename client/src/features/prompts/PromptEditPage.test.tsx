@@ -14,6 +14,8 @@ vi.mock("../auth/api", () => ({
 
 vi.mock("../tags/api", () => ({
   listTags: vi.fn(),
+  submitTagRequest: vi.fn(),
+  createTag: vi.fn(),
 }));
 
 vi.mock("./api", () => ({

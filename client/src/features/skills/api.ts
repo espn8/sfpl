@@ -58,12 +58,14 @@ export type Skill = {
   verificationDueAt?: string | null;
   archivedAt?: string | null;
   archiveReason?: "MANUAL" | "UNVERIFIED" | "INACTIVE" | "LOW_RATING" | "PROFILE_INCOMPLETE" | null;
+  tags?: string[];
 };
 
 export type ListSkillsFilters = {
   q?: string;
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   tool?: string;
+  tag?: string;
   sort?: "recent" | "mostUsed";
   mine?: boolean;
   includeAnalytics?: boolean;
@@ -94,6 +96,7 @@ export type CreateSkillInput = {
   visibility?: "PUBLIC" | "TEAM" | "PRIVATE";
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   tools?: string[];
+  tagIds?: number[];
 };
 
 export async function createSkill(input: CreateSkillInput): Promise<Skill> {
@@ -109,6 +112,7 @@ export type UpdateSkillInput = Partial<{
   visibility: "PUBLIC" | "TEAM" | "PRIVATE";
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   tools: string[];
+  tagIds: number[];
 }>;
 
 export async function updateSkill(id: number, input: UpdateSkillInput): Promise<Skill> {

@@ -41,6 +41,7 @@ import {
   checkUpdatedSummaryLength,
 } from "../lib/summaryLimits";
 import { getWeekTopAssetKeySet, weekTopAssetKey } from "../services/weekTopAssets";
+import { validateTagIdsExist, buildTaggedWithWhere } from "../lib/assetTags";
 
 const buildThumbnailUploadsDir = path.resolve(__dirname, "../../public/uploads");
 if (!fs.existsSync(buildThumbnailUploadsDir)) {
@@ -98,6 +99,7 @@ function canAccessByVisibility(
 const listBuildsQuerySchema = z.object({
   q: z.string().trim().optional(),
   status: promptStatusSchema.optional(),
+  tag: z.string().trim().optional(),
   sort: z.enum(["recent", "mostUsed"]).optional(),
   mine: z.coerce.boolean().optional(),
   includeAnalytics: z.coerce.boolean().optional(),
@@ -127,6 +129,7 @@ const createBuildBodySchema = z.object({
   visibility: promptVisibilitySchema.optional(),
   status: promptStatusSchema.optional(),
   skipThumbnailGeneration: z.boolean().optional(),
+  tagIds: z.array(z.coerce.number().int().positive()).max(50).optional(),
 });
 
 const updateBuildBodySchema = z
@@ -138,6 +141,7 @@ const updateBuildBodySchema = z
     visibility: promptVisibilitySchema.optional(),
     status: promptStatusSchema.optional(),
     changelog: z.string().trim().optional(),
+    tagIds: z.array(z.coerce.number().int().positive()).max(50).optional(),
   })
   .refine(
     (value) => Object.values(value).some((item) => item !== undefined),
@@ -215,6 +219,7 @@ buildsRouter.get("/", async (req: Request, res: Response) => {
 
   const q = parsedQuery.data.q ?? "";
   const status = parsedQuery.data.status;
+  const tag = parsedQuery.data.tag;
   const sort = parsedQuery.data.sort ?? "recent";
   const mine = parsedQuery.data.mine ?? false;
   const includeAnalytics = parsedQuery.data.includeAnalytics ?? false;
@@ -243,6 +248,9 @@ buildsRouter.get("/", async (req: Request, res: Response) => {
       ],
     });
   }
+  if (tag) {
+    whereAnd.push(buildTaggedWithWhere(tag));
+  }
   if (whereAnd.length > 0) {
     where.AND = whereAnd;
   }
@@ -270,6 +278,7 @@ buildsRouter.get("/", async (req: Request, res: Response) => {
         createdAt: true,
         updatedAt: true,
         owner: { select: { id: true, name: true, avatarUrl: true } },
+        buildTags: { select: { tag: { select: { name: true } } } },
       },
       orderBy,
       skip,
@@ -323,10 +332,12 @@ buildsRouter.get("/", async (req: Request, res: Response) => {
     }
 
     const dataWithAnalytics = rows.map((row) => {
+      const { buildTags, ...rest } = row;
       const ratingInfo = ratingMap.get(row.id);
       const flagRows = flagRowsByBuild.get(row.id) ?? [];
       return {
-        ...serializeBuild(row),
+        ...serializeBuild(rest as typeof row),
+        tags: buildTags.map((s) => s.tag.name),
         viewCount: viewMap.get(row.id) ?? 0,
         copyCount: copyMap.get(row.id) ?? 0,
         favoriteCount: favoriteMap.get(row.id) ?? 0,
@@ -345,10 +356,14 @@ buildsRouter.get("/", async (req: Request, res: Response) => {
   }
 
   return res.status(200).json({
-    data: rows.map((row) => ({
-      ...serializeBuild(row),
-      isTopAssetThisWeek: weekTopKeys.has(weekTopAssetKey("build", row.id)),
-    })),
+    data: rows.map((row) => {
+      const { buildTags, ...rest } = row;
+      return {
+        ...serializeBuild(rest as typeof row),
+        tags: buildTags.map((s) => s.tag.name),
+        isTopAssetThisWeek: weekTopKeys.has(weekTopAssetKey("build", row.id)),
+      };
+    }),
     meta: { page, pageSize, total, totalPages },
   });
 });
@@ -364,7 +379,8 @@ buildsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
     return res.status(400).json(badRequestFromZodError(parsedBody.error));
   }
 
-  const { title, summary, buildUrl, supportUrl, visibility, status, skipThumbnailGeneration } = parsedBody.data;
+  const { title, summary, buildUrl, supportUrl, visibility, status, skipThumbnailGeneration, tagIds } =
+    parsedBody.data;
 
   const duplicateCheck = await checkBuildDuplicates(title, buildUrl);
   if (duplicateCheck.hasDuplicate) {
@@ -405,10 +421,36 @@ buildsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
     void queueBuildThumbnailGeneration(build.id);
   }
 
+  if (tagIds && tagIds.length > 0) {
+    const ok = await validateTagIdsExist(tagIds);
+    if (!ok) {
+      await prisma.build.delete({ where: { id: build.id } });
+      return res.status(400).json({
+        error: { code: "BAD_REQUEST", message: "One or more tags are invalid." },
+      });
+    }
+    await prisma.buildTag.createMany({
+      data: [...new Set(tagIds)].map((tid) => ({ buildId: build.id, tagId: tid })),
+    });
+  }
+
+  const buildOut = await prisma.build.findUnique({
+    where: { id: build.id },
+    include: {
+      owner: { select: { id: true, name: true, avatarUrl: true } },
+      buildTags: { include: { tag: true } },
+    },
+  });
+  if (!buildOut) {
+    return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Build create failed." } });
+  }
+  const { buildTags, ...buildRow } = buildOut;
+
   return res.status(201).json({
     data: {
-      ...serializeBuild(build),
-      thumbnailStatus: build.thumbnailStatus as ThumbnailStatusValue,
+      ...serializeBuild(buildRow as typeof buildOut),
+      thumbnailStatus: buildOut.thumbnailStatus as ThumbnailStatusValue,
+      tags: buildTags.map((item: { tag: { name: string } }) => item.tag.name),
     },
   });
 });
@@ -444,6 +486,7 @@ buildsRouter.get("/:id", async (req: Request, res: Response) => {
       createdAt: true,
       updatedAt: true,
       owner: { select: { id: true, name: true, avatarUrl: true, ou: true } },
+      buildTags: { include: { tag: true } },
     },
   });
 
@@ -471,10 +514,13 @@ buildsRouter.get("/:id", async (req: Request, res: Response) => {
     ? ratings.reduce((sum, r) => sum + r.value, 0) / ratings.length
     : null;
 
+  const { buildTags, ...buildRest } = build;
+
   return res.status(200).json({
     data: {
-      ...serializeBuild(build),
+      ...serializeBuild(buildRest as typeof build),
       thumbnailStatus: build.thumbnailStatus as ThumbnailStatusValue,
+      tags: buildTags.map((item: { tag: { name: string } }) => item.tag.name),
       viewCount,
       copyCount,
       favoriteCount,
@@ -513,6 +559,12 @@ buildsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respons
 
   if (!canMutateTeamScopedAsset(existing, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can modify this build." } });
+  }
+
+  if (parsedBody.data.tagIds !== undefined && auth.userId !== existing.ownerId) {
+    return res.status(403).json({
+      error: { code: "FORBIDDEN", message: "Only the asset owner can change tags." },
+    });
   }
 
   const u = parsedBody.data;
@@ -576,10 +628,49 @@ buildsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respons
     },
     include: {
       owner: { select: { id: true, name: true, avatarUrl: true } },
+      buildTags: { include: { tag: true } },
     },
   });
 
-  return res.status(200).json({ data: serializeBuild(updated) });
+  if (u.tagIds !== undefined) {
+    const uniqueTagIds = [...new Set(u.tagIds)];
+    if (uniqueTagIds.length > 0) {
+      const ok = await validateTagIdsExist(uniqueTagIds);
+      if (!ok) {
+        return res.status(400).json({
+          error: { code: "BAD_REQUEST", message: "One or more tags are invalid." },
+        });
+      }
+    }
+    const steps: Prisma.PrismaPromise<unknown>[] = [prisma.buildTag.deleteMany({ where: { buildId } })];
+    if (uniqueTagIds.length > 0) {
+      steps.push(
+        prisma.buildTag.createMany({
+          data: uniqueTagIds.map((tagId) => ({ buildId, tagId })),
+        }),
+      );
+    }
+    await prisma.$transaction(steps);
+  }
+
+  const out = await prisma.build.findUnique({
+    where: { id: buildId },
+    include: {
+      owner: { select: { id: true, name: true, avatarUrl: true } },
+      buildTags: { include: { tag: true } },
+    },
+  });
+  if (!out) {
+    return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Update failed." } });
+  }
+  const { buildTags: outTags, ...outRest } = out;
+
+  return res.status(200).json({
+    data: {
+      ...serializeBuild(outRest as typeof out),
+      tags: outTags.map((item: { tag: { name: string } }) => item.tag.name),
+    },
+  });
 });
 
 buildsRouter.delete("/:id", requireWriteAccess, async (req: Request, res: Response) => {

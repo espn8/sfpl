@@ -4,6 +4,7 @@ import { AxiosError } from "axios";
 import { apiClient } from "../../api/client";
 import { useToast } from "../../app/providers/ToastProvider";
 import { listToolRequests } from "./api";
+import { listTagRequests } from "../tags/api";
 
 type ToolStatus = "ready" | "coming_soon";
 
@@ -47,6 +48,12 @@ export function AdminDashboardPage() {
     select: (result) => result.meta.total,
   });
 
+  const pendingTagRequestsQuery = useQuery({
+    queryKey: ["tag-requests", { status: "PENDING" }],
+    queryFn: () => listTagRequests({ status: "PENDING", pageSize: 1 }),
+    select: (result) => result.meta.total,
+  });
+
   const refreshSystemCollections = useMutation({
     mutationFn: async () => {
       await apiClient.post("/api/collections/system/refresh", {});
@@ -71,6 +78,11 @@ export function AdminDashboardPage() {
       ? `${pendingCountQuery.data} pending`
       : undefined;
 
+  const pendingTagBadge =
+    typeof pendingTagRequestsQuery.data === "number" && pendingTagRequestsQuery.data > 0
+      ? `${pendingTagRequestsQuery.data} pending`
+      : undefined;
+
   const tools: AdminTool[] = [
     {
       id: "analytics",
@@ -90,6 +102,15 @@ export function AdminDashboardPage() {
       icon: (
         <Icon d="M9 11l3 3L22 4 M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
       ),
+    },
+    {
+      id: "tag-requests",
+      title: "Tag Requests",
+      description: "Review requests for new global tags used across prompts, skills, context, and builds.",
+      to: "/admin/tag-requests",
+      status: "ready",
+      badge: pendingTagBadge,
+      icon: <Icon d="M20.6 13.4l-8-8a2 2 0 0 0-2.8 0l-8 8a2 2 0 1 0 2.8 2.8L12 10.8l7.8 7.8a2 2 0 1 0 2.8-2.8z" />,
     },
     {
       id: "governance",

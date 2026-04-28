@@ -49,6 +49,7 @@ export type UnifiedAsset = {
   myRating?: number | null;
   variables?: AssetVariable[];
   isSmartPick?: boolean;
+  tags?: string[];
   flagCounts?: Partial<Record<FeedbackFlag, number>>;
   lastVerifiedAt?: string | null;
   verificationDueAt?: string | null;
@@ -68,6 +69,8 @@ export type ListAssetsFilters = {
   page?: number;
   pageSize?: number;
   snapshot?: boolean;
+  /** Global tag name; matches server `GET /api/assets?tag=`. */
+  tag?: string;
 };
 
 export type ListAssetsSnapshot = {

@@ -13,6 +13,8 @@ export type SearchFilters = {
   collectionId: string;
   mine: boolean;
   status: AssetStatus | "";
+  /** Global tag name filter (matches server `GET /api/assets?tag=`). */
+  tag: string;
 };
 
 export type ActiveFilter = {
@@ -30,6 +32,7 @@ export const DEFAULT_FILTERS: SearchFilters = {
   collectionId: "",
   mine: false,
   status: "",
+  tag: "",
 };
 
 export type SearchSuggestion = {

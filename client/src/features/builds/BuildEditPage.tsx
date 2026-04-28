@@ -7,6 +7,8 @@ import { sanitizeTitle } from "../../lib/sanitizeTitle";
 import { SummaryField } from "../assets/SummaryField";
 import { fetchMe } from "../auth/api";
 import { canPermanentlyDeleteAsset } from "../auth/roles";
+import { AssetTagsField } from "../tags/AssetTagsField";
+import { listTags } from "../tags/api";
 import {
   deleteBuildPermanently,
   getBuild,
@@ -29,6 +31,12 @@ export function BuildEditPage() {
   const [thumbnailError, setThumbnailError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
+
+  const tagsCatalogQuery = useQuery({
+    queryKey: ["tags", "picker"],
+    queryFn: () => listTags({ limit: 500 }),
+  });
 
   useEffect(() => {
     if (!thumbnailFile) {
@@ -90,6 +98,14 @@ export function BuildEditPage() {
     },
   });
 
+  useEffect(() => {
+    const b = buildQuery.data;
+    const catalog = tagsCatalogQuery.data;
+    if (!b?.tags || !catalog) return;
+    const nameSet = new Set(b.tags);
+    setSelectedTagIds(catalog.filter((t) => nameSet.has(t.name)).map((t) => t.id));
+  }, [buildQuery.data?.id, buildQuery.data?.tags, tagsCatalogQuery.data]);
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setThumbnailError(null);
     const file = event.target.files?.[0] ?? null;
@@ -142,6 +158,7 @@ export function BuildEditPage() {
   const build = buildQuery.data;
   const me = meQuery.data;
   const canDeleteAsset = me != null && canPermanentlyDeleteAsset(me.role, me.id, build.owner.id);
+  const isOwner = me != null && me.id === build.owner.id;
 
   return (
     <div className="space-y-4">
@@ -269,6 +286,7 @@ export function BuildEditPage() {
           supportUrl: supportUrl || undefined,
           status,
           visibility,
+          ...(isOwner ? { tagIds: selectedTagIds } : {}),
         });
       }}
     >
@@ -311,7 +329,14 @@ export function BuildEditPage() {
           <option value="PRIVATE">Private (Only Me)</option>
         </select>
       </div>
-      
+
+      <AssetTagsField
+        canEdit={isOwner}
+        selectedIds={selectedTagIds}
+        onChange={setSelectedTagIds}
+        readOnlyTagNames={build.tags}
+      />
+
       <div className="space-y-3 rounded border border-(--color-border) bg-(--color-surface-muted) p-4">
         <div>
           <label className="block text-sm font-medium mb-1">

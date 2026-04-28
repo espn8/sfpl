@@ -131,6 +131,11 @@ export function AssetCard({ asset, variant = "default", showAnalytics = false, h
       }).slice(0, 6)
     : asset.tools.map((tool) => getToolLabel(tool as Parameters<typeof getToolLabel>[0])).slice(0, 4);
 
+  const chips: { label: string; isTag: boolean }[] = [
+    ...(asset.tags ?? []).map((t) => ({ label: t, isTag: true as const })),
+    ...toolChips.map((label) => ({ label, isTag: false as const })),
+  ].slice(0, 10);
+
   const shareUrl =
     typeof window !== "undefined" ? `${window.location.origin}${detailPath}` : detailPath;
 
@@ -297,14 +302,18 @@ export function AssetCard({ asset, variant = "default", showAnalytics = false, h
           </p>
         </Link>
 
-        {toolChips.length > 0 ? (
+        {chips.length > 0 ? (
           <div className="mt-3 flex flex-wrap gap-2">
-            {toolChips.map((label, index) => (
+            {chips.map((chip, index) => (
               <span
-                key={`${index}-${label}`}
-                className="rounded-full bg-(--color-text-inverse) px-2.5 py-0.5 text-xs font-medium text-(--color-bg)"
+                key={`${index}-${chip.label}-${chip.isTag ? "t" : "m"}`}
+                className={
+                  chip.isTag
+                    ? "rounded-full border border-(--color-primary)/30 bg-(--color-primary)/5 px-2.5 py-0.5 text-xs font-medium text-(--color-primary)"
+                    : "rounded-full bg-(--color-text-inverse) px-2.5 py-0.5 text-xs font-medium text-(--color-bg)"
+                }
               >
-                {label}
+                {chip.label}
               </span>
             ))}
           </div>

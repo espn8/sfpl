@@ -12,7 +12,7 @@ import { sanitizeTitle } from "../../lib/sanitizeTitle";
 import { fetchMe } from "../auth/api";
 import { canPermanentlyDeleteAsset } from "../auth/roles";
 import { SummaryField } from "../assets/SummaryField";
-import { listTags } from "../tags/api";
+import { AssetTagsField } from "../tags/AssetTagsField";
 import {
   getPrompt,
   deletePromptPermanently,
@@ -81,11 +81,6 @@ export function PromptEditPage() {
     queryFn: fetchMe,
   });
 
-  const tagsQuery = useQuery({
-    queryKey: ["tags"],
-    queryFn: listTags,
-  });
-
   const updateMutation = useMutation({
     mutationFn: async (payload: {
       title: string;
@@ -96,7 +91,7 @@ export function PromptEditPage() {
       tools: PromptTool[];
       modality: PromptModality;
       modelHint: string | null;
-      tagIds: number[];
+      tagIds?: number[];
       changelog?: string;
     }) => {
       await updatePrompt(promptId, payload);
@@ -192,6 +187,9 @@ export function PromptEditPage() {
         ? prompt.ownerId
         : undefined;
   const canDeleteAsset = me != null && canPermanentlyDeleteAsset(me.role, me.id, ownerUserId);
+  const isOwner = me != null && ownerUserId != null && me.id === ownerUserId;
+  const readOnlyTagNames =
+    prompt.tags ?? (prompt.promptTags?.map((p) => p.tag.name) ?? []);
 
   return (
     <form
@@ -227,7 +225,7 @@ export function PromptEditPage() {
           tools: toolsArray,
           modality: modality as PromptModality,
           modelHint,
-          tagIds: selectedTagIds,
+          ...(isOwner ? { tagIds: selectedTagIds } : {}),
           changelog: changelog.length > 0 ? changelog : undefined,
         });
       }}
@@ -361,38 +359,12 @@ export function PromptEditPage() {
         )}
         <ToolRequestModal isOpen={showToolRequestModal} onClose={() => setShowToolRequestModal(false)} />
       </div>
-      <div className="space-y-2 rounded border border-(--color-border) bg-(--color-surface-muted) p-3">
-        <p className="text-sm font-medium">Tags</p>
-        {tagsQuery.isLoading ? <p className="text-xs text-(--color-text-muted)">Loading tags…</p> : null}
-        {!tagsQuery.isLoading && !tagsQuery.data?.length ? (
-          <p className="text-xs text-(--color-text-muted)">
-            No workspace tags yet. Add tags when filtering the library, or ask an admin to seed tags.
-          </p>
-        ) : null}
-        {tagsQuery.data && tagsQuery.data.length > 0 ? (
-          <div className="flex flex-wrap gap-x-4 gap-y-2">
-            {tagsQuery.data.map((tag) => (
-              <label key={tag.id} className="flex cursor-pointer items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={selectedTagIds.includes(tag.id)}
-                  onChange={(event) => {
-                    const checked = event.target.checked;
-                    setSelectedTagIds((current) =>
-                      checked
-                        ? current.includes(tag.id)
-                          ? current
-                          : [...current, tag.id]
-                        : current.filter((id) => id !== tag.id),
-                    );
-                  }}
-                />
-                <span>{tag.name}</span>
-              </label>
-            ))}
-          </div>
-        ) : null}
-      </div>
+      <AssetTagsField
+        canEdit={isOwner}
+        selectedIds={selectedTagIds}
+        onChange={setSelectedTagIds}
+        readOnlyTagNames={readOnlyTagNames}
+      />
       <textarea
         ref={bodyRef}
         name="body"

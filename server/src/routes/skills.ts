@@ -37,6 +37,7 @@ import {
   checkUpdatedSummaryLength,
 } from "../lib/summaryLimits";
 import { ARCHIVE_EXTENSIONS, isValidSkillPackageUrl, SLACK_ENTERPRISE_SKILL_DOCS_URL_PREFIX } from "../lib/skillUrl";
+import { validateTagIdsExist, skillTaggedWithWhere } from "../lib/assetTags";
 import { getWeekTopAssetKeySet, weekTopAssetKey } from "../services/weekTopAssets";
 
 const skillsRouter = Router();
@@ -75,6 +76,7 @@ const listSkillsQuerySchema = z.object({
   q: z.string().trim().optional(),
   status: promptStatusSchema.optional(),
   tool: skillToolSchema.optional(),
+  tag: z.string().trim().optional(),
   sort: z.enum(["recent", "mostUsed"]).optional(),
   mine: z.coerce.boolean().optional(),
   includeAnalytics: z.coerce.boolean().optional(),
@@ -98,6 +100,7 @@ const createSkillBodySchema = z.object({
   visibility: promptVisibilitySchema.optional(),
   status: promptStatusSchema.optional(),
   tools: z.array(z.union([skillToolSchema, z.string()])).optional(),
+  tagIds: z.array(z.coerce.number().int().positive()).max(50).optional(),
 });
 
 const feedbackFlagSchema = z.enum(["WORKED_WELL", "DID_NOT_WORK", "INACCURATE", "OUTDATED", "OFF_TOPIC"]);
@@ -122,6 +125,7 @@ const updateSkillBodySchema = z
     status: promptStatusSchema.optional(),
     tools: z.array(z.union([skillToolSchema, z.string()])).optional(),
     changelog: z.string().trim().optional(),
+    tagIds: z.array(z.coerce.number().int().positive()).max(50).optional(),
   })
   .refine(
     (value) => Object.values(value).some((item) => item !== undefined),
@@ -200,6 +204,7 @@ skillsRouter.get("/", async (req: Request, res: Response) => {
   const q = parsedQuery.data.q ?? "";
   const status = parsedQuery.data.status;
   const tool = parsedQuery.data.tool;
+  const tag = parsedQuery.data.tag ?? "";
   const sort = parsedQuery.data.sort ?? "recent";
   const mine = parsedQuery.data.mine ?? false;
   const includeAnalytics = parsedQuery.data.includeAnalytics ?? false;
@@ -231,6 +236,9 @@ skillsRouter.get("/", async (req: Request, res: Response) => {
       ],
     });
   }
+  if (tag) {
+    whereAnd.push(skillTaggedWithWhere(tag));
+  }
   if (whereAnd.length > 0) {
     where.AND = whereAnd;
   }
@@ -259,6 +267,7 @@ skillsRouter.get("/", async (req: Request, res: Response) => {
         createdAt: true,
         updatedAt: true,
         owner: { select: { id: true, name: true, avatarUrl: true } },
+        skillTags: { select: { tag: { select: { name: true } } } },
       },
       orderBy,
       skip,
@@ -312,10 +321,12 @@ skillsRouter.get("/", async (req: Request, res: Response) => {
     }
 
     const dataWithAnalytics = rows.map((row) => {
+      const { skillTags, ...rest } = row;
       const ratingInfo = ratingMap.get(row.id);
       const flagRows = flagRowsBySkill.get(row.id) ?? [];
       return {
-        ...serializeSkill(row),
+        ...serializeSkill(rest as typeof row),
+        tags: skillTags.map((s) => s.tag.name),
         viewCount: viewMap.get(row.id) ?? 0,
         copyCount: copyMap.get(row.id) ?? 0,
         favoriteCount: favoriteMap.get(row.id) ?? 0,
@@ -334,10 +345,14 @@ skillsRouter.get("/", async (req: Request, res: Response) => {
   }
 
   return res.status(200).json({
-    data: rows.map((row) => ({
-      ...serializeSkill(row),
-      isTopAssetThisWeek: weekTopKeys.has(weekTopAssetKey("skill", row.id)),
-    })),
+    data: rows.map((row) => {
+      const { skillTags, ...rest } = row;
+      return {
+        ...serializeSkill(rest as typeof row),
+        tags: skillTags.map((s) => s.tag.name),
+        isTopAssetThisWeek: weekTopKeys.has(weekTopAssetKey("skill", row.id)),
+      };
+    }),
     meta: { page, pageSize, total, totalPages },
   });
 });
@@ -353,7 +368,7 @@ skillsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
     return res.status(400).json(badRequestFromZodError(parsedBody.error));
   }
 
-  const { title, summary, skillUrl, supportUrl, visibility, status, tools } = parsedBody.data;
+  const { title, summary, skillUrl, supportUrl, visibility, status, tools, tagIds } = parsedBody.data;
 
   const duplicateCheck = await checkSkillDuplicates(title, skillUrl);
   if (duplicateCheck.hasDuplicate) {
@@ -393,10 +408,36 @@ skillsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
 
   void queueSkillThumbnailGeneration(skill.id);
 
+  if (tagIds && tagIds.length > 0) {
+    const ok = await validateTagIdsExist(tagIds);
+    if (!ok) {
+      await prisma.skill.delete({ where: { id: skill.id } });
+      return res.status(400).json({
+        error: { code: "BAD_REQUEST", message: "One or more tags are invalid." },
+      });
+    }
+    await prisma.skillTag.createMany({
+      data: [...new Set(tagIds)].map((tid) => ({ skillId: skill.id, tagId: tid })),
+    });
+  }
+
+  const skillOut = await prisma.skill.findUnique({
+    where: { id: skill.id },
+    include: {
+      owner: { select: { id: true, name: true, avatarUrl: true } },
+      skillTags: { include: { tag: true } },
+    },
+  });
+  if (!skillOut) {
+    return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Skill create failed." } });
+  }
+  const { skillTags, ...skillRow } = skillOut;
+
   return res.status(201).json({
     data: {
-      ...serializeSkill(skill),
-      thumbnailStatus: skill.thumbnailStatus as ThumbnailStatusValue,
+      ...serializeSkill(skillRow as typeof skillOut),
+      thumbnailStatus: skillOut.thumbnailStatus as ThumbnailStatusValue,
+      tags: skillTags.map((item: { tag: { name: string } }) => item.tag.name),
     },
   });
 });
@@ -433,6 +474,7 @@ skillsRouter.get("/:id", async (req: Request, res: Response) => {
       createdAt: true,
       updatedAt: true,
       owner: { select: { id: true, name: true, avatarUrl: true, ou: true } },
+      skillTags: { include: { tag: true } },
     },
   });
 
@@ -460,10 +502,13 @@ skillsRouter.get("/:id", async (req: Request, res: Response) => {
     ? ratings.reduce((sum, r) => sum + r.value, 0) / ratings.length
     : null;
 
+  const { skillTags, ...skillRest } = skill;
+
   return res.status(200).json({
     data: {
-      ...serializeSkill(skill),
+      ...serializeSkill(skillRest as typeof skill),
       thumbnailStatus: skill.thumbnailStatus as ThumbnailStatusValue,
+      tags: skillTags.map((item: { tag: { name: string } }) => item.tag.name),
       viewCount,
       copyCount,
       favoriteCount,
@@ -502,6 +547,12 @@ skillsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respons
 
   if (!canMutateTeamScopedAsset(existing, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can modify this skill." } });
+  }
+
+  if (parsedBody.data.tagIds !== undefined && auth.userId !== existing.ownerId) {
+    return res.status(403).json({
+      error: { code: "FORBIDDEN", message: "Only the asset owner can change tags." },
+    });
   }
 
   const u = parsedBody.data;
@@ -569,7 +620,45 @@ skillsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respons
     },
   });
 
-  return res.status(200).json({ data: serializeSkill(updated) });
+  if (u.tagIds !== undefined) {
+    const uniqueTagIds = [...new Set(u.tagIds)];
+    if (uniqueTagIds.length > 0) {
+      const ok = await validateTagIdsExist(uniqueTagIds);
+      if (!ok) {
+        return res.status(400).json({
+          error: { code: "BAD_REQUEST", message: "One or more tags are invalid." },
+        });
+      }
+    }
+    const steps: Prisma.PrismaPromise<unknown>[] = [prisma.skillTag.deleteMany({ where: { skillId } })];
+    if (uniqueTagIds.length > 0) {
+      steps.push(
+        prisma.skillTag.createMany({
+          data: uniqueTagIds.map((tagId) => ({ skillId, tagId })),
+        }),
+      );
+    }
+    await prisma.$transaction(steps);
+  }
+
+  const out = await prisma.skill.findUnique({
+    where: { id: skillId },
+    include: {
+      owner: { select: { id: true, name: true, avatarUrl: true } },
+      skillTags: { include: { tag: true } },
+    },
+  });
+  if (!out) {
+    return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Update failed." } });
+  }
+  const { skillTags, ...skillRest } = out;
+
+  return res.status(200).json({
+    data: {
+      ...serializeSkill(skillRest as typeof out),
+      tags: skillTags.map((item: { tag: { name: string } }) => item.tag.name),
+    },
+  });
 });
 
 skillsRouter.delete("/:id", requireWriteAccess, async (req: Request, res: Response) => {

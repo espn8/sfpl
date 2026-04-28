@@ -9,6 +9,7 @@ import {
 import { PublishStatusModal } from "../../components/PublishStatusModal";
 import { sanitizeTitle } from "../../lib/sanitizeTitle";
 import { SummaryField } from "../assets/SummaryField";
+import { AssetTagsField } from "../tags/AssetTagsField";
 import { createBuild, uploadBuildThumbnail, type CreateBuildInput } from "./api";
 
 type PendingBuildData = {
@@ -17,6 +18,7 @@ type PendingBuildData = {
   buildUrl: string;
   supportUrl?: string;
   visibility: "PUBLIC" | "TEAM" | "PRIVATE";
+  tagIds?: number[];
 };
 
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
@@ -33,6 +35,7 @@ export function BuildEditorPage() {
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
   const [thumbnailError, setThumbnailError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
 
   useEffect(() => {
     if (!thumbnailFile) {
@@ -158,6 +161,7 @@ export function BuildEditorPage() {
           buildUrl,
           supportUrl: supportUrl || undefined,
           visibility,
+          tagIds: selectedTagIds,
         });
         setShowPublishModal(true);
       }}
@@ -186,7 +190,9 @@ export function BuildEditorPage() {
         <option value="TEAM">Team (My OU Only)</option>
         <option value="PRIVATE">Private (Only Me)</option>
       </select>
-      
+
+      <AssetTagsField canEdit selectedIds={selectedTagIds} onChange={setSelectedTagIds} />
+
       <div className="space-y-3 rounded border border-(--color-border) bg-(--color-surface-muted) p-4">
         <div>
           <label className="block text-sm font-medium mb-1">

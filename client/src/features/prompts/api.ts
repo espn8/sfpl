@@ -146,6 +146,7 @@ export type Prompt = {
   modality: PromptModality;
   modelHint?: string | null;
   variables?: PromptVariable[];
+  tags?: string[];
   promptTags?: Array<{
     tag: {
       id: number;

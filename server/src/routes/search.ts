@@ -60,7 +60,7 @@ type AssetSuggestion = {
 
 type FilterSuggestion = {
   type: "filter";
-  filterKey: "tool" | "assetType";
+  filterKey: "tool" | "assetType" | "tag";
   filterValue: string;
   label: string;
 };
@@ -117,6 +117,21 @@ searchRouter.get("/suggestions", async (req: Request, res: Response) => {
         label: `Type: ${label}`,
       });
     }
+  }
+
+  const matchingTagRows = await prisma.tag.findMany({
+    where: { name: { contains: q.trim(), mode: "insensitive" } },
+    select: { name: true },
+    orderBy: { name: "asc" },
+    take: 8,
+  });
+  for (const row of matchingTagRows) {
+    matchingFilters.push({
+      type: "filter",
+      filterKey: "tag",
+      filterValue: row.name,
+      label: `Tag: ${row.name}`,
+    });
   }
 
   const assetLimit = Math.max(1, limit - matchingFilters.length);

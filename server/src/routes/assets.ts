@@ -10,6 +10,12 @@ import { timeSection, recordTiming } from "../middleware/requestTiming";
 import { buildVisibilityWhereFragment } from "../lib/visibility";
 import { thumbnailRefFor } from "./thumbnails";
 import { getWeekTopAssetKeySet, weekTopAssetKey } from "../services/weekTopAssets";
+import {
+  promptTaggedWithWhere,
+  skillTaggedWithWhere,
+  contextTaggedWithWhere,
+  buildTaggedWithWhere,
+} from "../lib/assetTags";
 
 const assetsRouter = Router();
 
@@ -88,6 +94,7 @@ const listAssetsQuerySchema = z.object({
   mine: z.coerce.boolean().optional(),
   ownerId: z.coerce.number().int().positive().optional(),
   includeAnalytics: z.coerce.boolean().optional(),
+  tag: z.string().trim().optional(),
   page: z.coerce.number().int().positive().optional(),
   pageSize: z.coerce.number().int().positive().max(100).optional(),
   // NOTE: z.coerce.boolean() uses JS truthy semantics, which means the
@@ -130,6 +137,7 @@ type UnifiedAsset = {
   variables?: Array<{ key: string; label: string | null; defaultValue: string | null; required: boolean }>;
   isSmartPick?: boolean;
   isTopAssetThisWeek?: boolean;
+  tags?: string[];
 };
 
 assetsRouter.use(requireAuth);
@@ -153,6 +161,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
   const sort = parsedQuery.data.sort ?? "recent";
   const mine = parsedQuery.data.mine ?? false;
   const ownerIdParam = parsedQuery.data.ownerId;
+  const tagFilter = parsedQuery.data.tag?.trim();
   const includeAnalytics = parsedQuery.data.includeAnalytics ?? false;
   const page = parsedQuery.data.page ?? 1;
   const pageSize = parsedQuery.data.pageSize ?? 20;
@@ -240,6 +249,11 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
       promptWhere.status = "PUBLISHED";
     }
 
+    if (tagFilter) {
+      const existingAnd = Array.isArray(promptWhere.AND) ? promptWhere.AND : promptWhere.AND ? [promptWhere.AND] : [];
+      promptWhere.AND = [...existingAnd, promptTaggedWithWhere(tagFilter)];
+    }
+
     const promptOrderBy: Prisma.PromptOrderByWithRelationInput =
       sort === "mostUsed"
         ? { usageCount: "desc" as const }
@@ -269,6 +283,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
           owner: { select: { id: true, name: true, avatarUrl: true } },
           variables: { select: { key: true, label: true, defaultValue: true, required: true } },
           ratings: { select: { value: true } },
+          promptTags: { select: { tag: { select: { name: true } } } },
         },
         orderBy: promptOrderBy,
         take: pageSize * 3,
@@ -342,6 +357,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         myRating: myRatingByPrompt.get(prompt.id) ?? null,
         variables: prompt.variables,
         isSmartPick: prompt.isSmartPick,
+        tags: prompt.promptTags.map((pt) => pt.tag.name),
       });
     }
   }
@@ -377,6 +393,9 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
     } else {
       skillWhere.status = "PUBLISHED";
     }
+    if (tagFilter) {
+      skillAnd.push(skillTaggedWithWhere(tagFilter));
+    }
     if (skillAnd.length > 0) {
       skillWhere.AND = skillAnd;
     }
@@ -408,6 +427,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
           createdAt: true,
           updatedAt: true,
           owner: { select: { id: true, name: true, avatarUrl: true } },
+          skillTags: { select: { tag: { select: { name: true } } } },
         },
         orderBy: skillOrderBy,
         take: pageSize * 3,
@@ -485,6 +505,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         averageRating: ratingInfo?.avg ?? null,
         myRating: myRatingBySkill.get(skill.id) ?? null,
         isSmartPick: skill.isSmartPick,
+        tags: skill.skillTags.map((st) => st.tag.name),
       });
     }
   }
@@ -521,6 +542,9 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
     } else {
       contextWhere.status = "PUBLISHED";
     }
+    if (tagFilter) {
+      contextAnd.push(contextTaggedWithWhere(tagFilter));
+    }
     if (contextAnd.length > 0) {
       contextWhere.AND = contextAnd;
     }
@@ -551,6 +575,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
           updatedAt: true,
           owner: { select: { id: true, name: true, avatarUrl: true } },
           variables: { select: { key: true, label: true, defaultValue: true, required: true } },
+          contextTags: { select: { tag: { select: { name: true } } } },
         },
         orderBy: contextOrderBy,
         take: pageSize * 3,
@@ -627,6 +652,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         myRating: myRatingByContext.get(doc.id) ?? null,
         variables: doc.variables,
         isSmartPick: doc.isSmartPick,
+        tags: doc.contextTags.map((ct) => ct.tag.name),
       });
     }
   }
@@ -659,6 +685,9 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
     } else {
       buildWhere.status = "PUBLISHED";
     }
+    if (tagFilter) {
+      buildAnd.push(buildTaggedWithWhere(tagFilter));
+    }
     if (buildAnd.length > 0) {
       buildWhere.AND = buildAnd;
     }
@@ -689,6 +718,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
           createdAt: true,
           updatedAt: true,
           owner: { select: { id: true, name: true, avatarUrl: true } },
+          buildTags: { select: { tag: { select: { name: true } } } },
         },
         orderBy: buildOrderBy,
         take: pageSize * 3,
@@ -767,6 +797,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         averageRating: ratingInfo?.avg ?? null,
         myRating: myRatingByBuild.get(build.id) ?? null,
         isSmartPick: build.isSmartPick,
+        tags: build.buildTags.map((bt) => bt.tag.name),
       });
     }
   }

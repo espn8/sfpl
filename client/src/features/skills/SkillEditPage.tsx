@@ -7,6 +7,8 @@ import { sanitizeTitle } from "../../lib/sanitizeTitle";
 import { SummaryField } from "../assets/SummaryField";
 import { fetchMe } from "../auth/api";
 import { canPermanentlyDeleteAsset } from "../auth/roles";
+import { AssetTagsField } from "../tags/AssetTagsField";
+import { listTags } from "../tags/api";
 import { ToolRequestModal } from "../prompts/ToolRequestModal";
 import {
   deleteSkillPermanently,
@@ -31,6 +33,12 @@ export function SkillEditPage() {
   const [skillUrl, setSkillUrl] = useState("");
   const [supportUrl, setSupportUrl] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
+
+  const tagsCatalogQuery = useQuery({
+    queryKey: ["tags", "picker"],
+    queryFn: () => listTags({ limit: 500 }),
+  });
 
   const isValidUrl = (url: string): boolean => {
     try {
@@ -58,6 +66,14 @@ export function SkillEditPage() {
       setSupportUrl(skillQuery.data.supportUrl ?? "");
     }
   }, [skillQuery.data?.id]);
+
+  useEffect(() => {
+    const skill = skillQuery.data;
+    const catalog = tagsCatalogQuery.data;
+    if (!skill?.tags || !catalog) return;
+    const nameSet = new Set(skill.tags);
+    setSelectedTagIds(catalog.filter((t) => nameSet.has(t.name)).map((t) => t.id));
+  }, [skillQuery.data?.id, skillQuery.data?.tags, tagsCatalogQuery.data]);
 
   const updateMutation = useMutation({
     mutationFn: (payload: Parameters<typeof updateSkill>[1]) => updateSkill(skillId, payload),
@@ -91,6 +107,7 @@ export function SkillEditPage() {
   const skill = skillQuery.data;
   const me = meQuery.data;
   const canDeleteAsset = me != null && canPermanentlyDeleteAsset(me.role, me.id, skill.owner.id);
+  const isOwner = me != null && me.id === skill.owner.id;
 
   return (
     <form
@@ -145,6 +162,7 @@ export function SkillEditPage() {
           status,
           visibility,
           tools: toolsArray,
+          ...(isOwner ? { tagIds: selectedTagIds } : {}),
         });
       }}
     >
@@ -235,6 +253,13 @@ export function SkillEditPage() {
         )}
         <ToolRequestModal isOpen={showToolRequestModal} onClose={() => setShowToolRequestModal(false)} />
       </div>
+
+      <AssetTagsField
+        canEdit={isOwner}
+        selectedIds={selectedTagIds}
+        onChange={setSelectedTagIds}
+        readOnlyTagNames={skill.tags}
+      />
 
       <div className="space-y-3 rounded border border-(--color-border) bg-(--color-surface-muted) p-4">
         <div>

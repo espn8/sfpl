@@ -50,8 +50,7 @@ async function main() {
         await tx.prompt.deleteMany({ where: { teamId: existingTeam.id } });
         await tx.skill.deleteMany({ where: { teamId: existingTeam.id } });
         await tx.contextDocument.deleteMany({ where: { teamId: existingTeam.id } });
-        await tx.tag.deleteMany({ where: { teamId: existingTeam.id } });
-
+        // Tags are global; junction rows are removed with assets or via cascades.
         if (userIds.length > 0) {
           await tx.usageEvent.deleteMany({ where: { userId: { in: userIds } } });
           await tx.favorite.deleteMany({ where: { userId: { in: userIds } } });
@@ -122,14 +121,8 @@ async function main() {
   const tagsByName = new Map<string, Awaited<ReturnType<typeof prisma.tag.upsert>>>();
   for (const tagName of tags) {
     const tag = await prisma.tag.upsert({
-      where: {
-        teamId_name: {
-          teamId: team.id,
-          name: tagName,
-        },
-      },
+      where: { name: tagName },
       create: {
-        teamId: team.id,
         name: tagName,
       },
       update: {},

@@ -40,6 +40,9 @@ export function SearchResultsPage() {
     if (debouncedFilters.tool) {
       nextFilters.tool = debouncedFilters.tool as PromptTool;
     }
+    if (debouncedFilters.tag.trim()) {
+      nextFilters.tag = debouncedFilters.tag.trim();
+    }
     return nextFilters;
   }, [debouncedFilters, page, pageSize]);
 
@@ -51,7 +54,12 @@ export function SearchResultsPage() {
   const assets = assetsQuery.data?.data ?? [];
   const totalPages = assetsQuery.data?.meta.totalPages ?? 1;
   const totalCount = assetsQuery.data?.meta.total ?? 0;
-  const hasActiveSearch = Boolean(debouncedFilters.q.trim() || debouncedFilters.tool || debouncedFilters.assetType !== "all");
+  const hasActiveSearch = Boolean(
+    debouncedFilters.q.trim() ||
+      debouncedFilters.tool ||
+      debouncedFilters.tag.trim() ||
+      debouncedFilters.assetType !== "all",
+  );
 
   return (
     <div className="space-y-6">

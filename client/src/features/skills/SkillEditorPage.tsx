@@ -9,6 +9,7 @@ import {
 import { PublishStatusModal } from "../../components/PublishStatusModal";
 import { sanitizeTitle } from "../../lib/sanitizeTitle";
 import { SummaryField } from "../assets/SummaryField";
+import { AssetTagsField } from "../tags/AssetTagsField";
 import { ToolRequestModal } from "../prompts/ToolRequestModal";
 import {
   createSkill,
@@ -27,6 +28,7 @@ type PendingSkillData = {
   supportUrl?: string;
   visibility: "PUBLIC" | "TEAM" | "PRIVATE";
   tools: SkillTool[];
+  tagIds?: number[];
 };
 
 export function SkillEditorPage() {
@@ -39,6 +41,7 @@ export function SkillEditorPage() {
   const [pendingFormData, setPendingFormData] = useState<PendingSkillData | null>(null);
   const [duplicateMatches, setDuplicateMatches] = useState<DuplicateMatch[]>([]);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
 
   const isValidUrl = (url: string): boolean => {
     try {
@@ -128,6 +131,7 @@ export function SkillEditorPage() {
           supportUrl: supportUrl || undefined,
           visibility,
           tools: toolsArray,
+          tagIds: selectedTagIds,
         });
         setShowPublishModal(true);
       }}
@@ -209,6 +213,8 @@ export function SkillEditorPage() {
         )}
         <ToolRequestModal isOpen={showToolRequestModal} onClose={() => setShowToolRequestModal(false)} />
       </div>
+
+      <AssetTagsField canEdit selectedIds={selectedTagIds} onChange={setSelectedTagIds} />
 
       <div className="space-y-3 rounded border border-(--color-border) bg-(--color-surface-muted) p-4">
         <div>

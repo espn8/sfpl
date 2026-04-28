@@ -38,11 +38,13 @@ export type Build = {
   verificationDueAt?: string | null;
   archivedAt?: string | null;
   archiveReason?: "MANUAL" | "UNVERIFIED" | "INACTIVE" | "LOW_RATING" | "PROFILE_INCOMPLETE" | null;
+  tags?: string[];
 };
 
 export type ListBuildsFilters = {
   q?: string;
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  tag?: string;
   sort?: "recent" | "mostUsed";
   mine?: boolean;
   includeAnalytics?: boolean;
@@ -73,6 +75,7 @@ export type CreateBuildInput = {
   visibility?: "PUBLIC" | "TEAM" | "PRIVATE";
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   skipThumbnailGeneration?: boolean;
+  tagIds?: number[];
 };
 
 export async function createBuild(input: CreateBuildInput): Promise<Build> {
@@ -87,6 +90,7 @@ export type UpdateBuildInput = {
   supportUrl?: string;
   visibility?: "PUBLIC" | "TEAM" | "PRIVATE";
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  tagIds?: number[];
 };
 
 export async function updateBuild(id: number, input: UpdateBuildInput): Promise<Build> {

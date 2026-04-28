@@ -67,12 +67,14 @@ export type ContextDocument = {
   verificationDueAt?: string | null;
   archivedAt?: string | null;
   archiveReason?: "MANUAL" | "UNVERIFIED" | "INACTIVE" | "LOW_RATING" | "PROFILE_INCOMPLETE" | null;
+  tags?: string[];
 };
 
 export type ListContextFilters = {
   q?: string;
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   tool?: string;
+  tag?: string;
   sort?: "recent" | "mostUsed";
   mine?: boolean;
   includeAnalytics?: boolean;
@@ -110,6 +112,7 @@ export type CreateContextInput = {
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   tools?: string[];
   variables?: ContextVariableInput[];
+  tagIds?: number[];
 };
 
 export async function createContextDocument(input: CreateContextInput): Promise<ContextDocument> {
@@ -124,6 +127,7 @@ export type UpdateContextInput = Partial<{
   visibility: "PUBLIC" | "TEAM" | "PRIVATE";
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   tools: string[];
+  tagIds: number[];
 }>;
 
 export async function updateContextDocument(id: number, input: UpdateContextInput): Promise<ContextDocument> {

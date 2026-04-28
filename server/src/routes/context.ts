@@ -38,6 +38,7 @@ import {
   checkUpdatedSummaryLength,
 } from "../lib/summaryLimits";
 import { getWeekTopAssetKeySet, weekTopAssetKey } from "../services/weekTopAssets";
+import { validateTagIdsExist, contextTaggedWithWhere } from "../lib/assetTags";
 
 const contextRouter = Router();
 
@@ -70,6 +71,7 @@ const listContextQuerySchema = z.object({
   q: z.string().trim().optional(),
   status: promptStatusSchema.optional(),
   tool: contextToolSchema.optional(),
+  tag: z.string().trim().optional(),
   sort: z.enum(["recent", "mostUsed"]).optional(),
   mine: z.coerce.boolean().optional(),
   includeAnalytics: z.coerce.boolean().optional(),
@@ -134,6 +136,7 @@ const createContextBodySchema = z
     status: promptStatusSchema.optional(),
     tools: z.array(z.union([contextToolSchema, z.string()])).optional(),
     variables: z.array(contextVariableItemSchema).max(40).optional(),
+    tagIds: z.array(z.coerce.number().int().positive()).max(50).optional(),
   })
   .superRefine((value, ctx) => {
     if (!value.variables?.length) {
@@ -164,6 +167,7 @@ const updateContextBodySchema = z
     status: promptStatusSchema.optional(),
     tools: z.array(z.union([contextToolSchema, z.string()])).optional(),
     changelog: z.string().trim().optional(),
+    tagIds: z.array(z.coerce.number().int().positive()).max(50).optional(),
   })
   .refine(
     (value) => Object.values(value).some((item) => item !== undefined),
@@ -242,6 +246,7 @@ contextRouter.get("/", async (req: Request, res: Response) => {
   const q = parsedQuery.data.q ?? "";
   const status = parsedQuery.data.status;
   const tool = parsedQuery.data.tool;
+  const tag = parsedQuery.data.tag ?? "";
   const sort = parsedQuery.data.sort ?? "recent";
   const mine = parsedQuery.data.mine ?? false;
   const includeAnalytics = parsedQuery.data.includeAnalytics ?? false;
@@ -273,6 +278,9 @@ contextRouter.get("/", async (req: Request, res: Response) => {
         ownerNameSearchClause(q),
       ],
     });
+  }
+  if (tag) {
+    whereAnd.push(contextTaggedWithWhere(tag));
   }
   if (whereAnd.length > 0) {
     where.AND = whereAnd;
@@ -396,7 +404,7 @@ contextRouter.post("/", requireWriteAccess, async (req: Request, res: Response) 
     return res.status(400).json(badRequestFromZodError(parsedBody.error));
   }
 
-  const { title, summary, body, supportUrl, visibility, status, tools, variables } = parsedBody.data;
+  const { title, summary, body, supportUrl, visibility, status, tools, variables, tagIds } = parsedBody.data;
 
   const duplicateCheck = await checkContextDuplicates(title, body);
   if (duplicateCheck.hasDuplicate) {
@@ -447,10 +455,38 @@ contextRouter.post("/", requireWriteAccess, async (req: Request, res: Response) 
 
   void queueContextThumbnailGeneration(doc.id);
 
+  if (tagIds && tagIds.length > 0) {
+    const ok = await validateTagIdsExist(tagIds);
+    if (!ok) {
+      await prisma.contextDocument.delete({ where: { id: doc.id } });
+      return res.status(400).json({
+        error: { code: "BAD_REQUEST", message: "One or more tags are invalid." },
+      });
+    }
+    await prisma.contextTag.createMany({
+      data: [...new Set(tagIds)].map((tid) => ({ contextId: doc.id, tagId: tid })),
+    });
+  }
+
+  const docOut = await prisma.contextDocument.findUnique({
+    where: { id: doc.id },
+    include: {
+      owner: { select: { id: true, name: true, avatarUrl: true } },
+      variables: { select: { id: true, key: true, label: true, defaultValue: true, required: true } },
+      contextTags: { include: { tag: true } },
+    },
+  });
+
+  if (!docOut) {
+    return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Create failed." } });
+  }
+  const { contextTags, ...docRest } = docOut;
+
   return res.status(201).json({
     data: {
-      ...serializeContextDoc(doc),
-      thumbnailStatus: doc.thumbnailStatus as ThumbnailStatusValue,
+      ...serializeContextDoc(docRest as typeof docOut),
+      thumbnailStatus: docOut.thumbnailStatus as ThumbnailStatusValue,
+      tags: contextTags.map((item: { tag: { name: string } }) => item.tag.name),
     },
   });
 });
@@ -487,6 +523,7 @@ contextRouter.get("/:id", async (req: Request, res: Response) => {
       updatedAt: true,
       owner: { select: { id: true, name: true, avatarUrl: true, ou: true } },
       variables: { select: { id: true, key: true, label: true, defaultValue: true, required: true } },
+      contextTags: { include: { tag: true } },
     },
   });
 
@@ -514,10 +551,13 @@ contextRouter.get("/:id", async (req: Request, res: Response) => {
     ? ratings.reduce((sum, r) => sum + r.value, 0) / ratings.length
     : null;
 
+  const { contextTags, ...docRest } = doc;
+
   return res.status(200).json({
     data: {
-      ...serializeContextDoc(doc),
+      ...serializeContextDoc(docRest as typeof doc),
       thumbnailStatus: doc.thumbnailStatus as ThumbnailStatusValue,
+      tags: contextTags.map((item: { tag: { name: string } }) => item.tag.name),
       viewCount,
       copyCount,
       favoriteCount,
@@ -556,6 +596,12 @@ contextRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respon
 
   if (!canMutateTeamScopedAsset(existing, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can modify this document." } });
+  }
+
+  if (parsedBody.data.tagIds !== undefined && auth.userId !== existing.ownerId) {
+    return res.status(403).json({
+      error: { code: "FORBIDDEN", message: "Only the asset owner can change tags." },
+    });
   }
 
   const u = parsedBody.data;
@@ -615,10 +661,50 @@ contextRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respon
     include: {
       owner: { select: { id: true, name: true, avatarUrl: true } },
       variables: { select: { id: true, key: true, label: true, defaultValue: true, required: true } },
+      contextTags: { include: { tag: true } },
     },
   });
 
-  return res.status(200).json({ data: serializeContextDoc(updated) });
+  if (u.tagIds !== undefined) {
+    const uniqueTagIds = [...new Set(u.tagIds)];
+    if (uniqueTagIds.length > 0) {
+      const ok = await validateTagIdsExist(uniqueTagIds);
+      if (!ok) {
+        return res.status(400).json({
+          error: { code: "BAD_REQUEST", message: "One or more tags are invalid." },
+        });
+      }
+    }
+    const steps: Prisma.PrismaPromise<unknown>[] = [prisma.contextTag.deleteMany({ where: { contextId } })];
+    if (uniqueTagIds.length > 0) {
+      steps.push(
+        prisma.contextTag.createMany({
+          data: uniqueTagIds.map((tagId) => ({ contextId, tagId })),
+        }),
+      );
+    }
+    await prisma.$transaction(steps);
+  }
+
+  const out = await prisma.contextDocument.findUnique({
+    where: { id: contextId },
+    include: {
+      owner: { select: { id: true, name: true, avatarUrl: true } },
+      variables: { select: { id: true, key: true, label: true, defaultValue: true, required: true } },
+      contextTags: { include: { tag: true } },
+    },
+  });
+  if (!out) {
+    return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Update failed." } });
+  }
+  const { contextTags: outTags, ...outRest } = out;
+
+  return res.status(200).json({
+    data: {
+      ...serializeContextDoc(outRest as typeof out),
+      tags: outTags.map((item: { tag: { name: string } }) => item.tag.name),
+    },
+  });
 });
 
 contextRouter.put("/:id/variables", async (req: Request, res: Response) => {

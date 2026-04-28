@@ -8,6 +8,8 @@ import { sanitizeTitle } from "../../lib/sanitizeTitle";
 import { SummaryField } from "../assets/SummaryField";
 import { fetchMe } from "../auth/api";
 import { canPermanentlyDeleteAsset } from "../auth/roles";
+import { AssetTagsField } from "../tags/AssetTagsField";
+import { listTags } from "../tags/api";
 import { ToolRequestModal } from "../prompts/ToolRequestModal";
 import {
   deleteContextDocumentPermanently,
@@ -31,6 +33,12 @@ export function ContextEditPage() {
   const [bodyText, setBodyText] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
+
+  const tagsCatalogQuery = useQuery({
+    queryKey: ["tags", "picker"],
+    queryFn: () => listTags({ limit: 500 }),
+  });
 
   const insertVariable = (key: string) => {
     const textarea = bodyRef.current;
@@ -76,6 +84,14 @@ export function ContextEditPage() {
     }
   }, [docQuery.data?.id]);
 
+  useEffect(() => {
+    const d = docQuery.data;
+    const catalog = tagsCatalogQuery.data;
+    if (!d?.tags || !catalog) return;
+    const nameSet = new Set(d.tags);
+    setSelectedTagIds(catalog.filter((t) => nameSet.has(t.name)).map((t) => t.id));
+  }, [docQuery.data?.id, docQuery.data?.tags, tagsCatalogQuery.data]);
+
   const updateMutation = useMutation({
     mutationFn: (payload: Parameters<typeof updateContextDocument>[1]) => updateContextDocument(docId, payload),
     onSuccess: () => {
@@ -108,6 +124,7 @@ export function ContextEditPage() {
   const doc = docQuery.data;
   const me = meQuery.data;
   const canDeleteAsset = me != null && canPermanentlyDeleteAsset(me.role, me.id, doc.owner.id);
+  const isOwner = me != null && me.id === doc.owner.id;
 
   return (
     <form
@@ -151,6 +168,7 @@ export function ContextEditPage() {
           status,
           visibility,
           tools: toolsArray,
+          ...(isOwner ? { tagIds: selectedTagIds } : {}),
         });
       }}
     >
@@ -240,6 +258,14 @@ export function ContextEditPage() {
         )}
         <ToolRequestModal isOpen={showToolRequestModal} onClose={() => setShowToolRequestModal(false)} />
       </div>
+
+      <AssetTagsField
+        canEdit={isOwner}
+        selectedIds={selectedTagIds}
+        onChange={setSelectedTagIds}
+        readOnlyTagNames={doc.tags}
+      />
+
       <textarea
         ref={bodyRef}
         name="body"

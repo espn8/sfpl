@@ -324,6 +324,9 @@ export function HomePage() {
     if (debouncedFilters.status) {
       nextFilters.status = debouncedFilters.status;
     }
+    if (debouncedFilters.tag.trim()) {
+      nextFilters.tag = debouncedFilters.tag.trim();
+    }
     if (mineFilter) {
       nextFilters.mine = true;
     }

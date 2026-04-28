@@ -17,7 +17,7 @@ function isValidModality(value: string): value is PromptModality {
 }
 
 function isValidAssetType(value: string): value is AssetTypeFilter {
-  return ["all", "prompt", "skill", "context"].includes(value);
+  return ["all", "prompt", "skill", "context", "build"].includes(value);
 }
 
 function isValidSort(value: string): value is SortOption {
@@ -37,6 +37,7 @@ function parseFiltersFromParams(params: URLSearchParams): SearchFilters {
   const collectionId = params.get("collectionId") ?? "";
   const mine = params.get("mine") === "true";
   const statusParam = params.get("status") ?? "";
+  const tagParam = params.get("tag") ?? "";
 
   return {
     q,
@@ -47,6 +48,7 @@ function parseFiltersFromParams(params: URLSearchParams): SearchFilters {
     collectionId,
     mine,
     status: isValidStatus(statusParam) ? statusParam : "",
+    tag: tagParam,
   };
 }
 
@@ -61,6 +63,7 @@ export function filtersToParams(filters: SearchFilters): URLSearchParams {
   if (filters.collectionId) params.set("collectionId", filters.collectionId);
   if (filters.mine) params.set("mine", "true");
   if (filters.status) params.set("status", filters.status);
+  if (filters.tag) params.set("tag", filters.tag);
 
   return params;
 }
@@ -137,6 +140,14 @@ export function getActiveFilters(filters: SearchFilters): ActiveFilter[] {
       key: "status",
       value: filters.status,
       label: statusLabels[filters.status] ?? filters.status,
+    });
+  }
+
+  if (filters.tag) {
+    result.push({
+      key: "tag",
+      value: filters.tag,
+      label: `Tag: ${filters.tag}`,
     });
   }
 

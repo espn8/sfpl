@@ -10,6 +10,7 @@ import { PublishStatusModal } from "../../components/PublishStatusModal";
 import { VariableEditor, type VariableRow } from "../../components/VariableEditor";
 import { sanitizeTitle } from "../../lib/sanitizeTitle";
 import { SummaryField } from "../assets/SummaryField";
+import { AssetTagsField } from "../tags/AssetTagsField";
 import { ToolRequestModal } from "../prompts/ToolRequestModal";
 import { createContextDocument, getContextToolsSortedAlphabetically, getContextToolLabel, type ContextTool } from "./api";
 
@@ -20,6 +21,7 @@ type PendingContextData = {
   visibility: "PUBLIC" | "TEAM" | "PRIVATE";
   tools: ContextTool[];
   variables?: Array<{ key: string; label: string | null; defaultValue: string; required: boolean }>;
+  tagIds?: number[];
 };
 
 export function ContextEditorPage() {
@@ -35,6 +37,7 @@ export function ContextEditorPage() {
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const [duplicateMatches, setDuplicateMatches] = useState<DuplicateMatch[]>([]);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
 
   const insertVariable = (key: string) => {
     const textarea = bodyRef.current;
@@ -125,6 +128,7 @@ export function ContextEditorPage() {
           visibility,
           tools: toolsArray,
           variables: variables.length > 0 ? variables : undefined,
+          tagIds: selectedTagIds,
         });
         setShowPublishModal(true);
       }}
@@ -201,6 +205,9 @@ export function ContextEditorPage() {
         )}
         <ToolRequestModal isOpen={showToolRequestModal} onClose={() => setShowToolRequestModal(false)} />
       </div>
+
+      <AssetTagsField canEdit selectedIds={selectedTagIds} onChange={setSelectedTagIds} />
+
       <textarea
         ref={bodyRef}
         name="body"

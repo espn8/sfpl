@@ -30,6 +30,7 @@ describe("useSearchState", () => {
       collectionId: "",
       mine: false,
       status: "",
+      tag: "",
     });
     expect(result.current.inputValue).toBe("");
     expect(result.current.activeFilters).toEqual([]);

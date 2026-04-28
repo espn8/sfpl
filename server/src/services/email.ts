@@ -116,3 +116,87 @@ Review at: ${adminUrl}`;
     text: textBody,
   });
 }
+
+type TagRequestNotificationData = {
+  requestedName: string;
+  description: string | null;
+  submitterFirstName: string;
+  submitterLastName: string;
+  submitterEmail: string;
+  createdAt: Date;
+};
+
+export async function sendTagRequestNotification(
+  request: TagRequestNotificationData,
+): Promise<SendEmailResult> {
+  const formattedDate = request.createdAt.toLocaleString("en-US", {
+    dateStyle: "full",
+    timeStyle: "short",
+  });
+
+  const adminUrl = `${env.appBaseUrl.replace(/\/+$/, "")}/admin/tag-requests`;
+  const submitterName = `${request.submitterFirstName} ${request.submitterLastName}`.trim();
+  const desc = request.description?.trim() || "(none)";
+
+  const htmlBody = `
+    <h1 class="email-h1" style="${HEADING_STYLE}">New Tag Request</h1>
+    <p style="${LEAD_STYLE}">A user has requested a new global tag in the ${escapeHtml("AI Library")}.</p>
+
+    <h2 style="${SECTION_HEADING_STYLE}">Request</h2>
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="${TABLE_STYLE}">
+      <tr>
+        <td style="${ROW_LABEL_STYLE}">Tag name</td>
+        <td style="${ROW_VALUE_STYLE}">${escapeHtml(request.requestedName)}</td>
+      </tr>
+      <tr>
+        <td style="${ROW_LABEL_STYLE}">Description</td>
+        <td style="${ROW_VALUE_STYLE}">${escapeHtml(desc)}</td>
+      </tr>
+    </table>
+
+    <h2 style="${SECTION_HEADING_STYLE}">Submitter</h2>
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="${TABLE_STYLE}">
+      <tr>
+        <td style="${ROW_LABEL_STYLE}">Name</td>
+        <td style="${ROW_VALUE_STYLE}">${escapeHtml(submitterName)}</td>
+      </tr>
+      <tr>
+        <td style="${ROW_LABEL_STYLE}">Email</td>
+        <td style="${ROW_VALUE_STYLE}"><a href="mailto:${escapeHtml(request.submitterEmail)}" style="${LINK_STYLE}">${escapeHtml(request.submitterEmail)}</a></td>
+      </tr>
+      <tr>
+        <td style="${ROW_LABEL_STYLE}">Submitted at</td>
+        <td style="${ROW_VALUE_STYLE}">${escapeHtml(formattedDate)}</td>
+      </tr>
+    </table>
+
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0 4px 0;">
+      <tr>
+        <td align="center" bgcolor="#2e844a" style="border-radius:999px;">
+          <a href="${escapeHtml(adminUrl)}" class="email-button" style="background-color:#2e844a;color:#ffffff;text-decoration:none;border-radius:999px;padding:12px 24px;display:inline-block;font-weight:600;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;">
+            Review tag requests
+          </a>
+        </td>
+      </tr>
+    </table>
+  `;
+
+  const textBody = `New Tag Request
+
+Tag name: ${request.requestedName}
+Description: ${desc}
+
+Submitter: ${submitterName}
+Email: ${request.submitterEmail}
+Submitted at: ${formattedDate}
+
+Review at: ${adminUrl}`;
+
+  return sendBrandedEmail({
+    to: env.toolRequestNotifyEmail,
+    subject: "New Tag Request [AI Library]",
+    preheader: `Tag requested: ${request.requestedName} — review in the admin panel.`,
+    html: htmlBody.trim(),
+    text: textBody,
+  });
+}

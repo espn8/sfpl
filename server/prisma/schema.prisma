@@ -45,6 +45,7 @@ model User {
   buildUsageEvents  BuildUsageEvent[]
   buildRatings      BuildRating[]
   toolRequestsReviewed ToolRequest[]
+  tagRequestsReviewed TagRequest[]
   apiKeys           ApiKey[]
   assetVerifications AssetVerification[]
   userProfileFavoritesGiven    UserProfileFavorite[] @relation("UserProfileFavoritesGiven")
@@ -71,7 +72,6 @@ model Team {
   skills      Skill[]
   contextDocuments ContextDocument[]
   builds      Build[]
-  tags        Tag[]
   collections Collection[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
@@ -150,6 +150,7 @@ model Skill {
   ratings            SkillRating[]
   collections        CollectionSkill[]
   versions           SkillVersion[]
+  skillTags          SkillTag[]
 
   @@unique([skillUrlNormalized])
   @@index([teamId, updatedAt])
@@ -190,6 +191,7 @@ model ContextDocument {
   ratings         ContextRating[]
   collections     CollectionContext[]
   versions        ContextVersion[]
+  contextTags     ContextTag[]
 
   @@unique([bodyHash])
   @@index([teamId, updatedAt])
@@ -228,6 +230,7 @@ model Build {
   ratings            BuildRating[]
   collections        CollectionBuild[]
   versions           BuildVersion[]
+  buildTags          BuildTag[]
 
   @@unique([buildUrlNormalized])
   @@index([teamId, updatedAt])
@@ -300,14 +303,15 @@ model BuildVersion {
 
 model Tag {
   id        Int      @id @default(autoincrement())
-  teamId    Int
   name      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  team      Team     @relation(fields: [teamId], references: [id], onDelete: Restrict)
-  promptTags PromptTag[]
+  promptTags   PromptTag[]
+  skillTags    SkillTag[]
+  contextTags  ContextTag[]
+  buildTags    BuildTag[]
 
-  @@unique([teamId, name])
+  @@unique([name])
 }
 
 model PromptTag {
@@ -318,6 +322,61 @@ model PromptTag {
   tag      Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@unique([promptId, tagId])
+}
+
+model SkillTag {
+  id      Int   @id @default(autoincrement())
+  skillId Int
+  tagId   Int
+  skill   Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  tag     Tag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([skillId, tagId])
+}
+
+model ContextTag {
+  id        Int             @id @default(autoincrement())
+  contextId Int
+  tagId     Int
+  context   ContextDocument @relation(fields: [contextId], references: [id], onDelete: Cascade)
+  tag       Tag             @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([contextId, tagId])
+}
+
+model BuildTag {
+  id      Int   @id @default(autoincrement())
+  buildId Int
+  tagId   Int
+  build   Build @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  tag     Tag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([buildId, tagId])
+}
+
+model TagRequest {
+  id                 Int              @id @default(autoincrement())
+  requestedName      String
+  description        String?
+  submitterEmail     String
+  submitterFirstName String
+  submitterLastName  String
+  status             TagRequestStatus @default(PENDING)
+  reviewedAt         DateTime?
+  reviewedById       Int?
+  reviewedBy         User?            @relation(fields: [reviewedById], references: [id])
+  reviewNotes        String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@index([status, createdAt])
+}
+
+enum TagRequestStatus {
+  PENDING
+  APPROVED
+  DECLINED
+  ON_HOLD
 }
 
 model Collection {

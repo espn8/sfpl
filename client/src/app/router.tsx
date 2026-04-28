@@ -26,6 +26,9 @@ const AdminHelpPage = lazy(() =>
 const ToolRequestsPage = lazy(() =>
   import("../features/admin/ToolRequestsPage").then((m) => ({ default: m.ToolRequestsPage })),
 );
+const TagRequestsPage = lazy(() =>
+  import("../features/admin/TagRequestsPage").then((m) => ({ default: m.TagRequestsPage })),
+);
 const OwnershipTransferPage = lazy(() =>
   import("../features/admin/OwnershipTransferPage").then((m) => ({ default: m.OwnershipTransferPage })),
 );
@@ -396,6 +399,18 @@ export function AppRouter() {
                 <AppShell>
                   <AdminRoute>
                     <ToolRequestsPage />
+                  </AdminRoute>
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/tag-requests"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <AdminRoute>
+                    <TagRequestsPage />
                   </AdminRoute>
                 </AppShell>
               </ProtectedRoute>

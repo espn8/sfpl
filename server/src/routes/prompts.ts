@@ -34,6 +34,7 @@ import {
   normalizeTitle,
   formatDuplicateError,
 } from "../services/dedup";
+import { validateTagIdsExist } from "../lib/assetTags";
 import {
   SUMMARY_MAX_CHARS,
   SUMMARY_TOO_LONG_MESSAGE,
@@ -220,6 +221,7 @@ const createPromptBodySchema = z
     modality: apiModalitySchema,
     modelHint: z.string().trim().optional(),
     variables: z.array(promptVariableItemSchema).max(40).optional(),
+    tagIds: z.array(z.coerce.number().int().positive()).max(50).optional(),
   })
   .superRefine((value, ctx) => {
     if (!value.variables?.length) {
@@ -684,7 +686,7 @@ promptsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) 
   if (!parsedBody.success) {
     return res.status(400).json(badRequestFromZodError(parsedBody.error));
   }
-  const { title, summary, body, visibility, status, modelHint, tools, modality, variables } = parsedBody.data;
+  const { title, summary, body, visibility, status, modelHint, tools, modality, variables, tagIds } = parsedBody.data;
 
   const duplicateCheck = await checkPromptDuplicates(title, body);
   if (duplicateCheck.hasDuplicate) {
@@ -730,16 +732,38 @@ promptsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) 
     include: { variables: true },
   });
 
+  if (tagIds && tagIds.length > 0) {
+    const ok = await validateTagIdsExist(tagIds);
+    if (!ok) {
+      await prisma.prompt.delete({ where: { id: prompt.id } });
+      return res.status(400).json({
+        error: { code: "BAD_REQUEST", message: "One or more tags are invalid." },
+      });
+    }
+    await prisma.promptTag.createMany({
+      data: [...new Set(tagIds)].map((tagId) => ({ promptId: prompt.id, tagId })),
+    });
+  }
+
   void queuePromptThumbnailGeneration(prompt.id);
 
   if (status === "PUBLISHED") {
     scheduleSystemCollectionRefresh(auth.teamId, tools);
   }
 
+  const created = await prisma.prompt.findUnique({
+    where: { id: prompt.id },
+    include: { variables: true, promptTags: { include: { tag: true } } },
+  });
+  if (!created) {
+    return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Prompt creation failed." } });
+  }
+
   return res.status(201).json({
     data: {
-      ...serializePromptWithModality(prompt),
-      thumbnailStatus: prompt.thumbnailStatus as ThumbnailStatusValue,
+      ...serializePromptWithModality(created),
+      thumbnailStatus: created.thumbnailStatus as ThumbnailStatusValue,
+      tags: created.promptTags.map((item: { tag: { name: string } }) => item.tag.name),
     },
   });
 });
@@ -852,6 +876,7 @@ promptsRouter.get("/:id", async (req: Request, res: Response) => {
     data: {
       ...serializePromptWithModality(prompt),
       thumbnailStatus: prompt.thumbnailStatus as ThumbnailStatusValue,
+      tags: prompt.promptTags.map((item: { tag: { name: string } }) => item.tag.name),
       viewCount,
       favorited: Boolean(favoriteRow),
       myRating: ratingRow?.value ?? null,
@@ -884,6 +909,12 @@ promptsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respon
 
   if (!canMutateTeamScopedAsset(existing, auth)) {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can modify this prompt." } });
+  }
+
+  if (updateData.tagIds !== undefined && auth.userId !== existing.ownerId) {
+    return res.status(403).json({
+      error: { code: "FORBIDDEN", message: "Only the asset owner can change tags." },
+    });
   }
 
   const nextSummary =
@@ -960,12 +991,12 @@ promptsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respon
     const uniqueTagIds = [...new Set(updateData.tagIds)];
     if (uniqueTagIds.length > 0) {
       const foundTags = await prisma.tag.findMany({
-        where: { id: { in: uniqueTagIds }, teamId: auth.teamId },
+        where: { id: { in: uniqueTagIds } },
         select: { id: true },
       });
       if (foundTags.length !== uniqueTagIds.length) {
         return res.status(400).json({
-          error: { code: "BAD_REQUEST", message: "One or more tags are invalid or not in your workspace." },
+          error: { code: "BAD_REQUEST", message: "One or more tags are invalid." },
         });
       }
     }
@@ -1008,6 +1039,7 @@ promptsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respon
     data: {
       ...serializePromptWithModality(updated),
       thumbnailStatus: updated.thumbnailStatus as ThumbnailStatusValue,
+      tags: updated.promptTags.map((item: { tag: { name: string } }) => item.tag.name),
     },
   });
 });
