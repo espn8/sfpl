@@ -1,13 +1,13 @@
 # AI Library - Technical Summary
 
-Last Updated: Tuesday, April 28, 2026 — 12:45 CDT
-Build Version: `f725695`
+Last Updated: Tuesday, April 28, 2026 — 11:45 CDT
+Build Version: `5a40d92`
 App Version: see production footer after deploy (root `package.json` 1.3.3 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
 
-### Session: global asset tags, tag requests, owner-only assignment (April 28, 2026 — 12:45 CDT)
+### Session: global asset tags, tag requests, owner-only assignment (April 28, 2026 — 11:45 CDT)
 
 - **Invariant:** Single **global** tag vocabulary (`Tag` without `teamId`); **`@@unique([name])`** with lowercase storage via **`normalizeTagNameForStorage`**. Junctions **`PromptTag`**, **`SkillTag`**, **`ContextTag`**, **`BuildTag`**. **`TagRequest`** is global (no team); approve creates one **`Tag`**.
 - **Migrations:** [20260428140000_asset_tags_and_tag_requests](server/prisma/migrations/20260428140000_asset_tags_and_tag_requests/migration.sql) (junctions + requests); [20260429100000_global_tags](server/prisma/migrations/20260429100000_global_tags/migration.sql) (merge duplicate tags by name, repoint junctions, drop `Tag.teamId` / `TagRequest.teamId`).
@@ -21,6 +21,7 @@ Production URL: https://ail.mysalesforcedemo.com (canonical live site — never 
 - **App:** [server/src/app.ts](server/src/app.ts) mounts **`/api/tag-requests`**.
 - **Seed:** [server/prisma/seed.ts](server/prisma/seed.ts) — global **`tag.upsert`** by **`name`**; reset path no longer **`tag.deleteMany({ teamId })`** (tags are global).
 - **Client:** **`tag`** on **`SearchFilters`** + URL sync; **`listAssets`** / Home / Search Results; **`AssetCard`** tag chips; **`AssetTagsField`**, **`TagRequestModal`**, **`TagRequestsPage`**, route **`/admin/tag-requests`**, Admin dashboard tile + pending badge; create/edit flows for prompts, skills, context, builds with owner-only tag editing on edits.
+- **Tests / API hardening:** List and detail handlers use **`(junction ?? []).map`** so Prisma rows without included tag relations (or test mocks) do not throw. Search suggestions tests include **`prisma.tag.findMany`**; flow tests mock post-create **`findUnique`** and tag junction arrays where responses include **`tags`**.
 - **Apply migrations:** local **`cd server && npx prisma migrate deploy`**; production **`heroku run npx prisma migrate deploy`** on the Heroku app behind **https://ail.mysalesforcedemo.com** (dyno **`aosfail`**). **Deploy:** **`git push origin main`**, **`git push heroku main:master`**. Verify only on **https://ail.mysalesforcedemo.com**.
 
 ### Session: user profiles, team member favorites, `ownerId` assets, deploy-only verification rule (April 28, 2026 — 10:33 CDT)
