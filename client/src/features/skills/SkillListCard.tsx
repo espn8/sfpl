@@ -124,50 +124,56 @@ export function SkillListCard({ skill, variant = "default", showAnalytics = fals
               />
             </span>
           </div>
-          <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-(--color-text-muted)">
-            <span className="flex min-w-0 items-center gap-2">
-              <img
-                src={promptOwnerAvatarUrl(skill.owner)}
-                alt=""
-                className="h-7 w-7 shrink-0 rounded-full border border-(--color-border) bg-(--color-surface-muted) object-cover"
-              />
-              <span className="truncate font-medium text-(--color-text)">{skill.owner.name ?? "Unknown"}</span>
-            </span>
-            <span className="text-(--color-border)" aria-hidden>
-              ·
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <EyeIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              <span>{(skill.viewCount ?? 0).toLocaleString()} views</span>
-            </span>
-            <span className="text-(--color-border)" aria-hidden>
-              ·
-            </span>
-            <span className="inline-flex items-center gap-1" title={`Created ${new Date(skill.createdAt).toLocaleString()}`}>
-              <CalendarIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              <span>{activityLabel || "—"}</span>
-            </span>
-          </div>
+        </Link>
+        <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-(--color-text-muted)">
+          <Link
+            to={`/users/${skill.owner.id}`}
+            className="flex min-w-0 max-w-full items-center gap-2 rounded outline-none hover:text-(--color-primary) focus-visible:ring-2 focus-visible:ring-(--color-primary)"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={promptOwnerAvatarUrl(skill.owner)}
+              alt=""
+              className="h-7 w-7 shrink-0 rounded-full border border-(--color-border) bg-(--color-surface-muted) object-cover"
+            />
+            <span className="truncate font-medium text-(--color-text)">{skill.owner.name ?? "Unknown"}</span>
+          </Link>
+          <span className="text-(--color-border)" aria-hidden>
+            ·
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <EyeIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            <span>{(skill.viewCount ?? 0).toLocaleString()} views</span>
+          </span>
+          <span className="text-(--color-border)" aria-hidden>
+            ·
+          </span>
+          <span className="inline-flex items-center gap-1" title={`Created ${new Date(skill.createdAt).toLocaleString()}`}>
+            <CalendarIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            <span>{activityLabel || "—"}</span>
+          </span>
+        </div>
+        <Link to={`/skills/${skill.id}`} className="block">
           <p
             className="mt-2 line-clamp-2 text-sm text-(--color-text-muted)"
           >
             {skill.summary ?? (variant === "featured" ? "No summary yet" : "No summary")}
           </p>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <PromptAverageStars
-              value={skill.averageRating ?? null}
-              size="sm"
-              ratingCount={skill.ratingCount}
-              flagCounts={skill.flagCounts}
-            />
-            <VerificationChip
-              status={skill.status}
-              lastVerifiedAt={skill.lastVerifiedAt}
-              verificationDueAt={skill.verificationDueAt}
-              archiveReason={skill.archiveReason}
-            />
-          </div>
         </Link>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <PromptAverageStars
+            value={skill.averageRating ?? null}
+            size="sm"
+            ratingCount={skill.ratingCount}
+            flagCounts={skill.flagCounts}
+          />
+          <VerificationChip
+            status={skill.status}
+            lastVerifiedAt={skill.lastVerifiedAt}
+            verificationDueAt={skill.verificationDueAt}
+            archiveReason={skill.archiveReason}
+          />
+        </div>
 
         {toolChips.length > 0 ? (
           <div className="mt-3 flex flex-wrap gap-2">
