@@ -30,6 +30,8 @@ type Env = {
   devWhitelistUserId: number;
   /** Gate the governance sweep (auto-archive, warning emails, Smart Pick recompute). */
   governanceSweepEnabled: boolean;
+  /** Slack Workflow trigger URL: POST when an asset enters PUBLIC + PUBLISHED (optional). */
+  slackNewPublicAssetWebhookUrl?: string;
 };
 
 function getRequired(name: string): string {
@@ -104,4 +106,5 @@ export const env: Env = {
   devWhitelistToken: process.env.DEV_WHITELIST_TOKEN,
   devWhitelistUserId: Number(process.env.DEV_WHITELIST_USER_ID ?? 1),
   governanceSweepEnabled: parseBoolean("GOVERNANCE_SWEEP_ENABLED", false),
+  slackNewPublicAssetWebhookUrl: process.env.SLACK_NEW_PUBLIC_ASSET_WEBHOOK_URL?.trim() || undefined,
 };

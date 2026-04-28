@@ -8,6 +8,7 @@ import { env } from "../../config/env";
 import { ARCHIVE_EXTENSIONS, isValidSkillPackageUrl, SLACK_ENTERPRISE_SKILL_DOCS_URL_PREFIX } from "../../lib/skillUrl";
 import { generatePromptThumbnail } from "../../services/nanoBanana";
 import { validateTagIdsExist } from "../../lib/assetTags";
+import { notifySlackIfEnteredPublicPublished } from "../../services/slackNewPublicAsset";
 
 const v1Router = Router();
 
@@ -188,6 +189,28 @@ v1Router.post("/prompts", async (req: Request, res: Response) => {
     data: uniquePromptTagIds.map((tagId) => ({ promptId: prompt.id, tagId })),
   });
 
+  const promptForSlack = await prisma.prompt.findUnique({
+    where: { id: prompt.id },
+    include: { promptTags: { include: { tag: true } } },
+  });
+  if (promptForSlack) {
+    notifySlackIfEnteredPublicPublished({
+      before: null,
+      after: {
+        id: promptForSlack.id,
+        title: promptForSlack.title,
+        summary: promptForSlack.summary,
+        visibility: promptForSlack.visibility,
+        status: promptForSlack.status,
+        tools: promptForSlack.tools,
+        modality: promptForSlack.modality,
+      },
+      tagNames: (promptForSlack.promptTags ?? []).map((row) => row.tag.name),
+      assetKind: "prompt",
+      ownerId: auth.userId,
+    });
+  }
+
   setImmediate(async () => {
     try {
       const thumbnailUrl = await generatePromptThumbnail({ title, summary: summary || null, body });
@@ -282,6 +305,27 @@ v1Router.post("/skills", async (req: Request, res: Response) => {
     data: uniqueSkillTagIds.map((tagId) => ({ skillId: skill.id, tagId })),
   });
 
+  const skillForSlack = await prisma.skill.findUnique({
+    where: { id: skill.id },
+    include: { skillTags: { include: { tag: true } } },
+  });
+  if (skillForSlack) {
+    notifySlackIfEnteredPublicPublished({
+      before: null,
+      after: {
+        id: skillForSlack.id,
+        title: skillForSlack.title,
+        summary: skillForSlack.summary,
+        visibility: skillForSlack.visibility,
+        status: skillForSlack.status,
+        tools: skillForSlack.tools,
+      },
+      tagNames: (skillForSlack.skillTags ?? []).map((row) => row.tag.name),
+      assetKind: "skill",
+      ownerId: auth.userId,
+    });
+  }
+
   setImmediate(async () => {
     try {
       const thumbnailUrl = await generatePromptThumbnail({ title, summary: summary || null, body: summary || title });
@@ -372,6 +416,27 @@ v1Router.post("/context", async (req: Request, res: Response) => {
     data: uniqueContextTagIds.map((tagId) => ({ contextId: context.id, tagId })),
   });
 
+  const contextForSlack = await prisma.contextDocument.findUnique({
+    where: { id: context.id },
+    include: { contextTags: { include: { tag: true } } },
+  });
+  if (contextForSlack) {
+    notifySlackIfEnteredPublicPublished({
+      before: null,
+      after: {
+        id: contextForSlack.id,
+        title: contextForSlack.title,
+        summary: contextForSlack.summary,
+        visibility: contextForSlack.visibility,
+        status: contextForSlack.status,
+        tools: contextForSlack.tools,
+      },
+      tagNames: (contextForSlack.contextTags ?? []).map((row) => row.tag.name),
+      assetKind: "context",
+      ownerId: auth.userId,
+    });
+  }
+
   setImmediate(async () => {
     try {
       const thumbnailUrl = await generatePromptThumbnail({ title, summary: summary || null, body });
@@ -457,6 +522,27 @@ v1Router.post("/builds", async (req: Request, res: Response) => {
   await prisma.buildTag.createMany({
     data: uniqueBuildTagIds.map((tagId) => ({ buildId: build.id, tagId })),
   });
+
+  const buildForSlack = await prisma.build.findUnique({
+    where: { id: build.id },
+    include: { buildTags: { include: { tag: true } } },
+  });
+  if (buildForSlack) {
+    notifySlackIfEnteredPublicPublished({
+      before: null,
+      after: {
+        id: buildForSlack.id,
+        title: buildForSlack.title,
+        summary: buildForSlack.summary,
+        visibility: buildForSlack.visibility,
+        status: buildForSlack.status,
+        tools: [],
+      },
+      tagNames: (buildForSlack.buildTags ?? []).map((row) => row.tag.name),
+      assetKind: "build",
+      ownerId: auth.userId,
+    });
+  }
 
   setImmediate(async () => {
     try {

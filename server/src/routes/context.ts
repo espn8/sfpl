@@ -38,6 +38,7 @@ import {
   checkUpdatedSummaryLength,
 } from "../lib/summaryLimits";
 import { getWeekTopAssetKeySet, weekTopAssetKey } from "../services/weekTopAssets";
+import { notifySlackIfEnteredPublicPublished } from "../services/slackNewPublicAsset";
 import { validateTagIdsExist, contextTaggedWithWhere } from "../lib/assetTags";
 
 const contextRouter = Router();
@@ -484,6 +485,21 @@ contextRouter.post("/", requireWriteAccess, async (req: Request, res: Response) 
   }
   const { contextTags, ...docRest } = docOut;
 
+  notifySlackIfEnteredPublicPublished({
+    before: null,
+    after: {
+      id: docOut.id,
+      title: docOut.title,
+      summary: docOut.summary,
+      visibility: docOut.visibility,
+      status: docOut.status,
+      tools: docOut.tools,
+    },
+    tagNames: (contextTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
+    assetKind: "context",
+    ownerId: docOut.ownerId,
+  });
+
   return res.status(201).json({
     data: {
       ...serializeContextDoc(docRest as typeof docOut),
@@ -700,6 +716,21 @@ contextRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respon
     return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Update failed." } });
   }
   const { contextTags: outTags, ...outRest } = out;
+
+  notifySlackIfEnteredPublicPublished({
+    before: { visibility: existing.visibility, status: existing.status },
+    after: {
+      id: out.id,
+      title: out.title,
+      summary: out.summary,
+      visibility: out.visibility,
+      status: out.status,
+      tools: out.tools,
+    },
+    tagNames: (outTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
+    assetKind: "context",
+    ownerId: out.ownerId,
+  });
 
   return res.status(200).json({
     data: {

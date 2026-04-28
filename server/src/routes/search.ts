@@ -7,6 +7,7 @@ import { prisma } from "../lib/prisma";
 import { parseSearchQuery } from "../services/searchParser";
 import { ownerNameSearchClause } from "../lib/assetSearch";
 import { buildVisibilityWhereFragment } from "../lib/visibility";
+import { TOOL_LABELS } from "../lib/toolLabels";
 
 const searchRouter = Router();
 
@@ -23,20 +24,6 @@ const ASSET_TOOLS = [
   "saleo",
   "slackbot",
 ] as const;
-
-const TOOL_LABELS: Record<string, string> = {
-  agentforce_vibes: "Agentforce Vibes",
-  chatgpt: "ChatGPT",
-  claude_code: "Claude Code",
-  claude_cowork: "Claude Cowork",
-  cursor: "Cursor",
-  gemini: "Gemini",
-  meshmesh: "MeshMesh",
-  notebooklm: "NotebookLM",
-  other: "Other",
-  saleo: "Saleo",
-  slackbot: "Slackbot",
-};
 
 const ASSET_TYPE_LABELS: Record<string, string> = {
   prompt: "Prompts",

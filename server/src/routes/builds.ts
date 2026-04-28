@@ -41,6 +41,7 @@ import {
   checkUpdatedSummaryLength,
 } from "../lib/summaryLimits";
 import { getWeekTopAssetKeySet, weekTopAssetKey } from "../services/weekTopAssets";
+import { notifySlackIfEnteredPublicPublished } from "../services/slackNewPublicAsset";
 import { validateTagIdsExist, buildTaggedWithWhere } from "../lib/assetTags";
 
 const buildThumbnailUploadsDir = path.resolve(__dirname, "../../public/uploads");
@@ -448,6 +449,21 @@ buildsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
   }
   const { buildTags, ...buildRow } = buildOut;
 
+  notifySlackIfEnteredPublicPublished({
+    before: null,
+    after: {
+      id: buildOut.id,
+      title: buildOut.title,
+      summary: buildOut.summary,
+      visibility: buildOut.visibility,
+      status: buildOut.status,
+      tools: [],
+    },
+    tagNames: (buildTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
+    assetKind: "build",
+    ownerId: buildOut.ownerId,
+  });
+
   return res.status(201).json({
     data: {
       ...serializeBuild(buildRow as typeof buildOut),
@@ -666,6 +682,21 @@ buildsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respons
     return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Update failed." } });
   }
   const { buildTags: outTags, ...outRest } = out;
+
+  notifySlackIfEnteredPublicPublished({
+    before: { visibility: existing.visibility, status: existing.status },
+    after: {
+      id: out.id,
+      title: out.title,
+      summary: out.summary,
+      visibility: out.visibility,
+      status: out.status,
+      tools: [],
+    },
+    tagNames: (outTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
+    assetKind: "build",
+    ownerId: out.ownerId,
+  });
 
   return res.status(200).json({
     data: {

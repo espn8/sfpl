@@ -28,6 +28,7 @@ import {
 import { generatePromptThumbnail } from "../services/nanoBanana";
 import { refreshBestOfCollection, refreshToolCollection } from "../services/systemCollections";
 import { getWeekTopAssetKeySet, weekTopAssetKey } from "../services/weekTopAssets";
+import { notifySlackIfEnteredPublicPublished } from "../services/slackNewPublicAsset";
 import {
   checkPromptDuplicates,
   computeBodyHash,
@@ -761,6 +762,22 @@ promptsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) 
     return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Prompt creation failed." } });
   }
 
+  notifySlackIfEnteredPublicPublished({
+    before: null,
+    after: {
+      id: created.id,
+      title: created.title,
+      summary: created.summary,
+      visibility: created.visibility,
+      status: created.status,
+      tools: created.tools,
+      modality: created.modality,
+    },
+    tagNames: (created.promptTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
+    assetKind: "prompt",
+    ownerId: created.ownerId,
+  });
+
   return res.status(201).json({
     data: {
       ...serializePromptWithModality(created),
@@ -1036,6 +1053,22 @@ promptsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respon
     const allTools = new Set([...existing.tools, ...updated.tools]);
     scheduleSystemCollectionRefresh(updated.teamId, Array.from(allTools));
   }
+
+  notifySlackIfEnteredPublicPublished({
+    before: { visibility: existing.visibility, status: existing.status },
+    after: {
+      id: updated.id,
+      title: updated.title,
+      summary: updated.summary,
+      visibility: updated.visibility,
+      status: updated.status,
+      tools: updated.tools,
+      modality: updated.modality,
+    },
+    tagNames: (updated.promptTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
+    assetKind: "prompt",
+    ownerId: updated.ownerId,
+  });
 
   return res.status(200).json({
     data: {

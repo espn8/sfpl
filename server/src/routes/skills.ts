@@ -39,6 +39,7 @@ import {
 import { ARCHIVE_EXTENSIONS, isValidSkillPackageUrl, SLACK_ENTERPRISE_SKILL_DOCS_URL_PREFIX } from "../lib/skillUrl";
 import { validateTagIdsExist, skillTaggedWithWhere } from "../lib/assetTags";
 import { getWeekTopAssetKeySet, weekTopAssetKey } from "../services/weekTopAssets";
+import { notifySlackIfEnteredPublicPublished } from "../services/slackNewPublicAsset";
 
 const skillsRouter = Router();
 
@@ -435,6 +436,21 @@ skillsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
   }
   const { skillTags, ...skillRow } = skillOut;
 
+  notifySlackIfEnteredPublicPublished({
+    before: null,
+    after: {
+      id: skillOut.id,
+      title: skillOut.title,
+      summary: skillOut.summary,
+      visibility: skillOut.visibility,
+      status: skillOut.status,
+      tools: skillOut.tools,
+    },
+    tagNames: (skillTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
+    assetKind: "skill",
+    ownerId: skillOut.ownerId,
+  });
+
   return res.status(201).json({
     data: {
       ...serializeSkill(skillRow as typeof skillOut),
@@ -654,6 +670,21 @@ skillsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respons
     return res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Update failed." } });
   }
   const { skillTags, ...skillRest } = out;
+
+  notifySlackIfEnteredPublicPublished({
+    before: { visibility: existing.visibility, status: existing.status },
+    after: {
+      id: out.id,
+      title: out.title,
+      summary: out.summary,
+      visibility: out.visibility,
+      status: out.status,
+      tools: out.tools,
+    },
+    tagNames: (skillTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
+    assetKind: "skill",
+    ownerId: out.ownerId,
+  });
 
   return res.status(200).json({
     data: {
