@@ -57,7 +57,20 @@ describe("prompts create/update/restore flows", () => {
       modelHint: null,
       thumbnailStatus: "PENDING",
     });
-    prompt.findUnique.mockResolvedValue({ id: 10, title: "A", summary: null, body: "B" });
+    prompt.findUnique.mockResolvedValue({
+      id: 10,
+      title: "A",
+      summary: null,
+      body: "B",
+      tools: ["cursor"],
+      modality: "TEXT",
+      modelHint: null,
+      thumbnailStatus: "PENDING",
+      promptTags: [],
+      variables: [],
+      ratings: [],
+      owner: { id: 1, name: "U", avatarUrl: null },
+    });
     mockGeneratePromptThumbnail.mockResolvedValue("https://example.com/thumb.png");
     prompt.update.mockResolvedValue({ id: 10 });
 
@@ -159,7 +172,7 @@ describe("prompts create/update/restore flows", () => {
 
     expect(response.status).toBe(200);
     expect(tag.findMany).toHaveBeenCalledWith({
-      where: { id: { in: [2, 3] }, teamId: 1 },
+      where: { id: { in: [2, 3] } },
       select: { id: true },
     });
     expect(prismaTransaction).toHaveBeenCalled();

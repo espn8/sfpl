@@ -337,7 +337,7 @@ buildsRouter.get("/", async (req: Request, res: Response) => {
       const flagRows = flagRowsByBuild.get(row.id) ?? [];
       return {
         ...serializeBuild(rest as typeof row),
-        tags: buildTags.map((s) => s.tag.name),
+        tags: (buildTags ?? []).map((s) => s.tag.name),
         viewCount: viewMap.get(row.id) ?? 0,
         copyCount: copyMap.get(row.id) ?? 0,
         favoriteCount: favoriteMap.get(row.id) ?? 0,
@@ -360,7 +360,7 @@ buildsRouter.get("/", async (req: Request, res: Response) => {
       const { buildTags, ...rest } = row;
       return {
         ...serializeBuild(rest as typeof row),
-        tags: buildTags.map((s) => s.tag.name),
+        tags: (buildTags ?? []).map((s) => s.tag.name),
         isTopAssetThisWeek: weekTopKeys.has(weekTopAssetKey("build", row.id)),
       };
     }),
@@ -450,7 +450,7 @@ buildsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
     data: {
       ...serializeBuild(buildRow as typeof buildOut),
       thumbnailStatus: buildOut.thumbnailStatus as ThumbnailStatusValue,
-      tags: buildTags.map((item: { tag: { name: string } }) => item.tag.name),
+      tags: (buildTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
     },
   });
 });
@@ -520,7 +520,7 @@ buildsRouter.get("/:id", async (req: Request, res: Response) => {
     data: {
       ...serializeBuild(buildRest as typeof build),
       thumbnailStatus: build.thumbnailStatus as ThumbnailStatusValue,
-      tags: buildTags.map((item: { tag: { name: string } }) => item.tag.name),
+      tags: (buildTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
       viewCount,
       copyCount,
       favoriteCount,
@@ -668,7 +668,7 @@ buildsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respons
   return res.status(200).json({
     data: {
       ...serializeBuild(outRest as typeof out),
-      tags: outTags.map((item: { tag: { name: string } }) => item.tag.name),
+      tags: (outTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
     },
   });
 });

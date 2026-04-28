@@ -35,6 +35,27 @@ describe("skills API", () => {
 
   it("creates a skill", async () => {
     const app = await buildSkillsApp();
+    const createdRow = {
+      id: 3,
+      teamId: 1,
+      ownerId: 1,
+      title: "My Skill",
+      summary: "S",
+      skillUrl: "https://example.com/skill.zip",
+      skillUrlNormalized: "https://example.com/skill.zip",
+      supportUrl: null,
+      visibility: "PUBLIC",
+      status: "DRAFT",
+      tools: [] as string[],
+      thumbnailUrl: null,
+      thumbnailStatus: "PENDING",
+      thumbnailError: null,
+      isSmartPick: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      owner: { id: 1, name: "U", avatarUrl: null },
+      skillTags: [] as { tag: { name: string } }[],
+    };
     skill.create.mockResolvedValue({
       id: 3,
       teamId: 1,
@@ -48,6 +69,7 @@ describe("skills API", () => {
       updatedAt: new Date(),
       owner: { id: 1, name: "U", avatarUrl: null },
     });
+    skill.findUnique.mockResolvedValue(createdRow);
 
     const response = await request(app).post("/api/skills").send({
       title: "My Skill",
@@ -67,6 +89,27 @@ describe("skills API", () => {
   it("creates a skill with a Salesforce enterprise Slack skill URL", async () => {
     const app = await buildSkillsApp();
     const slackSkillUrl = "https://salesforce.enterprise.slack.com/docs/T5J4Q04QG/F01234ABCDE";
+    const createdRow = {
+      id: 4,
+      teamId: 1,
+      ownerId: 1,
+      title: "Slack Skill",
+      summary: null,
+      skillUrl: slackSkillUrl,
+      skillUrlNormalized: slackSkillUrl,
+      supportUrl: null,
+      visibility: "PUBLIC",
+      status: "DRAFT",
+      tools: [] as string[],
+      thumbnailUrl: null,
+      thumbnailStatus: "PENDING",
+      thumbnailError: null,
+      isSmartPick: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      owner: { id: 1, name: "U", avatarUrl: null },
+      skillTags: [] as { tag: { name: string } }[],
+    };
     skill.create.mockResolvedValue({
       id: 4,
       teamId: 1,
@@ -80,6 +123,7 @@ describe("skills API", () => {
       updatedAt: new Date(),
       owner: { id: 1, name: "U", avatarUrl: null },
     });
+    skill.findUnique.mockResolvedValue(createdRow);
 
     const response = await request(app).post("/api/skills").send({
       title: "Slack Skill",
@@ -119,6 +163,7 @@ describe("skills API", () => {
         createdAt: new Date(),
         updatedAt: new Date(),
         owner: { id: 1, name: "U", avatarUrl: null },
+        skillTags: [] as { tag: { name: string } }[],
       },
     ]);
     skill.count.mockResolvedValue(1);
@@ -133,7 +178,7 @@ describe("skills API", () => {
 
   it("updates a skill with PATCH", async () => {
     const app = await buildSkillsApp();
-    skill.findUnique.mockResolvedValue({
+    const existing = {
       id: 2,
       teamId: 1,
       ownerId: 1,
@@ -141,7 +186,32 @@ describe("skills API", () => {
       summary: null,
       skillUrl: "https://example.com/skill.zip",
       supportUrl: null,
-    });
+      visibility: "PUBLIC",
+      status: "PUBLISHED",
+      tools: [] as string[],
+    };
+    const afterPatch = {
+      id: 2,
+      teamId: 1,
+      ownerId: 1,
+      title: "T2",
+      summary: "Updated summary",
+      skillUrl: "https://example.com/skill.zip",
+      skillUrlNormalized: "https://example.com/skill.zip",
+      supportUrl: null,
+      status: "PUBLISHED",
+      visibility: "PUBLIC",
+      tools: [] as string[],
+      thumbnailUrl: null,
+      thumbnailStatus: "PENDING",
+      thumbnailError: null,
+      isSmartPick: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      owner: { id: 1, name: "U", avatarUrl: null },
+      skillTags: [] as { tag: { name: string } }[],
+    };
+    skill.findUnique.mockResolvedValueOnce(existing).mockResolvedValueOnce(afterPatch);
     skillVersion.findFirst.mockResolvedValue({ version: 1 });
     skillVersion.create.mockResolvedValue({ id: 111, version: 2 });
     skill.update.mockResolvedValue({

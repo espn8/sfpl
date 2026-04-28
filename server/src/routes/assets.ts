@@ -357,7 +357,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         myRating: myRatingByPrompt.get(prompt.id) ?? null,
         variables: prompt.variables,
         isSmartPick: prompt.isSmartPick,
-        tags: prompt.promptTags.map((pt) => pt.tag.name),
+        tags: (prompt.promptTags ?? []).map((pt) => pt.tag.name),
       });
     }
   }
@@ -505,7 +505,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         averageRating: ratingInfo?.avg ?? null,
         myRating: myRatingBySkill.get(skill.id) ?? null,
         isSmartPick: skill.isSmartPick,
-        tags: skill.skillTags.map((st) => st.tag.name),
+        tags: (skill.skillTags ?? []).map((st) => st.tag.name),
       });
     }
   }
@@ -652,7 +652,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         myRating: myRatingByContext.get(doc.id) ?? null,
         variables: doc.variables,
         isSmartPick: doc.isSmartPick,
-        tags: doc.contextTags.map((ct) => ct.tag.name),
+        tags: (doc.contextTags ?? []).map((ct) => ct.tag.name),
       });
     }
   }
@@ -797,7 +797,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         averageRating: ratingInfo?.avg ?? null,
         myRating: myRatingByBuild.get(build.id) ?? null,
         isSmartPick: build.isSmartPick,
-        tags: build.buildTags.map((bt) => bt.tag.name),
+        tags: (build.buildTags ?? []).map((bt) => bt.tag.name),
       });
     }
   }

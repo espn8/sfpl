@@ -326,7 +326,7 @@ skillsRouter.get("/", async (req: Request, res: Response) => {
       const flagRows = flagRowsBySkill.get(row.id) ?? [];
       return {
         ...serializeSkill(rest as typeof row),
-        tags: skillTags.map((s) => s.tag.name),
+        tags: (skillTags ?? []).map((s) => s.tag.name),
         viewCount: viewMap.get(row.id) ?? 0,
         copyCount: copyMap.get(row.id) ?? 0,
         favoriteCount: favoriteMap.get(row.id) ?? 0,
@@ -349,7 +349,7 @@ skillsRouter.get("/", async (req: Request, res: Response) => {
       const { skillTags, ...rest } = row;
       return {
         ...serializeSkill(rest as typeof row),
-        tags: skillTags.map((s) => s.tag.name),
+        tags: (skillTags ?? []).map((s) => s.tag.name),
         isTopAssetThisWeek: weekTopKeys.has(weekTopAssetKey("skill", row.id)),
       };
     }),
@@ -437,7 +437,7 @@ skillsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
     data: {
       ...serializeSkill(skillRow as typeof skillOut),
       thumbnailStatus: skillOut.thumbnailStatus as ThumbnailStatusValue,
-      tags: skillTags.map((item: { tag: { name: string } }) => item.tag.name),
+      tags: (skillTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
     },
   });
 });
@@ -508,7 +508,7 @@ skillsRouter.get("/:id", async (req: Request, res: Response) => {
     data: {
       ...serializeSkill(skillRest as typeof skill),
       thumbnailStatus: skill.thumbnailStatus as ThumbnailStatusValue,
-      tags: skillTags.map((item: { tag: { name: string } }) => item.tag.name),
+      tags: (skillTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
       viewCount,
       copyCount,
       favoriteCount,
@@ -656,7 +656,7 @@ skillsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respons
   return res.status(200).json({
     data: {
       ...serializeSkill(skillRest as typeof out),
-      tags: skillTags.map((item: { tag: { name: string } }) => item.tag.name),
+      tags: (skillTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
     },
   });
 });

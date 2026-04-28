@@ -620,7 +620,7 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
     thumbnailStatus: "thumbnailStatus" in prompt ? (prompt.thumbnailStatus as ThumbnailStatusValue) : "PENDING",
     createdAt: prompt.createdAt,
     updatedAt: prompt.updatedAt,
-    tags: prompt.promptTags.map((item: { tag: { name: string } }) => item.tag.name),
+    tags: (prompt.promptTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
     favoriteCount: prompt._count.favorites,
     ratingCount: prompt._count.ratings,
     usageCount: usageCountByPrompt.get(prompt.id) ?? 0,
@@ -763,7 +763,7 @@ promptsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) 
     data: {
       ...serializePromptWithModality(created),
       thumbnailStatus: created.thumbnailStatus as ThumbnailStatusValue,
-      tags: created.promptTags.map((item: { tag: { name: string } }) => item.tag.name),
+      tags: (created.promptTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
     },
   });
 });
@@ -876,7 +876,7 @@ promptsRouter.get("/:id", async (req: Request, res: Response) => {
     data: {
       ...serializePromptWithModality(prompt),
       thumbnailStatus: prompt.thumbnailStatus as ThumbnailStatusValue,
-      tags: prompt.promptTags.map((item: { tag: { name: string } }) => item.tag.name),
+      tags: (prompt.promptTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
       viewCount,
       favorited: Boolean(favoriteRow),
       myRating: ratingRow?.value ?? null,
@@ -1039,7 +1039,7 @@ promptsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respon
     data: {
       ...serializePromptWithModality(updated),
       thumbnailStatus: updated.thumbnailStatus as ThumbnailStatusValue,
-      tags: updated.promptTags.map((item: { tag: { name: string } }) => item.tag.name),
+      tags: (updated.promptTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
     },
   });
 });

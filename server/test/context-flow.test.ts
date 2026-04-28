@@ -47,6 +47,29 @@ describe("context API", () => {
       updatedAt: new Date(),
       owner: { id: 1, name: "U", avatarUrl: null },
     });
+    contextDocument.findUnique.mockResolvedValue({
+      id: 5,
+      teamId: 1,
+      ownerId: 1,
+      title: "Rules",
+      summary: null,
+      body: "# Rules\n\nBe kind.",
+      titleNormalized: "rules",
+      bodyHash: "hash",
+      supportUrl: null,
+      visibility: "PUBLIC",
+      status: "DRAFT",
+      tools: [] as string[],
+      modality: "TEXT",
+      thumbnailUrl: null,
+      thumbnailStatus: "PENDING",
+      thumbnailError: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      owner: { id: 1, name: "U", avatarUrl: null },
+      variables: [] as { id: number; key: string; label: string | null; defaultValue: string | null; required: boolean }[],
+      contextTags: [] as { tag: { name: string } }[],
+    });
 
     const response = await request(app).post("/api/context").send({
       title: "Rules",

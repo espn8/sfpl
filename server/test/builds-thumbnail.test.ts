@@ -73,6 +73,27 @@ describe("builds thumbnail upload + AI-skip behavior", () => {
       updatedAt: new Date(),
       owner: { id: 1, name: "Owner", avatarUrl: null },
     });
+    build.findUnique.mockResolvedValue({
+      id: 42,
+      teamId: 1,
+      ownerId: 1,
+      title: "My Build",
+      summary: null,
+      buildUrl: "https://example.com/my-build",
+      buildUrlNormalized: "https://example.com/my-build",
+      supportUrl: null,
+      visibility: "PUBLIC",
+      status: "DRAFT",
+      tools: [] as string[],
+      thumbnailUrl: null,
+      thumbnailStatus: "PENDING",
+      thumbnailError: null,
+      isSmartPick: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      owner: { id: 1, name: "Owner", avatarUrl: null },
+      buildTags: [] as { tag: { name: string } }[],
+    });
 
     const response = await request(app).post("/api/builds").send({
       title: "My Build",
@@ -106,12 +127,28 @@ describe("builds thumbnail upload + AI-skip behavior", () => {
       updatedAt: new Date(),
       owner: { id: 1, name: "Owner", avatarUrl: null },
     });
-    build.findUnique.mockResolvedValue({
+    const buildOut = {
       id: 43,
+      teamId: 1,
+      ownerId: 1,
       title: "AI Build",
       summary: null,
       buildUrl: "https://example.com/ai-build",
-    });
+      buildUrlNormalized: "https://example.com/ai-build",
+      supportUrl: null,
+      visibility: "PUBLIC",
+      status: "DRAFT",
+      tools: [] as string[],
+      thumbnailUrl: null,
+      thumbnailStatus: "PENDING",
+      thumbnailError: null,
+      isSmartPick: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      owner: { id: 1, name: "Owner", avatarUrl: null },
+      buildTags: [] as { tag: { name: string } }[],
+    };
+    build.findUnique.mockResolvedValue(buildOut);
     mockGeneratePromptThumbnail.mockResolvedValue("data:image/png;base64,AAA");
 
     const response = await request(app).post("/api/builds").send({

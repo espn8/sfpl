@@ -486,7 +486,7 @@ contextRouter.post("/", requireWriteAccess, async (req: Request, res: Response) 
     data: {
       ...serializeContextDoc(docRest as typeof docOut),
       thumbnailStatus: docOut.thumbnailStatus as ThumbnailStatusValue,
-      tags: contextTags.map((item: { tag: { name: string } }) => item.tag.name),
+      tags: (contextTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
     },
   });
 });
@@ -557,7 +557,7 @@ contextRouter.get("/:id", async (req: Request, res: Response) => {
     data: {
       ...serializeContextDoc(docRest as typeof doc),
       thumbnailStatus: doc.thumbnailStatus as ThumbnailStatusValue,
-      tags: contextTags.map((item: { tag: { name: string } }) => item.tag.name),
+      tags: (contextTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
       viewCount,
       copyCount,
       favoriteCount,
@@ -702,7 +702,7 @@ contextRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respon
   return res.status(200).json({
     data: {
       ...serializeContextDoc(outRest as typeof out),
-      tags: outTags.map((item: { tag: { name: string } }) => item.tag.name),
+      tags: (outTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
     },
   });
 });

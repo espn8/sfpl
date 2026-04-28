@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mockPromptFindMany = vi.fn();
 const mockSkillFindMany = vi.fn();
 const mockContextFindMany = vi.fn();
+const mockTagFindMany = vi.fn();
 
 vi.mock("../src/middleware/auth", () => ({
   requireAuth: (_req: unknown, _res: unknown, next: () => void) => next(),
@@ -23,6 +24,9 @@ vi.mock("../src/lib/prisma", () => ({
     contextDocument: {
       findMany: mockContextFindMany,
     },
+    tag: {
+      findMany: mockTagFindMany,
+    },
   },
 }));
 
@@ -37,6 +41,7 @@ async function buildSearchApp() {
 describe("search suggestions endpoint", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockTagFindMany.mockResolvedValue([]);
   });
 
   it("returns 400 when query is missing", async () => {
