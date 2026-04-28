@@ -16,7 +16,7 @@ import {
   getSkillToolLabel,
   isValidSkillPackageUrl,
   ARCHIVE_EXTENSIONS,
-  SLACK_ENTERPRISE_SKILLS_URL_PREFIX,
+  SLACK_ENTERPRISE_SKILL_DOCS_URL_PREFIX,
   type SkillTool,
 } from "./api";
 
@@ -104,7 +104,7 @@ export function SkillEditorPage() {
         }
         if (!isValidSkillPackageUrl(skillUrl)) {
           setValidationError(
-            `Skill URL must be a compressed file (${ARCHIVE_EXTENSIONS.join(", ")}) or a Slack skill URL beginning with ${SLACK_ENTERPRISE_SKILLS_URL_PREFIX}.`,
+            `Skill URL must be a compressed file (${ARCHIVE_EXTENSIONS.join(", ")}) or a Slack skill docs URL beginning with ${SLACK_ENTERPRISE_SKILL_DOCS_URL_PREFIX}.`,
           );
           return;
         }
@@ -218,13 +218,14 @@ export function SkillEditorPage() {
           <input
             name="skillUrl"
             type="url"
-            placeholder="https://example.com/my-skill.zip or Slack skill URL"
+            placeholder="https://example.com/my-skill.zip or Slack skill docs URL"
             required
             className="w-full rounded border border-(--color-border) bg-(--color-surface) px-3 py-2"
           />
           <p className="mt-1 text-xs text-(--color-text-muted)">
-            Link to the skill package file or Slack. Use a compressed file ({ARCHIVE_EXTENSIONS.join(", ")}) or a Slack
-            skill URL that begins with {SLACK_ENTERPRISE_SKILLS_URL_PREFIX}
+            Link to the skill package file or Slackbot Skill Canvas. Use a compressed file ({ARCHIVE_EXTENSIONS.join(", ")}) or a Slack
+            skill docs URL that begins with {SLACK_ENTERPRISE_SKILL_DOCS_URL_PREFIX}
+            Links containing 'archive' are not accepted.
           </p>
         </div>
         <div>

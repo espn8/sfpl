@@ -5,7 +5,7 @@ import { z } from "zod";
 import { prisma } from "../../lib/prisma";
 import { PromptModality } from "@prisma/client";
 import { env } from "../../config/env";
-import { ARCHIVE_EXTENSIONS, isValidSkillPackageUrl, SLACK_ENTERPRISE_SKILLS_URL_PREFIX } from "../../lib/skillUrl";
+import { ARCHIVE_EXTENSIONS, isValidSkillPackageUrl, SLACK_ENTERPRISE_SKILL_DOCS_URL_PREFIX } from "../../lib/skillUrl";
 import { generatePromptThumbnail } from "../../services/nanoBanana";
 
 const v1Router = Router();
@@ -203,7 +203,7 @@ v1Router.post("/prompts", async (req: Request, res: Response) => {
 const createSkillSchema = z.object({
   title: z.string().trim().min(1, "title is required"),
   skillUrl: z.string().url("skillUrl must be a valid URL").refine(isValidSkillPackageUrl, {
-    message: `skillUrl must link to a compressed file (${ARCHIVE_EXTENSIONS.join(", ")}) or a Slack skill URL beginning with ${SLACK_ENTERPRISE_SKILLS_URL_PREFIX}`,
+    message: `skillUrl must link to a compressed file (${ARCHIVE_EXTENSIONS.join(", ")}) or a Slack skill docs URL beginning with ${SLACK_ENTERPRISE_SKILL_DOCS_URL_PREFIX}`,
   }),
   summary: z.string().trim().optional(),
   supportUrl: z.string().url().optional().or(z.literal("")),

@@ -36,7 +36,7 @@ import {
   SUMMARY_TOO_LONG_MESSAGE,
   checkUpdatedSummaryLength,
 } from "../lib/summaryLimits";
-import { ARCHIVE_EXTENSIONS, isValidSkillPackageUrl, SLACK_ENTERPRISE_SKILLS_URL_PREFIX } from "../lib/skillUrl";
+import { ARCHIVE_EXTENSIONS, isValidSkillPackageUrl, SLACK_ENTERPRISE_SKILL_DOCS_URL_PREFIX } from "../lib/skillUrl";
 import { getWeekTopAssetKeySet, weekTopAssetKey } from "../services/weekTopAssets";
 
 const skillsRouter = Router();
@@ -51,7 +51,7 @@ const skillUrlSchema = z
   .string()
   .url("skillUrl must be a valid URL.")
   .refine(isValidSkillPackageUrl, {
-    message: `skillUrl must link to a compressed file (${ARCHIVE_EXTENSIONS.join(", ")}) or a Slack skill URL beginning with ${SLACK_ENTERPRISE_SKILLS_URL_PREFIX}.`,
+    message: `skillUrl must link to a compressed file (${ARCHIVE_EXTENSIONS.join(", ")}) or a Slack skill docs URL beginning with ${SLACK_ENTERPRISE_SKILL_DOCS_URL_PREFIX}.`,
   });
 
 function badRequestFromZodError(error: z.ZodError) {

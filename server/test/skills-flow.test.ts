@@ -66,7 +66,7 @@ describe("skills API", () => {
 
   it("creates a skill with a Salesforce enterprise Slack skill URL", async () => {
     const app = await buildSkillsApp();
-    const slackSkillUrl = "https://salesforce.enterprise.slack.com/skills/F01234ABCDE";
+    const slackSkillUrl = "https://salesforce.enterprise.slack.com/docs/T5J4Q04QG/F01234ABCDE";
     skill.create.mockResolvedValue({
       id: 4,
       teamId: 1,

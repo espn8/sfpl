@@ -1,8 +1,8 @@
 /** Allowed archive suffixes for direct skill package downloads. */
 export const ARCHIVE_EXTENSIONS = [".zip", ".tar", ".tar.gz", ".tgz", ".tar.bz2", ".7z", ".rar"] as const;
 
-/** Slack Skills in the Salesforce enterprise workspace must use this URL prefix. */
-export const SLACK_ENTERPRISE_SKILLS_URL_PREFIX = "https://salesforce.enterprise.slack.com/skills/";
+/** Slack skill doc pages in the Salesforce enterprise workspace must use this URL prefix. */
+export const SLACK_ENTERPRISE_SKILL_DOCS_URL_PREFIX = "https://salesforce.enterprise.slack.com/docs/";
 
 export function isValidArchiveUrl(url: string): boolean {
   try {
@@ -16,7 +16,10 @@ export function isValidArchiveUrl(url: string): boolean {
 
 export function isValidSlackEnterpriseSkillUrl(url: string): boolean {
   const trimmed = url.trim();
-  if (!trimmed.startsWith(SLACK_ENTERPRISE_SKILLS_URL_PREFIX)) {
+  if (!trimmed.startsWith(SLACK_ENTERPRISE_SKILL_DOCS_URL_PREFIX)) {
+    return false;
+  }
+  if (trimmed.toLowerCase().includes("archive")) {
     return false;
   }
   try {
@@ -27,7 +30,7 @@ export function isValidSlackEnterpriseSkillUrl(url: string): boolean {
   }
 }
 
-/** Skill URL: compressed package link or Salesforce enterprise Slack Skill URL. */
+/** Skill URL: compressed package link or Salesforce enterprise Slack skill docs URL. */
 export function isValidSkillPackageUrl(url: string): boolean {
   return isValidArchiveUrl(url) || isValidSlackEnterpriseSkillUrl(url);
 }
