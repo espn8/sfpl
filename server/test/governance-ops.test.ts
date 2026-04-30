@@ -38,6 +38,7 @@ describe("governanceOps", () => {
   });
 
   it("unarchiveAsset republishes and clears archive fields", async () => {
+    buildModel.findUnique.mockResolvedValue({ status: "ARCHIVED", publishedAt: null });
     const ops = await load();
     await ops.unarchiveAsset("BUILD", 7, 9);
     expect(buildModel.update).toHaveBeenCalledTimes(1);
