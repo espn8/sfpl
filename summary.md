@@ -1,11 +1,18 @@
 # AI Library - Technical Summary
 
-Last Updated: Thursday, April 30, 2026 — 14:52 CDT
-Build Version: `aaaea05`
+Last Updated: Thursday, April 30, 2026 — 15:05 CDT
+Build Version: `a8d4756`
 App Version: see production footer after deploy (root `package.json` 1.3.5 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Session: Search NL local parse — “code review” vs modality, Gemini empty terms (April 30, 2026 — 15:05 CDT)
+
+- **Problem:** Queries such as **“cursor prompts for code review”** could be misparsed: the word after **`for`** was treated as a modality cue, and **`code`** before **`review`** could be taken as a **code** output modality. **Gemini** could return an empty **`searchTerms`** string, losing the user’s text.
+- **Server** — [server/src/services/searchParser.ts](server/src/services/searchParser.ts): In **`tryLocalParse`**, treat **“code review”** as a task phrase (do not map **`code`** to a modality in that case). **Modality heuristics** no longer use **`prevWord === "for"`** (keeps **generate** / **create** / next-token cues only). In **`parseSearchQuery`**, when the model path yields empty trimmed terms, **fall back to the full original query** for **`searchTerms`**.
+- **Tests** — [server/test/search-parser.test.ts](server/test/search-parser.test.ts): regression for **cursor** + **code review** style input.
+- **Prisma:** none. **Deploy:** **`git push origin main`**, **`git push heroku main`**. **Verify:** https://ail.mysalesforcedemo.com — Smart Search with natural-language queries like the home help example.
 
 ### Session: Production deploy — Heroku Postgres backup b002 (April 30, 2026 — 14:52 CDT)
 
