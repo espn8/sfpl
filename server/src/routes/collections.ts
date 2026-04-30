@@ -332,6 +332,7 @@ collectionsRouter.post("/:id/prompts/:promptId", requireWriteAccess, async (req:
       collectionId,
       promptId,
       sortOrder: (maxSort._max.sortOrder ?? -1) + 1,
+      addedById: auth.userId,
     },
     update: {},
   });

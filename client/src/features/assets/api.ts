@@ -62,7 +62,7 @@ export type ListAssetsFilters = {
   assetType?: "all" | AssetType;
   tool?: PromptTool;
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
-  sort?: "recent" | "mostUsed" | "name" | "updatedAt";
+  sort?: "recent" | "mostUsed" | "mostUsedThisWeek" | "name" | "updatedAt";
   mine?: boolean;
   ownerId?: number;
   includeAnalytics?: boolean;

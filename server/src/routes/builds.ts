@@ -40,6 +40,7 @@ import {
   SUMMARY_TOO_LONG_MESSAGE,
   checkUpdatedSummaryLength,
 } from "../lib/summaryLimits";
+import { firstPublishedAtOnTransition } from "../lib/firstPublishedAt";
 import { getWeekTopAssetKeySet, weekTopAssetKey } from "../services/weekTopAssets";
 import { notifySlackIfEnteredPublicPublished } from "../services/slackNewPublicAsset";
 import { validateTagIdsExist, buildTaggedWithWhere } from "../lib/assetTags";
@@ -417,6 +418,7 @@ buildsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
     return res.status(409).json(formatDuplicateError(duplicateCheck));
   }
 
+  const initialStatus = status ?? "DRAFT";
   const build = await prisma.build.create({
     data: {
       teamId: auth.teamId,
@@ -427,7 +429,8 @@ buildsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
       buildUrlNormalized: normalizeUrl(buildUrl),
       supportUrl: supportUrl || null,
       visibility: visibility ?? "PUBLIC",
-      status: status ?? "DRAFT",
+      status: initialStatus,
+      ...(initialStatus === "PUBLISHED" ? { publishedAt: new Date() } : {}),
       modality: apiToDbModality[modality],
       thumbnailStatus: "PENDING",
       thumbnailError: null,
@@ -673,6 +676,7 @@ buildsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respons
       visibility: u.visibility,
       status: u.status,
       modality: u.modality !== undefined ? apiToDbModality[u.modality] : undefined,
+      ...firstPublishedAtOnTransition(existing.status, existing.publishedAt, u.status),
     },
     include: {
       owner: { select: { id: true, name: true, avatarUrl: true } },
@@ -1103,6 +1107,7 @@ buildsRouter.post("/:id/collections/:collectionId", async (req: Request, res: Re
       collectionId,
       buildId,
       sortOrder: (maxSort._max.sortOrder ?? -1) + 1,
+      addedById: auth.userId,
     },
     update: {},
   });

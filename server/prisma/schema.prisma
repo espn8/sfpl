@@ -44,6 +44,10 @@ model User {
   buildFavorites    BuildFavorite[]
   buildUsageEvents  BuildUsageEvent[]
   buildRatings      BuildRating[]
+  collectionPromptAdds   CollectionPrompt[]   @relation("CollectionPromptAddedBy")
+  collectionSkillAdds    CollectionSkill[]    @relation("CollectionSkillAddedBy")
+  collectionContextAdds  CollectionContext[]  @relation("CollectionContextAddedBy")
+  collectionBuildAdds    CollectionBuild[]    @relation("CollectionBuildAddedBy")
   toolRequestsReviewed ToolRequest[]
   tagRequestsReviewed TagRequest[]
   apiKeys           ApiKey[]
@@ -101,6 +105,7 @@ model Prompt {
   warningSentAt     DateTime?
   archivedAt        DateTime?
   archiveReason     ArchiveReason?
+  publishedAt       DateTime?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
   team            Team              @relation(fields: [teamId], references: [id], onDelete: Restrict)
@@ -117,6 +122,7 @@ model Prompt {
   @@index([titleNormalized])
   @@index([teamId, usageCount])
   @@index([status, verificationDueAt])
+  @@index([status, publishedAt])
 }
 
 model Skill {
@@ -142,6 +148,7 @@ model Skill {
   warningSentAt      DateTime?
   archivedAt         DateTime?
   archiveReason      ArchiveReason?
+  publishedAt        DateTime?
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
   team               Team             @relation(fields: [teamId], references: [id], onDelete: Restrict)
@@ -157,6 +164,7 @@ model Skill {
   @@index([teamId, updatedAt])
   @@index([teamId, usageCount])
   @@index([status, verificationDueAt])
+  @@index([status, publishedAt])
 }
 
 model ContextDocument {
@@ -183,6 +191,7 @@ model ContextDocument {
   warningSentAt     DateTime?
   archivedAt        DateTime?
   archiveReason     ArchiveReason?
+  publishedAt       DateTime?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   team            Team             @relation(fields: [teamId], references: [id], onDelete: Restrict)
@@ -200,6 +209,7 @@ model ContextDocument {
   @@index([titleNormalized])
   @@index([teamId, usageCount])
   @@index([status, verificationDueAt])
+  @@index([status, publishedAt])
 }
 
 model Build {
@@ -224,6 +234,7 @@ model Build {
   warningSentAt      DateTime?
   archivedAt         DateTime?
   archiveReason      ArchiveReason?
+  publishedAt        DateTime?
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
   team               Team             @relation(fields: [teamId], references: [id], onDelete: Restrict)
@@ -239,6 +250,7 @@ model Build {
   @@index([teamId, updatedAt])
   @@index([teamId, usageCount])
   @@index([status, verificationDueAt])
+  @@index([status, publishedAt])
 }
 
 model PromptVersion {
@@ -407,10 +419,14 @@ model CollectionPrompt {
   collectionId Int
   promptId     Int
   sortOrder    Int        @default(0)
+  createdAt    DateTime   @default(now())
+  addedById    Int
   collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
   prompt       Prompt     @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  addedBy      User       @relation("CollectionPromptAddedBy", fields: [addedById], references: [id], onDelete: Restrict)
 
   @@unique([collectionId, promptId])
+  @@index([addedById, createdAt])
 }
 
 model CollectionSkill {
@@ -418,10 +434,14 @@ model CollectionSkill {
   collectionId Int
   skillId      Int
   sortOrder    Int        @default(0)
+  createdAt    DateTime   @default(now())
+  addedById    Int
   collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
   skill        Skill      @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  addedBy      User       @relation("CollectionSkillAddedBy", fields: [addedById], references: [id], onDelete: Restrict)
 
   @@unique([collectionId, skillId])
+  @@index([addedById, createdAt])
 }
 
 model CollectionContext {
@@ -429,10 +449,14 @@ model CollectionContext {
   collectionId Int
   contextId    Int
   sortOrder    Int             @default(0)
+  createdAt    DateTime        @default(now())
+  addedById    Int
   collection   Collection      @relation(fields: [collectionId], references: [id], onDelete: Cascade)
   context      ContextDocument @relation(fields: [contextId], references: [id], onDelete: Cascade)
+  addedBy      User            @relation("CollectionContextAddedBy", fields: [addedById], references: [id], onDelete: Restrict)
 
   @@unique([collectionId, contextId])
+  @@index([addedById, createdAt])
 }
 
 model CollectionBuild {
@@ -440,10 +464,14 @@ model CollectionBuild {
   collectionId Int
   buildId      Int
   sortOrder    Int        @default(0)
+  createdAt    DateTime   @default(now())
+  addedById    Int
   collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
   build        Build      @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  addedBy      User       @relation("CollectionBuildAddedBy", fields: [addedById], references: [id], onDelete: Restrict)
 
   @@unique([collectionId, buildId])
+  @@index([addedById, createdAt])
 }
 
 model CollectionUser {

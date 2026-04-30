@@ -48,7 +48,7 @@ const helpContent: HelpSection[] = [
       {
         question: "What should I do first?",
         answer:
-          '1. Accept the compliance notice (see "Compliance & Policies" below) — it pops up on first load\n2. Complete your profile (name, region, Department/OU, title, and optional profile photo)\n3. Browse the homepage to see Top Performers and featured assets\n4. Try using a prompt by clicking "Use" on any card — it copies to your clipboard and/or launches the target tool\n5. Save assets you like by clicking the heart (favorite) icon\n6. Create your first asset using the "Create" button or the hero cards',
+          '1. Accept the compliance notice (see "Compliance & Policies" below) — it pops up on first load\n2. Complete your profile (name, region, Department/OU, title, and optional profile photo)\n3. Browse the homepage to see Top Assets This Week (7-day views + uses), weekly contributor and activity leaderboards, and featured assets\n4. Try using a prompt by clicking "Use" on any card — it copies to your clipboard and/or launches the target tool\n5. Save assets you like by clicking the heart (favorite) icon\n6. Create your first asset using the "Create" button or the hero cards',
       },
       {
         question: "What are Smart Picks, New, Updated, and Popular badges?",
@@ -74,7 +74,7 @@ const helpContent: HelpSection[] = [
       {
         question: "How do I find prompts?",
         answer:
-          'Use the unified Smart Search bar at the top of the homepage. You can:\n• Type keywords or an asset title — the search matches titles, summaries, and bodies (highlighting where supported)\n• Use natural language like "cursor prompts for code review" — when your query mentions tools or asset kinds, our Gemini-powered parser can turn it into structured filters; plain title-style phrases stay literal\n• Press ⌘K (Cmd-K) to focus the search bar from anywhere\n• Click a faceted filter chip (Prompts, Skills, Context, Builds, or any tool) to narrow the list\n• Sort by Most Recent, Most Used, Name, or Updated At',
+          'Use the unified Smart Search bar at the top of the homepage. You can:\n• Type keywords or an asset title — the search matches titles, summaries, and bodies (highlighting where supported)\n• Use natural language like "cursor prompts for code review" — when your query mentions tools or asset kinds, our Gemini-powered parser can turn it into structured filters; plain title-style phrases stay literal\n• Press ⌘K (Cmd-K) to focus the search bar from anywhere\n• Click a faceted filter chip (Prompts, Skills, Context, Builds, or any tool) to narrow the list\n• Sort by Most Recent, Most Used, Most Used This Week, Name, or Updated At',
       },
       {
         question: "How do I use a prompt?",

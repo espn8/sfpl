@@ -15,8 +15,11 @@ export type AnalyticsOverview = {
     email: string;
     name: string | null;
     score: number;
-    usedCount: number;
+    firstPublishCount: number;
+    viewCount: number;
+    useCount: number;
     favoritedCount: number;
+    collectionAddCount: number;
     ratingCount: number;
   }>;
 };

@@ -8,8 +8,9 @@
  * users later why an asset is in its current state.
  */
 
-import type { ArchiveReason, AssetType, VerificationAction } from "@prisma/client";
+import type { ArchiveReason, AssetType, PromptStatus, VerificationAction } from "@prisma/client";
 import { prisma } from "../lib/prisma";
+import { firstPublishedAtOnTransition } from "../lib/firstPublishedAt";
 
 const VERIFICATION_WINDOW_DAYS = 30;
 
@@ -74,6 +75,25 @@ export async function verifyAsset(kind: AssetKind, assetId: number, userId: numb
 export async function unarchiveAsset(kind: AssetKind, assetId: number, userId: number): Promise<void> {
   const now = new Date();
   const due = addDays(now, VERIFICATION_WINDOW_DAYS);
+
+  const select = { status: true as const, publishedAt: true as const };
+  const existing =
+    kind === "PROMPT"
+      ? await prisma.prompt.findUnique({ where: { id: assetId }, select })
+      : kind === "SKILL"
+        ? await prisma.skill.findUnique({ where: { id: assetId }, select })
+        : kind === "CONTEXT"
+          ? await prisma.contextDocument.findUnique({ where: { id: assetId }, select })
+          : await prisma.build.findUnique({ where: { id: assetId }, select });
+  if (!existing) {
+    return;
+  }
+  const publishPatch = firstPublishedAtOnTransition(
+    existing.status as PromptStatus,
+    existing.publishedAt,
+    "PUBLISHED",
+  );
+
   const delegate = delegateFor(kind) as unknown as {
     update: (args: unknown) => Promise<unknown>;
   };
@@ -86,6 +106,7 @@ export async function unarchiveAsset(kind: AssetKind, assetId: number, userId: n
       lastVerifiedAt: now,
       verificationDueAt: due,
       warningSentAt: null,
+      ...publishPatch,
     },
   });
   await logVerification({ kind, assetId, userId, action: "UNARCHIVED" });

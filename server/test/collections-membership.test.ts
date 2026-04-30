@@ -72,6 +72,7 @@ describe("collection membership edge cases", () => {
       expect.objectContaining({
         create: expect.objectContaining({
           sortOrder: 4,
+          addedById: 1,
         }),
       }),
     );

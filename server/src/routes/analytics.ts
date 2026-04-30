@@ -6,6 +6,8 @@ import { getAuthContext, requireAuth, requireOnboardingComplete, requireRole } f
 import { prisma } from "../lib/prisma";
 import { buildAggregate, computeFinalScore, DEFAULT_GLOBAL_MEAN } from "../services/scoring";
 import { countFlags } from "../lib/flagCounts";
+import { getGlobalContributorsThisWeek } from "../services/globalContributorsThisWeek";
+import { getGlobalMostActiveThisWeek } from "../services/globalMostActiveThisWeek";
 
 const analyticsRouter = Router();
 analyticsRouter.use(requireAuth);
@@ -20,11 +22,6 @@ type RatedPrompt = {
   title: string;
   ratings: Array<{ value: number; feedbackFlags: FeedbackFlag[] }>;
 };
-type UserActivityCounts = {
-  usedCount: number;
-  favoritedCount: number;
-  ratingCount: number;
-};
 
 analyticsRouter.get("/overview", async (req: Request, res: Response) => {
   const auth = getAuthContext(req);
@@ -35,16 +32,7 @@ analyticsRouter.get("/overview", async (req: Request, res: Response) => {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  const rollingSevenDaysAgo = new Date();
-  rollingSevenDaysAgo.setDate(rollingSevenDaysAgo.getDate() - 7);
-
-  /** Published team assets first created in the rolling 7-day window (home / analytics “This Week”). */
-  const publishedAssetThisWeekWhere = {
-    teamId: auth.teamId,
-    status: PromptStatus.PUBLISHED,
-    createdAt: { gte: rollingSevenDaysAgo },
-  };
-  /** Limit engagement metrics to assets in this workspace (matches contributor / top-used scope). */
+  /** Limit “most used” assets to this workspace (admin analytics). */
   const teamCatalogWhere = { teamId: auth.teamId };
 
   const TOP_USED_CANDIDATES_PER_TYPE = 30;
@@ -150,22 +138,8 @@ analyticsRouter.get("/overview", async (req: Request, res: Response) => {
   const [
     topRated,
     stalePrompts,
-    promptUsesByUser,
-    skillCopiesByUser,
-    contextCopiesByUser,
-    buildCopiesByUser,
-    promptFavoritesByUser,
-    skillFavoritesByUser,
-    contextFavoritesByUser,
-    buildFavoritesByUser,
-    promptRatingsByUser,
-    skillRatingsByUser,
-    contextRatingsByUser,
-    buildRatingsByUser,
-    publishedPromptsByOwner,
-    publishedSkillsByOwner,
-    publishedContextByOwner,
-    publishedBuildsByOwner,
+    contributors,
+    mostActiveRows,
   ] = await Promise.all([
     prisma.prompt.findMany({
       where: {
@@ -192,138 +166,8 @@ analyticsRouter.get("/overview", async (req: Request, res: Response) => {
       take: 10,
       orderBy: { updatedAt: "asc" },
     }),
-    prisma.usageEvent.groupBy({
-      by: ["userId"],
-      where: {
-        user: { teamId: auth.teamId },
-        prompt: teamCatalogWhere,
-        action: { in: [UsageAction.COPY, UsageAction.LAUNCH] },
-        createdAt: { gte: rollingSevenDaysAgo },
-      },
-      _count: { _all: true },
-    }),
-    prisma.skillUsageEvent.groupBy({
-      by: ["userId"],
-      where: {
-        user: { teamId: auth.teamId },
-        skill: teamCatalogWhere,
-        eventType: "COPY",
-        createdAt: { gte: rollingSevenDaysAgo },
-      },
-      _count: { _all: true },
-    }),
-    prisma.contextUsageEvent.groupBy({
-      by: ["userId"],
-      where: {
-        user: { teamId: auth.teamId },
-        context: teamCatalogWhere,
-        eventType: "COPY",
-        createdAt: { gte: rollingSevenDaysAgo },
-      },
-      _count: { _all: true },
-    }),
-    prisma.buildUsageEvent.groupBy({
-      by: ["userId"],
-      where: {
-        user: { teamId: auth.teamId },
-        build: teamCatalogWhere,
-        eventType: "COPY",
-        createdAt: { gte: rollingSevenDaysAgo },
-      },
-      _count: { _all: true },
-    }),
-    prisma.favorite.groupBy({
-      by: ["userId"],
-      where: {
-        user: { teamId: auth.teamId },
-        prompt: teamCatalogWhere,
-        createdAt: { gte: rollingSevenDaysAgo },
-      },
-      _count: { _all: true },
-    }),
-    prisma.skillFavorite.groupBy({
-      by: ["userId"],
-      where: {
-        user: { teamId: auth.teamId },
-        skill: teamCatalogWhere,
-        createdAt: { gte: rollingSevenDaysAgo },
-      },
-      _count: { _all: true },
-    }),
-    prisma.contextFavorite.groupBy({
-      by: ["userId"],
-      where: {
-        user: { teamId: auth.teamId },
-        context: teamCatalogWhere,
-        createdAt: { gte: rollingSevenDaysAgo },
-      },
-      _count: { _all: true },
-    }),
-    prisma.buildFavorite.groupBy({
-      by: ["userId"],
-      where: {
-        user: { teamId: auth.teamId },
-        build: teamCatalogWhere,
-        createdAt: { gte: rollingSevenDaysAgo },
-      },
-      _count: { _all: true },
-    }),
-    prisma.rating.groupBy({
-      by: ["userId"],
-      where: {
-        user: { teamId: auth.teamId },
-        prompt: teamCatalogWhere,
-        updatedAt: { gte: rollingSevenDaysAgo },
-      },
-      _count: { _all: true },
-    }),
-    prisma.skillRating.groupBy({
-      by: ["userId"],
-      where: {
-        user: { teamId: auth.teamId },
-        skill: teamCatalogWhere,
-        updatedAt: { gte: rollingSevenDaysAgo },
-      },
-      _count: { _all: true },
-    }),
-    prisma.contextRating.groupBy({
-      by: ["userId"],
-      where: {
-        user: { teamId: auth.teamId },
-        context: teamCatalogWhere,
-        updatedAt: { gte: rollingSevenDaysAgo },
-      },
-      _count: { _all: true },
-    }),
-    prisma.buildRating.groupBy({
-      by: ["userId"],
-      where: {
-        user: { teamId: auth.teamId },
-        build: teamCatalogWhere,
-        updatedAt: { gte: rollingSevenDaysAgo },
-      },
-      _count: { _all: true },
-    }),
-    prisma.prompt.groupBy({
-      by: ["ownerId"],
-      where: publishedAssetThisWeekWhere,
-      _count: { _all: true },
-    }),
-    prisma.skill.groupBy({
-      by: ["ownerId"],
-      where: publishedAssetThisWeekWhere,
-      _count: { _all: true },
-    }),
-    prisma.contextDocument.groupBy({
-      by: ["ownerId"],
-      where: publishedAssetThisWeekWhere,
-      _count: { _all: true },
-    }),
-    prisma.build.groupBy({
-      by: ["ownerId"],
-      where: publishedAssetThisWeekWhere,
-      _count: { _all: true },
-    }),
+    getGlobalContributorsThisWeek(10),
+    getGlobalMostActiveThisWeek(10),
   ]);
 
   const topRatedPrompts = topRated as RatedPrompt[];
@@ -348,108 +192,7 @@ analyticsRouter.get("/overview", async (req: Request, res: Response) => {
     .sort((a, b) => b.score - a.score || b.ratingCount - a.ratingCount)
     .slice(0, 10);
 
-  const userActivityMap = new Map<number, UserActivityCounts>();
-
-  const bumpUsed = (userId: number, delta: number) => {
-    const cur = userActivityMap.get(userId) ?? { usedCount: 0, favoritedCount: 0, ratingCount: 0 };
-    cur.usedCount += delta;
-    userActivityMap.set(userId, cur);
-  };
-  const bumpFavorited = (userId: number, delta: number) => {
-    const cur = userActivityMap.get(userId) ?? { usedCount: 0, favoritedCount: 0, ratingCount: 0 };
-    cur.favoritedCount += delta;
-    userActivityMap.set(userId, cur);
-  };
-  const bumpRating = (userId: number, delta: number) => {
-    const cur = userActivityMap.get(userId) ?? { usedCount: 0, favoritedCount: 0, ratingCount: 0 };
-    cur.ratingCount += delta;
-    userActivityMap.set(userId, cur);
-  };
-
-  for (const row of promptUsesByUser) bumpUsed(row.userId, row._count._all);
-  for (const row of skillCopiesByUser) bumpUsed(row.userId, row._count._all);
-  for (const row of contextCopiesByUser) bumpUsed(row.userId, row._count._all);
-  for (const row of buildCopiesByUser) bumpUsed(row.userId, row._count._all);
-
-  for (const row of promptFavoritesByUser) bumpFavorited(row.userId, row._count._all);
-  for (const row of skillFavoritesByUser) bumpFavorited(row.userId, row._count._all);
-  for (const row of contextFavoritesByUser) bumpFavorited(row.userId, row._count._all);
-  for (const row of buildFavoritesByUser) bumpFavorited(row.userId, row._count._all);
-
-  for (const row of promptRatingsByUser) bumpRating(row.userId, row._count._all);
-  for (const row of skillRatingsByUser) bumpRating(row.userId, row._count._all);
-  for (const row of contextRatingsByUser) bumpRating(row.userId, row._count._all);
-  for (const row of buildRatingsByUser) bumpRating(row.userId, row._count._all);
-
-  const assetCountByOwner = new Map<number, number>();
-  for (const row of publishedPromptsByOwner) {
-    assetCountByOwner.set(row.ownerId, (assetCountByOwner.get(row.ownerId) ?? 0) + row._count._all);
-  }
-  for (const row of publishedSkillsByOwner) {
-    assetCountByOwner.set(row.ownerId, (assetCountByOwner.get(row.ownerId) ?? 0) + row._count._all);
-  }
-  for (const row of publishedContextByOwner) {
-    assetCountByOwner.set(row.ownerId, (assetCountByOwner.get(row.ownerId) ?? 0) + row._count._all);
-  }
-  for (const row of publishedBuildsByOwner) {
-    assetCountByOwner.set(row.ownerId, (assetCountByOwner.get(row.ownerId) ?? 0) + row._count._all);
-  }
-
-  const contributorsSorted = [...assetCountByOwner.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
-  const contributorUsers =
-    contributorsSorted.length > 0
-      ? await prisma.user.findMany({
-          where: { teamId: auth.teamId, id: { in: contributorsSorted.map(([id]) => id) } },
-          select: { id: true, email: true, name: true },
-        })
-      : [];
-  const contributorUserMap = new Map(contributorUsers.map((u) => [u.id, u]));
-  const contributors = contributorsSorted
-    .map(([ownerId, assetCount]) => {
-      const u = contributorUserMap.get(ownerId);
-      if (!u) return null;
-      return { id: u.id, email: u.email, name: u.name, assetCount };
-    })
-    .filter((row): row is NonNullable<typeof row> => row !== null);
-
-  const leaderboardUserIds = Array.from(userActivityMap.keys());
-  const leaderboardUsers =
-    leaderboardUserIds.length > 0
-      ? await prisma.user.findMany({
-          where: {
-            teamId: auth.teamId,
-            id: { in: leaderboardUserIds },
-          },
-          select: {
-            id: true,
-            email: true,
-            name: true,
-          },
-        })
-      : [];
-  const leaderboardUserMap = new Map(leaderboardUsers.map((user) => [user.id, user]));
-
-  const userEngagementLeaderboard = leaderboardUserIds
-    .map((userId) => {
-      const activity = userActivityMap.get(userId);
-      const user = leaderboardUserMap.get(userId);
-      if (!activity || !user) {
-        return null;
-      }
-      const score = activity.usedCount + activity.favoritedCount + activity.ratingCount;
-      return {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        score,
-        usedCount: activity.usedCount,
-        favoritedCount: activity.favoritedCount,
-        ratingCount: activity.ratingCount,
-      };
-    })
-    .filter((item): item is NonNullable<typeof item> => item !== null)
-    .sort((a, b) => b.score - a.score || b.usedCount - a.usedCount || b.ratingCount - a.ratingCount)
-    .slice(0, 10);
+  const userEngagementLeaderboard = mostActiveRows;
 
   return res.status(200).json({
     data: {

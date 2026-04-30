@@ -297,6 +297,7 @@ async function main() {
           summary: seed.summary,
           body: seed.body,
           status: seed.status,
+          ...(seed.status === "PUBLISHED" ? { publishedAt: new Date() } : {}),
           visibility: seed.visibility,
           tools: seed.tools,
           modality: seed.modality,
@@ -421,6 +422,7 @@ async function main() {
           collectionId: collection.id,
           promptId: prompt.id,
           sortOrder: index,
+          addedById: admin.id,
         },
         update: {
           sortOrder: index,
@@ -446,6 +448,7 @@ async function main() {
         body: "## When to use\n\nApply this skill when reviewing internal docs.\n\n## Steps\n\n1. Read the draft\n2. Note gaps\n3. Suggest edits\n",
         visibility: "PUBLIC",
         status: "PUBLISHED",
+        publishedAt: new Date(),
       },
     });
   }
@@ -461,6 +464,7 @@ async function main() {
         body: "# Voice\n\n- Clear and concise\n- Prefer active voice\n\n# Code samples\n\nUse fenced blocks with language tags.\n",
         visibility: "PUBLIC",
         status: "PUBLISHED",
+        publishedAt: new Date(),
       },
     });
   }

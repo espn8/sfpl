@@ -217,7 +217,7 @@ export function AnalyticsPage() {
           title="Top Contributors This Week"
           icon={<UsersIcon className="h-5 w-5 text-(--color-text-muted)" />}
           isEmpty={contributors.length === 0 || contributors.every((c) => c.assetCount === 0)}
-          emptyMessage="No new published assets in the last 7 days."
+          emptyMessage="No assets were first published in the last 7 days (global)."
         >
           <div className="space-y-2">
             {contributors
@@ -242,7 +242,11 @@ export function AnalyticsPage() {
                       {index + 1}
                     </span>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{item.name ?? "Unknown"}</p>
+                      <p className="truncate text-sm font-medium">
+                        <Link to={`/users/${item.id}`} className="hover:text-(--color-primary) hover:underline">
+                          {item.name ?? "Unknown"}
+                        </Link>
+                      </p>
                       <p className="truncate text-xs text-(--color-text-muted)">{item.email}</p>
                     </div>
                   </div>
@@ -258,7 +262,7 @@ export function AnalyticsPage() {
           title="Engagement Leaderboard This Week"
           icon={<TrophyIcon className="h-5 w-5 text-(--color-text-muted)" />}
           isEmpty={userEngagementLeaderboard.length === 0}
-          emptyMessage="No engagement on your catalog in the last 7 days."
+          emptyMessage="No qualifying activity in the last 7 days (global)."
         >
           <div className="space-y-2">
             {userEngagementLeaderboard.map((item, index) => (
@@ -282,7 +286,11 @@ export function AnalyticsPage() {
                       {index + 1}
                     </span>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{item.name ?? "Unknown"}</p>
+                      <p className="truncate text-sm font-medium">
+                        <Link to={`/users/${item.id}`} className="hover:text-(--color-primary) hover:underline">
+                          {item.name ?? "Unknown"}
+                        </Link>
+                      </p>
                       <p className="truncate text-xs text-(--color-text-muted)">{item.email}</p>
                     </div>
                   </div>
@@ -291,9 +299,12 @@ export function AnalyticsPage() {
                   </span>
                 </div>
                 <div className="mt-2 flex flex-wrap gap-2 text-xs text-(--color-text-muted)">
-                  <span className="rounded bg-(--color-surface) px-1.5 py-0.5">{item.usedCount} uses</span>
+                  <span className="rounded bg-(--color-surface) px-1.5 py-0.5">{item.firstPublishCount} first publishes</span>
+                  <span className="rounded bg-(--color-surface) px-1.5 py-0.5">{item.viewCount} views</span>
+                  <span className="rounded bg-(--color-surface) px-1.5 py-0.5">{item.useCount} uses</span>
                   <span className="rounded bg-(--color-surface) px-1.5 py-0.5">{item.favoritedCount} favorites</span>
-                  <span className="rounded bg-(--color-surface) px-1.5 py-0.5">{item.ratingCount} ratings</span>
+                  <span className="rounded bg-(--color-surface) px-1.5 py-0.5">{item.collectionAddCount} collection adds</span>
+                  <span className="rounded bg-(--color-surface) px-1.5 py-0.5">{item.ratingCount} new ratings</span>
                 </div>
               </div>
             ))}

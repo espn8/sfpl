@@ -191,6 +191,7 @@ export async function refreshToolCollection(teamId: number, toolKey: string): Pr
           collectionId: collection.id,
           promptId: prompt.id,
           sortOrder: index,
+          addedById: collection.createdById,
         })),
       });
     }
@@ -201,6 +202,7 @@ export async function refreshToolCollection(teamId: number, toolKey: string): Pr
           collectionId: collection.id,
           skillId: skill.id,
           sortOrder: index,
+          addedById: collection.createdById,
         })),
       });
     }
@@ -211,6 +213,7 @@ export async function refreshToolCollection(teamId: number, toolKey: string): Pr
           collectionId: collection.id,
           contextId: context.id,
           sortOrder: index,
+          addedById: collection.createdById,
         })),
       });
     }
@@ -274,6 +277,7 @@ export async function refreshSmartPicksCollection(teamId: number): Promise<void>
           collectionId: collection.id,
           promptId: row.id,
           sortOrder: index,
+          addedById: collection.createdById,
         })),
       });
     }
@@ -283,6 +287,7 @@ export async function refreshSmartPicksCollection(teamId: number): Promise<void>
           collectionId: collection.id,
           skillId: row.id,
           sortOrder: index,
+          addedById: collection.createdById,
         })),
       });
     }
@@ -292,6 +297,7 @@ export async function refreshSmartPicksCollection(teamId: number): Promise<void>
           collectionId: collection.id,
           contextId: row.id,
           sortOrder: index,
+          addedById: collection.createdById,
         })),
       });
     }
@@ -301,6 +307,7 @@ export async function refreshSmartPicksCollection(teamId: number): Promise<void>
           collectionId: collection.id,
           buildId: row.id,
           sortOrder: index,
+          addedById: collection.createdById,
         })),
       });
     }
@@ -347,6 +354,7 @@ export async function refreshBestOfCollection(teamId: number): Promise<void> {
           collectionId: collection.id,
           promptId: prompt.id,
           sortOrder: index,
+          addedById: collection.createdById,
         })),
       });
     }

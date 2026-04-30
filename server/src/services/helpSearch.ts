@@ -24,7 +24,7 @@ Click "Continue with Google" on the login page using your Salesforce Google acco
 ### What should I do first?
 1. Accept the compliance acknowledgment that appears on first load (required every 96 hours)
 2. Complete your profile (name, region, Department/OU, title, profile photo)
-3. Browse Top Performers on the homepage
+3. Browse Top Assets This Week, weekly leaderboards, and featured content on the homepage
 4. Try an asset by clicking "Use" — copies to your clipboard and/or launches the target tool
 5. Favorite assets you like (heart icon)
 6. If you have write permissions, click "Create" to add your first asset
@@ -44,7 +44,7 @@ The app footer shows the current version and links to /changelog with grouped re
 A prompt is a set of instructions you give to an AI tool — tells it exactly what you need, in what format, and with what context.
 
 ### How do I find prompts?
-Use Smart Search at the top of the homepage. It supports plain keywords and titles, natural-language queries with facet hints (e.g. "cursor prompts for code review" — tools, prompt/skill/context, modalities), auto-suggestions, removable filter chips, a ⌘K shortcut, and faceted filters with live counts per asset type and tool. Simple phrases without facet vocabulary are searched literally. Sort by Recent, Most Used, Name, or Updated At.
+Use Smart Search at the top of the homepage. It supports plain keywords and titles, natural-language queries with facet hints (e.g. "cursor prompts for code review" — tools, prompt/skill/context, modalities), auto-suggestions, removable filter chips, a ⌘K shortcut, and faceted filters with live counts per asset type and tool. Simple phrases without facet vocabulary are searched literally. Sort by Recent, Most Used, Most Used This Week, Name, or Updated At.
 
 ### How do I use a prompt?
 1. Click a prompt card to open the detail page

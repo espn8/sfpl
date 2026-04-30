@@ -1,4 +1,6 @@
+import { UsageAction } from "@prisma/client";
 import { prisma } from "../lib/prisma";
+import { rollingSevenDaysSince } from "../lib/rollingSevenDays";
 
 export const WEEK_TOP_ASSETS_MS = 7 * 24 * 60 * 60 * 1000;
 /** Max assets flagged as “top this week” for a team (all types combined). */
@@ -14,16 +16,17 @@ type ScoredRow = { key: string; count: bigint };
 
 /**
  * Returns asset keys (`prompt:12`, `skill:3`, …) for this team’s highest-traffic
- * published assets in the rolling last 7 days, counting all usage event rows.
+ * published assets in the rolling last 7 days: detail views + uses only.
  */
 export async function getWeekTopAssetKeySet(teamId: number, nowMs: number = Date.now()): Promise<Set<string>> {
-  const since = new Date(nowMs - WEEK_TOP_ASSETS_MS);
+  const since = rollingSevenDaysSince(nowMs);
 
   const [promptRows, skillRows, contextRows, buildRows] = await Promise.all([
     prisma.usageEvent.groupBy({
       by: ["promptId"],
       where: {
         createdAt: { gte: since },
+        action: { in: [UsageAction.VIEW, UsageAction.COPY, UsageAction.LAUNCH] },
         prompt: { teamId, status: "PUBLISHED" },
       },
       _count: { _all: true },
@@ -32,6 +35,7 @@ export async function getWeekTopAssetKeySet(teamId: number, nowMs: number = Date
       by: ["skillId"],
       where: {
         createdAt: { gte: since },
+        eventType: { in: ["VIEW", "COPY"] },
         skill: { teamId, status: "PUBLISHED" },
       },
       _count: { _all: true },
@@ -40,6 +44,7 @@ export async function getWeekTopAssetKeySet(teamId: number, nowMs: number = Date
       by: ["contextId"],
       where: {
         createdAt: { gte: since },
+        eventType: { in: ["VIEW", "COPY"] },
         context: { teamId, status: "PUBLISHED" },
       },
       _count: { _all: true },
@@ -48,6 +53,7 @@ export async function getWeekTopAssetKeySet(teamId: number, nowMs: number = Date
       by: ["buildId"],
       where: {
         createdAt: { gte: since },
+        eventType: { in: ["VIEW", "COPY"] },
         build: { teamId, status: "PUBLISHED" },
       },
       _count: { _all: true },

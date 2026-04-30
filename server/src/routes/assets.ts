@@ -10,6 +10,7 @@ import { timeSection, recordTiming } from "../middleware/requestTiming";
 import { buildVisibilityWhereFragment } from "../lib/visibility";
 import { thumbnailRefFor } from "./thumbnails";
 import { getWeekTopAssetKeySet, weekTopAssetKey } from "../services/weekTopAssets";
+import { buildMostUsedThisWeekListResponse } from "../services/mostUsedThisWeekAssetList";
 import {
   promptTaggedWithWhere,
   skillTaggedWithWhere,
@@ -70,7 +71,7 @@ const listAssetsQuerySchema = z.object({
   assetType: z.enum(["all", "prompt", "skill", "context", "build"]).optional(),
   tool: assetToolSchema.optional(),
   status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).optional(),
-  sort: z.enum(["recent", "mostUsed", "name", "updatedAt", "topRated"]).optional(),
+  sort: z.enum(["recent", "mostUsed", "mostUsedThisWeek", "name", "updatedAt", "topRated"]).optional(),
   mine: z.coerce.boolean().optional(),
   ownerId: z.coerce.number().int().positive().optional(),
   includeAnalytics: z.coerce.boolean().optional(),
@@ -177,6 +178,35 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
   const includeSkills = assetType === "all" || assetType === "skill";
   const includeContext = assetType === "all" || assetType === "context";
   const includeBuilds = assetType === "all" || assetType === "build";
+
+  if (sort === "mostUsedThisWeek") {
+    if (
+      mine ||
+      profileOwnerId !== undefined ||
+      q ||
+      tool ||
+      tagFilter ||
+      modalityFilter ||
+      statusFilter ||
+      includeAnalytics
+    ) {
+      return res.status(400).json({
+        error: {
+          code: "BAD_REQUEST",
+          message:
+            "sort=mostUsedThisWeek only supports the default catalog (no mine, owner, search, tool, tag, modality, status, or includeAnalytics).",
+        },
+      });
+    }
+    if (!includePrompts || !includeSkills || !includeContext || !includeBuilds) {
+      return res.status(400).json({
+        error: { code: "BAD_REQUEST", message: "sort=mostUsedThisWeek requires assetType=all." },
+      });
+    }
+    const { data, meta } = await buildMostUsedThisWeekListResponse(auth, page, pageSize, includeSnapshot);
+    res.set("Cache-Control", "private, max-age=60, must-revalidate");
+    return res.status(200).json({ data, meta });
+  }
 
   const typeTotals = { prompt: 0, skill: 0, context: 0, build: 0 };
 

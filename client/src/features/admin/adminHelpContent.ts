@@ -17,7 +17,7 @@ export const adminHelpContent: AdminHelpSection[] = [
       {
         question: "What does the Analytics dashboard show?",
         answer:
-          "/analytics (also reachable from Admin Dashboard → Analytics) aggregates team-wide engagement across all four asset types:\n• Most Used AI Assets — single merged leaderboard: prompts rank by COPY + LAUNCH; skills, context, and builds rank by COPY (passive views excluded). The top ten across all types are shown with deep links to each asset.\n• Top Rated — prompts only today: highest scoring average (unrated assets excluded from the list)\n• Stale — prompts with no usage events in the last 30 days (informational only)\n• Top Contributors This Week — owners ranked by new published rows (prompts, skills, context, builds) created in the rolling last 7 days\n• User Engagement / Most Active This Week — combined uses, favorites, and ratings per user in the rolling last 7 days (workspace catalog only)",
+          "/analytics (also reachable from Admin Dashboard → Analytics) shows team-scoped catalog insights plus two global rolling 7-day leaderboards (same definitions as the homepage):\n• Most Used AI Assets — single merged leaderboard for your workspace: prompts rank by COPY + LAUNCH; skills, context, and builds rank by COPY (passive views excluded). The top ten across all types are shown with deep links to each asset.\n• Top Rated — prompts only today: highest scoring average (unrated assets excluded from the list)\n• Stale — prompts with no usage events in the last 30 days (informational only)\n• Top Contributors This Week (global) — owners ranked by count of assets whose first publish (`publishedAt`) fell in the rolling last 7 days; any visibility; still PUBLISHED.\n• Engagement / Most Active This Week (global) — one point per qualifying event in the rolling last 7 days: first publish (owner), detail view, use (prompt COPY/LAUNCH; other types COPY), favorite, collection add (who added), new rating (rater; row created in the window).",
       },
       {
         question: "What counts as a Stale asset?",
@@ -32,7 +32,7 @@ export const adminHelpContent: AdminHelpSection[] = [
       {
         question: "What is User Engagement?",
         answer:
-          "Home and Analytics show two rolling 7-day leaderboards (workspace catalog only). Top Contributors ranks owners by published prompts, skills, context, and builds whose rows were created in the last 7 days (still published). Engagement / Most Active ranks users by uses (prompt copy/launch plus copy on other asset types), favorites added, and ratings created or updated — each counted only when the event falls in the last 7 days and the asset belongs to the workspace. Useful for recognizing momentum and adoption trends.",
+          "The homepage (for signed-in users) and the Admin Analytics page both show two rolling 7-day leaderboards that are global across the deployment (not filtered to your team). Top Contributors ranks owners by how many assets reached PUBLISHED for the first time in the window (`publishedAt`). Most Active ranks users by summing one point each for: first-time publishes they own, asset detail views, uses (prompt copy/launch; copy on skills/context/builds), favorites they added, items they added to a collection, and new ratings they created (rating row `createdAt` in the window). The homepage also lists Top Assets This Week: PUBLIC PUBLISHED assets ranked by combined views + uses in the last 7 days.",
       },
     ],
   },

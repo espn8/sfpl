@@ -5,8 +5,8 @@ type HomePerfMarksInput = {
   meReady: boolean;
   assetsReady: boolean;
   topReady: boolean;
-  analyticsReady: boolean;
-  analyticsEnabled: boolean;
+  leaderboardsReady: boolean;
+  leaderboardsEnabled: boolean;
 };
 
 const MOUNT_MARK = "home:mount";
@@ -22,14 +22,14 @@ export function useHomePerfMarks({
   meReady,
   assetsReady,
   topReady,
-  analyticsReady,
-  analyticsEnabled,
+  leaderboardsReady,
+  leaderboardsEnabled,
 }: HomePerfMarksInput): void {
   const mountedRef = useRef(false);
   const meMarkedRef = useRef(false);
   const assetsMarkedRef = useRef(false);
   const topMarkedRef = useRef(false);
-  const analyticsMarkedRef = useRef(false);
+  const leaderboardsMarkedRef = useRef(false);
   const reportedRef = useRef(false);
 
   if (!mountedRef.current) {
@@ -59,16 +59,16 @@ export function useHomePerfMarks({
   }, [topReady]);
 
   useEffect(() => {
-    if (analyticsReady && !analyticsMarkedRef.current) {
-      analyticsMarkedRef.current = true;
-      mark("home:analytics-resolved");
+    if (leaderboardsReady && !leaderboardsMarkedRef.current) {
+      leaderboardsMarkedRef.current = true;
+      mark("home:leaderboards-resolved");
     }
-  }, [analyticsReady]);
+  }, [leaderboardsReady]);
 
   useEffect(() => {
     if (!isPerfEnabled() || reportedRef.current) return;
     if (!assetsReady || !topReady) return;
-    if (analyticsEnabled && !analyticsReady) return;
+    if (leaderboardsEnabled && !leaderboardsReady) return;
 
     reportedRef.current = true;
 
@@ -89,8 +89,8 @@ export function useHomePerfMarks({
       record("home:me-resolved", measureSince("home:me-resolved", MOUNT_MARK));
       record("home:assets-resolved", measureSince("home:assets-resolved", MOUNT_MARK));
       record("home:top-resolved", measureSince("home:top-resolved", MOUNT_MARK));
-      if (analyticsEnabled) {
-        record("home:analytics-resolved", measureSince("home:analytics-resolved", MOUNT_MARK));
+      if (leaderboardsEnabled) {
+        record("home:leaderboards-resolved", measureSince("home:leaderboards-resolved", MOUNT_MARK));
       }
       record("home:interactive", measureSince("home:interactive", MOUNT_MARK));
 
@@ -124,5 +124,5 @@ export function useHomePerfMarks({
     } else {
       window.setTimeout(runReport, 0);
     }
-  }, [assetsReady, topReady, analyticsReady, analyticsEnabled]);
+  }, [assetsReady, topReady, leaderboardsReady, leaderboardsEnabled]);
 }

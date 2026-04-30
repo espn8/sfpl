@@ -36,6 +36,7 @@ import {
   SUMMARY_TOO_LONG_MESSAGE,
   checkUpdatedSummaryLength,
 } from "../lib/summaryLimits";
+import { firstPublishedAtOnTransition } from "../lib/firstPublishedAt";
 import { ARCHIVE_EXTENSIONS, isValidSkillPackageUrl, SLACK_ENTERPRISE_SKILL_DOCS_URL_PREFIX } from "../lib/skillUrl";
 import { validateTagIdsExist, skillTaggedWithWhere } from "../lib/assetTags";
 import { apiModalitySchema, apiToDbModality, mapDbModalityToApi, type ApiModality } from "../lib/modality";
@@ -403,6 +404,7 @@ skillsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
     return res.status(409).json(formatDuplicateError(duplicateCheck));
   }
 
+  const initialStatus = status ?? "DRAFT";
   const skill = await prisma.skill.create({
     data: {
       teamId: auth.teamId,
@@ -413,7 +415,8 @@ skillsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
       skillUrlNormalized: normalizeUrl(skillUrl),
       supportUrl: supportUrl || null,
       visibility: visibility ?? "PUBLIC",
-      status: status ?? "DRAFT",
+      status: initialStatus,
+      ...(initialStatus === "PUBLISHED" ? { publishedAt: new Date() } : {}),
       tools,
       modality: apiToDbModality[modality],
       thumbnailStatus: "PENDING",
@@ -660,6 +663,7 @@ skillsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respons
       status: u.status,
       tools: u.tools,
       modality: u.modality !== undefined ? apiToDbModality[u.modality] : undefined,
+      ...firstPublishedAtOnTransition(existing.status, existing.publishedAt, u.status),
     },
     include: {
       owner: { select: { id: true, name: true, avatarUrl: true } },
@@ -1093,6 +1097,7 @@ skillsRouter.post("/:id/collections/:collectionId", async (req: Request, res: Re
       collectionId,
       skillId,
       sortOrder: (maxSort._max.sortOrder ?? -1) + 1,
+      addedById: auth.userId,
     },
     update: {},
   });

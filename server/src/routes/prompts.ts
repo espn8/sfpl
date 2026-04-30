@@ -43,6 +43,7 @@ import {
   SUMMARY_TOO_LONG_MESSAGE,
   checkUpdatedSummaryLength,
 } from "../lib/summaryLimits";
+import { firstPublishedAtOnTransition } from "../lib/firstPublishedAt";
 
 const promptsRouter = Router();
 
@@ -652,6 +653,7 @@ promptsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) 
     return res.status(409).json(formatDuplicateError(duplicateCheck));
   }
 
+  const initialStatus = status ?? "DRAFT";
   const prompt = await prisma.prompt.create({
     data: {
       teamId: auth.teamId,
@@ -662,7 +664,8 @@ promptsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) 
       body,
       bodyHash: computeBodyHash(body),
       visibility: visibility ?? "PUBLIC",
-      status: status ?? "DRAFT",
+      status: initialStatus,
+      ...(initialStatus === "PUBLISHED" ? { publishedAt: new Date() } : {}),
       tools,
       modality: apiToDbModality[modality],
       modelHint: modelHint?.trim() || null,
@@ -705,7 +708,7 @@ promptsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) 
 
   void queuePromptThumbnailGeneration(prompt.id);
 
-  if (status === "PUBLISHED") {
+  if (initialStatus === "PUBLISHED") {
     scheduleSystemCollectionRefresh(auth.teamId, tools);
   }
 
@@ -935,6 +938,7 @@ promptsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respon
       tools: Array.isArray(updateData.tools) ? updateData.tools : undefined,
       modality: typeof updateData.modality === "string" ? apiToDbModality[updateData.modality] : undefined,
       ...(updateData.modelHint !== undefined ? { modelHint } : {}),
+      ...firstPublishedAtOnTransition(existing.status, existing.publishedAt, updateData.status),
     },
     include: {
       variables: true,

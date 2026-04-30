@@ -15,6 +15,7 @@ import { requestTimingMiddleware } from "./middleware/requestTiming";
 import { aiRouter } from "./routes/ai";
 import { analyticsRouter } from "./routes/analytics";
 import { assetsRouter } from "./routes/assets";
+import { homeRouter } from "./routes/home";
 import { authRouter } from "./routes/auth";
 import { collectionsRouter } from "./routes/collections";
 import { contextRouter } from "./routes/context";
@@ -94,6 +95,7 @@ export function createApp(options?: CreateAppOptions): express.Express {
 
   app.use("/api/auth", authRouter);
   app.use("/api/assets", assetsRouter);
+  app.use("/api/home", homeRouter);
   app.use("/api/prompts", promptsRouter);
   app.use("/api/skills", skillsRouter);
   app.use("/api/context", contextRouter);

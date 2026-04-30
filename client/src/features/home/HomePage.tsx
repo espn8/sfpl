@@ -2,9 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { fetchMe } from "../auth/api";
-import { canAccessAdminUi, canCreateContent } from "../auth/roles";
-import { getAnalyticsOverview } from "../analytics/api";
+import { canCreateContent } from "../auth/roles";
 import { listAssets, type ListAssetsFilters } from "../assets/api";
+import { fetchHomeLeaderboards } from "./api";
 import { AssetCard } from "../assets/AssetCard";
 import { AssetAnalyticsTable } from "../assets/AssetAnalyticsTable";
 import { AssetListView } from "../assets/AssetListView";
@@ -345,7 +345,6 @@ export function HomePage() {
     queryFn: fetchMe,
     retry: false,
   });
-  const canViewAnalytics = Boolean(meQuery.data && canAccessAdminUi(meQuery.data.role));
   const personalizedGreeting = usePersonalizedGreeting(meQuery.data?.name);
 
   const assetsQuery = useQuery({
@@ -354,11 +353,11 @@ export function HomePage() {
   });
 
   const topPerformersQuery = useQuery({
-    queryKey: ["assets", "topPerformers"],
+    queryKey: ["assets", "topPerformers", "mostUsedThisWeek"],
     queryFn: () =>
       listAssets({
         assetType: "all",
-        sort: "mostUsed",
+        sort: "mostUsedThisWeek",
         pageSize: 12,
         page: 1,
         // The primary /api/assets call above already delivers meta.snapshot
@@ -372,10 +371,12 @@ export function HomePage() {
 
   const [showAllTopPerformers, setShowAllTopPerformers] = useState(false);
 
-  const analyticsQuery = useQuery({
-    queryKey: ["analytics", "overview"],
-    queryFn: getAnalyticsOverview,
-    enabled: canViewAnalytics,
+  const homeLeaderboardsEnabled = Boolean(meQuery.data?.onboardingCompleted && !mineFilter);
+  const homeLeaderboardsQuery = useQuery({
+    queryKey: ["home", "leaderboards"],
+    queryFn: fetchHomeLeaderboards,
+    enabled: homeLeaderboardsEnabled,
+    retry: false,
   });
 
   const topPerformers = useMemo(() => {
@@ -387,8 +388,8 @@ export function HomePage() {
     meReady: meQuery.isSuccess || meQuery.isError,
     assetsReady: assetsQuery.isSuccess || assetsQuery.isError,
     topReady: topPerformersQuery.fetchStatus === "idle",
-    analyticsReady: analyticsQuery.fetchStatus === "idle",
-    analyticsEnabled: canViewAnalytics,
+    leaderboardsReady: homeLeaderboardsQuery.fetchStatus === "idle",
+    leaderboardsEnabled: homeLeaderboardsEnabled,
   });
 
   const snapshot = assetsQuery.data?.meta.snapshot;
@@ -422,8 +423,8 @@ export function HomePage() {
     : topPerformers.slice(0, 6);
 
 
-  const contributorLeaderboard = (analyticsQuery.data?.contributors ?? []).slice(0, 5);
-  const usersLeaderboard = (analyticsQuery.data?.userEngagementLeaderboard ?? []).slice(0, 5);
+  const contributorLeaderboard = (homeLeaderboardsQuery.data?.contributors ?? []).slice(0, 5);
+  const usersLeaderboard = (homeLeaderboardsQuery.data?.mostActive ?? []).slice(0, 5);
 
   const aiToolAudience = [
     "AI Tool users building repeatable, scalable assets",
@@ -573,7 +574,7 @@ export function HomePage() {
           <section className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-xl font-semibold">Top Assets This Week</h3>
-              <span className="text-sm font-medium text-(--color-text-muted)">The AI assets people can't stop using</span>
+              <span className="text-sm font-medium text-(--color-text-muted)">Ranked by views + uses in the last 7 days</span>
             </div>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {topPerformersQuery.isLoading && visibleTopPerformers.length === 0
@@ -705,12 +706,15 @@ export function HomePage() {
             </div>
           </section>
 
-          {canViewAnalytics ? (
-          <section className="grid gap-4 md:grid-cols-2">
+          <section className="space-y-3">
+            {homeLeaderboardsQuery.isError ? (
+              <p className="text-sm text-(--color-text-muted)">We couldn&apos;t load leaderboards right now. Try refreshing.</p>
+            ) : null}
+            <div className="grid gap-4 md:grid-cols-2">
             <div className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-sm transition-all duration-300 hover:shadow motion-reduce:transition-none">
               <h3 className="text-xl font-semibold">Top Contributors This Week</h3>
               <p className="mt-1 text-sm text-(--color-text-muted)">
-                Published assets first added in the last 7 days
+                Assets first published in the last 7 days (global)
               </p>
               <div className="mt-3 space-y-2">
                 {contributorLeaderboard.map((contributor, index) => (
@@ -718,45 +722,51 @@ export function HomePage() {
                     key={contributor.id}
                     className="flex items-center justify-between rounded-xl border border-(--color-border) bg-(--color-surface-muted) px-3 py-2 transition-all duration-300 hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none"
                   >
-                    <p className="font-medium">
+                    <p className="min-w-0 font-medium">
                       <span className="mr-2 inline-flex min-w-6 justify-center rounded-md bg-(--color-surface) px-1.5 py-0.5 text-xs">
                         #{index + 1}
                       </span>
-                      {contributor.name ?? contributor.email}
+                      <Link to={`/users/${contributor.id}`} className="hover:text-(--color-primary) hover:underline">
+                        {contributor.name ?? contributor.email}
+                      </Link>
                     </p>
-                    <p className="text-sm text-(--color-text-muted)">{pluralize(contributor.assetCount, "AI asset")}</p>
+                    <p className="shrink-0 text-sm text-(--color-text-muted)">{pluralize(contributor.assetCount, "AI asset")}</p>
                   </div>
                 ))}
-                {contributorLeaderboard.length === 0 ? (
-                  <p className="text-sm text-(--color-text-muted)">No new published assets in the last 7 days.</p>
+                {!homeLeaderboardsQuery.isError && contributorLeaderboard.length === 0 ? (
+                  <p className="text-sm text-(--color-text-muted)">No assets were first published in the last 7 days.</p>
                 ) : null}
               </div>
             </div>
             <div className="rounded-2xl border border-(--color-border) bg-(--color-surface) p-5 shadow-sm transition-all duration-300 hover:shadow motion-reduce:transition-none">
               <h3 className="text-xl font-semibold">Most Active This Week</h3>
-              <p className="mt-1 text-sm text-(--color-text-muted)">Uses, favorites, and ratings in the last 7 days</p>
+              <p className="mt-1 text-sm text-(--color-text-muted)">
+                Publishes, views, uses, favorites, collection adds, and new ratings (global)
+              </p>
               <div className="mt-3 space-y-2">
                 {usersLeaderboard.map((user, index) => (
                   <div
                     key={user.id}
                     className="flex items-center justify-between rounded-xl border border-(--color-border) bg-(--color-surface-muted) px-3 py-2 transition-all duration-300 hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none"
                   >
-                    <p className="font-medium">
+                    <p className="min-w-0 font-medium">
                       <span className="mr-2 inline-flex min-w-6 justify-center rounded-md bg-(--color-surface) px-1.5 py-0.5 text-xs">
                         #{index + 1}
                       </span>
-                      {user.name ?? user.email}
+                      <Link to={`/users/${user.id}`} className="hover:text-(--color-primary) hover:underline">
+                        {user.name ?? user.email}
+                      </Link>
                     </p>
-                    <p className="text-sm text-(--color-text-muted)">Score {user.score}</p>
+                    <p className="shrink-0 text-sm text-(--color-text-muted)">Score {user.score}</p>
                   </div>
                 ))}
-                {usersLeaderboard.length === 0 ? (
-                  <p className="text-sm text-(--color-text-muted)">No engagement on your catalog in the last 7 days.</p>
+                {!homeLeaderboardsQuery.isError && usersLeaderboard.length === 0 ? (
+                  <p className="text-sm text-(--color-text-muted)">No activity in the last 7 days.</p>
                 ) : null}
               </div>
             </div>
+            </div>
           </section>
-          ) : null}
         </>
       ) : null}
 

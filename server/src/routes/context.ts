@@ -37,6 +37,7 @@ import {
   SUMMARY_TOO_LONG_MESSAGE,
   checkUpdatedSummaryLength,
 } from "../lib/summaryLimits";
+import { firstPublishedAtOnTransition } from "../lib/firstPublishedAt";
 import { getWeekTopAssetKeySet, weekTopAssetKey } from "../services/weekTopAssets";
 import { notifySlackIfEnteredPublicPublished } from "../services/slackNewPublicAsset";
 import { validateTagIdsExist, contextTaggedWithWhere } from "../lib/assetTags";
@@ -441,6 +442,7 @@ contextRouter.post("/", requireWriteAccess, async (req: Request, res: Response) 
     return res.status(409).json(formatDuplicateError(duplicateCheck));
   }
 
+  const initialStatus = status ?? "DRAFT";
   const doc = await prisma.contextDocument.create({
     data: {
       teamId: auth.teamId,
@@ -452,7 +454,8 @@ contextRouter.post("/", requireWriteAccess, async (req: Request, res: Response) 
       bodyHash: computeBodyHash(body),
       supportUrl: supportUrl || null,
       visibility: visibility ?? "PUBLIC",
-      status: status ?? "DRAFT",
+      status: initialStatus,
+      ...(initialStatus === "PUBLISHED" ? { publishedAt: new Date() } : {}),
       tools,
       modality: apiToDbModality[modality],
       thumbnailStatus: "PENDING",
@@ -705,6 +708,7 @@ contextRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respon
       status: u.status,
       tools: u.tools,
       modality: u.modality !== undefined ? apiToDbModality[u.modality] : undefined,
+      ...firstPublishedAtOnTransition(existing.status, existing.publishedAt, u.status),
     },
     include: {
       owner: { select: { id: true, name: true, avatarUrl: true } },
@@ -1203,6 +1207,7 @@ contextRouter.post("/:id/collections/:collectionId", async (req: Request, res: R
       collectionId,
       contextId,
       sortOrder: (maxSort._max.sortOrder ?? -1) + 1,
+      addedById: auth.userId,
     },
     update: {},
   });

@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { HomePage } from "./HomePage";
 import { fetchMe } from "../auth/api";
 import { listAssets, type ListAssetsResponse } from "../assets/api";
-import { getAnalyticsOverview } from "../analytics/api";
+import { fetchHomeLeaderboards } from "./api";
 
 vi.mock("../auth/api", () => ({
   fetchMe: vi.fn(),
@@ -15,8 +15,8 @@ vi.mock("../assets/api", () => ({
   listAssets: vi.fn(),
 }));
 
-vi.mock("../analytics/api", () => ({
-  getAnalyticsOverview: vi.fn(),
+vi.mock("./api", () => ({
+  fetchHomeLeaderboards: vi.fn(),
 }));
 
 vi.mock("../search/api", () => ({
@@ -66,12 +66,9 @@ describe("HomePage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(fetchMe).mockResolvedValue(mockUser);
-    vi.mocked(getAnalyticsOverview).mockResolvedValue({
-      topUsedAssets: [],
-      topRatedPrompts: [],
-      stalePrompts: [],
+    vi.mocked(fetchHomeLeaderboards).mockResolvedValue({
       contributors: [],
-      userEngagementLeaderboard: [],
+      mostActive: [],
     });
   });
 
@@ -121,7 +118,7 @@ describe("HomePage", () => {
 
   it("shows inline error banner for top performers without replacing the page", async () => {
     vi.mocked(listAssets).mockImplementation(async (filters) => {
-      if (filters?.sort === "mostUsed") {
+      if (filters?.sort === "mostUsedThisWeek") {
         throw new Error("boom");
       }
       return {
@@ -194,5 +191,52 @@ describe("HomePage", () => {
     await waitFor(() => {
       expect(screen.queryByTestId("mine-assets-skeleton")).not.toBeInTheDocument();
     });
+  });
+
+  it("shows weekly leaderboards with profile links for any signed-in user", async () => {
+    vi.mocked(fetchHomeLeaderboards).mockResolvedValue({
+      contributors: [{ id: 2, email: "pat@example.com", name: "Pat Contributor", assetCount: 2 }],
+      mostActive: [
+        {
+          id: 3,
+          email: "max@example.com",
+          name: "Max Active",
+          score: 5,
+          firstPublishCount: 0,
+          viewCount: 2,
+          useCount: 1,
+          favoritedCount: 1,
+          collectionAddCount: 1,
+          ratingCount: 0,
+        },
+      ],
+    });
+    vi.mocked(listAssets).mockResolvedValue({
+      data: [],
+      meta: {
+        page: 1,
+        pageSize: 20,
+        total: 0,
+        totalPages: 0,
+        snapshot: {
+          assetsPublished: 0,
+          promptsPublished: 0,
+          skillsPublished: 0,
+          contextPublished: 0,
+          buildsPublished: 0,
+          activeUsers: 0,
+          promptsUsed: 0,
+        },
+      },
+    });
+
+    renderHome();
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: /Top Contributors This Week/i })).toBeInTheDocument();
+    });
+    const patLink = await screen.findByRole("link", { name: "Pat Contributor" });
+    expect(patLink).toHaveAttribute("href", "/users/2");
+    expect(screen.getByRole("link", { name: "Max Active" })).toHaveAttribute("href", "/users/3");
   });
 });
