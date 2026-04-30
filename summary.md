@@ -1,11 +1,19 @@
 # AI Library - Technical Summary
 
-Last Updated: Thursday, April 30, 2026 — 10:20 CDT
-Build Version: `7ffe501`
+Last Updated: Thursday, April 30, 2026 — 11:26 CDT
+Build Version: `04bc0cf`
 App Version: see production footer after deploy (root `package.json` 1.3.5 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Session: Unified catalog search — per-type fetch cap, relevance order, skill URL match (April 30, 2026 — 11:26 CDT)
+
+- **Problem:** Text search on **`GET /api/assets`** used **`take: pageSize * 3`** per asset type, then merged types, globally sorted, and **`slice`** paginated. **`count()`** reflected the full DB, so matches beyond that window never entered the merged list — exact title queries (e.g. **“keep my job”**) could disappear when many rows shared the same substring (e.g. in bodies). Suggestions did not search prompt/context **body**; skills did not search **install URL** fields.
+- **Server —** [server/src/routes/assets.ts](server/src/routes/assets.ts): When **`q`** is non-empty, **`perTypeListTake = min(2500, max(pageSize * 3, page * pageSize))`** so deeper pages and merge windows include real hits (capped for safety). When **`q`** is set, post-merge sort adds a **relevance** tier (exact title → title prefix → title substring → summary) before the existing sort (**recent** / **mostUsed** / **name** / **updatedAt** / **topRated**). Skill search **`OR`** adds **`skillUrl`** and **`skillUrlNormalized`**. [server/src/routes/search.ts](server/src/routes/search.ts): Suggestions use per-type **`OR`** — prompts and context include **body**; skills include **URL** fields (no **`body`** on **`Skill`**).
+- **Tests —** [server/test/assets-list.test.ts](server/test/assets-list.test.ts): asserts scaled **`take`** with **`q`** and **`page`**, and unchanged **`pageSize * 3`** without **`q`**.
+- **Help —** [client/src/features/help/HelpPage.tsx](client/src/features/help/HelpPage.tsx), [server/src/services/helpSearch.ts](server/src/services/helpSearch.ts): Smart Search copy notes skill install URL matching and catalog title-first ranking when searching.
+- **Prisma:** none. **Deploy:** **`git push origin main`**, **`git push heroku main`** (no migration → no production DB backup required for this push). **Verify:** https://ail.mysalesforcedemo.com — search for a known exact title across pages; skills findable by URL substring in suggestions and catalog.
 
 ### Session: Global leaderboards, publishedAt, home leaderboards API, Top Assets This Week (April 30, 2026 — 10:20 CDT)
 

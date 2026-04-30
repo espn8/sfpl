@@ -74,7 +74,7 @@ const helpContent: HelpSection[] = [
       {
         question: "How do I find prompts?",
         answer:
-          'Use the unified Smart Search bar at the top of the homepage. You can:\n• Type keywords or an asset title — the search matches titles, summaries, and bodies (highlighting where supported)\n• Use natural language like "cursor prompts for code review" — when your query mentions tools or asset kinds, our Gemini-powered parser can turn it into structured filters; plain title-style phrases stay literal\n• Press ⌘K (Cmd-K) to focus the search bar from anywhere\n• Click a faceted filter chip (Prompts, Skills, Context, Builds, or any tool) to narrow the list\n• Sort by Most Recent, Most Used, Most Used This Week, Name, or Updated At',
+          'Use the unified Smart Search bar at the top of the homepage. You can:\n• Type keywords or an asset title — the catalog matches titles, summaries, and bodies for prompts and context; skills also match the install URL; results favor title matches when you search (highlighting where supported)\n• Use natural language like "cursor prompts for code review" — when your query mentions tools or asset kinds, our Gemini-powered parser can turn it into structured filters; plain title-style phrases stay literal\n• Press ⌘K (Cmd-K) to focus the search bar from anywhere\n• Click a faceted filter chip (Prompts, Skills, Context, Builds, or any tool) to narrow the list\n• Sort by Most Recent, Most Used, Most Used This Week, Name, or Updated At',
       },
       {
         question: "How do I use a prompt?",
@@ -291,7 +291,7 @@ const helpContent: HelpSection[] = [
       {
         question: "How does Smart Search work?",
         answer:
-          'The search bar at the top of the homepage is a unified Smart Search. It supports:\n• Plain keyword and title search with relevance highlighting\n• Natural language with facet hints — e.g. "cursor prompts for code review" can parse into { tool: cursor, assetType: prompt, searchTerms: "code review" }; simple phrases without those hints are searched as-is\n• Auto-suggestions (categorized by asset and filter) that appear as you type; navigate with arrow keys\n• Removable filter chips showing the active filters\n• URL sync, debounced input, and ⌘K keyboard shortcut',
+          'The search bar at the top of the homepage is a unified Smart Search. It supports:\n• Plain keyword and title search with relevance highlighting; the unified catalog ranks title matches ahead of body-only matches, and skills match install URL text as well as title and summary\n• Natural language with facet hints — e.g. "cursor prompts for code review" can parse into { tool: cursor, assetType: prompt, searchTerms: "code review" }; simple phrases without those hints are searched as-is\n• Auto-suggestions (categorized by asset and filter) that appear as you type; navigate with arrow keys\n• Removable filter chips showing the active filters\n• URL sync, debounced input, and ⌘K keyboard shortcut',
       },
       {
         question: "What are Faceted Filters?",

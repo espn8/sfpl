@@ -124,9 +124,23 @@ searchRouter.get("/suggestions", async (req: Request, res: Response) => {
   const assetLimit = Math.max(1, limit - matchingFilters.length);
   const perTypeLimit = Math.ceil(assetLimit / 3);
 
-  const searchTermOr = [
+  const promptSearchOr = [
     { title: { contains: q, mode: "insensitive" as const } },
     { summary: { contains: q, mode: "insensitive" as const } },
+    { body: { contains: q, mode: "insensitive" as const } },
+    ownerNameSearchClause(q),
+  ];
+  const skillSearchOr = [
+    { title: { contains: q, mode: "insensitive" as const } },
+    { summary: { contains: q, mode: "insensitive" as const } },
+    { skillUrl: { contains: q, mode: "insensitive" as const } },
+    { skillUrlNormalized: { contains: q.trim().toLowerCase(), mode: "insensitive" as const } },
+    ownerNameSearchClause(q),
+  ];
+  const contextSearchOr = [
+    { title: { contains: q, mode: "insensitive" as const } },
+    { summary: { contains: q, mode: "insensitive" as const } },
+    { body: { contains: q, mode: "insensitive" as const } },
     ownerNameSearchClause(q),
   ];
 
@@ -136,7 +150,7 @@ searchRouter.get("/suggestions", async (req: Request, res: Response) => {
         status: "PUBLISHED",
         AND: [
           buildVisibilityWhereFragment(auth) as Prisma.PromptWhereInput,
-          { OR: searchTermOr },
+          { OR: promptSearchOr },
         ],
       },
       select: {
@@ -152,7 +166,7 @@ searchRouter.get("/suggestions", async (req: Request, res: Response) => {
         status: "PUBLISHED",
         AND: [
           buildVisibilityWhereFragment(auth) as Prisma.SkillWhereInput,
-          { OR: searchTermOr },
+          { OR: skillSearchOr },
         ],
       },
       select: {
@@ -168,7 +182,7 @@ searchRouter.get("/suggestions", async (req: Request, res: Response) => {
         status: "PUBLISHED",
         AND: [
           buildVisibilityWhereFragment(auth) as Prisma.ContextDocumentWhereInput,
-          { OR: searchTermOr },
+          { OR: contextSearchOr },
         ],
       },
       select: {

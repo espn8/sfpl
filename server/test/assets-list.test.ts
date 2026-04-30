@@ -330,6 +330,28 @@ describe("GET /api/assets payload shape", () => {
     });
   });
 
+  it("with text q, scales per-type findMany take with page depth so merged pagination can see deeper matches", async () => {
+    const { createApp } = await import("../src/app");
+    const app = createApp({ sessionStore: new session.MemoryStore() });
+
+    await request(app).get("/api/assets?q=keep+my+job&page=4&pageSize=20");
+
+    const promptTake = mockPromptFindMany.mock.calls[0]?.[0]?.take as number | undefined;
+    const skillTake = mockSkillFindMany.mock.calls[0]?.[0]?.take as number | undefined;
+    expect(promptTake).toBe(80);
+    expect(skillTake).toBe(80);
+  });
+
+  it("without q, keeps per-type take at pageSize * 3 regardless of page", async () => {
+    const { createApp } = await import("../src/app");
+    const app = createApp({ sessionStore: new session.MemoryStore() });
+
+    await request(app).get("/api/assets?page=9&pageSize=20");
+
+    const promptTake = mockPromptFindMany.mock.calls[0]?.[0]?.take as number | undefined;
+    expect(promptTake).toBe(60);
+  });
+
   it("omits meta.snapshot and skips the snapshot queries when snapshot=false", async () => {
     const { createApp } = await import("../src/app");
     const app = createApp({ sessionStore: new session.MemoryStore() });

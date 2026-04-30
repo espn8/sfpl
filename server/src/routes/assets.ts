@@ -148,6 +148,18 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
   const includeAnalytics = parsedQuery.data.includeAnalytics ?? false;
   const page = parsedQuery.data.page ?? 1;
   const pageSize = parsedQuery.data.pageSize ?? 20;
+  /**
+   * Per-type `findMany` limit before merge + global sort + `slice` pagination.
+   * With free text `q`, each type can have many matches; capping at `pageSize * 3`
+   * dropped every match beyond that window from the merged list even when
+   * `count` was correct — so exact title hits (e.g. "Keep my job") vanished if
+   * they sorted below the cap. Scale take with page depth and cap for safety.
+   */
+  const LIST_FETCH_CAP = 2500;
+  const perTypeListTake =
+    q.trim().length > 0
+      ? Math.min(LIST_FETCH_CAP, Math.max(pageSize * 3, page * pageSize))
+      : pageSize * 3;
   // snapshot defaults to true so existing callers keep getting meta.snapshot;
   // HomePage's secondary (top-performers) call opts out with snapshot=false to
   // skip 6 team-wide count queries that don't vary between requests.
@@ -301,7 +313,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
           promptTags: { select: { tag: { select: { name: true } } } },
         },
         orderBy: promptOrderBy,
-        take: pageSize * 3,
+        take: perTypeListTake,
       }),
     );
     typeTotals.prompt = await timeSection("prompts.count", () => prisma.prompt.count({ where: promptWhere }));
@@ -394,6 +406,8 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         OR: [
           { title: { contains: q, mode: "insensitive" } },
           { summary: { contains: q, mode: "insensitive" } },
+          { skillUrl: { contains: q, mode: "insensitive" } },
+          { skillUrlNormalized: { contains: q.trim().toLowerCase(), mode: "insensitive" } },
           ownerNameSearchClause(q),
         ],
       });
@@ -449,7 +463,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
           skillTags: { select: { tag: { select: { name: true } } } },
         },
         orderBy: skillOrderBy,
-        take: pageSize * 3,
+        take: perTypeListTake,
       }),
     );
     typeTotals.skill = await timeSection("skills.count", () => prisma.skill.count({ where: skillWhere }));
@@ -602,7 +616,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
           contextTags: { select: { tag: { select: { name: true } } } },
         },
         orderBy: contextOrderBy,
-        take: pageSize * 3,
+        take: perTypeListTake,
       }),
     );
     typeTotals.context = await timeSection("context.count", () => prisma.contextDocument.count({ where: contextWhere }));
@@ -750,7 +764,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
           buildTags: { select: { tag: { select: { name: true } } } },
         },
         orderBy: buildOrderBy,
-        take: pageSize * 3,
+        take: perTypeListTake,
       }),
     );
     typeTotals.build = await timeSection("builds.count", () => prisma.build.count({ where: buildWhere }));
@@ -833,12 +847,44 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
   }
 
   const assembleStart = performance.now();
+  const qLowerForSearchRank = q.trim().toLowerCase();
+  const hasTextSearch = qLowerForSearchRank.length > 0;
+  const searchRank = (a: UnifiedAsset): number => {
+    if (!hasTextSearch) return 0;
+    const title = a.title.toLowerCase();
+    const summary = (a.summary ?? "").toLowerCase();
+    if (title === qLowerForSearchRank) return 0;
+    if (title.startsWith(qLowerForSearchRank)) return 1;
+    if (title.includes(qLowerForSearchRank)) return 2;
+    if (summary.includes(qLowerForSearchRank)) return 3;
+    return 4;
+  };
+  const cmpSearchRank = (a: UnifiedAsset, b: UnifiedAsset): number => searchRank(a) - searchRank(b);
+
   if (sort === "mostUsed") {
-    allAssets.sort((a, b) => b.usageCount - a.usageCount);
+    allAssets.sort((a, b) => {
+      if (hasTextSearch) {
+        const r = cmpSearchRank(a, b);
+        if (r !== 0) return r;
+      }
+      return b.usageCount - a.usageCount;
+    });
   } else if (sort === "name") {
-    allAssets.sort((a, b) => a.title.localeCompare(b.title));
+    allAssets.sort((a, b) => {
+      if (hasTextSearch) {
+        const r = cmpSearchRank(a, b);
+        if (r !== 0) return r;
+      }
+      return a.title.localeCompare(b.title);
+    });
   } else if (sort === "updatedAt") {
-    allAssets.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+    allAssets.sort((a, b) => {
+      if (hasTextSearch) {
+        const r = cmpSearchRank(a, b);
+        if (r !== 0) return r;
+      }
+      return b.updatedAt.getTime() - a.updatedAt.getTime();
+    });
   } else if (sort === "topRated") {
     // Bayesian-smoothed top rated; we only have averageRating+ratingCount here
     // since the full rating rows were already reduced. Use a 5-prior
@@ -853,12 +899,22 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
       return (v * r + PRIOR * GLOBAL) / (v + PRIOR);
     };
     allAssets.sort((a, b) => {
+      if (hasTextSearch) {
+        const r = cmpSearchRank(a, b);
+        if (r !== 0) return r;
+      }
       const diff = score(b) - score(a);
       if (diff !== 0) return diff;
       return (b.ratingCount ?? 0) - (a.ratingCount ?? 0);
     });
   } else {
-    allAssets.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    allAssets.sort((a, b) => {
+      if (hasTextSearch) {
+        const r = cmpSearchRank(a, b);
+        if (r !== 0) return r;
+      }
+      return b.createdAt.getTime() - a.createdAt.getTime();
+    });
   }
 
   // Accurate total from per-type counts (these are scoped to the same
