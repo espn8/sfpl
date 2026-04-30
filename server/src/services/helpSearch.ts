@@ -44,7 +44,7 @@ The app footer shows the current version and links to /changelog with grouped re
 A prompt is a set of instructions you give to an AI tool — tells it exactly what you need, in what format, and with what context.
 
 ### How do I find prompts?
-Use Smart Search at the top of the homepage. It supports plain keywords, natural-language queries ("cursor prompts for code review"), auto-suggestions, removable filter chips, a ⌘K shortcut, and faceted filters with live counts per asset type and tool. Sort by Recent, Most Used, Name, or Updated At.
+Use Smart Search at the top of the homepage. It supports plain keywords and titles, natural-language queries with facet hints (e.g. "cursor prompts for code review" — tools, prompt/skill/context, modalities), auto-suggestions, removable filter chips, a ⌘K shortcut, and faceted filters with live counts per asset type and tool. Simple phrases without facet vocabulary are searched literally. Sort by Recent, Most Used, Name, or Updated At.
 
 ### How do I use a prompt?
 1. Click a prompt card to open the detail page
@@ -175,7 +175,7 @@ Admins see all assets regardless of visibility.
 ## Search & Discovery
 
 ### Smart Search
-Unified bar with natural-language parsing (Gemini-powered), auto-suggestions, relevance highlighting, removable filter chips, URL sync, debounce, and ⌘K focus.
+Unified bar: Gemini-powered parsing runs when the query looks like faceted search (tools, asset types, modalities); otherwise keywords stay literal. Auto-suggestions, relevance highlighting, removable filter chips, URL sync, debounce, and ⌘K focus.
 
 ### Faceted Filters
 Below the search bar: clickable chips with live counts by asset type and tool.

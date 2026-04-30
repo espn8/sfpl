@@ -1,11 +1,20 @@
 # AI Library - Technical Summary
 
-Last Updated: Thursday, April 30, 2026 — 15:05 CDT
-Build Version: `a8d4756`
+Last Updated: Thursday, April 30, 2026 — 09:55 CDT
+Build Version: `a7fdcd7`
 App Version: see production footer after deploy (root `package.json` 1.3.5 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Session: Smart Search — plain title queries skip Gemini; preserve q on submit (April 30, 2026 — 09:55 CDT)
+
+- **Problem:** Plain searches such as an asset title (**“keep my job”**) returned nothing because **Gemini** parse could invent filters or empty **`searchTerms`**, and the client omitted **`q`** when **`searchTerms`** was empty—breaking substring matches on titles.
+- **Server** — [server/src/services/searchParser.ts](server/src/services/searchParser.ts): After **`tryLocalParse`**, call **Gemini** only when **`queryLooksLikeGeminiFacetedParse`** (regex hints for tools, prompt/skill/context/build, modalities). Otherwise return **`searchTerms`** as the full trimmed query (no model round-trip).
+- **Client** — [client/src/features/search/hooks/useSearchState.ts](client/src/features/search/hooks/useSearchState.ts): **`applyParsedQuery`** sets **`q`** to **`searchTerms`**, or if there are **no** structured filters and terms are empty, **falls back to the original input**. [client/src/features/home/HomePage.tsx](client/src/features/home/HomePage.tsx): home search submit builds **`q`** the same way for **`/search`** navigation.
+- **Tests** — [server/test/search-parser-gemini-skip.test.ts](server/test/search-parser-gemini-skip.test.ts): with API key mocked present, **“keep my job”** does not **`fetch`** Gemini and preserves full **`searchTerms`**.
+- **Help** — [client/src/features/help/HelpPage.tsx](client/src/features/help/HelpPage.tsx), [server/src/services/helpSearch.ts](server/src/services/helpSearch.ts): Smart Search copy documents literal keyword/title search vs facet-hint natural language.
+- **Prisma:** none. **Deploy:** **`git push origin main`**, **`git push heroku main`**. **Backup:** not required (no migration). **Verify:** https://ail.mysalesforcedemo.com — search for a known prompt title and a facet query (e.g. **cursor prompts for code review**).
 
 ### Session: Search NL local parse — “code review” vs modality, Gemini empty terms (April 30, 2026 — 15:05 CDT)
 
