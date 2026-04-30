@@ -259,7 +259,7 @@ export function useSearchState(options: UseSearchStateOptions = {}): UseSearchSt
     setIsParsing(true);
     try {
       const parsed = await parseNaturalLanguageQuery(query);
-      applyParsedQuery(parsed);
+      applyParsedQuery(parsed, query);
     } catch {
       setInputValueState(query);
       setFilters((prev) => ({ ...prev, q: query }));
@@ -268,8 +268,11 @@ export function useSearchState(options: UseSearchStateOptions = {}): UseSearchSt
     }
   }, []);
 
-  function applyParsedQuery(parsed: ParsedSearchQuery) {
+  function applyParsedQuery(parsed: ParsedSearchQuery, originalQuery: string) {
     const newFilters: SearchFilters = { ...DEFAULT_FILTERS };
+    const trimmedOriginal = originalQuery.trim();
+    const terms = (parsed.searchTerms ?? "").trim();
+    const hasStructured = Boolean(parsed.tool || parsed.assetType || parsed.modality);
 
     if (parsed.tool) {
       newFilters.tool = parsed.tool as SearchFilters["tool"];
@@ -280,12 +283,10 @@ export function useSearchState(options: UseSearchStateOptions = {}): UseSearchSt
     if (parsed.modality) {
       newFilters.modality = parsed.modality as SearchFilters["modality"];
     }
-    if (parsed.searchTerms) {
-      newFilters.q = parsed.searchTerms;
-    }
+    newFilters.q = terms || (!hasStructured ? trimmedOriginal : "");
 
     setFilters(newFilters);
-    setInputValueState(parsed.searchTerms);
+    setInputValueState(newFilters.q);
     setPageState(1);
   }
 

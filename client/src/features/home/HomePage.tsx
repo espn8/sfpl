@@ -277,9 +277,13 @@ export function HomePage() {
     try {
       const parsed = await parseNaturalLanguageQuery(homeSearchValue);
       const params = new URLSearchParams();
-      
-      if (parsed.searchTerms) {
-        params.set("q", parsed.searchTerms);
+      const trimmed = homeSearchValue.trim();
+      const terms = (parsed.searchTerms ?? "").trim();
+      const hasStructured = Boolean(parsed.tool || parsed.assetType || parsed.modality);
+      const qValue = terms || (!hasStructured ? trimmed : "");
+
+      if (qValue) {
+        params.set("q", qValue);
       }
       if (parsed.tool) {
         params.set("tool", parsed.tool);
@@ -290,7 +294,7 @@ export function HomePage() {
       if (parsed.modality) {
         params.set("modality", parsed.modality);
       }
-      
+
       navigate(`/search?${params.toString()}`);
     } catch {
       const params = new URLSearchParams({ q: homeSearchValue });

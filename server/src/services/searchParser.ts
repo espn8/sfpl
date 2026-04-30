@@ -178,6 +178,21 @@ function tryLocalParse(query: string): ParsedSearchQuery | null {
   return null;
 }
 
+/**
+ * True when the query likely mentions facet vocabulary (tools, asset kinds, modalities).
+ * Plain keyword / title searches return false so we do not call Gemini — the model often
+ * invented filters or emptied searchTerms and broke literal title matches (e.g. "keep my job").
+ */
+function queryLooksLikeGeminiFacetedParse(lowerTrimmed: string): boolean {
+  const patterns: RegExp[] = [
+    /\b(agentforce|vibes|chatgpt|gpt|openai|claude|cursor|gemini|meshmesh|notebook\s*lm|notebooklm|saleo|slackbot|slack|cowork)\b/,
+    /\b(prompts?|skills?|contexts?|documents?|document)\b/,
+    /\b(builds?)\b/,
+    /\b(text|code|image|video|audio|multimodal)\b/,
+  ];
+  return patterns.some((re) => re.test(lowerTrimmed));
+}
+
 function buildParsePrompt(query: string): string {
   return `You are a search query parser for SF AI Library, a tool for sharing AI prompts, skills, and context documents.
 
@@ -212,12 +227,22 @@ export async function parseSearchQuery(query: string): Promise<ParsedSearchQuery
   }
 
   const apiKey = env.nanoBananaApiKey;
+  const trimmedQuery = query.trim();
   if (!apiKey) {
     return {
       tool: null,
       assetType: null,
       modality: null,
-      searchTerms: query.trim(),
+      searchTerms: trimmedQuery,
+    };
+  }
+
+  if (!queryLooksLikeGeminiFacetedParse(trimmedQuery.toLowerCase())) {
+    return {
+      tool: null,
+      assetType: null,
+      modality: null,
+      searchTerms: trimmedQuery,
     };
   }
 
