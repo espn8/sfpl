@@ -47,8 +47,107 @@ analyticsRouter.get("/overview", async (req: Request, res: Response) => {
   /** Limit engagement metrics to assets in this workspace (matches contributor / top-used scope). */
   const teamCatalogWhere = { teamId: auth.teamId };
 
+  const TOP_USED_CANDIDATES_PER_TYPE = 30;
+  const [topUsedPromptGroups, topUsedSkillGroups, topUsedContextGroups, topUsedBuildGroups] = await Promise.all([
+    prisma.usageEvent.groupBy({
+      by: ["promptId"],
+      where: {
+        prompt: teamCatalogWhere,
+        action: { in: [UsageAction.COPY, UsageAction.LAUNCH] },
+      },
+      _count: { _all: true },
+      orderBy: { _count: { promptId: "desc" } },
+      take: TOP_USED_CANDIDATES_PER_TYPE,
+    }),
+    prisma.skillUsageEvent.groupBy({
+      by: ["skillId"],
+      where: { skill: teamCatalogWhere, eventType: "COPY" },
+      _count: { _all: true },
+      orderBy: { _count: { skillId: "desc" } },
+      take: TOP_USED_CANDIDATES_PER_TYPE,
+    }),
+    prisma.contextUsageEvent.groupBy({
+      by: ["contextId"],
+      where: { context: teamCatalogWhere, eventType: "COPY" },
+      _count: { _all: true },
+      orderBy: { _count: { contextId: "desc" } },
+      take: TOP_USED_CANDIDATES_PER_TYPE,
+    }),
+    prisma.buildUsageEvent.groupBy({
+      by: ["buildId"],
+      where: { build: teamCatalogWhere, eventType: "COPY" },
+      _count: { _all: true },
+      orderBy: { _count: { buildId: "desc" } },
+      take: TOP_USED_CANDIDATES_PER_TYPE,
+    }),
+  ]);
+
+  const mergedTopUsed = [
+    ...topUsedPromptGroups.map((g) => ({
+      assetType: "prompt" as const,
+      id: g.promptId,
+      usageCount: g._count._all,
+    })),
+    ...topUsedSkillGroups.map((g) => ({
+      assetType: "skill" as const,
+      id: g.skillId,
+      usageCount: g._count._all,
+    })),
+    ...topUsedContextGroups.map((g) => ({
+      assetType: "context" as const,
+      id: g.contextId,
+      usageCount: g._count._all,
+    })),
+    ...topUsedBuildGroups.map((g) => ({
+      assetType: "build" as const,
+      id: g.buildId,
+      usageCount: g._count._all,
+    })),
+  ].sort((a, b) => b.usageCount - a.usageCount || a.assetType.localeCompare(b.assetType) || a.id - b.id);
+
+  const mergedTopUsedSlice = mergedTopUsed.slice(0, 10);
+  const promptTopIds = mergedTopUsedSlice.filter((r) => r.assetType === "prompt").map((r) => r.id);
+  const skillTopIds = mergedTopUsedSlice.filter((r) => r.assetType === "skill").map((r) => r.id);
+  const contextTopIds = mergedTopUsedSlice.filter((r) => r.assetType === "context").map((r) => r.id);
+  const buildTopIds = mergedTopUsedSlice.filter((r) => r.assetType === "build").map((r) => r.id);
+
+  const [promptTopRows, skillTopRows, contextTopRows, buildTopRows] = await Promise.all([
+    promptTopIds.length > 0
+      ? prisma.prompt.findMany({ where: { id: { in: promptTopIds } }, select: { id: true, title: true } })
+      : Promise.resolve([]),
+    skillTopIds.length > 0
+      ? prisma.skill.findMany({ where: { id: { in: skillTopIds } }, select: { id: true, title: true } })
+      : Promise.resolve([]),
+    contextTopIds.length > 0
+      ? prisma.contextDocument.findMany({ where: { id: { in: contextTopIds } }, select: { id: true, title: true } })
+      : Promise.resolve([]),
+    buildTopIds.length > 0
+      ? prisma.build.findMany({ where: { id: { in: buildTopIds } }, select: { id: true, title: true } })
+      : Promise.resolve([]),
+  ]);
+
+  const topUsedTitleByKey = new Map<string, string>();
+  for (const row of promptTopRows) {
+    topUsedTitleByKey.set(`prompt:${row.id}`, row.title);
+  }
+  for (const row of skillTopRows) {
+    topUsedTitleByKey.set(`skill:${row.id}`, row.title);
+  }
+  for (const row of contextTopRows) {
+    topUsedTitleByKey.set(`context:${row.id}`, row.title);
+  }
+  for (const row of buildTopRows) {
+    topUsedTitleByKey.set(`build:${row.id}`, row.title);
+  }
+
+  const topUsedAssets = mergedTopUsedSlice.map((row) => ({
+    assetType: row.assetType,
+    id: row.id,
+    title: topUsedTitleByKey.get(`${row.assetType}:${row.id}`) ?? "Unknown",
+    usageCount: row.usageCount,
+  }));
+
   const [
-    topUsedGroups,
     topRated,
     stalePrompts,
     promptUsesByUser,
@@ -68,16 +167,6 @@ analyticsRouter.get("/overview", async (req: Request, res: Response) => {
     publishedContextByOwner,
     publishedBuildsByOwner,
   ] = await Promise.all([
-    prisma.usageEvent.groupBy({
-      by: ["promptId"],
-      where: {
-        prompt: teamCatalogWhere,
-        action: { in: [UsageAction.COPY, UsageAction.LAUNCH] },
-      },
-      _count: { _all: true },
-      orderBy: { _count: { promptId: "desc" } },
-      take: 10,
-    }),
     prisma.prompt.findMany({
       where: {
         teamId: auth.teamId,
@@ -237,21 +326,6 @@ analyticsRouter.get("/overview", async (req: Request, res: Response) => {
     }),
   ]);
 
-  const topUsedPromptIds = topUsedGroups.map((g) => g.promptId);
-  const topUsedPromptDetails =
-    topUsedPromptIds.length > 0
-      ? await prisma.prompt.findMany({
-          where: { id: { in: topUsedPromptIds } },
-          select: { id: true, title: true },
-        })
-      : [];
-  const topUsedPromptMap = new Map(topUsedPromptDetails.map((p) => [p.id, p.title]));
-  const topUsed = topUsedGroups.map((g) => ({
-    id: g.promptId,
-    title: topUsedPromptMap.get(g.promptId) ?? "Unknown",
-    usageCount: g._count._all,
-  }));
-
   const topRatedPrompts = topRated as RatedPrompt[];
   const allRatingValues = topRatedPrompts.flatMap((p) => p.ratings.map((r) => r.value));
   const teamGlobalMean =
@@ -379,7 +453,7 @@ analyticsRouter.get("/overview", async (req: Request, res: Response) => {
 
   return res.status(200).json({
     data: {
-      topUsedPrompts: topUsed,
+      topUsedAssets,
       topRatedPrompts: topRatedWithAverage,
       stalePrompts: stalePrompts.map((prompt: { id: number; title: string; updatedAt: Date }) => ({
         id: prompt.id,

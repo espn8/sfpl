@@ -28,6 +28,7 @@ import {
 import { generatePromptThumbnail } from "../services/nanoBanana";
 import { refreshBestOfCollection, refreshToolCollection } from "../services/systemCollections";
 import { getWeekTopAssetKeySet, weekTopAssetKey } from "../services/weekTopAssets";
+import { thumbnailRefFor } from "./thumbnails";
 import { notifySlackIfEnteredPublicPublished } from "../services/slackNewPublicAsset";
 import {
   checkPromptDuplicates,
@@ -36,6 +37,7 @@ import {
   formatDuplicateError,
 } from "../services/dedup";
 import { validateTagIdsExist } from "../lib/assetTags";
+import { apiModalitySchema, apiToDbModality, mapDbModalityToApi, type ApiModality } from "../lib/modality";
 import {
   SUMMARY_MAX_CHARS,
   SUMMARY_TOO_LONG_MESSAGE,
@@ -54,22 +56,10 @@ const promptStatusSchema = z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]);
 const usageActionSchema = z.enum(USAGE_ACTIONS);
 const PROMPT_TOOLS = ["agentforce_vibes", "chatgpt", "claude_code", "claude_cowork", "cursor", "gemini", "meshmesh", "notebooklm", "other", "saleo", "slackbot"] as const;
 const promptToolSchema = z.enum(PROMPT_TOOLS);
-const API_MODALITIES = ["text", "code", "image", "video", "audio", "multimodal"] as const;
-const apiModalitySchema = z.enum(API_MODALITIES);
-type ApiModality = (typeof API_MODALITIES)[number];
 
 const ASSET_TYPES = ["prompt", "skill", "context"] as const;
 const assetTypeSchema = z.enum(ASSET_TYPES);
 type AssetType = (typeof ASSET_TYPES)[number];
-
-const apiToDbModality: Record<ApiModality, PromptModality> = {
-  text: PromptModality.TEXT,
-  code: PromptModality.CODE,
-  image: PromptModality.IMAGE,
-  video: PromptModality.VIDEO,
-  audio: PromptModality.AUDIO,
-  multimodal: PromptModality.MULTIMODAL,
-};
 
 function mapLegacyModelHintToTools(modelHint?: string | null): string[] {
   const value = modelHint?.trim().toLowerCase();
@@ -101,44 +91,6 @@ function mapLegacyModelHintToTools(modelHint?: string | null): string[] {
     return ["notebooklm"];
   }
   return [];
-}
-
-function mapLegacyModalityToDb(value?: string | null): PromptModality {
-  const normalized = value?.trim().toLowerCase();
-  if (normalized === "code") {
-    return PromptModality.CODE;
-  }
-  if (normalized === "image") {
-    return PromptModality.IMAGE;
-  }
-  if (normalized === "video") {
-    return PromptModality.VIDEO;
-  }
-  if (normalized === "audio") {
-    return PromptModality.AUDIO;
-  }
-  if (normalized === "multimodal" || normalized === "multi-modal" || normalized === "multi modal") {
-    return PromptModality.MULTIMODAL;
-  }
-  return PromptModality.TEXT;
-}
-
-function mapDbModalityToApi(value: PromptModality): ApiModality {
-  switch (value) {
-    case PromptModality.CODE:
-      return "code";
-    case PromptModality.IMAGE:
-      return "image";
-    case PromptModality.VIDEO:
-      return "video";
-    case PromptModality.AUDIO:
-      return "audio";
-    case PromptModality.MULTIMODAL:
-      return "multimodal";
-    case PromptModality.TEXT:
-    default:
-      return "text";
-  }
 }
 
 function isMissingColumnError(error: unknown): boolean {
@@ -481,7 +433,6 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
         modelHint: true,
         tools: true,
         modality: true,
-        thumbnailUrl: true,
         thumbnailStatus: true,
         isSmartPick: true,
         createdAt: true,
@@ -557,7 +508,6 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
     modelHint?: string | null;
     tools?: string[];
     modality?: PromptModality;
-    thumbnailUrl?: string | null;
     thumbnailStatus?: string;
     isSmartPick?: boolean;
     lastVerifiedAt?: Date | null;
@@ -620,7 +570,12 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
         : mapLegacyModelHintToTools(prompt.modelHint),
     modality: prompt.modality !== undefined ? mapDbModalityToApi(prompt.modality) : "text",
     modelHint: prompt.modelHint,
-    thumbnailUrl: "thumbnailUrl" in prompt ? prompt.thumbnailUrl : null,
+    thumbnailUrl: thumbnailRefFor(
+      "prompt",
+      prompt.id,
+      "thumbnailStatus" in prompt ? (prompt.thumbnailStatus as string | undefined) : undefined,
+      prompt.updatedAt,
+    ),
     thumbnailStatus: "thumbnailStatus" in prompt ? (prompt.thumbnailStatus as ThumbnailStatusValue) : "PENDING",
     createdAt: prompt.createdAt,
     updatedAt: prompt.updatedAt,

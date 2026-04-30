@@ -22,7 +22,7 @@ export interface CreatePromptInput {
   title: string;
   body: string;
   summary?: string;
-  tools?: string[];
+  tools: string[];
   modality?: "text" | "code" | "image" | "video" | "audio" | "multimodal";
   visibility?: "PUBLIC" | "TEAM" | "PRIVATE";
   publish?: boolean;
@@ -33,7 +33,8 @@ export interface CreateSkillInput {
   skillUrl: string;
   summary?: string;
   supportUrl?: string;
-  tools?: string[];
+  tools: string[];
+  modality?: "text" | "code" | "image" | "video" | "audio" | "multimodal";
   visibility?: "PUBLIC" | "TEAM" | "PRIVATE";
   publish?: boolean;
 }
@@ -42,7 +43,8 @@ export interface CreateContextInput {
   title: string;
   body: string;
   summary?: string;
-  tools?: string[];
+  tools: string[];
+  modality?: "text" | "code" | "image" | "video" | "audio" | "multimodal";
   visibility?: "PUBLIC" | "TEAM" | "PRIVATE";
   publish?: boolean;
 }
@@ -52,6 +54,7 @@ export interface CreateBuildInput {
   buildUrl: string;
   summary?: string;
   supportUrl?: string;
+  modality?: "text" | "code" | "image" | "video" | "audio" | "multimodal";
   visibility?: "PUBLIC" | "TEAM" | "PRIVATE";
   publish?: boolean;
 }

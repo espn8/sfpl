@@ -4,10 +4,12 @@ import cors from "cors";
 import express from "express";
 import session from "express-session";
 import type { Store } from "express-session";
+import { readFile } from "fs/promises";
 import path from "path";
 import pg from "pg";
 import { env } from "./config/env";
 import { prisma } from "./lib/prisma";
+import { injectOgIntoIndexHtml, tryLoadPublicAssetOg } from "./lib/publicAssetOgHtml";
 import { errorHandler } from "./middleware/errorHandler";
 import { requestTimingMiddleware } from "./middleware/requestTiming";
 import { aiRouter } from "./routes/ai";
@@ -129,14 +131,25 @@ export function createApp(options?: CreateAppOptions): express.Express {
     return true;
   }
 
-  app.get(/^(?!\/api).*/, (req, res) => {
-    if (!isSpaDocumentPath(req.path)) {
-      res.status(404).type("text/plain").send("Not found");
-      return;
+  app.get(/^(?!\/api).*/, async (req, res, next) => {
+    try {
+      if (!isSpaDocumentPath(req.path)) {
+        res.status(404).type("text/plain").send("Not found");
+        return;
+      }
+      const og = await tryLoadPublicAssetOg(req.path);
+      const indexPath = path.join(publicPath, "index.html");
+      // Avoid stale index.html across deploys (old HTML referencing removed chunk files).
+      res.setHeader("Cache-Control", "no-cache, must-revalidate");
+      if (og) {
+        const raw = await readFile(indexPath, "utf8");
+        res.type("html").send(injectOgIntoIndexHtml(raw, og));
+        return;
+      }
+      res.sendFile(indexPath);
+    } catch (err) {
+      next(err);
     }
-    // Avoid stale index.html across deploys (old HTML referencing removed chunk files).
-    res.setHeader("Cache-Control", "no-cache, must-revalidate");
-    res.sendFile(path.join(publicPath, "index.html"));
   });
 
   app.use(errorHandler);

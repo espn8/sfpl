@@ -1,4 +1,5 @@
 import { apiClient } from "../../api/client";
+import type { PromptModality } from "../prompts/api";
 
 export type BuildOwner = {
   id: number;
@@ -18,6 +19,7 @@ export type Build = {
   supportUrl: string | null;
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   visibility: "PUBLIC" | "TEAM" | "PRIVATE";
+  modality: PromptModality;
   thumbnailUrl?: string | null;
   thumbnailStatus?: "PENDING" | "READY" | "FAILED";
   thumbnailError?: string | null;
@@ -48,6 +50,7 @@ export type ListBuildsFilters = {
   sort?: "recent" | "mostUsed";
   mine?: boolean;
   includeAnalytics?: boolean;
+  modality?: PromptModality;
   page?: number;
   pageSize?: number;
 };
@@ -75,6 +78,7 @@ export type CreateBuildInput = {
   visibility?: "PUBLIC" | "TEAM" | "PRIVATE";
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   skipThumbnailGeneration?: boolean;
+  modality?: PromptModality;
   tagIds: number[];
 };
 
@@ -90,6 +94,7 @@ export type UpdateBuildInput = {
   supportUrl?: string;
   visibility?: "PUBLIC" | "TEAM" | "PRIVATE";
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  modality?: PromptModality;
   tagIds?: number[];
 };
 

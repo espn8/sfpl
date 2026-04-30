@@ -12,6 +12,7 @@ import { archiveSkill, deleteSkillPermanently, getSkill, logSkillUsage, rateSkil
 import { ExternalLinkIcon, HeartIcon, ShareIcon } from "../prompts/promptActionIcons";
 import { PromptThumbnail } from "../prompts/PromptThumbnail";
 import { PromptAverageStars, PromptRateStars } from "../prompts/PromptStars";
+import { modalityLabel } from "../prompts/promptTagChips";
 import { AssetCollectionMenu } from "../../components/AssetCollectionMenu";
 import { AssetBadges } from "../assets/badges";
 import { VerificationBanner } from "../assets/VerificationControls";
@@ -168,18 +169,19 @@ export function SkillDetailPage() {
             />
           </div>
           {skill.summary ? <p className="mt-1 text-(--color-text-muted)">{skill.summary}</p> : null}
-          {skill.tools.length > 0 ? (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {skill.tools.map((tool) => (
-                <span
-                  key={tool}
-                  className="rounded-full bg-(--color-text-inverse) px-2.5 py-0.5 text-xs font-medium text-(--color-bg)"
-                >
-                  {getSkillToolLabel(tool)}
-                </span>
-              ))}
-            </div>
-          ) : null}
+          <div className="mt-3 flex flex-wrap gap-2">
+            {skill.tools.map((tool) => (
+              <span
+                key={tool}
+                className="rounded-full bg-(--color-text-inverse) px-2.5 py-0.5 text-xs font-medium text-(--color-bg)"
+              >
+                {getSkillToolLabel(tool)}
+              </span>
+            ))}
+            <span className="rounded-full bg-(--color-text-inverse) px-2.5 py-0.5 text-xs font-medium text-(--color-bg)">
+              {modalityLabel(skill.modality)}
+            </span>
+          </div>
         </div>
       </div>
       <div className="flex flex-wrap items-start justify-between gap-3">

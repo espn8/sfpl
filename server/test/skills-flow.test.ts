@@ -48,7 +48,8 @@ describe("skills API", () => {
       supportUrl: null,
       visibility: "PUBLIC",
       status: "DRAFT",
-      tools: [] as string[],
+      tools: ["cursor"] as string[],
+      modality: "TEXT" as const,
       thumbnailUrl: null,
       thumbnailStatus: "PENDING",
       thumbnailError: null,
@@ -67,6 +68,8 @@ describe("skills API", () => {
       skillUrl: "https://example.com/skill.zip",
       visibility: "PUBLIC",
       status: "DRAFT",
+      tools: ["cursor"],
+      modality: "TEXT",
       createdAt: new Date(),
       updatedAt: new Date(),
       owner: { id: 1, name: "U", avatarUrl: null },
@@ -79,6 +82,8 @@ describe("skills API", () => {
       title: "My Skill",
       summary: "S",
       skillUrl: "https://example.com/skill.zip",
+      tools: ["cursor"],
+      modality: "text",
       tagIds: [1],
     });
 
@@ -86,7 +91,12 @@ describe("skills API", () => {
     expect(response.body.data.title).toBe("My Skill");
     expect(skill.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ teamId: 1, ownerId: 1, title: "My Skill" }),
+        data: expect.objectContaining({
+          teamId: 1,
+          ownerId: 1,
+          title: "My Skill",
+          modality: "TEXT",
+        }),
       }),
     );
   });
@@ -105,7 +115,8 @@ describe("skills API", () => {
       supportUrl: null,
       visibility: "PUBLIC",
       status: "DRAFT",
-      tools: [] as string[],
+      tools: ["cursor"] as string[],
+      modality: "TEXT" as const,
       thumbnailUrl: null,
       thumbnailStatus: "PENDING",
       thumbnailError: null,
@@ -124,6 +135,8 @@ describe("skills API", () => {
       skillUrl: slackSkillUrl,
       visibility: "PUBLIC",
       status: "DRAFT",
+      tools: ["cursor"],
+      modality: "TEXT",
       createdAt: new Date(),
       updatedAt: new Date(),
       owner: { id: 1, name: "U", avatarUrl: null },
@@ -135,6 +148,8 @@ describe("skills API", () => {
     const response = await request(app).post("/api/skills").send({
       title: "Slack Skill",
       skillUrl: slackSkillUrl,
+      tools: ["cursor"],
+      modality: "text",
       tagIds: [1],
     });
 
@@ -152,6 +167,8 @@ describe("skills API", () => {
     const response = await request(app).post("/api/skills").send({
       title: "Bad",
       skillUrl: "https://example.com/readme.md",
+      tools: ["cursor"],
+      modality: "text",
       tagIds: [1],
     });
 
@@ -166,9 +183,15 @@ describe("skills API", () => {
         id: 1,
         title: "A",
         summary: null,
-        body: "x",
+        skillUrl: "https://example.com/skill.zip",
+        supportUrl: null,
         status: "PUBLISHED",
         visibility: "PUBLIC",
+        tools: ["cursor"] as string[],
+        modality: "TEXT",
+        thumbnailStatus: "PENDING",
+        thumbnailError: null,
+        isSmartPick: false,
         createdAt: new Date(),
         updatedAt: new Date(),
         owner: { id: 1, name: "U", avatarUrl: null },
@@ -197,7 +220,8 @@ describe("skills API", () => {
       supportUrl: null,
       visibility: "PUBLIC",
       status: "PUBLISHED",
-      tools: [] as string[],
+      tools: ["cursor"] as string[],
+      modality: "TEXT",
     };
     const afterPatch = {
       id: 2,
@@ -210,7 +234,8 @@ describe("skills API", () => {
       supportUrl: null,
       status: "PUBLISHED",
       visibility: "PUBLIC",
-      tools: [] as string[],
+      tools: ["cursor"] as string[],
+      modality: "TEXT",
       thumbnailUrl: null,
       thumbnailStatus: "PENDING",
       thumbnailError: null,
@@ -230,6 +255,8 @@ describe("skills API", () => {
       skillUrl: "https://example.com/skill.zip",
       status: "PUBLISHED",
       visibility: "PUBLIC",
+      tools: ["cursor"],
+      modality: "TEXT",
       createdAt: new Date(),
       updatedAt: new Date(),
       owner: { id: 1, name: "U", avatarUrl: null },

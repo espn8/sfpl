@@ -46,6 +46,7 @@ function mockSkill(overrides: Partial<Awaited<ReturnType<typeof getSkill>>> = {}
     status: "DRAFT" as const,
     visibility: "TEAM" as const,
     tools: [] as string[],
+    modality: "text" as const,
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-02T00:00:00.000Z",
     owner: { id: 88, name: "Owner", avatarUrl: null },

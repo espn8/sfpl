@@ -376,9 +376,7 @@ export function HomePage() {
 
   const topPerformers = useMemo(() => {
     const allAssets = topPerformersQuery.data?.data ?? [];
-    return allAssets.filter(
-      (a) => a.assetType !== "prompt" || a.thumbnailStatus !== "FAILED"
-    );
+    return allAssets;
   }, [topPerformersQuery.data]);
 
   useHomePerfMarks({

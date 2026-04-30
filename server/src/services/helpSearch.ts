@@ -89,6 +89,7 @@ A reusable capability pack — a Slackbot skill bundle, a Cursor .mdc rule, a Cl
 - Skill URL (required) — the canonical skill archive / document
 - Support URL (optional) — docs, video, or thread explaining how to install and use it
 - Target tool(s) (e.g. Slackbot, Agentforce Vibes, Cursor, Claude)
+- Modality — text, code, image, video, audio, or multimodal (same categories as prompts)
 
 ### How do I use a skill?
 Open the detail page, click the Skill URL to download/install into the target tool. Follow the Support URL for install steps if provided.
@@ -96,7 +97,7 @@ Open the detail page, click the Skill URL to download/install into the target to
 ### How do I create a skill?
 1. Host your skill somewhere and get a URL
 2. Click "Create" → "New Skill"
-3. Title, summary, Skill URL, optional Support URL, tool(s), visibility
+3. Title, summary, Skill URL, optional Support URL, tool(s), modality, visibility
 4. Save as Draft or Publish
 
 ### Skills also support
@@ -116,7 +117,7 @@ Reference materials the AI should know — style guides, documentation, policies
 1. Create → New Context
 2. Paste or write markdown
 3. Optional Support URL (detail page shows a documentation icon that links out)
-4. Add variables if helpful, tool(s), visibility
+4. Add variables if helpful, tool(s), modality, visibility
 5. Save as Draft or Publish
 
 ### Variables in context
@@ -132,7 +133,7 @@ Click a Build card, then click the Build URL to open the live solution. Optional
 
 ### How do I create a Build?
 1. Create → New Build
-2. Title, summary, Build URL, optional Support URL, tool(s), visibility
+2. Title, summary, Build URL, optional Support URL, tool(s), modality, visibility
 3. Save as Draft or Publish
 Builds support versioning (with changelog), favorites, ratings, collections, share, archive, and permanent delete.
 

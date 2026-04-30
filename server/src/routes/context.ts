@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import { Prisma, PromptModality } from "@prisma/client";
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { z } from "zod";
@@ -40,6 +40,8 @@ import {
 import { getWeekTopAssetKeySet, weekTopAssetKey } from "../services/weekTopAssets";
 import { notifySlackIfEnteredPublicPublished } from "../services/slackNewPublicAsset";
 import { validateTagIdsExist, contextTaggedWithWhere } from "../lib/assetTags";
+import { apiModalitySchema, apiToDbModality, mapDbModalityToApi, type ApiModality } from "../lib/modality";
+import { thumbnailRefFor } from "./thumbnails";
 
 const contextRouter = Router();
 
@@ -76,6 +78,7 @@ const listContextQuerySchema = z.object({
   sort: z.enum(["recent", "mostUsed"]).optional(),
   mine: z.coerce.boolean().optional(),
   includeAnalytics: z.coerce.boolean().optional(),
+  modality: apiModalitySchema.optional(),
   page: z.coerce.number().int().positive().optional(),
   pageSize: z.coerce.number().int().positive().max(100).optional(),
 });
@@ -135,7 +138,8 @@ const createContextBodySchema = z
     supportUrl: z.string().url("supportUrl must be a valid URL.").optional().or(z.literal("")),
     visibility: promptVisibilitySchema.optional(),
     status: promptStatusSchema.optional(),
-    tools: z.array(z.union([contextToolSchema, z.string()])).optional(),
+    tools: z.array(z.union([contextToolSchema, z.string()])).min(1, "at least one tool is required."),
+    modality: apiModalitySchema,
     variables: z.array(contextVariableItemSchema).max(40).optional(),
     tagIds: z
       .array(z.coerce.number().int().positive())
@@ -169,7 +173,8 @@ const updateContextBodySchema = z
     supportUrl: z.string().url("supportUrl must be a valid URL.").optional().or(z.literal("")),
     visibility: promptVisibilitySchema.optional(),
     status: promptStatusSchema.optional(),
-    tools: z.array(z.union([contextToolSchema, z.string()])).optional(),
+    tools: z.array(z.union([contextToolSchema, z.string()])).min(1).optional(),
+    modality: apiModalitySchema.optional(),
     changelog: z.string().trim().optional(),
     tagIds: z.array(z.coerce.number().int().positive()).max(50).optional(),
   })
@@ -190,6 +195,21 @@ function serializeContextDoc<T extends { owner: { id: number; name: string | nul
       name: row.owner.name,
       avatarUrl: row.owner.avatarUrl,
     },
+  };
+}
+
+function serializeContextDocWithApiModality<
+  T extends {
+    modality: PromptModality;
+    owner: { id: number; name: string | null; avatarUrl: string | null };
+  },
+>(
+  row: T,
+): Omit<ReturnType<typeof serializeContextDoc<T>>, "modality"> & { modality: ApiModality } {
+  const { modality, ...rest } = row;
+  return {
+    ...serializeContextDoc(rest as T),
+    modality: mapDbModalityToApi(modality),
   };
 }
 
@@ -250,6 +270,7 @@ contextRouter.get("/", async (req: Request, res: Response) => {
   const q = parsedQuery.data.q ?? "";
   const status = parsedQuery.data.status;
   const tool = parsedQuery.data.tool;
+  const modality = parsedQuery.data.modality;
   const tag = parsedQuery.data.tag ?? "";
   const sort = parsedQuery.data.sort ?? "recent";
   const mine = parsedQuery.data.mine ?? false;
@@ -272,6 +293,9 @@ contextRouter.get("/", async (req: Request, res: Response) => {
   }
   if (tool) {
     where.tools = { has: tool };
+  }
+  if (modality) {
+    where.modality = apiToDbModality[modality];
   }
   if (q) {
     whereAnd.push({
@@ -306,7 +330,7 @@ contextRouter.get("/", async (req: Request, res: Response) => {
         status: true,
         visibility: true,
         tools: true,
-        thumbnailUrl: true,
+        modality: true,
         thumbnailStatus: true,
         thumbnailError: true,
         isSmartPick: true,
@@ -370,7 +394,8 @@ contextRouter.get("/", async (req: Request, res: Response) => {
       const ratingInfo = ratingMap.get(row.id);
       const flagRows = flagRowsByContext.get(row.id) ?? [];
       return {
-        ...serializeContextDoc(row),
+        ...serializeContextDocWithApiModality(row),
+        thumbnailUrl: thumbnailRefFor("context", row.id, row.thumbnailStatus, row.updatedAt),
         viewCount: viewMap.get(row.id) ?? 0,
         copyCount: copyMap.get(row.id) ?? 0,
         favoriteCount: favoriteMap.get(row.id) ?? 0,
@@ -390,7 +415,8 @@ contextRouter.get("/", async (req: Request, res: Response) => {
 
   return res.status(200).json({
     data: rows.map((row) => ({
-      ...serializeContextDoc(row),
+      ...serializeContextDocWithApiModality(row),
+      thumbnailUrl: thumbnailRefFor("context", row.id, row.thumbnailStatus, row.updatedAt),
       isTopAssetThisWeek: weekTopKeys.has(weekTopAssetKey("context", row.id)),
     })),
     meta: { page, pageSize, total, totalPages },
@@ -408,7 +434,7 @@ contextRouter.post("/", requireWriteAccess, async (req: Request, res: Response) 
     return res.status(400).json(badRequestFromZodError(parsedBody.error));
   }
 
-  const { title, summary, body, supportUrl, visibility, status, tools, variables, tagIds } = parsedBody.data;
+  const { title, summary, body, supportUrl, visibility, status, tools, modality, variables, tagIds } = parsedBody.data;
 
   const duplicateCheck = await checkContextDuplicates(title, body);
   if (duplicateCheck.hasDuplicate) {
@@ -427,7 +453,8 @@ contextRouter.post("/", requireWriteAccess, async (req: Request, res: Response) 
       supportUrl: supportUrl || null,
       visibility: visibility ?? "PUBLIC",
       status: status ?? "DRAFT",
-      tools: tools ?? [],
+      tools,
+      modality: apiToDbModality[modality],
       thumbnailStatus: "PENDING",
       thumbnailError: null,
       variables:
@@ -494,6 +521,7 @@ contextRouter.post("/", requireWriteAccess, async (req: Request, res: Response) 
       visibility: docOut.visibility,
       status: docOut.status,
       tools: docOut.tools,
+      modality: docOut.modality,
     },
     tagNames: (contextTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
     assetKind: "context",
@@ -502,7 +530,7 @@ contextRouter.post("/", requireWriteAccess, async (req: Request, res: Response) 
 
   return res.status(201).json({
     data: {
-      ...serializeContextDoc(docRest as typeof docOut),
+      ...serializeContextDocWithApiModality(docRest as typeof docOut),
       thumbnailStatus: docOut.thumbnailStatus as ThumbnailStatusValue,
       tags: (contextTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
     },
@@ -533,6 +561,7 @@ contextRouter.get("/:id", async (req: Request, res: Response) => {
       visibility: true,
       status: true,
       tools: true,
+      modality: true,
       thumbnailUrl: true,
       thumbnailStatus: true,
       thumbnailError: true,
@@ -573,7 +602,7 @@ contextRouter.get("/:id", async (req: Request, res: Response) => {
 
   return res.status(200).json({
     data: {
-      ...serializeContextDoc(docRest as typeof doc),
+      ...serializeContextDocWithApiModality(docRest as typeof doc),
       thumbnailStatus: doc.thumbnailStatus as ThumbnailStatusValue,
       tags: (contextTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
       viewCount,
@@ -663,7 +692,7 @@ contextRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respon
     });
   }
 
-  const updated = await prisma.contextDocument.update({
+  await prisma.contextDocument.update({
     where: { id: contextId },
     data: {
       title: typeof u.title === "string" ? u.title.trim() : undefined,
@@ -675,6 +704,7 @@ contextRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respon
       visibility: u.visibility,
       status: u.status,
       tools: u.tools,
+      modality: u.modality !== undefined ? apiToDbModality[u.modality] : undefined,
     },
     include: {
       owner: { select: { id: true, name: true, avatarUrl: true } },
@@ -726,6 +756,7 @@ contextRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respon
       visibility: out.visibility,
       status: out.status,
       tools: out.tools,
+      modality: out.modality,
     },
     tagNames: (outTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
     assetKind: "context",
@@ -734,7 +765,7 @@ contextRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respon
 
   return res.status(200).json({
     data: {
-      ...serializeContextDoc(outRest as typeof out),
+      ...serializeContextDocWithApiModality(outRest as typeof out),
       tags: (outTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
     },
   });
@@ -794,7 +825,7 @@ contextRouter.put("/:id/variables", async (req: Request, res: Response) => {
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "You do not have access to this document." } });
   }
 
-  return res.status(200).json({ data: serializeContextDoc(doc) });
+  return res.status(200).json({ data: serializeContextDocWithApiModality(doc) });
 });
 
 contextRouter.delete("/:id", requireWriteAccess, async (req: Request, res: Response) => {

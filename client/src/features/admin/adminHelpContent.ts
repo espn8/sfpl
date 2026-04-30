@@ -17,7 +17,7 @@ export const adminHelpContent: AdminHelpSection[] = [
       {
         question: "What does the Analytics dashboard show?",
         answer:
-          "/analytics (also reachable from Admin Dashboard → Analytics) aggregates team-wide engagement across all four asset types:\n• Most Used AI Assets — COPY + LAUNCH events excluding passive views\n• Top Rated — highest average rating (unrated assets excluded)\n• Stale — assets with no usage events in the last 30 days (informational only)\n• Contributors — top producers by asset count\n• User Engagement — combined usage + favorites + ratings per user",
+          "/analytics (also reachable from Admin Dashboard → Analytics) aggregates team-wide engagement across all four asset types:\n• Most Used AI Assets — single merged leaderboard: prompts rank by COPY + LAUNCH; skills, context, and builds rank by COPY (passive views excluded). The top ten across all types are shown with deep links to each asset.\n• Top Rated — prompts only today: highest scoring average (unrated assets excluded from the list)\n• Stale — prompts with no usage events in the last 30 days (informational only)\n• Top Contributors This Week — owners ranked by new published rows (prompts, skills, context, builds) created in the rolling last 7 days\n• User Engagement / Most Active This Week — combined uses, favorites, and ratings per user in the rolling last 7 days (workspace catalog only)",
       },
       {
         question: "What counts as a Stale asset?",

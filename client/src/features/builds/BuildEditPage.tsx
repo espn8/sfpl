@@ -9,6 +9,7 @@ import { fetchMe } from "../auth/api";
 import { canPermanentlyDeleteAsset } from "../auth/roles";
 import { AssetTagsField } from "../tags/AssetTagsField";
 import { listTags } from "../tags/api";
+import { PROMPT_MODALITY_OPTIONS, type PromptModality } from "../prompts/api";
 import {
   deleteBuildPermanently,
   getBuild,
@@ -261,6 +262,7 @@ export function BuildEditPage() {
         const supportUrl = String(formData.get("supportUrl") ?? "").trim();
         const status = String(formData.get("status") ?? build.status) as typeof build.status;
         const visibility = String(formData.get("visibility") ?? build.visibility) as typeof build.visibility;
+        const modality = String(formData.get("modality") ?? "").trim();
 
         if (!title) {
           setValidationError("Title is required.");
@@ -278,6 +280,10 @@ export function BuildEditPage() {
           setValidationError("Support URL must be a valid URL if provided.");
           return;
         }
+        if (!PROMPT_MODALITY_OPTIONS.includes(modality as PromptModality)) {
+          setValidationError("Please select a generated output type.");
+          return;
+        }
 
         updateMutation.mutate({
           title,
@@ -286,6 +292,7 @@ export function BuildEditPage() {
           supportUrl: supportUrl || undefined,
           status,
           visibility,
+          modality: modality as PromptModality,
           ...(isOwner ? { tagIds: selectedTagIds } : {}),
         });
       }}
@@ -309,7 +316,7 @@ export function BuildEditPage() {
         defaultValue={build.summary ?? ""}
         title={build.title}
       />
-      <div className="grid gap-2 md:grid-cols-2">
+      <div className="grid gap-2 md:grid-cols-3">
         <select
           name="status"
           defaultValue={build.status}
@@ -327,6 +334,17 @@ export function BuildEditPage() {
           <option value="PUBLIC">Public (All Users)</option>
           <option value="TEAM">Team (same Department/OU)</option>
           <option value="PRIVATE">Private (Only Me)</option>
+        </select>
+        <select
+          name="modality"
+          defaultValue={build.modality}
+          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
+        >
+          {PROMPT_MODALITY_OPTIONS.map((option) => (
+            <option key={option} value={option}>
+              {option.charAt(0).toUpperCase() + option.slice(1)}
+            </option>
+          ))}
         </select>
       </div>
 

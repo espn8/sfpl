@@ -10,6 +10,7 @@ import { fetchMe } from "../auth/api";
 import { canCreateContent, canPermanentlyDeleteAsset } from "../auth/roles";
 import { archiveBuild, deleteBuildPermanently, getBuild, logBuildUsage, rateBuild, regenerateBuildThumbnail, toggleBuildFavorite } from "./api";
 import { ExternalLinkIcon, HeartIcon, ShareIcon } from "../prompts/promptActionIcons";
+import { modalityLabel } from "../prompts/promptTagChips";
 import { PromptThumbnail } from "../prompts/PromptThumbnail";
 import { PromptAverageStars, PromptRateStars } from "../prompts/PromptStars";
 import { AssetCollectionMenu } from "../../components/AssetCollectionMenu";
@@ -159,6 +160,11 @@ export function BuildDetailPage() {
           <p className="text-xs font-medium uppercase tracking-wide text-(--color-text-muted)">Build</p>
           <h1 className="text-2xl font-semibold">{build.title} <span className="text-(--color-text-muted)">[Build]</span></h1>
           {build.summary ? <p className="mt-1 text-(--color-text-muted)">{build.summary}</p> : null}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <span className="rounded-full bg-(--color-text-inverse) px-2.5 py-0.5 text-xs font-medium text-(--color-bg)">
+              {modalityLabel(build.modality)}
+            </span>
+          </div>
         </div>
       </div>
       <div className="flex flex-wrap items-start justify-between gap-3">

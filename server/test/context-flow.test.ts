@@ -45,6 +45,8 @@ describe("context API", () => {
       body: "# Rules\n\nBe kind.",
       visibility: "PUBLIC",
       status: "DRAFT",
+      tools: ["cursor"],
+      modality: "TEXT",
       createdAt: new Date(),
       updatedAt: new Date(),
       owner: { id: 1, name: "U", avatarUrl: null },
@@ -78,6 +80,8 @@ describe("context API", () => {
     const response = await request(app).post("/api/context").send({
       title: "Rules",
       body: "# Rules\n\nBe kind.",
+      tools: ["cursor"],
+      modality: "text",
       tagIds: [1],
     });
 
@@ -85,7 +89,7 @@ describe("context API", () => {
     expect(response.body.data.title).toBe("Rules");
     expect(contextDocument.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ teamId: 1, ownerId: 1 }),
+        data: expect.objectContaining({ teamId: 1, ownerId: 1, modality: "TEXT" }),
       }),
     );
   });

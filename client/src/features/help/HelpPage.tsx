@@ -145,7 +145,7 @@ const helpContent: HelpSection[] = [
       {
         question: "How do I create a skill?",
         answer:
-          '1. Host your skill somewhere (zip archive, repo, doc) and get a URL\n2. Click "Create" → "New Skill"\n3. Enter title, summary, the Skill URL, optional Support URL, and the target tool(s)\n4. Choose visibility (Public / Team / Private) and save as Draft or Publish Now',
+          '1. Host your skill somewhere (zip archive, repo, doc) and get a URL\n2. Click "Create" → "New Skill"\n3. Enter title, summary, the Skill URL, optional Support URL, target tool(s), and modality (text, code, image, video, audio, or multimodal — same idea as prompts)\n4. Choose visibility (Public / Team / Private) and save as Draft or Publish Now',
       },
       {
         question: "How do I rate a skill or add it to a collection?",
@@ -171,7 +171,7 @@ const helpContent: HelpSection[] = [
       {
         question: "How do I add context?",
         answer:
-          '1. Click "Create" → "New Context"\n2. Paste or write your reference document in markdown\n3. Optionally add a Support URL — the detail page shows a documentation icon that links out to canonical docs\n4. Add variables if the context has fill-in fields, pick target tool(s), and set visibility\n5. Save as Draft or Publish',
+          '1. Click "Create" → "New Context"\n2. Paste or write your reference document in markdown\n3. Optionally add a Support URL — the detail page shows a documentation icon that links out to canonical docs\n4. Add variables if the context has fill-in fields, pick target tool(s), modality (text, code, image, etc.), and set visibility\n5. Save as Draft or Publish',
       },
       {
         question: "Can context documents have variables?",
@@ -202,7 +202,7 @@ const helpContent: HelpSection[] = [
       {
         question: "How do I create a Build?",
         answer:
-          '1. Click "Create" → "New Build"\n2. Add a title, summary, Build URL, and optional Support URL\n3. Pick target tool(s) and visibility (Public / Team / Private)\n4. Save as Draft or Publish\n\nBuilds support the same features as other asset types: versioning (with optional changelog notes on update), favorites, 1-5 star ratings, collection membership, sharing, thumbnails, archive, and permanent delete.',
+          '1. Click "Create" → "New Build"\n2. Add a title, summary, Build URL, optional Support URL, target tool(s), and modality (text, code, image, etc.)\n3. Set visibility (Public / Team / Private)\n4. Save as Draft or Publish\n\nBuilds support the same features as other asset types: versioning (with optional changelog notes on update), favorites, 1-5 star ratings, collection membership, sharing, thumbnails, archive, and permanent delete.',
       },
       {
         question: "Are Builds versioned?",

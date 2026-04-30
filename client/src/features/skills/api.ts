@@ -7,7 +7,7 @@ import {
   getToolLabel,
   fetchApprovedTools,
 } from "../prompts/api";
-import type { PromptTool } from "../prompts/api";
+import type { PromptModality, PromptTool } from "../prompts/api";
 
 export {
   PROMPT_TOOL_OPTIONS as SKILL_TOOL_OPTIONS,
@@ -38,6 +38,7 @@ export type Skill = {
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   visibility: "PUBLIC" | "TEAM" | "PRIVATE";
   tools: string[];
+  modality: PromptModality;
   thumbnailUrl?: string | null;
   thumbnailStatus?: "PENDING" | "READY" | "FAILED";
   thumbnailError?: string | null;
@@ -69,6 +70,7 @@ export type ListSkillsFilters = {
   sort?: "recent" | "mostUsed";
   mine?: boolean;
   includeAnalytics?: boolean;
+  modality?: PromptModality;
   page?: number;
   pageSize?: number;
 };
@@ -95,7 +97,8 @@ export type CreateSkillInput = {
   supportUrl?: string;
   visibility?: "PUBLIC" | "TEAM" | "PRIVATE";
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
-  tools?: string[];
+  tools: string[];
+  modality: PromptModality;
   tagIds: number[];
 };
 
@@ -112,6 +115,7 @@ export type UpdateSkillInput = Partial<{
   visibility: "PUBLIC" | "TEAM" | "PRIVATE";
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   tools: string[];
+  modality: PromptModality;
   tagIds: number[];
 }>;
 

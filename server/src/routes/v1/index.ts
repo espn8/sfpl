@@ -3,7 +3,7 @@ import { Router } from "express";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { prisma } from "../../lib/prisma";
-import { PromptModality } from "@prisma/client";
+import { apiModalitySchema, apiToDbModality } from "../../lib/modality";
 import { env } from "../../config/env";
 import { ARCHIVE_EXTENSIONS, isValidSkillPackageUrl, SLACK_ENTERPRISE_SKILL_DOCS_URL_PREFIX } from "../../lib/skillUrl";
 import { generatePromptThumbnail } from "../../services/nanoBanana";
@@ -106,18 +106,6 @@ v1Router.use(requireApiKey);
 
 const PROMPT_TOOLS = ["agentforce_vibes", "chatgpt", "claude_code", "claude_cowork", "cursor", "gemini", "meshmesh", "notebooklm", "other", "saleo", "slackbot"] as const;
 const promptToolSchema = z.enum(PROMPT_TOOLS);
-const API_MODALITIES = ["text", "code", "image", "video", "audio", "multimodal"] as const;
-const apiModalitySchema = z.enum(API_MODALITIES);
-type ApiModality = (typeof API_MODALITIES)[number];
-
-const apiToDbModality: Record<ApiModality, PromptModality> = {
-  text: PromptModality.TEXT,
-  code: PromptModality.CODE,
-  image: PromptModality.IMAGE,
-  video: PromptModality.VIDEO,
-  audio: PromptModality.AUDIO,
-  multimodal: PromptModality.MULTIMODAL,
-};
 
 function getBaseUrl(): string {
   return env.appBaseUrl || "https://ailibrary.example.com";
@@ -127,7 +115,7 @@ const createPromptSchema = z.object({
   title: z.string().trim().min(1, "title is required"),
   body: z.string().min(1, "body is required"),
   summary: z.string().trim().optional(),
-  tools: z.array(z.string()).optional().default(["cursor"]),
+  tools: z.array(promptToolSchema).min(1, "at least one tool is required"),
   modality: apiModalitySchema.optional().default("text"),
   visibility: z.enum(["PUBLIC", "TEAM", "PRIVATE"]).optional().default("PUBLIC"),
   publish: z.boolean().optional().default(false),
@@ -153,10 +141,6 @@ v1Router.post("/prompts", async (req: Request, res: Response) => {
 
   const { title, body, summary, tools, modality, visibility, publish, tagIds } = parsed.data;
 
-  const validTools = tools.filter((t): t is (typeof PROMPT_TOOLS)[number] =>
-    PROMPT_TOOLS.includes(t as (typeof PROMPT_TOOLS)[number])
-  );
-
   const prompt = await prisma.prompt.create({
     data: {
       teamId: auth.teamId,
@@ -164,7 +148,7 @@ v1Router.post("/prompts", async (req: Request, res: Response) => {
       title,
       body,
       summary: summary || null,
-      tools: validTools.length > 0 ? validTools : ["cursor"],
+      tools,
       modality: apiToDbModality[modality],
       visibility,
       status: publish ? "PUBLISHED" : "DRAFT",
@@ -244,7 +228,8 @@ const createSkillSchema = z.object({
   }),
   summary: z.string().trim().optional(),
   supportUrl: z.string().url().optional().or(z.literal("")),
-  tools: z.array(z.string()).optional().default(["cursor"]),
+  tools: z.array(promptToolSchema).min(1, "at least one tool is required"),
+  modality: apiModalitySchema.optional().default("text"),
   visibility: z.enum(["PUBLIC", "TEAM", "PRIVATE"]).optional().default("PUBLIC"),
   publish: z.boolean().optional().default(false),
   tagIds: z.array(z.coerce.number().int().positive()).min(1).max(50),
@@ -267,11 +252,7 @@ v1Router.post("/skills", async (req: Request, res: Response) => {
     });
   }
 
-  const { title, skillUrl, summary, supportUrl, tools, visibility, publish, tagIds } = parsed.data;
-
-  const validTools = tools.filter((t): t is (typeof PROMPT_TOOLS)[number] =>
-    PROMPT_TOOLS.includes(t as (typeof PROMPT_TOOLS)[number])
-  );
+  const { title, skillUrl, summary, supportUrl, tools, modality, visibility, publish, tagIds } = parsed.data;
 
   const skill = await prisma.skill.create({
     data: {
@@ -281,7 +262,8 @@ v1Router.post("/skills", async (req: Request, res: Response) => {
       skillUrl,
       summary: summary || null,
       supportUrl: supportUrl || null,
-      tools: validTools.length > 0 ? validTools : ["cursor"],
+      tools,
+      modality: apiToDbModality[modality],
       visibility,
       status: publish ? "PUBLISHED" : "DRAFT",
     },
@@ -319,6 +301,7 @@ v1Router.post("/skills", async (req: Request, res: Response) => {
         visibility: skillForSlack.visibility,
         status: skillForSlack.status,
         tools: skillForSlack.tools,
+        modality: skillForSlack.modality,
       },
       tagNames: (skillForSlack.skillTags ?? []).map((row) => row.tag.name),
       assetKind: "skill",
@@ -356,7 +339,8 @@ const createContextSchema = z.object({
   title: z.string().trim().min(1, "title is required"),
   body: z.string().min(1, "body is required"),
   summary: z.string().trim().optional(),
-  tools: z.array(z.string()).optional().default(["cursor"]),
+  tools: z.array(promptToolSchema).min(1, "at least one tool is required"),
+  modality: apiModalitySchema.optional().default("text"),
   visibility: z.enum(["PUBLIC", "TEAM", "PRIVATE"]).optional().default("PUBLIC"),
   publish: z.boolean().optional().default(false),
   tagIds: z.array(z.coerce.number().int().positive()).min(1).max(50),
@@ -379,11 +363,7 @@ v1Router.post("/context", async (req: Request, res: Response) => {
     });
   }
 
-  const { title, body, summary, tools, visibility, publish, tagIds } = parsed.data;
-
-  const validTools = tools.filter((t): t is (typeof PROMPT_TOOLS)[number] =>
-    PROMPT_TOOLS.includes(t as (typeof PROMPT_TOOLS)[number])
-  );
+  const { title, body, summary, tools, modality, visibility, publish, tagIds } = parsed.data;
 
   const context = await prisma.contextDocument.create({
     data: {
@@ -392,7 +372,8 @@ v1Router.post("/context", async (req: Request, res: Response) => {
       title,
       body,
       summary: summary || null,
-      tools: validTools.length > 0 ? validTools : ["cursor"],
+      tools,
+      modality: apiToDbModality[modality],
       visibility,
       status: publish ? "PUBLISHED" : "DRAFT",
     },
@@ -430,6 +411,7 @@ v1Router.post("/context", async (req: Request, res: Response) => {
         visibility: contextForSlack.visibility,
         status: contextForSlack.status,
         tools: contextForSlack.tools,
+        modality: contextForSlack.modality,
       },
       tagNames: (contextForSlack.contextTags ?? []).map((row) => row.tag.name),
       assetKind: "context",
@@ -468,6 +450,7 @@ const createBuildSchema = z.object({
   buildUrl: z.string().url("buildUrl must be a valid URL"),
   summary: z.string().trim().optional(),
   supportUrl: z.string().url().optional().or(z.literal("")),
+  modality: apiModalitySchema.optional().default("text"),
   visibility: z.enum(["PUBLIC", "TEAM", "PRIVATE"]).optional().default("PUBLIC"),
   publish: z.boolean().optional().default(false),
   tagIds: z.array(z.coerce.number().int().positive()).min(1).max(50),
@@ -490,7 +473,7 @@ v1Router.post("/builds", async (req: Request, res: Response) => {
     });
   }
 
-  const { title, buildUrl, summary, supportUrl, visibility, publish, tagIds } = parsed.data;
+  const { title, buildUrl, summary, supportUrl, modality, visibility, publish, tagIds } = parsed.data;
 
   const build = await prisma.build.create({
     data: {
@@ -500,6 +483,7 @@ v1Router.post("/builds", async (req: Request, res: Response) => {
       buildUrl,
       summary: summary || null,
       supportUrl: supportUrl || null,
+      modality: apiToDbModality[modality],
       visibility,
       status: publish ? "PUBLISHED" : "DRAFT",
     },
@@ -537,6 +521,7 @@ v1Router.post("/builds", async (req: Request, res: Response) => {
         visibility: buildForSlack.visibility,
         status: buildForSlack.status,
         tools: [],
+        modality: buildForSlack.modality,
       },
       tagNames: (buildForSlack.buildTags ?? []).map((row) => row.tag.name),
       assetKind: "build",

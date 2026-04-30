@@ -67,7 +67,7 @@ describe("HomePage", () => {
     vi.clearAllMocks();
     vi.mocked(fetchMe).mockResolvedValue(mockUser);
     vi.mocked(getAnalyticsOverview).mockResolvedValue({
-      topUsedPrompts: [],
+      topUsedAssets: [],
       topRatedPrompts: [],
       stalePrompts: [],
       contributors: [],

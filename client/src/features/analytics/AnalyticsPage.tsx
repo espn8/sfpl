@@ -2,6 +2,19 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { getAnalyticsOverview } from "./api";
 
+function pathForTopUsedAsset(assetType: string, id: number): string {
+  switch (assetType) {
+    case "skill":
+      return `/skills/${id}`;
+    case "context":
+      return `/context/${id}`;
+    case "build":
+      return `/builds/${id}`;
+    default:
+      return `/prompts/${id}`;
+  }
+}
+
 function pluralize(count: number, singular: string, plural = `${singular}s`): string {
   return `${count.toLocaleString()} ${count === 1 ? singular : plural}`;
 }
@@ -118,7 +131,7 @@ export function AnalyticsPage() {
     );
   }
 
-  const { topUsedPrompts, topRatedPrompts, stalePrompts, contributors, userEngagementLeaderboard } = analyticsQuery.data;
+  const { topUsedAssets, topRatedPrompts, stalePrompts, contributors, userEngagementLeaderboard } = analyticsQuery.data;
 
   return (
     <div className="space-y-6">
@@ -137,13 +150,13 @@ export function AnalyticsPage() {
         <SectionCard
           title="Most Used AI Assets"
           icon={<ChartIcon className="h-5 w-5 text-(--color-text-muted)" />}
-          isEmpty={topUsedPrompts.length === 0}
+          isEmpty={topUsedAssets.length === 0}
           emptyMessage="No AI assets have been used yet."
         >
           <div className="space-y-2">
-            {topUsedPrompts.map((item, index) => (
+            {topUsedAssets.map((item, index) => (
               <div
-                key={item.id}
+                key={`${item.assetType}-${item.id}`}
                 className="flex items-center justify-between rounded-lg border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
               >
                 <div className="flex items-center gap-3 min-w-0">
@@ -151,7 +164,7 @@ export function AnalyticsPage() {
                     {index + 1}
                   </span>
                   <Link
-                    to={`/prompts/${item.id}`}
+                    to={pathForTopUsedAsset(item.assetType, item.id)}
                     className="truncate text-sm font-medium hover:text-(--color-primary) hover:underline"
                   >
                     {item.title}

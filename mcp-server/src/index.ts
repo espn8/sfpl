@@ -56,7 +56,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               type: "array",
               items: { type: "string" },
               description:
-                "Tools this prompt works with, e.g., ['cursor', 'chatgpt', 'claude_code']. Defaults to ['cursor']",
+                "One or more target tools, e.g. ['cursor', 'chatgpt', 'claude_code'] (required).",
             },
             modality: {
               type: "string",
@@ -73,7 +73,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description: "Publish immediately (true) or save as draft (false). Defaults to false",
             },
           },
-          required: ["title", "body"],
+          required: ["title", "body", "tools"],
         },
       },
       {
@@ -103,8 +103,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             tools: {
               type: "array",
               items: { type: "string" },
-              description:
-                "Tools this skill works with. Defaults to ['cursor']",
+              description: "One or more target tools (required).",
+            },
+            modality: {
+              type: "string",
+              enum: ["text", "code", "image", "video", "audio", "multimodal"],
+              description: "Primary output or content type for this skill. Defaults to 'text'",
             },
             visibility: {
               type: "string",
@@ -116,7 +120,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description: "Publish immediately (true) or save as draft (false). Defaults to false",
             },
           },
-          required: ["title", "skillUrl"],
+          required: ["title", "skillUrl", "tools"],
         },
       },
       {
@@ -141,8 +145,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             tools: {
               type: "array",
               items: { type: "string" },
-              description:
-                "Tools this context works with. Defaults to ['cursor']",
+              description: "One or more target tools (required).",
+            },
+            modality: {
+              type: "string",
+              enum: ["text", "code", "image", "video", "audio", "multimodal"],
+              description: "Primary output or document type for this context. Defaults to 'text'",
             },
             visibility: {
               type: "string",
@@ -154,7 +162,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description: "Publish immediately (true) or save as draft (false). Defaults to false",
             },
           },
-          required: ["title", "body"],
+          required: ["title", "body", "tools"],
         },
       },
       {
@@ -179,6 +187,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             supportUrl: {
               type: "string",
               description: "URL for support/documentation (optional)",
+            },
+            modality: {
+              type: "string",
+              enum: ["text", "code", "image", "video", "audio", "multimodal"],
+              description: "Primary output or content type for this build. Defaults to 'text'",
             },
             visibility: {
               type: "string",
@@ -216,7 +229,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           title: string;
           body: string;
           summary?: string;
-          tools?: string[];
+          tools: string[];
           modality?: "text" | "code" | "image" | "video" | "audio" | "multimodal";
           visibility?: "PUBLIC" | "TEAM" | "PRIVATE";
           publish?: boolean;
@@ -238,7 +251,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           skillUrl: string;
           summary?: string;
           supportUrl?: string;
-          tools?: string[];
+          tools: string[];
+          modality?: "text" | "code" | "image" | "video" | "audio" | "multimodal";
           visibility?: "PUBLIC" | "TEAM" | "PRIVATE";
           publish?: boolean;
         };
@@ -258,7 +272,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           title: string;
           body: string;
           summary?: string;
-          tools?: string[];
+          tools: string[];
+          modality?: "text" | "code" | "image" | "video" | "audio" | "multimodal";
           visibility?: "PUBLIC" | "TEAM" | "PRIVATE";
           publish?: boolean;
         };
@@ -279,6 +294,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           buildUrl: string;
           summary?: string;
           supportUrl?: string;
+          modality?: "text" | "code" | "image" | "video" | "audio" | "multimodal";
           visibility?: "PUBLIC" | "TEAM" | "PRIVATE";
           publish?: boolean;
         };

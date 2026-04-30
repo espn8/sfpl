@@ -2,10 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { listAssets, type ListAssetsFilters } from "../assets/api";
+import type { PromptModality, PromptTool } from "../prompts/api";
 import { AssetCard } from "../assets/AssetCard";
 import { fetchMe } from "../auth/api";
 import { canCreateContent } from "../auth/roles";
-import { type PromptTool } from "../prompts/api";
 import { FacetedFilters, SearchBar, SearchEmptyState, useSearchState, type AssetTypeFilter } from "../search";
 
 export function SearchResultsPage() {
@@ -43,6 +43,9 @@ export function SearchResultsPage() {
     if (debouncedFilters.tag.trim()) {
       nextFilters.tag = debouncedFilters.tag.trim();
     }
+    if (debouncedFilters.modality) {
+      nextFilters.modality = debouncedFilters.modality as PromptModality;
+    }
     return nextFilters;
   }, [debouncedFilters, page, pageSize]);
 
@@ -58,6 +61,7 @@ export function SearchResultsPage() {
     debouncedFilters.q.trim() ||
       debouncedFilters.tool ||
       debouncedFilters.tag.trim() ||
+      debouncedFilters.modality ||
       debouncedFilters.assetType !== "all",
   );
 
@@ -89,6 +93,7 @@ export function SearchResultsPage() {
           isParsing={isParsing}
           placeholder="Search prompts, skills, context and builds... (try natural language!)"
           showAssetType
+          showModality
         />
       </div>
 

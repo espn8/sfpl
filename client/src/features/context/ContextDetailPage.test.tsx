@@ -48,6 +48,7 @@ function mockDoc(overrides: Partial<Awaited<ReturnType<typeof getContextDocument
     status: "DRAFT" as const,
     visibility: "TEAM" as const,
     tools: [] as string[],
+    modality: "text" as const,
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-02T00:00:00.000Z",
     owner: { id: 77, name: "Owner", avatarUrl: null },

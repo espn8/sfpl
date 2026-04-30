@@ -1,11 +1,24 @@
 # AI Library - Technical Summary
 
-Last Updated: Tuesday, April 28, 2026 — 15:10 CDT
-Build Version: `5b0d96a`
+Last Updated: Wednesday, April 30, 2026 — 08:45 CDT
+Build Version: `18b32f0`
 App Version: see production footer after deploy (root `package.json` 1.3.5 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Session: Modality on skills/context/builds, OG link previews, list thumbnails, unified “Most Used” analytics (April 30, 2026 — 08:45 CDT)
+
+- **Prisma** — [server/prisma/schema.prisma](server/prisma/schema.prisma): **`PromptModality`** column **`modality`** on **`Skill`**, **`ContextDocument`**, and **`Build`** (default **`TEXT`**). **Migration:** [20260430120000_add_modality_skill_context_build](server/prisma/migrations/20260430120000_add_modality_skill_context_build/migration.sql) (single migration; a duplicate sibling folder was removed before ship). **Production:** capture Postgres backup immediately before deploy, then release applies **`prisma migrate deploy`**.
+- **API** — [server/src/routes/skills.ts](server/src/routes/skills.ts), [context.ts](server/src/routes/context.ts), [builds.ts](server/src/routes/builds.ts): create/update/list/detail carry **`modality`** (Zod + serialization) aligned with prompts. **List thumbnails:** list handlers no longer select raw **`thumbnailUrl`** from the DB; responses use **`thumbnailRefFor`** (`/api/thumbnails/...`) like [server/src/routes/assets.ts](server/src/routes/assets.ts) — avoids huge **`data:`** payloads and fixes landing-list image behavior. [server/src/routes/prompts.ts](server/src/routes/prompts.ts): prompt list uses **`thumbnailRefFor`** and omits DB **`thumbnailUrl`** from the list select.
+- **Unified assets** — [server/src/routes/assets.ts](server/src/routes/assets.ts), [client/src/features/assets/api.ts](client/src/features/assets/api.ts): **`UnifiedAsset.modality`** for all asset types; search/detail consumers updated ([SearchResultsPage.tsx](client/src/features/search/SearchResultsPage.tsx), list/detail/editor pages, tests).
+- **Analytics** — [server/src/routes/analytics.ts](server/src/routes/analytics.ts): **`GET /api/analytics/overview`** returns **`topUsedAssets`** (merged top ten: prompts by COPY+LAUNCH, skills/context/builds by COPY) with **`assetType`** for correct admin links. **Client** — [client/src/features/analytics/api.ts](client/src/features/analytics/api.ts), [AnalyticsPage.tsx](client/src/features/analytics/AnalyticsPage.tsx). **Breaking for any external consumer:** replaces **`topUsedPrompts`**.
+- **Home** — [client/src/features/home/HomePage.tsx](client/src/features/home/HomePage.tsx): Top Performers no longer drops prompts whose **`thumbnailStatus`** is **`FAILED`** (cards still render placeholder/regenerate UI). [HomePage.test.tsx](client/src/features/home/HomePage.test.tsx): mock uses **`topUsedAssets`**.
+- **Open Graph** — [server/src/lib/publicAssetOgHtml.ts](server/src/lib/publicAssetOgHtml.ts): for **published + PUBLIC** prompts/skills/context/builds, **`GET`** document paths inject title/description/OG image into the Vite **`index.html`** shell so crawlers see rich previews ([server/src/app.ts](server/src/app.ts)).
+- **MCP** — [mcp-server/src/client.ts](mcp-server/src/client.ts), [mcp-server/src/index.ts](mcp-server/src/index.ts): **`tools`** required on add flows; optional **`modality`** on skill/context/build tool schemas.
+- **REST v1** — [server/src/routes/v1/index.ts](server/src/routes/v1/index.ts): modality + thumbnail ref alignment where touched.
+- **Help** — [client/src/features/help/HelpPage.tsx](client/src/features/help/HelpPage.tsx), [server/src/services/helpSearch.ts](server/src/services/helpSearch.ts) (Ask AI), [client/src/features/admin/adminHelpContent.ts](client/src/features/admin/adminHelpContent.ts) (Analytics dashboard copy: Most Used merge, Top Rated prompts-only note, contributor/engagement labels).
+- **Deploy:** `heroku pg:backups:capture -a aosfail` immediately before **`git push heroku main`** (and **`git push origin main`**). **Verify:** https://ail.mysalesforcedemo.com — create/edit skill, context, build with modality; list thumbnails; Admin → Insights; public OG fetch for a public asset URL.
 
 ### Session: Analytics overview rolling 7-day leaderboards; “This Week” UI and help (April 28, 2026 — 14:56 CDT)
 
@@ -902,7 +915,7 @@ The application has achieved **substantial completion** of the core implementati
 3. Routes validate request payloads/query params via Zod and execute Prisma queries.
 4. Prompt engagement writes (usage/favorites/ratings) persist in relational tables.
 5. Analytics route composes aggregates and rankings:
-   - prompt performance (`topUsedPrompts`, `topRatedPrompts`, `stalePrompts`)
+   - prompt performance (`topUsedAssets`, `topRatedPrompts`, `stalePrompts`)
    - contributor output (`contributors`)
    - user engagement score leaderboard (`userEngagementLeaderboard`)
 6. Prompt thumbnail generation executes async image generation and stores data URI/file URI in `Prompt.thumbnailUrl`.

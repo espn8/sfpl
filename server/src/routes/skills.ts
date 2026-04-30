@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import { Prisma, PromptModality } from "@prisma/client";
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { z } from "zod";
@@ -38,8 +38,10 @@ import {
 } from "../lib/summaryLimits";
 import { ARCHIVE_EXTENSIONS, isValidSkillPackageUrl, SLACK_ENTERPRISE_SKILL_DOCS_URL_PREFIX } from "../lib/skillUrl";
 import { validateTagIdsExist, skillTaggedWithWhere } from "../lib/assetTags";
+import { apiModalitySchema, apiToDbModality, mapDbModalityToApi, type ApiModality } from "../lib/modality";
 import { getWeekTopAssetKeySet, weekTopAssetKey } from "../services/weekTopAssets";
 import { notifySlackIfEnteredPublicPublished } from "../services/slackNewPublicAsset";
+import { thumbnailRefFor } from "./thumbnails";
 
 const skillsRouter = Router();
 
@@ -81,6 +83,7 @@ const listSkillsQuerySchema = z.object({
   sort: z.enum(["recent", "mostUsed"]).optional(),
   mine: z.coerce.boolean().optional(),
   includeAnalytics: z.coerce.boolean().optional(),
+  modality: apiModalitySchema.optional(),
   page: z.coerce.number().int().positive().optional(),
   pageSize: z.coerce.number().int().positive().max(100).optional(),
 });
@@ -100,7 +103,8 @@ const createSkillBodySchema = z.object({
   supportUrl: z.string().url("supportUrl must be a valid URL.").optional().or(z.literal("")),
   visibility: promptVisibilitySchema.optional(),
   status: promptStatusSchema.optional(),
-  tools: z.array(z.union([skillToolSchema, z.string()])).optional(),
+  tools: z.array(z.union([skillToolSchema, z.string()])).min(1, "at least one tool is required."),
+  modality: apiModalitySchema,
   tagIds: z
     .array(z.coerce.number().int().positive())
     .min(1, "At least one tag is required.")
@@ -127,7 +131,8 @@ const updateSkillBodySchema = z
     supportUrl: z.string().url("supportUrl must be a valid URL.").optional().or(z.literal("")),
     visibility: promptVisibilitySchema.optional(),
     status: promptStatusSchema.optional(),
-    tools: z.array(z.union([skillToolSchema, z.string()])).optional(),
+    tools: z.array(z.union([skillToolSchema, z.string()])).min(1).optional(),
+    modality: apiModalitySchema.optional(),
     changelog: z.string().trim().optional(),
     tagIds: z.array(z.coerce.number().int().positive()).max(50).optional(),
   })
@@ -148,6 +153,19 @@ function serializeSkill<T extends { owner: { id: number; name: string | null; av
       name: row.owner.name,
       avatarUrl: row.owner.avatarUrl,
     },
+  };
+}
+
+function serializeSkillWithApiModality<
+  T extends {
+    modality: PromptModality;
+    owner: { id: number; name: string | null; avatarUrl: string | null };
+  },
+>(row: T): Omit<ReturnType<typeof serializeSkill<T>>, "modality"> & { modality: ApiModality } {
+  const { modality, ...rest } = row;
+  return {
+    ...serializeSkill(rest as T),
+    modality: mapDbModalityToApi(modality),
   };
 }
 
@@ -208,6 +226,7 @@ skillsRouter.get("/", async (req: Request, res: Response) => {
   const q = parsedQuery.data.q ?? "";
   const status = parsedQuery.data.status;
   const tool = parsedQuery.data.tool;
+  const modality = parsedQuery.data.modality;
   const tag = parsedQuery.data.tag ?? "";
   const sort = parsedQuery.data.sort ?? "recent";
   const mine = parsedQuery.data.mine ?? false;
@@ -230,6 +249,9 @@ skillsRouter.get("/", async (req: Request, res: Response) => {
   }
   if (tool) {
     where.tools = { has: tool };
+  }
+  if (modality) {
+    where.modality = apiToDbModality[modality];
   }
   if (q) {
     whereAnd.push({
@@ -264,7 +286,7 @@ skillsRouter.get("/", async (req: Request, res: Response) => {
         status: true,
         visibility: true,
         tools: true,
-        thumbnailUrl: true,
+        modality: true,
         thumbnailStatus: true,
         thumbnailError: true,
         isSmartPick: true,
@@ -329,7 +351,8 @@ skillsRouter.get("/", async (req: Request, res: Response) => {
       const ratingInfo = ratingMap.get(row.id);
       const flagRows = flagRowsBySkill.get(row.id) ?? [];
       return {
-        ...serializeSkill(rest as typeof row),
+        ...serializeSkillWithApiModality(rest as typeof row),
+        thumbnailUrl: thumbnailRefFor("skill", row.id, row.thumbnailStatus, row.updatedAt),
         tags: (skillTags ?? []).map((s) => s.tag.name),
         viewCount: viewMap.get(row.id) ?? 0,
         copyCount: copyMap.get(row.id) ?? 0,
@@ -352,7 +375,8 @@ skillsRouter.get("/", async (req: Request, res: Response) => {
     data: rows.map((row) => {
       const { skillTags, ...rest } = row;
       return {
-        ...serializeSkill(rest as typeof row),
+        ...serializeSkillWithApiModality(rest as typeof row),
+        thumbnailUrl: thumbnailRefFor("skill", row.id, row.thumbnailStatus, row.updatedAt),
         tags: (skillTags ?? []).map((s) => s.tag.name),
         isTopAssetThisWeek: weekTopKeys.has(weekTopAssetKey("skill", row.id)),
       };
@@ -372,7 +396,7 @@ skillsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
     return res.status(400).json(badRequestFromZodError(parsedBody.error));
   }
 
-  const { title, summary, skillUrl, supportUrl, visibility, status, tools, tagIds } = parsedBody.data;
+  const { title, summary, skillUrl, supportUrl, visibility, status, tools, modality, tagIds } = parsedBody.data;
 
   const duplicateCheck = await checkSkillDuplicates(title, skillUrl);
   if (duplicateCheck.hasDuplicate) {
@@ -390,7 +414,8 @@ skillsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
       supportUrl: supportUrl || null,
       visibility: visibility ?? "PUBLIC",
       status: status ?? "DRAFT",
-      tools: tools ?? [],
+      tools,
+      modality: apiToDbModality[modality],
       thumbnailStatus: "PENDING",
       thumbnailError: null,
       versions: {
@@ -445,6 +470,7 @@ skillsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
       visibility: skillOut.visibility,
       status: skillOut.status,
       tools: skillOut.tools,
+      modality: skillOut.modality,
     },
     tagNames: (skillTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
     assetKind: "skill",
@@ -453,7 +479,7 @@ skillsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
 
   return res.status(201).json({
     data: {
-      ...serializeSkill(skillRow as typeof skillOut),
+      ...serializeSkillWithApiModality(skillRow as typeof skillOut),
       thumbnailStatus: skillOut.thumbnailStatus as ThumbnailStatusValue,
       tags: (skillTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
     },
@@ -485,6 +511,7 @@ skillsRouter.get("/:id", async (req: Request, res: Response) => {
       visibility: true,
       status: true,
       tools: true,
+      modality: true,
       thumbnailUrl: true,
       thumbnailStatus: true,
       thumbnailError: true,
@@ -524,7 +551,7 @@ skillsRouter.get("/:id", async (req: Request, res: Response) => {
 
   return res.status(200).json({
     data: {
-      ...serializeSkill(skillRest as typeof skill),
+      ...serializeSkillWithApiModality(skillRest as typeof skill),
       thumbnailStatus: skill.thumbnailStatus as ThumbnailStatusValue,
       tags: (skillTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
       viewCount,
@@ -621,7 +648,7 @@ skillsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respons
     });
   }
 
-  const updated = await prisma.skill.update({
+  await prisma.skill.update({
     where: { id: skillId },
     data: {
       title: nextTitle,
@@ -632,6 +659,7 @@ skillsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respons
       visibility: u.visibility,
       status: u.status,
       tools: u.tools,
+      modality: u.modality !== undefined ? apiToDbModality[u.modality] : undefined,
     },
     include: {
       owner: { select: { id: true, name: true, avatarUrl: true } },
@@ -680,6 +708,7 @@ skillsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respons
       visibility: out.visibility,
       status: out.status,
       tools: out.tools,
+      modality: out.modality,
     },
     tagNames: (skillTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
     assetKind: "skill",
@@ -688,7 +717,7 @@ skillsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respons
 
   return res.status(200).json({
     data: {
-      ...serializeSkill(skillRest as typeof out),
+      ...serializeSkillWithApiModality(skillRest as typeof out),
       tags: (skillTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
     },
   });

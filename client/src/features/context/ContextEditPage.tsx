@@ -11,6 +11,7 @@ import { canPermanentlyDeleteAsset } from "../auth/roles";
 import { AssetTagsField } from "../tags/AssetTagsField";
 import { listTags } from "../tags/api";
 import { ToolRequestModal } from "../prompts/ToolRequestModal";
+import { PROMPT_MODALITY_OPTIONS, type PromptModality } from "../prompts/api";
 import {
   deleteContextDocumentPermanently,
   getContextDocument,
@@ -139,6 +140,7 @@ export function ContextEditPage() {
         const body = bodyText.trim();
         const status = String(formData.get("status") ?? doc.status) as typeof doc.status;
         const visibility = String(formData.get("visibility") ?? doc.visibility) as typeof doc.visibility;
+        const modality = String(formData.get("modality") ?? "").trim();
         const toolsArray = Array.from(selectedTools);
         if (!title || !body) {
           setValidationError("Title and body are required.");
@@ -146,6 +148,10 @@ export function ContextEditPage() {
         }
         if (toolsArray.length === 0) {
           setValidationError("Please select at least one tool.");
+          return;
+        }
+        if (!PROMPT_MODALITY_OPTIONS.includes(modality as PromptModality)) {
+          setValidationError("Please select a generated output type.");
           return;
         }
         if (selectedTools.has("other") && !otherToolName.trim()) {
@@ -167,6 +173,7 @@ export function ContextEditPage() {
           body,
           status,
           visibility,
+          modality: modality as PromptModality,
           tools: toolsArray,
           ...(isOwner ? { tagIds: selectedTagIds } : {}),
         });
@@ -184,7 +191,7 @@ export function ContextEditPage() {
         defaultValue={doc.summary ?? ""}
         title={doc.title}
       />
-      <div className="grid gap-2 md:grid-cols-2">
+      <div className="grid gap-2 md:grid-cols-3">
         <select
           name="status"
           defaultValue={doc.status}
@@ -202,6 +209,17 @@ export function ContextEditPage() {
           <option value="PUBLIC">Public (All Users)</option>
           <option value="TEAM">Team (same Department/OU)</option>
           <option value="PRIVATE">Private (Only Me)</option>
+        </select>
+        <select
+          name="modality"
+          defaultValue={doc.modality}
+          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
+        >
+          {PROMPT_MODALITY_OPTIONS.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
         </select>
       </div>
       <div className="space-y-2 rounded border border-(--color-border) bg-(--color-surface-muted) p-3">

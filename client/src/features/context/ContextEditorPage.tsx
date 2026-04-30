@@ -12,6 +12,7 @@ import { sanitizeTitle } from "../../lib/sanitizeTitle";
 import { SummaryField } from "../assets/SummaryField";
 import { AssetTagsField } from "../tags/AssetTagsField";
 import { ToolRequestModal } from "../prompts/ToolRequestModal";
+import { PROMPT_MODALITY_OPTIONS, type PromptModality } from "../prompts/api";
 import { createContextDocument, getContextToolsSortedAlphabetically, getContextToolLabel, type ContextTool } from "./api";
 
 type PendingContextData = {
@@ -20,6 +21,7 @@ type PendingContextData = {
   body: string;
   visibility: "PUBLIC" | "TEAM" | "PRIVATE";
   tools: ContextTool[];
+  modality: PromptModality;
   variables?: Array<{ key: string; label: string | null; defaultValue: string; required: boolean }>;
   tagIds: number[];
 };
@@ -95,6 +97,7 @@ export function ContextEditorPage() {
         const summary = String(formData.get("summary") ?? "").trim();
         const body = bodyText.trim();
         const visibility = String(formData.get("visibility") ?? "PUBLIC") as "PUBLIC" | "TEAM" | "PRIVATE";
+        const modality = String(formData.get("modality") ?? "").trim();
         const toolsArray = Array.from(selectedTools);
         if (!title) {
           setValidationError("Title is required.");
@@ -106,6 +109,10 @@ export function ContextEditorPage() {
         }
         if (toolsArray.length === 0) {
           setValidationError("Please select at least one tool.");
+          return;
+        }
+        if (!PROMPT_MODALITY_OPTIONS.includes(modality as PromptModality)) {
+          setValidationError("Please select a generated output type.");
           return;
         }
         if (selectedTools.has("other") && !otherToolName.trim()) {
@@ -131,6 +138,7 @@ export function ContextEditorPage() {
           body,
           visibility,
           tools: toolsArray,
+          modality: modality as PromptModality,
           variables: variables.length > 0 ? variables : undefined,
           tagIds: selectedTagIds,
         });
@@ -146,15 +154,31 @@ export function ContextEditorPage() {
         className="w-full rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
       />
       <SummaryField assetType="context" />
-      <select
-        name="visibility"
-        defaultValue="PUBLIC"
-        className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
-      >
-        <option value="PUBLIC">Public (All Users)</option>
-        <option value="TEAM">Team (same Department/OU)</option>
-        <option value="PRIVATE">Private (Only Me)</option>
-      </select>
+      <div className="grid gap-2 md:grid-cols-2">
+        <select
+          name="visibility"
+          defaultValue="PUBLIC"
+          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
+        >
+          <option value="PUBLIC">Public (All Users)</option>
+          <option value="TEAM">Team (same Department/OU)</option>
+          <option value="PRIVATE">Private (Only Me)</option>
+        </select>
+        <select
+          name="modality"
+          defaultValue=""
+          className="rounded border border-(--color-border) bg-(--color-surface-muted) px-3 py-2"
+        >
+          <option value="" disabled>
+            Generated output (required)
+          </option>
+          {PROMPT_MODALITY_OPTIONS.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      </div>
       <div className="space-y-2 rounded border border-(--color-border) bg-(--color-surface-muted) p-3">
         <p className="text-sm font-medium">Tools (select one or many)</p>
         <div className="grid gap-2 sm:grid-cols-4">

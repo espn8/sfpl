@@ -1,5 +1,5 @@
 import { apiClient } from "../../api/client";
-import type { PromptTool } from "../prompts/api";
+import type { PromptModality, PromptTool } from "../prompts/api";
 
 export type AssetType = "prompt" | "skill" | "context" | "build";
 
@@ -71,6 +71,8 @@ export type ListAssetsFilters = {
   snapshot?: boolean;
   /** Global tag name; matches server `GET /api/assets?tag=`. */
   tag?: string;
+  /** Matches server `GET /api/assets?modality=`. */
+  modality?: PromptModality;
 };
 
 export type ListAssetsSnapshot = {

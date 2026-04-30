@@ -131,6 +131,7 @@ model Skill {
   visibility         PromptVisibility @default(PUBLIC)
   status             PromptStatus     @default(DRAFT)
   tools              String[]         @default([])
+  modality           PromptModality   @default(TEXT)
   thumbnailUrl       String?
   thumbnailStatus    ThumbnailStatus  @default(PENDING)
   thumbnailError     String?
@@ -171,6 +172,7 @@ model ContextDocument {
   visibility      PromptVisibility @default(PUBLIC)
   status          PromptStatus     @default(DRAFT)
   tools           String[]         @default([])
+  modality        PromptModality   @default(TEXT)
   thumbnailUrl    String?
   thumbnailStatus ThumbnailStatus  @default(PENDING)
   thumbnailError  String?
@@ -211,6 +213,7 @@ model Build {
   supportUrl         String?
   visibility         PromptVisibility @default(PUBLIC)
   status             PromptStatus     @default(DRAFT)
+  modality           PromptModality   @default(TEXT)
   thumbnailUrl       String?
   thumbnailStatus    ThumbnailStatus  @default(PENDING)
   thumbnailError     String?

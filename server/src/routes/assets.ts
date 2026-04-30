@@ -1,5 +1,5 @@
 import { performance } from "node:perf_hooks";
-import { Prisma, PromptModality, UsageAction } from "@prisma/client";
+import { Prisma, UsageAction } from "@prisma/client";
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { z } from "zod";
@@ -16,32 +16,12 @@ import {
   contextTaggedWithWhere,
   buildTaggedWithWhere,
 } from "../lib/assetTags";
+import { apiModalitySchema, apiToDbModality, mapDbModalityToApi, type ApiModality } from "../lib/modality";
 
 const assetsRouter = Router();
 
 const ASSET_TOOLS = ["agentforce_vibes", "chatgpt", "claude_code", "claude_cowork", "cursor", "gemini", "meshmesh", "notebooklm", "other", "saleo", "slackbot"] as const;
 const assetToolSchema = z.enum(ASSET_TOOLS);
-
-const API_MODALITIES = ["text", "code", "image", "video", "audio", "multimodal"] as const;
-type ApiModality = (typeof API_MODALITIES)[number];
-
-function mapDbModalityToApi(value: PromptModality): ApiModality {
-  switch (value) {
-    case PromptModality.CODE:
-      return "code";
-    case PromptModality.IMAGE:
-      return "image";
-    case PromptModality.VIDEO:
-      return "video";
-    case PromptModality.AUDIO:
-      return "audio";
-    case PromptModality.MULTIMODAL:
-      return "multimodal";
-    case PromptModality.TEXT:
-    default:
-      return "text";
-  }
-}
 
 function mapLegacyModelHintToTools(modelHint?: string | null): string[] {
   const value = modelHint?.trim().toLowerCase();
@@ -95,6 +75,7 @@ const listAssetsQuerySchema = z.object({
   ownerId: z.coerce.number().int().positive().optional(),
   includeAnalytics: z.coerce.boolean().optional(),
   tag: z.string().trim().optional(),
+  modality: apiModalitySchema.optional(),
   page: z.coerce.number().int().positive().optional(),
   pageSize: z.coerce.number().int().positive().max(100).optional(),
   // NOTE: z.coerce.boolean() uses JS truthy semantics, which means the
@@ -162,6 +143,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
   const mine = parsedQuery.data.mine ?? false;
   const ownerIdParam = parsedQuery.data.ownerId;
   const tagFilter = parsedQuery.data.tag?.trim();
+  const modalityFilter = parsedQuery.data.modality;
   const includeAnalytics = parsedQuery.data.includeAnalytics ?? false;
   const page = parsedQuery.data.page ?? 1;
   const pageSize = parsedQuery.data.pageSize ?? 20;
@@ -240,6 +222,9 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
     promptWhere = addPromptSearchConditions(promptWhere);
     if (tool) {
       promptWhere.tools = { has: tool };
+    }
+    if (modalityFilter) {
+      promptWhere.modality = apiToDbModality[modalityFilter];
     }
     if (mine) {
       if (statusFilter) {
@@ -386,6 +371,9 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
     if (tool) {
       skillWhere.tools = { has: tool };
     }
+    if (modalityFilter) {
+      skillWhere.modality = apiToDbModality[modalityFilter];
+    }
     if (mine) {
       if (statusFilter) {
         skillWhere.status = statusFilter;
@@ -421,6 +409,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
           status: true,
           visibility: true,
           tools: true,
+          modality: true,
           thumbnailStatus: true,
           isSmartPick: true,
           usageCount: true,
@@ -502,6 +491,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         favorited: favoritedSkillIds.has(skill.id),
         favoriteCount: favoriteCountBySkill.get(skill.id) ?? 0,
         ratingCount: ratingInfo?.count ?? 0,
+        modality: mapDbModalityToApi(skill.modality),
         averageRating: ratingInfo?.avg ?? null,
         myRating: myRatingBySkill.get(skill.id) ?? null,
         isSmartPick: skill.isSmartPick,
@@ -534,6 +524,9 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
     }
     if (tool) {
       contextWhere.tools = { has: tool };
+    }
+    if (modalityFilter) {
+      contextWhere.modality = apiToDbModality[modalityFilter];
     }
     if (mine) {
       if (statusFilter) {
@@ -568,6 +561,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
           status: true,
           visibility: true,
           tools: true,
+          modality: true,
           thumbnailStatus: true,
           isSmartPick: true,
           usageCount: true,
@@ -648,6 +642,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         favorited: favoritedContextIds.has(doc.id),
         favoriteCount: favoriteCountByContext.get(doc.id) ?? 0,
         ratingCount: ratingInfo?.count ?? 0,
+        modality: mapDbModalityToApi(doc.modality),
         averageRating: ratingInfo?.avg ?? null,
         myRating: myRatingByContext.get(doc.id) ?? null,
         variables: doc.variables,
@@ -685,6 +680,9 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
     } else {
       buildWhere.status = "PUBLISHED";
     }
+    if (modalityFilter) {
+      buildWhere.modality = apiToDbModality[modalityFilter];
+    }
     if (tagFilter) {
       buildAnd.push(buildTaggedWithWhere(tagFilter));
     }
@@ -712,6 +710,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
           supportUrl: true,
           status: true,
           visibility: true,
+          modality: true,
           thumbnailStatus: true,
           isSmartPick: true,
           usageCount: true,
@@ -784,6 +783,7 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         status: build.status,
         visibility: build.visibility,
         tools: [],
+        modality: mapDbModalityToApi(build.modality),
         thumbnailUrl: thumbnailRefFor("build", build.id, build.thumbnailStatus, build.updatedAt),
         thumbnailStatus: build.thumbnailStatus,
         createdAt: build.createdAt,

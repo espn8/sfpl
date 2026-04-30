@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma, PromptModality } from "@prisma/client";
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { randomBytes } from "node:crypto";
@@ -43,6 +43,8 @@ import {
 import { getWeekTopAssetKeySet, weekTopAssetKey } from "../services/weekTopAssets";
 import { notifySlackIfEnteredPublicPublished } from "../services/slackNewPublicAsset";
 import { validateTagIdsExist, buildTaggedWithWhere } from "../lib/assetTags";
+import { apiModalitySchema, apiToDbModality, mapDbModalityToApi, type ApiModality } from "../lib/modality";
+import { thumbnailRefFor } from "./thumbnails";
 
 const buildThumbnailUploadsDir = path.resolve(__dirname, "../../public/uploads");
 if (!fs.existsSync(buildThumbnailUploadsDir)) {
@@ -104,6 +106,7 @@ const listBuildsQuerySchema = z.object({
   sort: z.enum(["recent", "mostUsed"]).optional(),
   mine: z.coerce.boolean().optional(),
   includeAnalytics: z.coerce.boolean().optional(),
+  modality: apiModalitySchema.optional(),
   page: z.coerce.number().int().positive().optional(),
   pageSize: z.coerce.number().int().positive().max(100).optional(),
 });
@@ -130,6 +133,7 @@ const createBuildBodySchema = z.object({
   visibility: promptVisibilitySchema.optional(),
   status: promptStatusSchema.optional(),
   skipThumbnailGeneration: z.boolean().optional(),
+  modality: apiModalitySchema.optional().default("text"),
   tagIds: z
     .array(z.coerce.number().int().positive())
     .min(1, "At least one tag is required.")
@@ -145,6 +149,7 @@ const updateBuildBodySchema = z
     visibility: promptVisibilitySchema.optional(),
     status: promptStatusSchema.optional(),
     changelog: z.string().trim().optional(),
+    modality: apiModalitySchema.optional(),
     tagIds: z.array(z.coerce.number().int().positive()).max(50).optional(),
   })
   .refine(
@@ -164,6 +169,21 @@ function serializeBuild<T extends { owner: { id: number; name: string | null; av
       name: row.owner.name,
       avatarUrl: row.owner.avatarUrl,
     },
+  };
+}
+
+function serializeBuildWithApiModality<
+  T extends {
+    modality: PromptModality;
+    owner: { id: number; name: string | null; avatarUrl: string | null };
+  },
+>(
+  row: T,
+): Omit<ReturnType<typeof serializeBuild<T>>, "modality"> & { modality: ApiModality } {
+  const { modality, ...rest } = row;
+  return {
+    ...serializeBuild(rest as T),
+    modality: mapDbModalityToApi(modality),
   };
 }
 
@@ -224,6 +244,7 @@ buildsRouter.get("/", async (req: Request, res: Response) => {
   const q = parsedQuery.data.q ?? "";
   const status = parsedQuery.data.status;
   const tag = parsedQuery.data.tag;
+  const modality = parsedQuery.data.modality;
   const sort = parsedQuery.data.sort ?? "recent";
   const mine = parsedQuery.data.mine ?? false;
   const includeAnalytics = parsedQuery.data.includeAnalytics ?? false;
@@ -242,6 +263,9 @@ buildsRouter.get("/", async (req: Request, res: Response) => {
   } else {
     whereAnd.push(buildVisibilityWhereFragment(auth) as Prisma.BuildWhereInput);
     where.status = "PUBLISHED";
+  }
+  if (modality) {
+    where.modality = apiToDbModality[modality];
   }
   if (q) {
     whereAnd.push({
@@ -275,7 +299,7 @@ buildsRouter.get("/", async (req: Request, res: Response) => {
         supportUrl: true,
         status: true,
         visibility: true,
-        thumbnailUrl: true,
+        modality: true,
         thumbnailStatus: true,
         thumbnailError: true,
         isSmartPick: true,
@@ -340,7 +364,8 @@ buildsRouter.get("/", async (req: Request, res: Response) => {
       const ratingInfo = ratingMap.get(row.id);
       const flagRows = flagRowsByBuild.get(row.id) ?? [];
       return {
-        ...serializeBuild(rest as typeof row),
+        ...serializeBuildWithApiModality(rest as typeof row),
+        thumbnailUrl: thumbnailRefFor("build", row.id, row.thumbnailStatus, row.updatedAt),
         tags: (buildTags ?? []).map((s) => s.tag.name),
         viewCount: viewMap.get(row.id) ?? 0,
         copyCount: copyMap.get(row.id) ?? 0,
@@ -363,7 +388,8 @@ buildsRouter.get("/", async (req: Request, res: Response) => {
     data: rows.map((row) => {
       const { buildTags, ...rest } = row;
       return {
-        ...serializeBuild(rest as typeof row),
+        ...serializeBuildWithApiModality(rest as typeof row),
+        thumbnailUrl: thumbnailRefFor("build", row.id, row.thumbnailStatus, row.updatedAt),
         tags: (buildTags ?? []).map((s) => s.tag.name),
         isTopAssetThisWeek: weekTopKeys.has(weekTopAssetKey("build", row.id)),
       };
@@ -383,7 +409,7 @@ buildsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
     return res.status(400).json(badRequestFromZodError(parsedBody.error));
   }
 
-  const { title, summary, buildUrl, supportUrl, visibility, status, skipThumbnailGeneration, tagIds } =
+  const { title, summary, buildUrl, supportUrl, visibility, status, skipThumbnailGeneration, modality, tagIds } =
     parsedBody.data;
 
   const duplicateCheck = await checkBuildDuplicates(title, buildUrl);
@@ -402,6 +428,7 @@ buildsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
       supportUrl: supportUrl || null,
       visibility: visibility ?? "PUBLIC",
       status: status ?? "DRAFT",
+      modality: apiToDbModality[modality],
       thumbnailStatus: "PENDING",
       thumbnailError: null,
       versions: {
@@ -458,6 +485,7 @@ buildsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
       visibility: buildOut.visibility,
       status: buildOut.status,
       tools: [],
+      modality: buildOut.modality,
     },
     tagNames: (buildTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
     assetKind: "build",
@@ -466,7 +494,7 @@ buildsRouter.post("/", requireWriteAccess, async (req: Request, res: Response) =
 
   return res.status(201).json({
     data: {
-      ...serializeBuild(buildRow as typeof buildOut),
+      ...serializeBuildWithApiModality(buildRow as typeof buildOut),
       thumbnailStatus: buildOut.thumbnailStatus as ThumbnailStatusValue,
       tags: (buildTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
     },
@@ -497,6 +525,7 @@ buildsRouter.get("/:id", async (req: Request, res: Response) => {
       supportUrl: true,
       visibility: true,
       status: true,
+      modality: true,
       thumbnailUrl: true,
       thumbnailStatus: true,
       thumbnailError: true,
@@ -536,7 +565,7 @@ buildsRouter.get("/:id", async (req: Request, res: Response) => {
 
   return res.status(200).json({
     data: {
-      ...serializeBuild(buildRest as typeof build),
+      ...serializeBuildWithApiModality(buildRest as typeof build),
       thumbnailStatus: build.thumbnailStatus as ThumbnailStatusValue,
       tags: (buildTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
       viewCount,
@@ -643,6 +672,7 @@ buildsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respons
       supportUrl: nextSupportUrl,
       visibility: u.visibility,
       status: u.status,
+      modality: u.modality !== undefined ? apiToDbModality[u.modality] : undefined,
     },
     include: {
       owner: { select: { id: true, name: true, avatarUrl: true } },
@@ -692,6 +722,7 @@ buildsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respons
       visibility: out.visibility,
       status: out.status,
       tools: [],
+      modality: out.modality,
     },
     tagNames: (outTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
     assetKind: "build",
@@ -700,7 +731,7 @@ buildsRouter.patch("/:id", requireWriteAccess, async (req: Request, res: Respons
 
   return res.status(200).json({
     data: {
-      ...serializeBuild(outRest as typeof out),
+      ...serializeBuildWithApiModality(outRest as typeof out),
       tags: (outTags ?? []).map((item: { tag: { name: string } }) => item.tag.name),
     },
   });
@@ -1026,7 +1057,7 @@ buildsRouter.post(
 
     return res.status(200).json({
       data: {
-        ...serializeBuild(updated),
+        ...serializeBuildWithApiModality(updated),
         thumbnailStatus: updated.thumbnailStatus as ThumbnailStatusValue,
       },
     });
