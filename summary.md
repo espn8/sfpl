@@ -1,11 +1,21 @@
 # AI Library - Technical Summary
 
-Last Updated: Thursday, April 30, 2026 — 09:55 CDT
-Build Version: `50d8e16`
+Last Updated: Thursday, April 30, 2026 — 10:20 CDT
+Build Version: `a2ac07e`
 App Version: see production footer after deploy (root `package.json` 1.3.5 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Session: Global leaderboards, publishedAt, home leaderboards API, Top Assets This Week (April 30, 2026 — 10:20 CDT)
+
+- **Prisma** — [server/prisma/schema.prisma](server/prisma/schema.prisma): optional **`publishedAt`** on **`Prompt`**, **`Skill`**, **`ContextDocument`**, **`Build`** (first transition to **PUBLISHED**); composite indexes **`(status, publishedAt)`**. Junctions **`CollectionPrompt`**, **`CollectionSkill`**, **`CollectionContext`**, **`CollectionBuild`**: **`createdAt`**, **`addedById`** → **`User`**. **Migration:** [20260430140000_global_leaderboards_published_at_collections](server/prisma/migrations/20260430140000_global_leaderboards_published_at_collections/migration.sql) — backfill **`publishedAt`** from **`createdAt`** for existing **PUBLISHED** rows; backfill **`addedById`** from **`Collection.createdById`**. **Production:** capture **`heroku pg:backups:capture -a aosfail`** immediately before **`git push heroku main`** (release runs **`prisma migrate deploy`**).
+- **Write paths** — [server/src/lib/firstPublishedAt.ts](server/src/lib/firstPublishedAt.ts); publish transitions in [prompts.ts](server/src/routes/prompts.ts), [skills.ts](server/src/routes/skills.ts), [context.ts](server/src/routes/context.ts), [builds.ts](server/src/routes/builds.ts); [governanceOps.ts](server/src/services/governanceOps.ts) unarchive first-publish. Collection **`addedById`** in [collections.ts](server/src/routes/collections.ts), skill/context/build routes; [systemCollections.ts](server/src/services/systemCollections.ts) uses collection creator; [seed.ts](server/prisma/seed.ts); [collections-membership.test.ts](server/test/collections-membership.test.ts).
+- **Services** — [rollingSevenDays.ts](server/src/lib/rollingSevenDays.ts); [weekViewUseScores.ts](server/src/services/weekViewUseScores.ts) (**`getGlobalWeekViewUseScores`**); [globalContributorsThisWeek.ts](server/src/services/globalContributorsThisWeek.ts); [globalMostActiveThisWeek.ts](server/src/services/globalMostActiveThisWeek.ts); [mostUsedThisWeekAssetList.ts](server/src/services/mostUsedThisWeekAssetList.ts); [weekTopAssets.ts](server/src/services/weekTopAssets.ts) (team week keys = view+use only).
+- **API** — **`GET /api/home/leaderboards`** ([home.ts](server/src/routes/home.ts), mounted in [app.ts](server/src/app.ts)): **`requireAuth`** + **`requireOnboardingComplete`**; returns **`{ contributors, mostActive }`** (global rolling 7 days). **`GET /api/assets?sort=mostUsedThisWeek`** ([assets.ts](server/src/routes/assets.ts)) — **PUBLIC** + **PUBLISHED** week view+use ranking; restricted query shape (no search/facet filters). **`GET /api/analytics/overview`** ([analytics.ts](server/src/routes/analytics.ts)) — still **ADMIN/OWNER**; **Top Contributors** and **`userEngagementLeaderboard`** reuse the same global services (**`userEngagementLeaderboard`** shape = **`MostActiveRow`**: breakdown fields + **`score`**).
+- **Client** — [client/src/features/home/api.ts](client/src/features/home/api.ts) **`fetchHomeLeaderboards`**; [HomePage.tsx](client/src/features/home/HomePage.tsx): leaderboards for all signed-in users, **`Link`** to **`/users/:id`**, **`sort: mostUsedThisWeek`** for top grid; [useHomePerfMarks.ts](client/src/features/home/useHomePerfMarks.ts). [assets/api.ts](client/src/features/assets/api.ts) sort union. [AnalyticsPage.tsx](client/src/features/analytics/AnalyticsPage.tsx) + [analytics/api.ts](client/src/features/analytics/api.ts) aligned types. [HomePage.test.tsx](client/src/features/home/HomePage.test.tsx).
+- **Help** — [adminHelpContent.ts](client/src/features/admin/adminHelpContent.ts), [HelpPage.tsx](client/src/features/help/HelpPage.tsx), [helpSearch.ts](server/src/services/helpSearch.ts).
+- **Deploy:** **`git push origin main`**, **`heroku pg:backups:capture -a aosfail`** (before Heroku push when migration ships), **`git push heroku main`**. **Verify:** https://ail.mysalesforcedemo.com — home leaderboards (non-admin), profile links, Top Assets This Week, Admin → Insights.
 
 ### Session: Smart Search — plain title queries skip Gemini; preserve q on submit (April 30, 2026 — 09:55 CDT)
 
