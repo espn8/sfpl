@@ -45,7 +45,7 @@ function mockBuild(overrides: Partial<Awaited<ReturnType<typeof getBuild>>> = {}
     supportUrl: "https://docs.example/wiki",
     status: "DRAFT" as const,
     visibility: "TEAM" as const,
-    modality: "text",
+    modality: "text" as const,
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-02T00:00:00.000Z",
     owner: { id: 99, name: "Owner", avatarUrl: null },
