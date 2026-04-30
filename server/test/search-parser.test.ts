@@ -82,6 +82,15 @@ describe("searchParser local parsing", () => {
     expect(result.assetType).toBe("context");
   });
 
+  it("does not treat 'code' in 'code review' as output modality (keeps full phrase as search terms)", async () => {
+    const { parseSearchQuery } = await import("../src/services/searchParser");
+    const result = await parseSearchQuery("cursor prompts for code review");
+    expect(result.tool).toBe("cursor");
+    expect(result.assetType).toBe("prompt");
+    expect(result.modality).toBeNull();
+    expect(result.searchTerms).toBe("code review");
+  });
+
   it("removes filler words", async () => {
     const { parseSearchQuery } = await import("../src/services/searchParser");
     const result = await parseSearchQuery("prompts for writing that help with emails");

@@ -135,9 +135,17 @@ function tryLocalParse(query: string): ParsedSearchQuery | null {
     if (!modality && MODALITY_ALIASES[word]) {
       const nextWord = i < words.length - 1 ? words[i + 1] : null;
       const prevWord = i > 0 ? words[i - 1] : null;
+      // "code review" is a task phrase, not "code output modality."
+      const isModalityNegatedByPhrase = word === "code" && nextWord === "review";
       const isLikelyModality =
-        nextWord && (ASSET_TYPE_ALIASES[nextWord] || nextWord === "generation" || nextWord === "output") ||
-        prevWord && (prevWord === "generate" || prevWord === "create" || prevWord === "for");
+        !isModalityNegatedByPhrase &&
+        Boolean(
+          (nextWord &&
+            (ASSET_TYPE_ALIASES[nextWord] ||
+              nextWord === "generation" ||
+              nextWord === "output")) ||
+            (prevWord && (prevWord === "generate" || prevWord === "create")),
+        );
 
       if (isLikelyModality) {
         modality = MODALITY_ALIASES[word];
@@ -290,11 +298,12 @@ export async function parseSearchQuery(query: string): Promise<ParsedSearchQuery
     const validModality =
       parsed.modality && VALID_MODALITIES.includes(parsed.modality as Modality) ? (parsed.modality as Modality) : null;
 
+    const termsFromModel = (parsed.searchTerms ?? query).trim();
     return {
       tool: validTool,
       assetType: validAssetType,
       modality: validModality,
-      searchTerms: (parsed.searchTerms ?? query).trim(),
+      searchTerms: termsFromModel || query.trim(),
     };
   } catch {
     return {
