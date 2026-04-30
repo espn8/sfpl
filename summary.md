@@ -1,11 +1,16 @@
 # AI Library - Technical Summary
 
-Last Updated: Thursday, April 30, 2026 — 12:15 CDT
-Build Version: `cb8a33e`
+Last Updated: Thursday, April 30, 2026 — 14:52 CDT
+Build Version: `ace7bc7`
 App Version: see production footer after deploy (root `package.json` 1.3.5 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Session: Production deploy — Heroku Postgres backup b002 (April 30, 2026 — 14:52 CDT)
+
+- **Heroku Postgres:** Logical backup **`b002`** captured with **`heroku pg:backups:capture -a aosfail`** immediately before **`git push heroku main`** so production **`prisma migrate deploy`** (release phase; modality on **`Skill`** / **`ContextDocument`** / **`Build`**) has a restore point.
+- **Deploy:** **`git push origin main`**, **`git push heroku main`**. **Verify:** https://ail.mysalesforcedemo.com
 
 ### Session: Modality on skills/context/builds, OG link previews, list thumbnails, unified “Most Used” analytics (April 30, 2026 — 08:45 CDT)
 
