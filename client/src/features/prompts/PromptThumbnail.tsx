@@ -29,7 +29,7 @@ export function PromptThumbnail({
 
   const isFailed = thumbnailStatus === "FAILED";
   const isPending = thumbnailStatus === "PENDING";
-  const canRegenerate = (isFailed || isPending) && onRegenerate && !isRegenerating;
+  const canRegenerate = isFailed && onRegenerate && !isRegenerating;
 
   return (
     <div

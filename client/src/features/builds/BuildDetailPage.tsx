@@ -29,6 +29,8 @@ export function BuildDetailPage() {
     queryKey: ["build", buildId],
     queryFn: () => getBuild(buildId),
     enabled: Number.isInteger(buildId) && buildId > 0,
+    refetchInterval: (query) =>
+      (query.state.data as { thumbnailStatus?: string } | undefined)?.thumbnailStatus === "PENDING" ? 2000 : false,
   });
 
   const meQuery = useQuery({

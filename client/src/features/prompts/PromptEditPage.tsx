@@ -75,6 +75,8 @@ export function PromptEditPage() {
     queryKey: ["prompt", promptId],
     queryFn: () => getPrompt(promptId),
     enabled: Number.isInteger(promptId) && promptId > 0,
+    refetchInterval: (query) =>
+      (query.state.data as { thumbnailStatus?: string } | undefined)?.thumbnailStatus === "PENDING" ? 2000 : false,
   });
   const meQuery = useQuery({
     queryKey: ["auth", "me"],
@@ -246,13 +248,15 @@ export function PromptEditPage() {
           </p>
           <button
             type="button"
-            disabled={regenerateMutation.isPending}
+            disabled={regenerateMutation.isPending || prompt.thumbnailStatus === "PENDING"}
             className="rounded border border-(--color-border) bg-(--color-surface) px-2 py-1 text-xs"
             onClick={() => {
               regenerateMutation.mutate();
             }}
           >
-            {regenerateMutation.isPending ? "Regenerating..." : "Regenerate image"}
+            {regenerateMutation.isPending || prompt.thumbnailStatus === "PENDING"
+              ? "Generating..."
+              : "Regenerate image"}
           </button>
         </div>
       </div>

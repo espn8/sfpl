@@ -1,11 +1,19 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, May 1, 2026 — 15:44 CDT
-Build Version: `7b4eed3`
+Last Updated: Friday, May 1, 2026 — 15:46 CDT
+Build Version: `c5a95d8`
 App Version: see production footer after deploy (root `package.json` 1.3.5 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Session: Thumbnail regeneration single-flight + pending polling (May 1, 2026 — 15:46 CDT)
+
+- **Problem:** Thumbnail regeneration could be triggered repeatedly while an item was already `PENDING`, creating overlapping generation jobs. In UI this appeared as regenerate flashing and then failing intermittently.
+- **Frontend guard + status polling** — [client/src/features/prompts/PromptThumbnail.tsx](client/src/features/prompts/PromptThumbnail.tsx): **Regenerate** now appears only for `FAILED` thumbnails (not while pending). Detail/edit pages for prompts/skills/context/builds now poll while `thumbnailStatus === "PENDING"` using React Query `refetchInterval`, and edit-page regenerate buttons are disabled while pending: [PromptDetailPage.tsx](client/src/features/prompts/PromptDetailPage.tsx), [SkillDetailPage.tsx](client/src/features/skills/SkillDetailPage.tsx), [ContextDetailPage.tsx](client/src/features/context/ContextDetailPage.tsx), [BuildDetailPage.tsx](client/src/features/builds/BuildDetailPage.tsx), [PromptEditPage.tsx](client/src/features/prompts/PromptEditPage.tsx), [BuildEditPage.tsx](client/src/features/builds/BuildEditPage.tsx).
+- **Backend single-flight enforcement** — regenerate-thumbnail routes now return `409 CONFLICT` when the asset thumbnail is already `PENDING`, preventing duplicate queueing and racey last-write outcomes: [server/src/routes/prompts.ts](server/src/routes/prompts.ts), [server/src/routes/skills.ts](server/src/routes/skills.ts), [server/src/routes/context.ts](server/src/routes/context.ts), [server/src/routes/builds.ts](server/src/routes/builds.ts).
+- **Help sync check:** Help/Admin Help/Ask-AI help content reviewed for thumbnail regenerate guidance; no wording changes required for this behavior fix.
+- **Prisma:** none. **Deploy/verify:** push to Heroku and validate regeneration flow on https://ail.mysalesforcedemo.com (pending state stable, no duplicate regenerate while in-flight).
 
 ### Session: Help Ask AI fallback + tags Enter-to-create (May 1, 2026 — 15:43 CDT)
 

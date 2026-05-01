@@ -1053,6 +1053,12 @@ promptsRouter.post("/:id/regenerate-thumbnail", requireWriteAccess, async (req: 
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can modify this prompt." } });
   }
 
+  if (existing.thumbnailStatus === "PENDING") {
+    return res.status(409).json({
+      error: { code: "CONFLICT", message: "Thumbnail regeneration already in progress." },
+    });
+  }
+
   const queued = await prisma.prompt.update({
     where: { id: promptId },
     data: {

@@ -1035,6 +1035,12 @@ skillsRouter.post("/:id/regenerate-thumbnail", requireWriteAccess, async (req: R
     return res.status(403).json({ error: { code: "FORBIDDEN", message: "Only owner/admin can modify this skill." } });
   }
 
+  if (existing.thumbnailStatus === "PENDING") {
+    return res.status(409).json({
+      error: { code: "CONFLICT", message: "Thumbnail regeneration already in progress." },
+    });
+  }
+
   const queued = await prisma.skill.update({
     where: { id: skillId },
     data: {

@@ -72,6 +72,8 @@ export function PromptDetailPage() {
     queryKey: ["prompt", promptId],
     queryFn: () => getPrompt(promptId),
     enabled: Number.isInteger(promptId) && promptId > 0,
+    refetchInterval: (query) =>
+      (query.state.data as { thumbnailStatus?: string } | undefined)?.thumbnailStatus === "PENDING" ? 2000 : false,
   });
   const meQuery = useQuery({
     queryKey: ["auth", "me"],

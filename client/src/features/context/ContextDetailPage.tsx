@@ -59,6 +59,8 @@ export function ContextDetailPage() {
     queryKey: ["context", docId],
     queryFn: () => getContextDocument(docId),
     enabled: Number.isInteger(docId) && docId > 0,
+    refetchInterval: (query) =>
+      (query.state.data as { thumbnailStatus?: string } | undefined)?.thumbnailStatus === "PENDING" ? 2000 : false,
   });
 
   const meQuery = useQuery({

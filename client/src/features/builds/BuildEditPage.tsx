@@ -55,6 +55,8 @@ export function BuildEditPage() {
     queryKey: ["build", buildId],
     queryFn: () => getBuild(buildId),
     enabled: Number.isInteger(buildId) && buildId > 0,
+    refetchInterval: (query) =>
+      (query.state.data as { thumbnailStatus?: string } | undefined)?.thumbnailStatus === "PENDING" ? 2000 : false,
   });
   const meQuery = useQuery({
     queryKey: ["auth", "me"],
@@ -235,10 +237,12 @@ export function BuildEditPage() {
             <button
               type="button"
               onClick={() => regenerateMutation.mutate()}
-              disabled={regenerateMutation.isPending}
+              disabled={regenerateMutation.isPending || build.thumbnailStatus === "PENDING"}
               className="rounded border border-(--color-border) bg-(--color-surface) px-3 py-1 text-xs hover:bg-(--color-surface-muted) disabled:opacity-50"
             >
-              {regenerateMutation.isPending ? "Generating…" : "Use AI-generated image instead"}
+              {regenerateMutation.isPending || build.thumbnailStatus === "PENDING"
+                ? "Generating…"
+                : "Use AI-generated image instead"}
             </button>
             {regenerateMutation.isError ? (
               <p className="mt-1 text-xs text-red-600" role="alert">

@@ -30,6 +30,8 @@ export function SkillDetailPage() {
     queryKey: ["skill", skillId],
     queryFn: () => getSkill(skillId),
     enabled: Number.isInteger(skillId) && skillId > 0,
+    refetchInterval: (query) =>
+      (query.state.data as { thumbnailStatus?: string } | undefined)?.thumbnailStatus === "PENDING" ? 2000 : false,
   });
 
   const meQuery = useQuery({
