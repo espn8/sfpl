@@ -1,11 +1,19 @@
 # AI Library - Technical Summary
 
-Last Updated: Thursday, April 30, 2026 — 11:35 CDT
-Build Version: `36bb7e5`
+Last Updated: Friday, May 1, 2026 — 12:06 CDT
+Build Version: `a99b522`
 App Version: see production footer after deploy (root `package.json` 1.3.5 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Session: Catalog free-text search — token AND matching (May 1, 2026 — 12:06 CDT)
+
+- **Problem:** Multi-word queries used a single **`ILIKE`** / Prisma **`contains`** on the full string (e.g. **`%keep my job%`**). Stored titles with **irregular whitespace** (double spaces, etc.) no longer contained that exact substring, so exact-looking titles returned **no hits** even when every word was present.
+- **Server —** [server/src/lib/assetSearch.ts](server/src/lib/assetSearch.ts): **`splitSearchTokens`**, **`promptFreeTextWhere`**, **`skillFreeTextWhere`**, **`contextFreeTextWhere`**, **`catalogBuildFreeTextWhere`** — for multiple tokens, **each** token must match **title / summary / body** (plus owner name; skills also **skillUrl** / **skillUrlNormalized**; builds title/summary/owner only) via per-token **`OR`**, and tokens are **`AND`**ed. Single-token queries keep the prior flat **`OR`** shape.
+- **Routes —** Unified catalog and list/search endpoints now call these helpers: [server/src/routes/assets.ts](server/src/routes/assets.ts), [server/src/routes/prompts.ts](server/src/routes/prompts.ts), [server/src/routes/skills.ts](server/src/routes/skills.ts), [server/src/routes/context.ts](server/src/routes/context.ts), [server/src/routes/builds.ts](server/src/routes/builds.ts), [server/src/routes/search.ts](server/src/routes/search.ts) (suggestions). Skills list route now aligns with unified search by including URL fields in free-text match.
+- **Tests —** [server/test/asset-search.test.ts](server/test/asset-search.test.ts): multi-token **`AND`** shape and **`splitSearchTokens`** whitespace collapse.
+- **Prisma:** none. **Deploy:** **`git push origin main`**, **`git push heroku main`** (no migration → no production Postgres backup required). **Verify:** https://ail.mysalesforcedemo.com — multi-word title search (e.g. **keep my job**) finds assets despite spacing in stored titles.
 
 ### Session: Unified catalog search — per-type fetch cap, relevance order, skill URL match (April 30, 2026 — 11:26 CDT)
 

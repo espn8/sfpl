@@ -5,7 +5,11 @@ import { z } from "zod";
 import { getAuthContext, requireAuth, requireOnboardingComplete } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 import { parseSearchQuery } from "../services/searchParser";
-import { ownerNameSearchClause } from "../lib/assetSearch";
+import {
+  contextFreeTextWhere,
+  promptFreeTextWhere,
+  skillFreeTextWhere,
+} from "../lib/assetSearch";
 import { buildVisibilityWhereFragment } from "../lib/visibility";
 import { TOOL_LABELS } from "../lib/toolLabels";
 
@@ -124,25 +128,9 @@ searchRouter.get("/suggestions", async (req: Request, res: Response) => {
   const assetLimit = Math.max(1, limit - matchingFilters.length);
   const perTypeLimit = Math.ceil(assetLimit / 3);
 
-  const promptSearchOr = [
-    { title: { contains: q, mode: "insensitive" as const } },
-    { summary: { contains: q, mode: "insensitive" as const } },
-    { body: { contains: q, mode: "insensitive" as const } },
-    ownerNameSearchClause(q),
-  ];
-  const skillSearchOr = [
-    { title: { contains: q, mode: "insensitive" as const } },
-    { summary: { contains: q, mode: "insensitive" as const } },
-    { skillUrl: { contains: q, mode: "insensitive" as const } },
-    { skillUrlNormalized: { contains: q.trim().toLowerCase(), mode: "insensitive" as const } },
-    ownerNameSearchClause(q),
-  ];
-  const contextSearchOr = [
-    { title: { contains: q, mode: "insensitive" as const } },
-    { summary: { contains: q, mode: "insensitive" as const } },
-    { body: { contains: q, mode: "insensitive" as const } },
-    ownerNameSearchClause(q),
-  ];
+  const promptSearchClause = promptFreeTextWhere(q)!;
+  const skillSearchClause = skillFreeTextWhere(q)!;
+  const contextSearchClause = contextFreeTextWhere(q)!;
 
   const [prompts, skills, contextDocs] = await Promise.all([
     prisma.prompt.findMany({
@@ -150,7 +138,7 @@ searchRouter.get("/suggestions", async (req: Request, res: Response) => {
         status: "PUBLISHED",
         AND: [
           buildVisibilityWhereFragment(auth) as Prisma.PromptWhereInput,
-          { OR: promptSearchOr },
+          promptSearchClause,
         ],
       },
       select: {
@@ -166,7 +154,7 @@ searchRouter.get("/suggestions", async (req: Request, res: Response) => {
         status: "PUBLISHED",
         AND: [
           buildVisibilityWhereFragment(auth) as Prisma.SkillWhereInput,
-          { OR: skillSearchOr },
+          skillSearchClause,
         ],
       },
       select: {
@@ -182,7 +170,7 @@ searchRouter.get("/suggestions", async (req: Request, res: Response) => {
         status: "PUBLISHED",
         AND: [
           buildVisibilityWhereFragment(auth) as Prisma.ContextDocumentWhereInput,
-          { OR: contextSearchOr },
+          contextSearchClause,
         ],
       },
       select: {

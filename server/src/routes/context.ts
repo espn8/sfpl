@@ -9,7 +9,7 @@ import {
   requireWriteAccess,
   type AuthContext,
 } from "../middleware/auth";
-import { ownerNameSearchClause } from "../lib/assetSearch";
+import { contextFreeTextWhere } from "../lib/assetSearch";
 import { canViewAssetInTeamCatalog } from "../lib/catalogAsset";
 import { prisma } from "../lib/prisma";
 import {
@@ -298,15 +298,9 @@ contextRouter.get("/", async (req: Request, res: Response) => {
   if (modality) {
     where.modality = apiToDbModality[modality];
   }
-  if (q) {
-    whereAnd.push({
-      OR: [
-        { title: { contains: q, mode: "insensitive" } },
-        { summary: { contains: q, mode: "insensitive" } },
-        { body: { contains: q, mode: "insensitive" } },
-        ownerNameSearchClause(q),
-      ],
-    });
+  const contextText = contextFreeTextWhere(q);
+  if (contextText) {
+    whereAnd.push(contextText);
   }
   if (tag) {
     whereAnd.push(contextTaggedWithWhere(tag));

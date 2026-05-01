@@ -9,7 +9,7 @@ import {
   requireWriteAccess,
   type AuthContext,
 } from "../middleware/auth";
-import { ownerNameSearchClause } from "../lib/assetSearch";
+import { skillFreeTextWhere } from "../lib/assetSearch";
 import { canViewAssetInTeamCatalog } from "../lib/catalogAsset";
 import { prisma } from "../lib/prisma";
 import {
@@ -254,14 +254,9 @@ skillsRouter.get("/", async (req: Request, res: Response) => {
   if (modality) {
     where.modality = apiToDbModality[modality];
   }
-  if (q) {
-    whereAnd.push({
-      OR: [
-        { title: { contains: q, mode: "insensitive" } },
-        { summary: { contains: q, mode: "insensitive" } },
-        ownerNameSearchClause(q),
-      ],
-    });
+  const skillText = skillFreeTextWhere(q);
+  if (skillText) {
+    whereAnd.push(skillText);
   }
   if (tag) {
     whereAnd.push(skillTaggedWithWhere(tag));

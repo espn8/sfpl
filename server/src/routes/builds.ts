@@ -13,7 +13,7 @@ import {
   requireWriteAccess,
   type AuthContext,
 } from "../middleware/auth";
-import { ownerNameSearchClause } from "../lib/assetSearch";
+import { catalogBuildFreeTextWhere } from "../lib/assetSearch";
 import { canViewAssetInTeamCatalog } from "../lib/catalogAsset";
 import { prisma } from "../lib/prisma";
 import {
@@ -268,14 +268,9 @@ buildsRouter.get("/", async (req: Request, res: Response) => {
   if (modality) {
     where.modality = apiToDbModality[modality];
   }
-  if (q) {
-    whereAnd.push({
-      OR: [
-        { title: { contains: q, mode: "insensitive" } },
-        { summary: { contains: q, mode: "insensitive" } },
-        ownerNameSearchClause(q),
-      ],
-    });
+  const buildText = catalogBuildFreeTextWhere(q);
+  if (buildText) {
+    whereAnd.push(buildText);
   }
   if (tag) {
     whereAnd.push(buildTaggedWithWhere(tag));

@@ -9,7 +9,7 @@ import {
   requireWriteAccess,
   type AuthContext,
 } from "../middleware/auth";
-import { ownerNameSearchClause } from "../lib/assetSearch";
+import { promptFreeTextWhere } from "../lib/assetSearch";
 import { canViewAssetInTeamCatalog } from "../lib/catalogAsset";
 import { prisma } from "../lib/prisma";
 import {
@@ -368,15 +368,9 @@ promptsRouter.get("/", async (req: Request, res: Response) => {
     whereAnd.push(buildVisibilityWhereFragment(auth) as Prisma.PromptWhereInput);
     where.status = "PUBLISHED";
   }
-  if (q) {
-    whereAnd.push({
-      OR: [
-        { title: { contains: q, mode: "insensitive" } },
-        { summary: { contains: q, mode: "insensitive" } },
-        { body: { contains: q, mode: "insensitive" } },
-        ownerNameSearchClause(q),
-      ],
-    });
+  const promptText = promptFreeTextWhere(q);
+  if (promptText) {
+    whereAnd.push(promptText);
   }
   if (tag) {
     where.promptTags = { some: { tag: { name: { equals: tag, mode: "insensitive" } } } };

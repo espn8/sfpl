@@ -4,7 +4,12 @@ import type { Request, Response } from "express";
 import { Router } from "express";
 import { z } from "zod";
 import { getAuthContext, requireAuth, requireOnboardingComplete } from "../middleware/auth";
-import { ownerNameSearchClause } from "../lib/assetSearch";
+import {
+  catalogBuildFreeTextWhere,
+  contextFreeTextWhere,
+  promptFreeTextWhere,
+  skillFreeTextWhere,
+} from "../lib/assetSearch";
 import { prisma } from "../lib/prisma";
 import { timeSection, recordTiming } from "../middleware/requestTiming";
 import { buildVisibilityWhereFragment } from "../lib/visibility";
@@ -240,20 +245,10 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
   };
 
   const addPromptSearchConditions = (where: Prisma.PromptWhereInput) => {
-    if (q) {
-      const existingAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
-      where.AND = [
-        ...existingAnd,
-        {
-          OR: [
-            { title: { contains: q, mode: "insensitive" } },
-            { summary: { contains: q, mode: "insensitive" } },
-            { body: { contains: q, mode: "insensitive" } },
-            ownerNameSearchClause(q),
-          ],
-        },
-      ];
-    }
+    const fragment = promptFreeTextWhere(q);
+    if (!fragment) return where;
+    const existingAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
+    where.AND = [...existingAnd, fragment];
     return where;
   };
 
@@ -401,16 +396,9 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         skillWhere.ownerId = profileOwnerId;
       }
     }
-    if (q) {
-      skillAnd.push({
-        OR: [
-          { title: { contains: q, mode: "insensitive" } },
-          { summary: { contains: q, mode: "insensitive" } },
-          { skillUrl: { contains: q, mode: "insensitive" } },
-          { skillUrlNormalized: { contains: q.trim().toLowerCase(), mode: "insensitive" } },
-          ownerNameSearchClause(q),
-        ],
-      });
+    const skillText = skillFreeTextWhere(q);
+    if (skillText) {
+      skillAnd.push(skillText);
     }
     if (tool) {
       skillWhere.tools = { has: tool };
@@ -556,15 +544,9 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         contextWhere.ownerId = profileOwnerId;
       }
     }
-    if (q) {
-      contextAnd.push({
-        OR: [
-          { title: { contains: q, mode: "insensitive" } },
-          { summary: { contains: q, mode: "insensitive" } },
-          { body: { contains: q, mode: "insensitive" } },
-          ownerNameSearchClause(q),
-        ],
-      });
+    const contextText = contextFreeTextWhere(q);
+    if (contextText) {
+      contextAnd.push(contextText);
     }
     if (tool) {
       contextWhere.tools = { has: tool };
@@ -708,14 +690,9 @@ assetsRouter.get("/", async (req: Request, res: Response) => {
         buildWhere.ownerId = profileOwnerId;
       }
     }
-    if (q) {
-      buildAnd.push({
-        OR: [
-          { title: { contains: q, mode: "insensitive" } },
-          { summary: { contains: q, mode: "insensitive" } },
-          ownerNameSearchClause(q),
-        ],
-      });
+    const buildText = catalogBuildFreeTextWhere(q);
+    if (buildText) {
+      buildAnd.push(buildText);
     }
     if (mine) {
       if (statusFilter) {
