@@ -9,6 +9,8 @@ type SearchSuggestionsProps = {
   assets: AssetSuggestion[];
   filters: FilterSuggestion[];
   isLoading: boolean;
+  isError?: boolean;
+  onRetrySuggestions?: () => void;
   isVisible: boolean;
   onFilterSelect: <K extends keyof SearchFilters>(key: K, value: SearchFilters[K]) => void;
   onClose: () => void;
@@ -25,6 +27,8 @@ export function SearchSuggestions({
   assets,
   filters,
   isLoading,
+  isError = false,
+  onRetrySuggestions,
   isVisible,
   onFilterSelect,
   onClose,
@@ -113,6 +117,26 @@ export function SearchSuggestions({
   }
 
   if (query.length < 2) return null;
+
+  if (isError) {
+    return (
+      <div
+        ref={containerRef}
+        className="absolute left-0 right-0 top-full z-50 mt-1 rounded-lg border border-(--color-border) bg-(--color-surface) p-3 shadow-lg"
+      >
+        <p className="text-sm text-(--color-text-muted)">Could not load suggestions.</p>
+        {onRetrySuggestions ? (
+          <button
+            type="button"
+            onClick={() => onRetrySuggestions()}
+            className="mt-2 text-sm font-medium text-(--color-primary) hover:underline"
+          >
+            Try again
+          </button>
+        ) : null}
+      </div>
+    );
+  }
 
   if (totalItems === 0) {
     return (

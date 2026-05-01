@@ -59,9 +59,15 @@ export function SearchBar({
   const [isFocused, setIsFocused] = useState(false);
   const [showSuggestionsDropdown, setShowSuggestionsDropdown] = useState(false);
 
-  const { data: suggestions, isLoading: suggestionsLoading } = useSearchSuggestions({
+  const {
+    data: suggestions,
+    isLoading: suggestionsLoading,
+    isError: suggestionsError,
+    refetch: refetchSuggestions,
+  } = useSearchSuggestions({
     query: inputValue,
-    enabled: showSuggestions && isFocused && inputValue.length >= 2,
+    /** Do not gate on focus — blur races (chips, mobile, extensions) left enabled=false and showed empty results. */
+    enabled: showSuggestions && inputValue.trim().length >= 2,
   });
 
   useEffect(() => {
@@ -207,6 +213,8 @@ export function SearchBar({
               assets={suggestions.assets}
               filters={suggestions.filters}
               isLoading={suggestionsLoading}
+              isError={suggestionsError}
+              onRetrySuggestions={() => void refetchSuggestions()}
               isVisible={showSuggestionsDropdown && inputValue.length >= 2}
               onFilterSelect={handleFilterSelect}
               onClose={() => setShowSuggestionsDropdown(false)}
