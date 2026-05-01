@@ -1,11 +1,17 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, May 1, 2026 — 17:18 CDT
-Build Version: `1829658`
+Last Updated: Friday, May 1, 2026 — 17:19 CDT
+Build Version: `5874abb`
 App Version: see production footer after deploy (root `package.json` 1.3.5 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Session: Deploy follow-up — fix HelpPage TS6133 after Ask AI removal (May 1, 2026 — 17:19 CDT)
+
+- **Problem:** Heroku build failed after Ask AI removal because [client/src/features/help/HelpPage.tsx](client/src/features/help/HelpPage.tsx) still declared `SparklesIcon` even though no remaining JSX referenced it (`TS6133` unused symbol).
+- **Fix:** Removed the unused `SparklesIcon` helper from the Help page module so client typecheck/build passes in Heroku postbuild.
+- **Prisma:** none. **Deploy/verify:** redeploy to https://ail.mysalesforcedemo.com and confirm `/help` loads without Ask AI and without build regressions.
 
 ### Session: Remove Help Ask AI from Help page (May 1, 2026 — 17:16 CDT)
 
