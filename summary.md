@@ -1,11 +1,19 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, May 1, 2026 — 15:50 CDT
-Build Version: `b1ed771`
+Last Updated: Friday, May 1, 2026 — 17:16 CDT
+Build Version: `fc7ecc2`
 App Version: see production footer after deploy (root `package.json` 1.3.5 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Session: Remove Help Ask AI from Help page (May 1, 2026 — 17:16 CDT)
+
+- **Problem:** Help Ask AI depended on backend/provider availability and could degrade UX with fallback responses when the AI provider path failed. Requirement changed to remove AI search from `/help` entirely.
+- **Frontend removal** — [client/src/features/help/HelpPage.tsx](client/src/features/help/HelpPage.tsx): removed Ask AI UI block, input/form submit, loading/error states, AI answer card, and related mutation/API typing logic (`useMutation`, `/api/help/search` call path). The Help page now shows Slack support + topic filter only.
+- **Behavior now:** `/help` provides static help discovery via the existing article filter and section navigation, with no AI request initiated from this page.
+- **Help sync:** User Help content updated implicitly by removing Ask AI surface from the page implementation; no admin-only help changes required for this UI-only removal.
+- **Prisma:** none. **Deploy/verify:** push to Heroku and validate `/help` on https://ail.mysalesforcedemo.com (no Ask AI module visible; topic filter remains functional).
 
 ### Session: Deploy follow-up — fix PromptThumbnail TS6133 (May 1, 2026 — 15:49 CDT)
 
