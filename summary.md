@@ -1,11 +1,17 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, May 1, 2026 — 15:47 CDT
-Build Version: `318e13d`
+Last Updated: Friday, May 1, 2026 — 15:49 CDT
+Build Version: `16397e9`
 App Version: see production footer after deploy (root `package.json` 1.3.5 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Session: Deploy follow-up — fix PromptThumbnail TS6133 (May 1, 2026 — 15:49 CDT)
+
+- **Problem:** Heroku production build failed on TypeScript (`TS6133`) because `isPending` in [client/src/features/prompts/PromptThumbnail.tsx](client/src/features/prompts/PromptThumbnail.tsx) was declared but unused after the regenerate-button logic update.
+- **Fix:** Removed the unused local variable so `client` build/typecheck succeeds in Heroku postbuild.
+- **Prisma:** none. **Deploy/verify:** redeploy to https://ail.mysalesforcedemo.com after this fix.
 
 ### Session: Thumbnail regeneration single-flight + pending polling (May 1, 2026 — 15:46 CDT)
 
