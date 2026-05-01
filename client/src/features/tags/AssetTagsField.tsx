@@ -46,6 +46,12 @@ export function AssetTagsField({ canEdit, selectedIds, onChange, readOnlyTagName
 
   const isAdmin = meQuery.data?.role === "ADMIN";
 
+  function submitNewTag() {
+    const trimmed = newTagName.trim();
+    if (!trimmed || createMutation.isPending) return;
+    createMutation.mutate(trimmed);
+  }
+
   if (!canEdit) {
     const names = readOnlyTagNames ?? [];
     return (
@@ -98,6 +104,11 @@ export function AssetTagsField({ canEdit, selectedIds, onChange, readOnlyTagName
                 type="text"
                 value={newTagName}
                 onChange={(e) => setNewTagName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter") return;
+                  e.preventDefault();
+                  submitNewTag();
+                }}
                 placeholder="New tag name"
                 className="w-full rounded border border-(--color-border) bg-(--color-surface) px-2 py-1.5 text-sm"
                 maxLength={120}
@@ -106,7 +117,7 @@ export function AssetTagsField({ canEdit, selectedIds, onChange, readOnlyTagName
             <button
               type="button"
               disabled={!newTagName.trim() || createMutation.isPending}
-              onClick={() => createMutation.mutate(newTagName.trim())}
+              onClick={submitNewTag}
               className="rounded bg-(--color-primary) px-3 py-1.5 text-xs font-medium text-(--color-text-inverse) hover:bg-(--color-primary-active) disabled:opacity-50"
             >
               {createMutation.isPending ? "Saving…" : "Create"}

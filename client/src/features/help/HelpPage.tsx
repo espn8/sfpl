@@ -5,7 +5,7 @@ import { apiClient } from "../../api/client";
 type AiSearchResponse = {
   data: {
     answer: string;
-    source: "ai";
+    source: "ai" | "fallback";
   };
 };
 

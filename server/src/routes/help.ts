@@ -25,10 +25,11 @@ router.post("/search", requireAuth, requireOnboardingComplete, async (req, res) 
     return res.json({ data: result });
   } catch (error) {
     console.error("Help search error:", error);
-    return res.status(500).json({
-      error: {
-        code: "SEARCH_FAILED",
-        message: "AI search is temporarily unavailable. Please use the regular search.",
+    return res.json({
+      data: {
+        source: "fallback" as const,
+        answer:
+          "Ask AI is temporarily unavailable right now. Please use the Help topic search below, or click the Slack button to get support in #help-ailibrary.",
       },
     });
   }

@@ -1,11 +1,19 @@
 # AI Library - Technical Summary
 
-Last Updated: Friday, May 1, 2026 — 12:06 CDT
-Build Version: `7ac7503`
+Last Updated: Friday, May 1, 2026 — 15:43 CDT
+Build Version: `12247d1`
 App Version: see production footer after deploy (root `package.json` 1.3.5 in repo; Heroku `version-bump.js` on postbuild)
 Production URL: https://ail.mysalesforcedemo.com (canonical live site — never use the `*.herokuapp.com` hostname when referring to the live site)
 
 ## Recent Changes
+
+### Session: Help Ask AI fallback + tags Enter-to-create (May 1, 2026 — 15:43 CDT)
+
+- **Problem:** Help page Ask AI surfaced a raw Axios error (`Request failed with status code 500`) when backend AI lookup failed. Tag creation in the asset tag editor required a mouse click on **Create**, slowing keyboard-only workflows.
+- **Help API fallback** — [server/src/routes/help.ts](server/src/routes/help.ts): `/api/help/search` now catches provider failures and returns a successful fallback payload (`source: "fallback"`) with guidance to use topic search or `#help-ailibrary`, instead of returning HTTP 500.
+- **Help client typing** — [client/src/features/help/HelpPage.tsx](client/src/features/help/HelpPage.tsx): Ask AI response union expanded to `source: "ai" | "fallback"` so fallback responses render in the same answer card path without type mismatch.
+- **Tag editor UX** — [client/src/features/tags/AssetTagsField.tsx](client/src/features/tags/AssetTagsField.tsx): added `submitNewTag()` helper and Enter-key submit in the input (`onKeyDown`), preserving the existing pending/empty guards used by the Create button.
+- **Prisma:** none. **Deploy/verify:** push and validate on https://ail.mysalesforcedemo.com (Help Ask AI failure path shows friendly fallback; tag input supports Enter to create).
 
 ### Session: Catalog free-text search — token AND matching (May 1, 2026 — 12:06 CDT)
 
