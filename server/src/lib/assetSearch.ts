@@ -36,6 +36,58 @@ export function promptFreeTextWhere(q: string): Prisma.PromptWhereInput | undefi
   return { AND: tokens.map(promptTokenMatch) };
 }
 
+/**
+ * Dropdown autocomplete: match **full query as substring** OR **token-AND** (catalog behavior).
+ * OR avoids empty suggestions when phrase match alone would miss (e.g. irregular spacing) or
+ * token-AND is too strict while typing.
+ */
+export function promptSuggestionsWhere(q: string): Prisma.PromptWhereInput {
+  const trimmed = q.trim();
+  const phrase: Prisma.PromptWhereInput = {
+    OR: [
+      { title: { contains: trimmed, mode: "insensitive" } },
+      { summary: { contains: trimmed, mode: "insensitive" } },
+      { body: { contains: trimmed, mode: "insensitive" } },
+      ownerNameSearchClause(trimmed),
+    ],
+  };
+  const tokenPart = promptFreeTextWhere(trimmed);
+  if (!tokenPart) return phrase;
+  return { OR: [phrase, tokenPart] };
+}
+
+export function skillSuggestionsWhere(q: string): Prisma.SkillWhereInput {
+  const trimmed = q.trim();
+  const normalized = trimmed.toLowerCase();
+  const phrase: Prisma.SkillWhereInput = {
+    OR: [
+      { title: { contains: trimmed, mode: "insensitive" } },
+      { summary: { contains: trimmed, mode: "insensitive" } },
+      { skillUrl: { contains: trimmed, mode: "insensitive" } },
+      { skillUrlNormalized: { contains: normalized, mode: "insensitive" } },
+      ownerNameSearchClause(trimmed),
+    ],
+  };
+  const tokenPart = skillFreeTextWhere(trimmed);
+  if (!tokenPart) return phrase;
+  return { OR: [phrase, tokenPart] };
+}
+
+export function contextSuggestionsWhere(q: string): Prisma.ContextDocumentWhereInput {
+  const trimmed = q.trim();
+  const phrase: Prisma.ContextDocumentWhereInput = {
+    OR: [
+      { title: { contains: trimmed, mode: "insensitive" } },
+      { summary: { contains: trimmed, mode: "insensitive" } },
+      { body: { contains: trimmed, mode: "insensitive" } },
+      ownerNameSearchClause(trimmed),
+    ],
+  };
+  const tokenPart = contextFreeTextWhere(trimmed);
+  if (!tokenPart) return phrase;
+  return { OR: [phrase, tokenPart] };
+}
+
 function skillTokenMatch(token: string): Prisma.SkillWhereInput {
   const normalized = token.trim().toLowerCase();
   return {

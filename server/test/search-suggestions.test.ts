@@ -80,17 +80,12 @@ describe("search suggestions endpoint", () => {
 
     await request(app).get("/api/search/suggestions?q=smith");
 
-    const promptWhere = mockPromptFindMany.mock.calls[0]?.[0]?.where as { AND?: unknown[] } | undefined;
-    expect(promptWhere?.AND).toBeDefined();
-    const textBlock = promptWhere!.AND!.find((clause) => {
-      if (typeof clause !== "object" || clause === null || !("OR" in clause)) return false;
-      const or = (clause as { OR: unknown[] }).OR;
-      return or.some((item) => typeof item === "object" && item !== null && "title" in item);
-    });
-    const or = (textBlock as { OR: Array<Record<string, unknown>> }).OR;
-    expect(or).toContainEqual({
-      owner: { name: { contains: "smith", mode: "insensitive" } },
-    });
+    const promptWhere = mockPromptFindMany.mock.calls[0]?.[0]?.where;
+    expect(promptWhere).toBeDefined();
+    const serialized = JSON.stringify(promptWhere);
+    expect(serialized).toContain("smith");
+    expect(serialized).toContain("owner");
+    expect(serialized).toContain("insensitive");
   });
 
   it("returns matching asset suggestions", async () => {

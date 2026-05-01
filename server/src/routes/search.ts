@@ -6,9 +6,9 @@ import { getAuthContext, requireAuth, requireOnboardingComplete } from "../middl
 import { prisma } from "../lib/prisma";
 import { parseSearchQuery } from "../services/searchParser";
 import {
-  contextFreeTextWhere,
-  promptFreeTextWhere,
-  skillFreeTextWhere,
+  contextSuggestionsWhere,
+  promptSuggestionsWhere,
+  skillSuggestionsWhere,
 } from "../lib/assetSearch";
 import { buildVisibilityWhereFragment } from "../lib/visibility";
 import { TOOL_LABELS } from "../lib/toolLabels";
@@ -125,12 +125,13 @@ searchRouter.get("/suggestions", async (req: Request, res: Response) => {
     });
   }
 
-  const assetLimit = Math.max(1, limit - matchingFilters.length);
+  const filtersForClient = matchingFilters.slice(0, 5);
+  const assetLimit = Math.max(1, limit - filtersForClient.length);
   const perTypeLimit = Math.ceil(assetLimit / 3);
 
-  const promptSearchClause = promptFreeTextWhere(q)!;
-  const skillSearchClause = skillFreeTextWhere(q)!;
-  const contextSearchClause = contextFreeTextWhere(q)!;
+  const promptSearchClause = promptSuggestionsWhere(q);
+  const skillSearchClause = skillSuggestionsWhere(q);
+  const contextSearchClause = contextSuggestionsWhere(q);
 
   const [prompts, skills, contextDocs] = await Promise.all([
     prisma.prompt.findMany({
@@ -212,7 +213,7 @@ searchRouter.get("/suggestions", async (req: Request, res: Response) => {
 
   const response: SuggestionsResponse = {
     assets: assetSuggestions,
-    filters: matchingFilters.slice(0, 5),
+    filters: filtersForClient,
   };
 
   return res.status(200).json(response);
