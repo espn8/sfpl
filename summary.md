@@ -12,6 +12,7 @@ Production URL: https://ail.mysalesforcedemo.com (canonical live site — never 
 - **Problem:** Product requirement changed to decommission the authenticated AI Library experience and present a single static homepage notice for all visitors.
 - **Homepage content** — [client/src/features/home/HomePage.tsx](client/src/features/home/HomePage.tsx): replaced the full interactive home experience with static closure copy and outbound links to `#slackbot-skills`, AI Hub for Solutions, and Agentforce Vibes Skills Library.
 - **Routing/auth removal from runtime path** — [client/src/app/router.tsx](client/src/app/router.tsx): reduced routing to a single public `/` route and a wildcard redirect back to `/`, removing login and all protected/admin/content routes from the active router.
+- **Test alignment** — [client/src/features/home/HomePage.test.tsx](client/src/features/home/HomePage.test.tsx): replaced legacy homepage integration assertions with closure-page assertions for static copy and external destination links so pre-push checks reflect the new product state.
 - **Behavior now:** The web app is effectively a static landing page with no login requirement and no in-app navigation surface to legacy authenticated pages.
 - **Prisma:** none. **Deploy/verify:** push to Heroku and confirm only the closure homepage is reachable at https://ail.mysalesforcedemo.com.
 
