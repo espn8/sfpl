@@ -1,8 +1,7 @@
-import { useEffect } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { trackPageView } from "./analytics";
 import { HomePage } from "../features/home/HomePage";
-import { AuthenticatedHomePage } from "../features/home/AuthenticatedHomePage";
 import { LoginPage } from "../features/auth/LoginPage";
 import { ProtectedRoute } from "../components/ProtectedRoute";
 import { AppShell } from "../components/AppShell";
@@ -15,6 +14,12 @@ import { SettingsPage } from "../features/settings/SettingsPage";
 import { HelpPage } from "../features/help/HelpPage";
 import { TermsPage } from "../pages/TermsPage";
 import { PrivacyPage } from "../pages/PrivacyPage";
+
+const AuthenticatedHomePage = lazy(() =>
+  import("../features/home/AuthenticatedHomePage").then((module) => ({
+    default: module.AuthenticatedHomePage,
+  })),
+);
 
 function RouteTracker() {
   const location = useLocation();
@@ -36,7 +41,9 @@ export function AppRouter() {
           path="/home"
           element={
             <ProtectedRoute>
-              <AuthenticatedHomePage />
+              <Suspense fallback={<main className="p-8">Loading...</main>}>
+                <AuthenticatedHomePage />
+              </Suspense>
             </ProtectedRoute>
           }
         />
