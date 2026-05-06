@@ -20,6 +20,7 @@ export function AppRouter() {
       <RouteTracker />
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/temp" element={<LoginPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
