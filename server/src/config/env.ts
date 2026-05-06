@@ -32,6 +32,10 @@ type Env = {
   governanceSweepEnabled: boolean;
   /** Slack Workflow trigger URL: POST when an asset enters PUBLIC + PUBLISHED (optional). */
   slackNewPublicAssetWebhookUrl?: string;
+  /** Optional host lock. When set with path prefix, non-matching requests return 404. */
+  allowedHost?: string;
+  /** Optional path prefix lock (must start with "/"), used with allowedHost. */
+  allowedPathPrefix?: string;
 };
 
 function getRequired(name: string): string {
@@ -82,6 +86,20 @@ function parseBootstrapAdminEmails(raw: string | undefined): Set<string> {
   );
 }
 
+function parseAllowedPathPrefix(raw: string | undefined): string | undefined {
+  const trimmed = raw?.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  if (!trimmed.startsWith("/")) {
+    throw new Error("ALLOWED_PATH_PREFIX must start with '/'.");
+  }
+  if (trimmed.length > 1 && trimmed.endsWith("/")) {
+    return trimmed.slice(0, -1);
+  }
+  return trimmed;
+}
+
 export const env: Env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
   port: Number(process.env.PORT ?? 5000),
@@ -107,4 +125,6 @@ export const env: Env = {
   devWhitelistUserId: Number(process.env.DEV_WHITELIST_USER_ID ?? 1),
   governanceSweepEnabled: parseBoolean("GOVERNANCE_SWEEP_ENABLED", false),
   slackNewPublicAssetWebhookUrl: process.env.SLACK_NEW_PUBLIC_ASSET_WEBHOOK_URL?.trim() || undefined,
+  allowedHost: process.env.ALLOWED_HOST?.trim().toLowerCase() || undefined,
+  allowedPathPrefix: parseAllowedPathPrefix(process.env.ALLOWED_PATH_PREFIX),
 };

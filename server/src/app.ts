@@ -41,6 +41,7 @@ type CreateAppOptions = {
 
 export function createApp(options?: CreateAppOptions): express.Express {
   const app = express();
+  const hostAndPathLockEnabled = Boolean(env.allowedHost && env.allowedPathPrefix);
   const PgStore = connectPgSimple(session);
   const sessionStore =
     options?.sessionStore ??
@@ -81,6 +82,45 @@ export function createApp(options?: CreateAppOptions): express.Express {
     }),
   );
   app.use(express.json());
+  if (hostAndPathLockEnabled) {
+    app.use((req, res, next) => {
+      const hostHeader = req.headers.host;
+      const hostname = hostHeader ? hostHeader.split(":")[0].toLowerCase() : "";
+      const allowedHost = env.allowedHost!;
+      const allowedPathPrefix = env.allowedPathPrefix!;
+      const pathAllowed =
+        req.path === "/" ||
+        req.path === "/login" ||
+        req.path === "/terms" ||
+        req.path === "/privacy" ||
+        req.path === "/favicon.ico" ||
+        req.path === "/manifest.webmanifest" ||
+        req.path === "/robots.txt" ||
+        req.path.startsWith("/assets/") ||
+        req.path.startsWith("/uploads/") ||
+        req.path.startsWith("/api/") ||
+        req.path === allowedPathPrefix ||
+        req.path.startsWith(`${allowedPathPrefix}/`);
+
+      if (hostname !== allowedHost) {
+        res.status(404).type("text/plain").send("Not found");
+        return;
+      }
+
+      if (pathAllowed) {
+        next();
+        return;
+      }
+
+      // Route any other browser path to the default homepage.
+      if (req.method === "GET" || req.method === "HEAD") {
+        res.redirect(302, "/");
+        return;
+      }
+
+      next();
+    });
+  }
   app.use(requestTimingMiddleware);
   app.use(authenticateApiKey);
 

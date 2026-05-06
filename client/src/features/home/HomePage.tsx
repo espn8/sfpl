@@ -36,6 +36,15 @@ export function HomePage() {
             </a>
           </li>
         </ul>
+        <div className="pt-4 text-sm">
+          <a href="/terms" className="text-(--color-primary) underline">
+            Terms of Service
+          </a>
+          <span className="px-2 text-(--color-text-muted)">|</span>
+          <a href="/privacy" className="text-(--color-primary) underline">
+            Privacy Policy
+          </a>
+        </div>
       </div>
     </main>
   );
