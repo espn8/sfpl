@@ -1,4 +1,18 @@
+import { useQuery } from "@tanstack/react-query";
+import { Navigate } from "react-router-dom";
+import { fetchMe } from "../auth/api";
+
 export function HomePage() {
+  const meQuery = useQuery({
+    queryKey: ["auth", "me"],
+    queryFn: fetchMe,
+    retry: false,
+  });
+
+  if (meQuery.data) {
+    return <Navigate to="/prompts" replace />;
+  }
+
   return (
     <main className="flex min-h-[60vh] items-center justify-center px-6">
       <div className="max-w-2xl space-y-4 text-center">
