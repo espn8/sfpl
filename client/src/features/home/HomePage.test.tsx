@@ -1,12 +1,31 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { describe, expect, it, vi } from "vitest";
 import { HomePage } from "./HomePage";
+import { fetchMe } from "../auth/api";
+
+vi.mock("../auth/api", () => ({
+  fetchMe: vi.fn(),
+}));
+
 function renderHome() {
-  return render(<HomePage />);
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <HomePage />
+    </QueryClientProvider>,
+  );
 }
 
 describe("HomePage", () => {
   it("renders closure copy", () => {
+    vi.mocked(fetchMe).mockRejectedValueOnce(new Error("unauthorized"));
     renderHome();
 
     expect(screen.getByRole("heading", { name: "The AI Library is closed." })).toBeInTheDocument();
@@ -14,6 +33,7 @@ describe("HomePage", () => {
   });
 
   it("renders all shutdown destination links", () => {
+    vi.mocked(fetchMe).mockRejectedValueOnce(new Error("unauthorized"));
     renderHome();
 
     expect(screen.getByRole("link", { name: "#slackbot-skills" })).toHaveAttribute(
