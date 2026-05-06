@@ -94,6 +94,8 @@ export function createApp(options?: CreateAppOptions): express.Express {
       const pathAllowed =
         req.path === "/" ||
         req.path === "/login" ||
+        req.path === "/home" ||
+        req.path.startsWith("/home/") ||
         req.path === "/terms" ||
         req.path === "/privacy" ||
         req.path === "/prompts" ||

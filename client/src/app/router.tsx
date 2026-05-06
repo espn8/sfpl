@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { trackPageView } from "./analytics";
 import { HomePage } from "../features/home/HomePage";
+import { AuthenticatedHomePage } from "../features/home/AuthenticatedHomePage";
 import { LoginPage } from "../features/auth/LoginPage";
 import { ProtectedRoute } from "../components/ProtectedRoute";
 import { AppShell } from "../components/AppShell";
@@ -31,6 +32,14 @@ export function AppRouter() {
         <Route path="/" element={<HomePage />} />
         <Route path="/temp" element={<LoginPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/home"
+          element={
+            <ProtectedRoute>
+              <AuthenticatedHomePage />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/prompts"
           element={

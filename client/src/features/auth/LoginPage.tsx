@@ -18,7 +18,7 @@ export function LoginPage() {
   }
 
   if (meQuery.data) {
-    return <Navigate to="/prompts" replace />;
+    return <Navigate to="/home" replace />;
   }
 
   return (
