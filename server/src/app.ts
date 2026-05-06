@@ -96,6 +96,20 @@ export function createApp(options?: CreateAppOptions): express.Express {
         req.path === "/login" ||
         req.path === "/terms" ||
         req.path === "/privacy" ||
+        req.path === "/prompts" ||
+        req.path.startsWith("/prompts/") ||
+        req.path === "/skills" ||
+        req.path.startsWith("/skills/") ||
+        req.path === "/context" ||
+        req.path.startsWith("/context/") ||
+        req.path === "/builds" ||
+        req.path.startsWith("/builds/") ||
+        req.path === "/collections" ||
+        req.path.startsWith("/collections/") ||
+        req.path === "/settings" ||
+        req.path.startsWith("/settings/") ||
+        req.path === "/help" ||
+        req.path.startsWith("/help/") ||
         req.path === "/favicon.ico" ||
         req.path === "/manifest.webmanifest" ||
         req.path === "/robots.txt" ||

@@ -386,7 +386,7 @@ authRouter.get("/google/callback", authRateLimit, async (req: Request, res: Resp
           },
         });
       }
-      return res.redirect(env.appBaseUrl);
+      return res.redirect(`${env.appBaseUrl}/temp`);
     });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2022") {
