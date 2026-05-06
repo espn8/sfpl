@@ -41,9 +41,11 @@ export function AppRouter() {
           path="/home"
           element={
             <ProtectedRoute>
-              <Suspense fallback={<main className="p-8">Loading...</main>}>
-                <AuthenticatedHomePage />
-              </Suspense>
+              <AppShell>
+                <Suspense fallback={<main className="p-8">Loading...</main>}>
+                  <AuthenticatedHomePage />
+                </Suspense>
+              </AppShell>
             </ProtectedRoute>
           }
         />
