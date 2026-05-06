@@ -88,6 +88,9 @@ export function createApp(options?: CreateAppOptions): express.Express {
       const hostname = hostHeader ? hostHeader.split(":")[0].toLowerCase() : "";
       const allowedHost = env.allowedHost!;
       const allowedPathPrefix = env.allowedPathPrefix!;
+      const isRootStaticFile = /\.(?:ico|png|jpe?g|gif|webp|svg|avif|txt|webmanifest)$/i.test(
+        req.path,
+      );
       const pathAllowed =
         req.path === "/" ||
         req.path === "/login" ||
@@ -96,6 +99,7 @@ export function createApp(options?: CreateAppOptions): express.Express {
         req.path === "/favicon.ico" ||
         req.path === "/manifest.webmanifest" ||
         req.path === "/robots.txt" ||
+        isRootStaticFile ||
         req.path.startsWith("/assets/") ||
         req.path.startsWith("/uploads/") ||
         req.path.startsWith("/api/") ||
