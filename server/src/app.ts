@@ -112,6 +112,16 @@ export function createApp(options?: CreateAppOptions): express.Express {
         req.path.startsWith("/settings/") ||
         req.path === "/help" ||
         req.path.startsWith("/help/") ||
+        req.path === "/search" ||
+        req.path.startsWith("/search/") ||
+        req.path === "/users" ||
+        req.path.startsWith("/users/") ||
+        req.path === "/admin" ||
+        req.path.startsWith("/admin/") ||
+        req.path === "/analytics" ||
+        req.path.startsWith("/analytics/") ||
+        req.path === "/changelog" ||
+        req.path.startsWith("/changelog/") ||
         req.path === "/favicon.ico" ||
         req.path === "/manifest.webmanifest" ||
         req.path === "/robots.txt" ||
